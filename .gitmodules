@@ -1,0 +1,15 @@
+[submodule ".claude/skills/beeb-baron"]
+	path = .claude/skills/beeb-baron
+	url = https://github.com/waitingforvsync/beeb-baron
+[submodule "rich/criticalmass"]
+	path = rich/criticalmass
+	url = https://github.com/waitingforvsync/criticalmass
+[submodule "rich/exolon-beeb"]
+	path = rich/exolon-beeb
+	url = https://github.com/waitingforvsync/exolon-beeb
+[submodule "rich/chasehq-beeb"]
+	path = rich/chasehq-beeb
+	url = https://github.com/waitingforvsync/chasehq-beeb
+[submodule "rich/teddyboy"]
+	path = rich/teddyboy
+	url = https://github.com/waitingforvsync/teddyboy
