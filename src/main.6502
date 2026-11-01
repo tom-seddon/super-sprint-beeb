@@ -246,6 +246,7 @@ ZA_AUTO1 carnum                         ; the car being drawn
 
     \\ the background objects, then the cars
 
+.objects
     JSR obj_events
 .read
     LDA ebuf:STA eidx

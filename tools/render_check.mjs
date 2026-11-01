@@ -8,6 +8,8 @@
 // Usage (from the repo root, after make):
 //   node tools/render_check.mjs [--frames N] [--model build/check/model_t5.bin] [--dump N]
 //       --dump N: write frame N's drawn and expected screens to build/check/frameN-{bbc,model}.bin
+//       --json PATH: write each frame's cycles to PATH: work, and its parts (trace: the test's own reading
+//           of the race and its HUD events, which the game's logic will replace)
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { bootDisc, cycles, ram, runTo, symbols } from "./jsbeeb.mjs";
@@ -29,7 +31,7 @@ const TvFrame = 39936;
 const s = await bootDisc();
 const peek = (a) => s.readMemory(a, 1)[0];
 const work = [], tv = [];
-const parts = { erase: [], read: [], plot: [], hud: [] };
+const parts = { erase: [], read: [], plot: [], hud: [], trace: [] };
 let wrong = 0, firstWrong = null, lastVsyncs = null;
 
 for (let n = 0; n < want; n++) {
@@ -40,6 +42,8 @@ for (let n = 0; n < want; n++) {
     lastVsyncs = v;
     await runTo(s, syms["frame_loop.erased"]);
     const t1 = cycles(s);
+    await runTo(s, syms["frame_loop.objects"]);
+    parts.trace.push(cycles(s) - t1);
     await runTo(s, syms["frame_loop.read"]);
     const t2 = cycles(s);
     await runTo(s, syms["frame_loop.plotted"]);
@@ -70,6 +74,7 @@ for (let n = 0; n < want; n++) {
     }
 }
 
+if (option("--json", null)) writeFileSync(option("--json"), JSON.stringify({ work, ...parts }));
 const sorted = [...work].sort((a, b) => a - b);
 const pct = (p) => sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))];
 const mean = work.reduce((a, b) => a + b, 0) / work.length;

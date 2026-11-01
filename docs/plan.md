@@ -183,7 +183,7 @@ adds the logic.
 ### Phase 2: graphics and colour (done)
 - The conversion pipeline, six options on all 8 tracks, checked on jsbeeb's Master 128. Packed sizes.
 
-### Phase 3: renderer (under way: `docs/renderer.md`)
+### Phase 3: renderer (done, 2026-11-01: `docs/renderer.md`)
 - Done: boot, the OS's memory left alone (D7), MODE 1 with 26 rows, shadow double-buffering at 50 fps; the
   four cars erased, drawn and put under the priority mask, from the ST's race on track 6, every frame
   checked against a model; timed (11,071 cycles a frame on average, 16,259 at worst). Sprite storage:
@@ -205,6 +205,31 @@ adds the logic.
 ### Phase 4: one race
 - Physics, collisions, drones, laps, scoring, HUD, input for 3 players, sound. One track, played start to
   finish, checked against Hatari traces.
+- **The logic's cycles**, what the renderer leaves of a TV frame (39,936), measured over the first ~320
+  frames of race 17 on each track with every hazard (`render_check.mjs --json`; the race's set-up and the
+  test's own trace reading, about 600 a frame, left out):
+
+  | Track (index) | Mean left | 90% of frames | 99% | Worst | Frames over with logic 12K / 16K / 20K |
+  |---|---|---|---|---|---|
+  | 0 | 24,180 | 22,064 | 20,580 | 15,045 | 0 / 1 / 1 of 329 |
+  | 1 | 24,009 | 21,961 | 20,564 | 12,250 | 0 / 1 / 3 of 323 |
+  | 2 | 22,812 | 19,292 | 13,390 | 8,951 | 1 / 12 / 47 of 330 |
+  | 3 | 19,653 | 10,277 | 7,021 | 6,045 | 54 / 93 / 117 of 312 |
+  | 4 | 18,227 | 9,521 | 3,132 | 1,291 | 52 / 107 / 160 of 315 |
+  | 5 | 23,460 | 20,064 | 14,651 | 11,956 | 1 / 9 / 32 of 321 |
+  | 6 | 24,340 | 22,168 | 19,576 | 10,567 | 1 / 1 / 5 of 330 |
+  | 7 | 20,404 | 12,927 | 9,651 | 7,435 | 27 / 84 / 122 of 331 |
+
+  The logic (4 cars, the IRQ's sound and ADC, input) has to fit in these. A frame over only drops the
+  display to 25 fps for a moment (D2), but the busy tracks (3, 4, 7: bridges, gates, the helicopter) would
+  do so a quarter to a third of the time at the plan's 16,000. Aim for about 10,000-12,000.
+- **The logic's memory**: main RAM `&1813`-`&29FF` free (4,589 bytes) for code, about 100 bytes of
+  `&2E00`-`&2FFF` for variables, and `&3000`-`&3EFF` (3,840) when ACCCON's X isn't set to shadow; zero page
+  `&71`-`&FB`. The fourth bank has 11,361 bytes after the helicopter; the objects' bank 2,933 to 8,424 by
+  track; the cars' bank 504 to 2,346 with three players. The race's own data: mask B (walls) 8,000 bytes at
+  1 bit a pixel, the attribute map 1,000, a drone path about 900; sound about 12K for all, before
+  transcoding. Mask B is the big one: stored only for the cells that aren't all road or all wall, as the
+  priority mask is, it would be much less.
 
 ### Phase 5: the game
 - All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
