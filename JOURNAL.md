@@ -72,3 +72,21 @@
 - **D2 decided** (Tom): 50 fps is the goal, as the ST, for the difference it makes on a CRT. 40,000 cycles a
   frame against an estimate of about 42,000; the main loop counts vsyncs so an overrun costs one frame, not
   the game's speed.
+
+## 2026-11-01: Phase 3, the renderer test
+
+- `tools/st_trace_cars.py`: the ST's attract race on track 6 recorded in Hatari, 1,144 frames (draw order;
+  per car x, y, facing, flags) from a breakpoint on the flip.
+- `src/`: the first 6502, in Baron, after Chase H.Q.'s layout (boot, sprint, entry, irq, main, cars, erase,
+  memory, constants, macros), CMOS opcodes allowed (D4). `make beeb` builds `build/sprint.ssd`; `make check`
+  runs it in headless jsbeeb's Master 128 (`tools/render_check.mjs`) against `tools/render_model.py`.
+- All 1,144 frames match the model. Broken on purpose the check fails (priority off: 282 frames wrong; an
+  erase skipped: 96 of 100), and passes again once restored.
+- Each car's frames use at most three colours, so the fourth is a transparent key: no mask bytes, two
+  256-byte tables.
+- First version 15,518 cycles a frame on average (erase 5,213, plot 10,094), 21,251 at worst. With the
+  columns unrolled (a line of every column a loop pass, operands patched once a band) and each
+  frame-shift in a page: 12,311 (erase 3,682, plot 8,418), 20,822 at worst. Priority costs about 1,670 a
+  frame on average, about 8,300 at worst; every swap came one vsync after the last.
+- The cars' bank is full (57 bytes free): frames 10,615, priority 3,664, tables 1,152, plotter 732. The
+  priority expansions moved to main RAM to make room.

@@ -1,0 +1,156 @@
+\\ entry.6502 - the loader, SPRINT's entry point: takes the machine over, copies main RAM's code down to
+\\ where it runs, makes the tables, sets the screen up and starts the vsync interrupt.
+
+\\ It comes last in the file, above main RAM's code's image, so nothing it writes reaches it. The OS's memory
+\\ is left as it was (D7) but IRQ1V; its NMIs are claimed, so a network filing system stops listening.
+
+ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where it's copied to"
+
+\\ Take the machine over and start the frame loop.
+\\
+\\ Inputs:
+\\     bankbg, bankcars, banktrace: the banks, filled
+\\
+\\ Outputs:
+\\     none: it goes on to start
+
+.entry
+{
+    ZA_ENTRY
+    CLD
+    CLI
+    LDA #19:JSR &FFF4                   ; OSBYTE 19, vsync: the calls below hold interrupts off a while
+    LDA #16:LDX #0:JSR &FFF4            ; OSBYTE 16: the ADC off
+    LDA #143:LDX #12:LDY #255:JSR &FFF4 ; OSBYTE 143: NMIs claimed from the filing system
+    LDA #19:JSR &FFF4                   ; vsync before changing the CRTC
+    SEI
+    LDX #&FF:TXS
+
+    \\ the CRTC: MODE 1's, 26 rows from HudAddr, the display off until start's drawn both screens
+
+    LDX #13
+.crtc
+    STX &FE00                           ; CRTC: the register
+    LDA CrtcRegs,X:STA &FE01            ; CRTC: its value
+    DEX
+    BPL crtc
+
+    \\ the Video ULA: MODE 1, the palette (D1)
+
+    LDA #UlaMode1:STA &FE20             ; video ULA: control
+    LDX #15
+.palette
+    LDA PalVals,X:STA &FE21             ; video ULA: palette
+    DEX
+    BPL palette
+
+    \\ main RAM's code copied down to where it runs, a page at a time (its image is whole pages, at most:
+    \\ the copy's overrun lands in GameVars, which is zeroed after)
+
+    LDX #HI(maincode_end - maincode_image + &FF)
+    LDY #0
+.copy
+    LDA maincode_image,Y                ; self-modified: the page's high byte
+    STA MainCodeOrg,Y                   ; self-modified: the page's high byte
+    INY
+    BNE copy
+    INC copy+2
+    INC copy+5
+    DEX
+    BNE copy
+
+    \\ the game's variables zeroed (nothing drawn to erase), IRQ1V ours, the tables made
+
+    LDA #0:TAX
+.clear
+    FOR page = HI(GameVarsOrg)..<HI(GameVarsEnd)
+        STA page * &100,X
+    NEXT
+    INX
+    BNE clear
+    LDA #LO(irq):STA &204
+    LDA #HI(irq):STA &205
+    JSR make_tables
+
+    \\ the VIAs: the System VIA's CA1 (vsync) the only interrupt; the keyboard's auto-scan off
+
+    LDA #&7F:STA &FE4E:STA &FE6E        ; system, user VIAs: IER, every interrupt off
+    STA &FE4D:STA &FE6D                 ; IFR: every flag cleared
+    LDA #&0F:STA &FE42                  ; system VIA: DDRB, PB0-3 drive the addressable latch
+    LDA #&03:STA &FE40                  ; addressable latch: keyboard auto-scan off
+    LDA #4:STA &FE4C                    ; system VIA: PCR 4, CA1 on vsync's falling edge
+    LDA #&82:STA &FE4E                  ; system VIA: IER, CA1 only
+
+    \\ ACCCON: the main screen shown and written, HAZEL out; IFJ and ITU as the OS had them
+
+    LDA &FE34:AND #&30:STA acccon       ; ACCCON
+    STA &FE34
+    STZ swapreq
+    STZ vsyncs
+    CLI
+    JMP start
+}
+
+\\ Make the cars' tables. A frame's byte holds four 2-bit values, a pixel's high bit at 7 - n and its low at
+\\ 3 - n: 2 is the key (0 and 3 black and white, 1 the car's colour).
+\\
+\\ Inputs:
+\\     none
+\\
+\\ Outputs:
+\\     MaskTab: the key's pixels' bits
+\\     DataId, DataYellow, DataWhite: the byte with the key's pixels cleared, 1 as green, yellow, white
+\\     PExpHi, PExpLo: a byte of 8 pixels' bits -> its left or right 4 as a screen mask
+\\     A, X: corrupted
+
+.make_tables
+{
+    ZA_AUTO1 hi4                        ; local: the byte's high bits, as a nibble
+    ZA_AUTO1 lo4                        ; local: its low bits
+    ZA_AUTO1 ones                       ; local: its value-1 pixels, as a nibble
+    ZA_AUTO1 t                          ; local: a scratch
+
+    LDX #0
+.loop
+    TXA:LSR A:LSR A:LSR A:LSR A:STA hi4
+    TXA:AND #&0F:STA lo4
+    EOR #&0F:AND hi4:STA t              ; the key's pixels: high bit set, low clear
+    ASL A:ASL A:ASL A:ASL A:ORA t
+    STA MaskTab,X
+    EOR #&FF:STA t
+    TXA:AND t:STA DataId,X
+    LDA hi4:EOR #&0F:AND lo4:STA ones   ; value 1: high bit clear, low set
+    ASL A:ASL A:ASL A:ASL A:STA t        ; (their high bits)
+    ORA DataId,X:STA DataWhite,X        ; 1 -> 3
+    LDA ones:EOR #&FF:AND DataId,X
+    ORA t:STA DataYellow,X              ; 1 -> 2
+
+    TXA:AND #&F0:STA t                  ; the left 4 pixels' bits
+    LSR A:LSR A:LSR A:LSR A:ORA t
+    STA PExpHi,X
+    TXA:AND #&0F:STA t                  ; the right 4's
+    ASL A:ASL A:ASL A:ASL A:ORA t
+    STA PExpLo,X
+    INX
+    BNE loop
+    RTS
+}
+
+.CrtcRegs                               ; R0-R13
+    EQUB 127                            ; R0: horizontal total
+    EQUB 80                             ; R1: displayed
+    EQUB ScreenHSyncPos                 ; R2: sync position
+    EQUB &28                            ; R3: sync widths
+    EQUB 38                             ; R4: vertical total
+    EQUB 0                              ; R5: total adjust
+    EQUB ScreenRows                     ; R6: displayed
+    EQUB ScreenVSyncPos                 ; R7: sync position
+    EQUB &F0                            ; R8: no interlace, display and cursor off
+    EQUB 7                              ; R9: scan lines a row
+    EQUB 32                             ; R10: cursor off
+    EQUB 7                              ; R11: cursor end
+    EQUB HI(HudAddr DIV 8)              ; R12: screen start, high
+    EQUB LO(HudAddr DIV 8)              ; R13: screen start, low
+
+.PalVals                                ; palette entry e is logical e DIV 8 * 2 + e DIV 2 MOD 2's (MODE 1)
+    EQUB (0..15) * 16 + (PalPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)

@@ -1,0 +1,163 @@
+\\ main.6502 - the renderer test's frame loop: each frame, the cars drawn two frames ago in this screen
+\\ erased, the ST race's next frame read, and the four cars drawn, then shown at the next vsync.
+
+SECTION GameVars
+.CarXLo                                 ; per car in draw order: x's low byte (the ST's sprite box, pixels)
+    SKIP 4
+.CarY                                   ; y
+    SKIP 4
+.CarFlags                               ; frame (car * 16 + facing) | on top (elevated or airborne) << 6 |
+    SKIP 4                              ; x's high bit << 7
+.EraseCol                               ; per screen (X, 0 or 4) and car: what it drew, to erase: the first
+    SKIP 8                              ; byte column,
+.EraseTop                               ; the first line,
+    SKIP 8
+.EraseW                                 ; the width in bytes,
+    SKIP 8
+.EraseH                                 ; and the height in lines (0: nothing drawn)
+    SKIP 8
+.Frames                                 ; frames drawn, for the tests
+    SKIP 2
+ENDSECTION
+
+ZA_AUTO1 ebuf                           ; the screen drawn: ACCCON's X bit, 0 or 4, the erase lists' index
+
+\\ The screen's character rows' addresses (in main RAM: both banks' code reads them)
+
+.RowLo
+    EQUB LO(PlayAddr + (0..<PlayRows) * RowBytes)
+.RowHi
+    EQUB HI(PlayAddr + (0..<PlayRows) * RowBytes)
+
+\\ Both screens: the HUD's row cleared and the play area the clean background, from its bank; then the
+\\ display on and the frame loop. In main RAM: ACCCON's X hides &3000-&7FFF, the loader among it.
+\\
+\\ Inputs:
+\\     acccon: the main screen shown and written (D and X 0)
+\\
+\\ Outputs:
+\\     none: it goes on to frame_loop
+
+.start
+{
+    LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
+    JSR fill_screen
+    LDA acccon:ORA #AccX
+    STA &FE34                           ; ACCCON: the shadow screen written
+    JSR fill_screen
+    LDA acccon
+    STA &FE34                           ; ACCCON: the main screen written again
+    LDA #8:STA &FE00                    ; CRTC: R8
+    LDA #&C0:STA &FE01                  ; display on, cursor off
+    JMP frame_loop
+}
+
+\\ The screen written: the HUD's row cleared, the play area copied from the clean background.
+\\
+\\ Inputs:
+\\     the background's bank paged in
+\\
+\\ Outputs:
+\\     A, X, Y: corrupted
+
+.fill_screen
+{
+    LDA #0:TAY
+.hud
+    STA HudAddr,Y
+    STA HudAddr+&100,Y
+    INY
+    BNE hud
+    LDY #RowBytes-&200-1
+.hudtail
+    STA HudAddr+&200,Y
+    DEY
+    BPL hudtail
+
+    LDA #HI(BgOrg):STA copy+2
+    LDA #HI(PlayAddr):STA copy+5
+    LDX #HI(PlayBytes)
+    INY                                 ; (Y = &FF: 0)
+.copy
+    LDA BgOrg,Y                         ; self-modified: the page's high byte
+    STA PlayAddr,Y                      ; self-modified: the page's high byte
+    INY
+    BNE copy
+    INC copy+2
+    INC copy+5
+    DEX
+    BNE copy
+    ASSERT LO(PlayBytes) <= &80 AND LO(PlayAddr) == &80, "the copy's tail: Y counts down from 127 at most"
+    LDY #LO(PlayBytes)-1
+.tail
+    LDA BgOrg+(PlayBytes AND &FF00),Y
+    STA PlayAddr+(PlayBytes AND &FF00),Y
+    DEY
+    BPL tail
+    RTS
+}
+
+\\ The frame loop: wait until the last frame's shown, draw the next into the other screen, ask for it.
+\\
+\\ Inputs:
+\\     acccon: D and X both the main screen's (0): it's shown, and drawn first
+\\
+\\ Outputs:
+\\     none: it never returns
+
+.frame_loop
+{
+    ZA_AUTO2 tptr                       ; local: the trace's next frame
+
+    LDA #LO(TraceData):STA tptr
+    LDA #HI(TraceData):STA tptr+1
+
+.wait
+    LDA swapreq:BNE wait
+    LDA acccon:EOR #AccX:STA acccon
+    STA &FE34                           ; ACCCON: the CPU's &3000-&7FFF the screen not shown
+.frame_top
+    AND #AccX:STA ebuf
+
+    \\ the cars drawn into this screen two frames ago, erased
+
+    LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
+    JSR erase_cars
+.erased
+
+    \\ the race's next frame: four cars in draw order, 3 bytes each
+
+    LDA banktrace:STA &FE30             ; ROMSEL: the trace's bank
+    LDY #0
+    LDX #0
+.car
+    LDA (tptr),Y:STA CarXLo,X:INY
+    LDA (tptr),Y:STA CarY,X:INY
+    LDA (tptr),Y:STA CarFlags,X:INY
+    INX:CPX #4
+    BNE car
+    TYA:CLC:ADC tptr:STA tptr           ; (Y = 12)
+    BCC @+
+    INC tptr+1
+.@
+    LDA tptr:CMP #LO(TraceEnd)
+    BNE @+
+    LDA tptr+1:CMP #HI(TraceEnd)
+    BNE @+
+    LDA #LO(TraceData):STA tptr
+    LDA #HI(TraceData):STA tptr+1
+.@
+
+    \\ the cars drawn
+
+    LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank
+.read
+    JSR plot_cars
+.frame_end
+    INC Frames
+    BNE @+
+    INC Frames+1
+.@
+    INC swapreq                         ; (0 to 1) shown at the next vsync
+    BRA wait
+}

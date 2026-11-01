@@ -1,0 +1,130 @@
+\\ boot.6502 - !BOOT, *RUN by SHIFT-BREAK (*OPT 4,2): checks for a Master 128, finds the sideways RAM, copies
+\\ each bank's file into its bank, loads SPRINT and runs it. The OS stays alive; this file is assembled on
+\\ its own, in NMOS code, so a Model B gets the error.
+
+bankbg = &00                            ; the banks found, for the game (memory.6502's): the background's,
+bankcars = &01                          ; the cars', the trace's (BASIC's zero page, written once nothing
+banktrace = &02                         ; can fail)
+BanksNeeded = 3
+
+BootOrg = &1200                         ; below where the files load
+LoadAddr = &3000                        ; where a bank's file loads, to be copied in, and SPRINT
+
+SECTION Boot, filename = "!BOOT", org = BootOrg, load = &FFFF0000+BootOrg, exec = &FFFF0000+boot_entry
+
+ZA_POOL &70..&8F                        ; the OS leaves these to us
+
+\\ Run by *RUN: check the machine, find the banks, copy the game into them, load SPRINT and run it.
+\\
+\\ Inputs:
+\\     none
+\\
+\\ Outputs:
+\\     bankbg, bankcars, banktrace: the banks, for the game; it never returns
+
+.boot_entry
+{
+    ZA_ENTRY
+    ZA_AUTO BanksNeeded, banks          ; local: the banks found, as bankbg on
+
+    LDA #15:LDX #0:JSR &FFF4            ; OSBYTE 15: the BREAK beep flushed
+    LDA #0:LDX #1:JSR &FFF4             ; OSBYTE 0: the OS's version in X
+    CPX #3:BCS master                   ; 3 on: a Master's
+    BRK
+    EQUB 0
+    EQUS "Super Sprint needs a Master 128", 0
+    ZA_UNREACHABLE                      ; the BRK doesn't come back
+.master
+
+    \\ the banks: the highest numbered that take a write and that the OS's ROM type table doesn't list (a ROM
+    \\ image the OS would still call, a filing system held in RAM: D4). &F4 is written before ROMSEL, so the
+    \\ OS would page it back
+
+    LDA &F4:PHA                         ; the ROM paged in now
+    LDY #BanksNeeded-1                  ; banks still to find, less one
+    LDX #15
+.probe
+    LDA &2A1,X:BNE nope                 ; the OS's ROM type table: one it knows
+    STX &F4:STX &FE30                   ; ROMSEL: bank X at &8000
+    LDA &8000:EOR #&FF:STA &8000
+    EOR #&FF:CMP &8000                  ; Z: it didn't take
+    STA &8000                           ; put it back (STA keeps Z)
+    BEQ nope
+    STX banks,Y:ZA_INDEXEDBY 0..BanksNeeded-1
+    DEY:BMI found
+.nope
+    DEX
+    BPL probe
+    PLA:STA &F4:STA &FE30               ; ROMSEL: the ROM back
+    BRK
+    EQUB 0
+    EQUS "Super Sprint needs ", AS_STRING(BanksNeeded * 16), "K of free sideways RAM", 0
+    ZA_UNREACHABLE                      ; the BRK doesn't come back
+.found
+
+    \\ each bank's file loaded at LoadAddr (its catalogue's address, so OSFILE's write-back leaves the block
+    \\ ready for the next) and copied into its bank, all 16K
+
+    FOR i = 0..BanksNeeded-1
+        LDA #LO(BankNames+i*8):STA OsfileBlock
+        LDA #HI(BankNames+i*8):STA OsfileBlock+1
+        LDA #&FF:LDX #LO(OsfileBlock):LDY #HI(OsfileBlock):JSR &FFDD ; OSFILE: load
+        LDA banks+i:STA &F4:STA &FE30   ; ROMSEL: the bank
+        JSR copy_bank
+    NEXT
+    PLA:STA &F4:STA &FE30               ; ROMSEL: the ROM back
+
+    \\ SPRINT loaded at its own address (exec's low byte non-zero), then the banks handed over and it run
+    \\ from the exec address OSFILE wrote back
+
+    LDA #LO(SprintName):STA OsfileBlock
+    LDA #HI(SprintName):STA OsfileBlock+1
+    LDA #&FF:STA OsfileBlock+6
+    LDX #LO(OsfileBlock):LDY #HI(OsfileBlock):JSR &FFDD ; OSFILE: load (A = &FF)
+    FOR i = 0..BanksNeeded-1
+        LDA banks+i:STA bankbg+i
+    NEXT
+    JMP (OsfileBlock+6)                 ; SPRINT's entry
+    ZA_CANJUMP LoadAddr                 ; (another assembly's code, in the file loaded there)
+}
+
+\\ The 16K at LoadAddr copied to the bank paged in.
+\\
+\\ Inputs:
+\\     the bank paged in
+\\
+\\ Outputs:
+\\     A, X, Y: corrupted
+
+.copy_bank
+{
+    LDA #HI(LoadAddr):STA copy+2
+    LDA #&80:STA copy+5
+    LDX #&40
+    LDY #0
+.copy
+    LDA LoadAddr,Y                      ; self-modified: the page's high byte
+    STA &8000,Y                         ; self-modified: the page's high byte
+    INY
+    BNE copy
+    INC copy+2
+    INC copy+5
+    DEX
+    BNE copy
+    RTS
+}
+
+.BankNames                              ; the banks' files, each 7 letters and a CR
+    EQUS "SPRINTA", 13
+    EQUS "SPRINTB", 13
+    EQUS "SPRINTC", 13
+    ASSERT P% - BankNames == BanksNeeded * 8, "a name for each bank"
+.SprintName
+    EQUS "SPRINT", 13
+.OsfileBlock                            ; OSFILE's block: the name, then the load address
+    EQUW 0
+    EQUD &FFFF0000 + LoadAddr           ; (in the I/O processor, Tube or no Tube)
+    EQUD 0                              ; exec: its low byte 0, so the load goes to the address above
+    SKIP 8
+
+ENDSECTION

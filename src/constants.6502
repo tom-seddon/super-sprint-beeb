@@ -1,0 +1,35 @@
+\\ constants.6502 - the screen's geometry and the hardware's set-up values.
+
+\\ The screen: MODE 1, 80 bytes (320 pixels) across, 26 character rows from HudAddr: the HUD's row, then the
+\\ play area's 25 (the ST's 320 x 200, D6). One screen in main RAM and one in shadow RAM, at the same
+\\ addresses; ACCCON picks which is shown and which the CPU writes.
+
+RowBytes = 640                          ; a character row: 80 columns of 8 bytes, a column's lines together
+PlayRows = 25
+HudAddr = &3F00
+PlayAddr = HudAddr + RowBytes
+PlayBytes = PlayRows * RowBytes
+ScreenRows = PlayRows + 1
+
+ASSERT PlayAddr + PlayBytes == &8000, "the screen ends at &8000"
+ASSERT LO(HudAddr DIV 8) == &E0 AND HI(HudAddr DIV 8) == &07, "R12/R13: &07E0"
+
+\\ The CRTC: MODE 1's, 26 rows, the vsync where the viewer had it (checked on a real BBC)
+
+ScreenHSyncPos = 98
+ScreenVSyncPos = 31
+
+\\ The Video ULA: MODE 1's control register, and the palette (D1, option B): black, green, yellow, white
+
+UlaMode1 = &D8
+PalPhys = {0, 2, 3, 7}                  ; logical 0-3's physical colours
+
+\\ ACCCON (&FE34): D, bit 0, the screen shown is shadow's; X, bit 2, the CPU's &3000-&7FFF is shadow's
+
+AccD = 1
+AccX = 4
+
+\\ The car frames' pixels (tools/gendata.py): 2-bit values, 2 the transparent key; 1 is drawn green, yellow or
+\\ white by the car's data table
+
+CarKey = 2

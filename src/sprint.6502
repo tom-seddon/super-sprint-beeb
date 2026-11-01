@@ -1,0 +1,45 @@
+\\ sprint.6502 - the renderer test's files (Phase 3): SPRINTA, SPRINTB and SPRINTC, the sideways RAM banks'
+\\ images (the background, the cars, an ST race's trace), which !BOOT copies into the banks it found; and
+\\ SPRINT, main RAM's code, then the loader that copies it into place.
+\\
+\\ No code in one bank reads another's data: each routine is in the bank with its data, or in main RAM,
+\\ paging in the bank whose data it reads.
+
+INCLUDE "constants.6502"
+INCLUDE "memory.6502"
+INCLUDE "macros.6502"
+
+SECTION BgFile, filename = "SPRINTA", load = &FFFF0000+LoadAddr
+    SECTION BgBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
+        INCLUDE "erase.6502"
+        PADTO BgOrg
+        INCBIN "../build/gen/bg.bin"    ; the play area, clean, as the screen's (tools/gendata.py)
+        ASSERT P% == SwramEnd, "the background ends at the bank's end"
+    ENDSECTION
+ENDSECTION
+
+SECTION CarsFile, filename = "SPRINTB", load = &FFFF0000+LoadAddr
+    SECTION CarsBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
+        INCLUDE "cars.6502"
+    ENDSECTION
+ENDSECTION
+
+SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
+    SECTION TraceBank, org = SwramOrg, guard = SwramEnd
+        INCLUDE "../build/gen/trace.6502"
+.TraceData
+        INCBIN "../build/gen/trace.bin" ; the race's cars, 12 bytes a frame (tools/gendata.py)
+.TraceEnd
+        ASSERT TraceEnd - TraceData == TraceFrames * 12, "the trace: 12 bytes a frame"
+    ENDSECTION
+ENDSECTION
+
+SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entry, filename = "SPRINT", guard = HudAddr, cmos = TRUE
+.maincode_image
+    SECTION MainCode, org = MainCodeOrg, guard = GameVarsOrg, cmos = TRUE
+        INCLUDE "irq.6502"
+        INCLUDE "main.6502"
+    ENDSECTION
+.maincode_end
+    INCLUDE "entry.6502"
+ENDSECTION

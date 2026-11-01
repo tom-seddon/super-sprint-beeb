@@ -1,0 +1,355 @@
+\\ cars.6502 - the cars' bank: the frames, the priority cells, and the plotter that reads them.
+\\
+\\ A frame-shift (frame * 4 + x AND 3) is stored trimmed to the bytes and rows its pixels cover, a column's
+\\ rows together, wholly in a page and 7 bytes or more in (tools/gendata.py). It's drawn a character row (a
+\\ band) at a time: in a band a column's lines are consecutive on the screen, so Y, the line in the cell,
+\\ indexes every column's cell and its data alike. The fast loop draws a line of every column a pass, the
+\\ columns unrolled, their operands patched once a band. A car on the ground goes under the priority mask:
+\\ a band whose cells have hidden pixels takes the slow loop, a column at a time, which keeps the screen's
+\\ pixels there as well as the key's.
+
+INCLUDE "../build/gen/cars.6502"
+INCLUDE "../build/gen/prio.6502"
+
+
+\\ The fast loop's five column blocks, column 4 first: each draws a line of one column, its operands
+\\ patched (the frame's column, the screen's cell, the car's data table). FastBlk(n) is column n's.
+
+FastBlkSize = 15
+FUNCTION FastBlk(n) = plot_cars.blocks + (4 - n) * FastBlkSize
+RdLo = 1                                ; a block's operands: the frame's column (LDX abs,Y)
+RdHi = 2
+RsLo = 4                                ; the screen's cell, read (LDA abs,Y)
+RsHi = 5
+DtHi = 11                               ; the data table's page (ORA abs,X)
+WsLo = 13                               ; the screen's cell, written (STA abs,Y)
+WsHi = 14
+
+\\ Draw the four cars, in draw order, into the screen being drawn.
+\\
+\\ Inputs:
+\\     CarXLo, CarY, CarFlags: the cars
+\\     ebuf: the screen drawn (0 or 4), the erase lists' index
+\\
+\\ Outputs:
+\\     EraseCol, EraseTop, EraseW, EraseH: what each car drew, at ebuf + its place in the draw order
+\\     A, X, Y: corrupted
+
+.plot_cars
+{
+    ZA_AUTO1 car                        ; local: the car, 0-3 in draw order
+    ZA_AUTO1 flags                      ; local: its CarFlags
+    ZA_AUTO1 col                        ; local: its first byte column
+    ZA_AUTO1 top                        ; local: its first line
+    ZA_AUTO1 h                          ; local: its height in lines
+    ZA_AUTO1 w                          ; local: its width in bytes
+    ZA_AUTO2 cx8                        ; local: col * 8
+    ZA_AUTO1 cx0                        ; local: its first 8 x 8 cell's column
+    ZA_AUTO1 ncells                     ; local: and its cells across, 1-3
+    ZA_AUTO1 dhi                        ; local: its frame-shift's page
+    ZA_AUTO1 dlo                        ; local: the band's data, less its first line (in that page)
+    ZA_AUTO1 line                       ; local: the band's first line in the cell
+    ZA_AUTO1 row                        ; local: the band's character row
+    ZA_AUTO1 left                       ; local: lines still to draw
+    ZA_AUTO1 lend                       ; local: the line in the cell after the band's last
+    ZA_AUTO2 cs                         ; local: the band's first screen cell, line 0
+    ZA_AUTO2 pmap                       ; local: the priority map's row
+
+    LDA #0:STA car
+.next
+    LDX car
+
+    \\ the frame-shift, and where it goes; what it covers kept for the erase
+
+    LDA CarFlags,X:STA flags
+    AND #63:TAY                         ; the frame
+    LDA CarY,X:CLC:ADC CarFrDY,Y:STA top
+    LDA CarFrH,Y:STA h
+    LDA #HI(DataId)                     ; the car's data table: the yellow car's (frames 32-47) its own
+    CPY #32:BCC @+
+    CPY #48:BCS @+
+    LDA #HI(DataYellow)
+.@
+    FOR n = 0..4
+        STA FastBlk(n)+DtHi
+    NEXT
+    STA slowcol.dt+2
+    LDA CarXLo,X:TAX                    ; (X: x's low byte, for now)
+    AND #3:STA line                     ; (line a scratch: the shift)
+    TYA:ASL A:ASL A:ORA line:TAY        ; the frame-shift
+    LDA flags:ASL A                     ; C: x's high bit
+    TXA:ROR A:LSR A                     ; x DIV 4
+    CLC:ADC CarFsDX,Y:STA col
+    LSR A:STA cx0
+    LDA CarFsW,Y:STA w
+    TAX
+    LDA PlotBack,X:STA back+1         ; the loop's branch back: to column w - 1's block
+    LDA CarFsLo,Y:STA dlo
+    LDA CarFsHi,Y:STA dhi
+    FOR n = 0..4
+        STA FastBlk(n)+RdHi
+    NEXT
+    LDA col:DEC A:CLC:ADC w             ; the last column
+    LSR A:SEC:SBC cx0:INC A:STA ncells
+    LDA car:ORA ebuf:TAX                ; (ebuf 0 or 4)
+    LDA col:STA EraseCol,X
+    LDA top:STA EraseTop,X
+    LDA w:STA EraseW,X
+    LDA h:STA EraseH,X:STA left
+
+    \\ the first band: its line and row; the data less the line (so Y, the line, indexes the frame's rows:
+    \\ the frame-shift is 7 bytes or more into its page, so this stays in it)
+
+    LDA top:AND #7:STA line
+    EOR #&FF:SEC:ADC dlo:STA dlo        ; dlo - line
+    LDA top:LSR A:LSR A:LSR A:STA row
+    LDA col:ASL A:ASL A:ASL A:STA cx8   ; col * 8 (col 0-79)
+    LDA col:LSR A:LSR A:LSR A:LSR A:LSR A:STA cx8+1
+
+    BRA band
+
+    \\ a page crossed among the blocks' screen cells: each from the last, the high byte carried (X:
+    \\ 15 * (4 - n), column n's block)
+
+.crossing
+    LDY cs+1                            ; (A: the first cell's low byte)
+    LDX #4 * FastBlkSize
+.cross
+    STA blocks+RsLo,X:STA blocks+WsLo,X
+    PHA
+    TYA:STA blocks+RsHi,X:STA blocks+WsHi,X
+    PLA:CLC:ADC #8
+    BCC @+
+    INY
+.@
+    PHA
+    TXA:SEC:SBC #FastBlkSize:TAX
+    PLA
+    BCS cross
+    JMP patched
+
+    \\ each band: its lines, its first cell; the slow loop if the car's on the ground and the band's cells
+    \\ have hidden pixels
+
+.band
+    LDA #8:SEC:SBC line                 ; lines to the cell's end
+    CMP left:BCC @+
+    LDA left                            ; or fewer
+.@
+    CLC:ADC line:STA lend
+    STA loopend+1
+    LDX row
+    LDA RowLo,X:CLC:ADC cx8:STA cs
+    LDA RowHi,X:ADC cx8+1:STA cs+1
+    BIT flags:BVS fast                  ; (V: on top, under nothing)
+    LDA PrioMapLo,X:STA pmap
+    LDA PrioMapHi,X:STA pmap+1
+    LDX ncells
+    LDY cx0
+    LDA #0
+.cells
+    ORA (pmap),Y
+    INY
+    DEX
+    BNE cells
+    TAX:BEQ fast
+    JMP slow
+
+    \\ the fast loop: the blocks' screen cells, 8 bytes apart (no page crossed unless the first is &E0 or
+    \\ more into its page), and their columns, h bytes apart in the frame-shift's page
+
+.fast
+    LDA cs:CMP #&E0:BCS crossing
+    FOR n = 0..4                        ; (C clear)
+        STA FastBlk(n)+RsLo:STA FastBlk(n)+WsLo
+        IF n < 4 : ADC #8 : ENDIF
+    NEXT
+    LDA cs+1
+    FOR n = 0..4
+        STA FastBlk(n)+RsHi:STA FastBlk(n)+WsHi
+    NEXT
+.patched
+    LDA dlo:CLC
+    FOR n = 0..4
+        STA FastBlk(n)+RdLo
+        IF n < 4 : ADC h : ENDIF
+    NEXT
+    LDY line
+    DEY
+    BRA enter                           ; (Y = line - 1: the INY makes it the line)
+
+.blocks
+    FOR n = 4..0
+        LDX &FFFF,Y                     ; self-modified: column n's data
+        LDA &FFFF,Y                     ; self-modified: its screen cell
+        AND MaskTab,X
+        ORA DataId,X                    ; self-modified: the car's data table
+        STA &FFFF,Y                     ; self-modified: its screen cell
+    NEXT
+    ASSERT P% - blocks == 5 * FastBlkSize, "the fast loop's blocks: 15 bytes each"
+.enter
+    INY
+.loopend
+    CPY #0                              ; self-modified: lend
+.back
+    BNE blocks                          ; self-modified: to column w - 1's block
+    SAME_PAGE blocks
+
+    \\ the next band: the next row from its line 0, the data on by the lines drawn
+
+.bandend
+    LDA left:SEC:SBC lend:CLC:ADC line  ; (left - lines drawn)
+    BEQ done
+    STA left
+    LDA dlo:CLC:ADC lend:STA dlo        ; (data - line + lend: data less the next band's line, 0)
+    STZ line
+    INC row
+    JMP band
+
+.done
+    INC car
+    LDA car:CMP #4
+    BEQ @+
+    JMP next
+.@
+    RTS
+
+
+    \\ the slow loop, a column at a time: each column's cell's priority bits (none if it has none) kept as
+    \\ well as the key's
+
+.slow
+    LDA col:STA slowcol.cc
+    LDA w:STA slowcol.cols
+    LDA dlo:STA slowcol.cd
+    LDA dhi:STA slowcol.cd+1
+    LDA cs:STA slowcol.cs
+    LDA cs+1:STA slowcol.cs+1
+    JSR slowcol
+    JMP bandend
+}
+
+\\ The slow loop: a band's columns drawn one at a time, keeping the screen where the cell's priority bits
+\\ are set (the car's under something there) as well as where the frame's key is.
+\\
+\\ Inputs:
+\\     cc, cols: the first column and how many
+\\     cd: the first column's data, less the band's first line; cs: its screen cell
+\\     plot_cars.pmap, row, line, lend, h: the band's
+\\
+\\ Outputs:
+\\     cc, cols, cd, cs: corrupted
+\\     A, X, Y: corrupted
+
+.slowcol
+{
+    ZA_AUTO1 cc                         ; in: the column
+    ZA_AUTO1 cols                       ; in: columns left
+    ZA_AUTO2 cd                         ; in: the column's data, less the band's first line
+    ZA_AUTO2 cs                         ; in: the column's screen cell, line 0
+    ZA_AUTO1 ph                         ; local: 8 * a priority cell's number, its high byte
+    ZA_AUTO1 nk                         ; local: the loop's: the frame's pixels to draw
+
+.column
+    LDA plot_cars.lend:STA loopend+1
+    LDA cc:LSR A:TAY
+    LDA (plot_cars.pmap),Y:BNE cell
+    LDA #LO(PrioNone):STA pl+1          ; no hidden pixels: a cell of zeroes
+    LDA #HI(PrioNone):STA pl+2
+    BRA celled
+.cell
+    STZ ph
+    ASL A:ASL A                         ; (a row's cells number 40 at most: no carry)
+    ASL A:ROL ph                        ; 8 * n
+    LDX plot_cars.row
+    CLC:ADC PrioRowLo,X:STA pl+1
+    LDA PrioRowHi,X:ADC ph:STA pl+2
+.celled
+    LDA cc:LSR A                        ; C: the cell's right half
+    LDA #HI(PExpHi)
+    ADC #0:STA pe+2                     ; (PExpLo the next page)
+    LDA cd:STA rd+1
+    LDA cd+1:STA rd+2
+    LDA cs:STA rs+1:STA rs2+1:STA ws+1
+    LDA cs+1:STA rs+2:STA rs2+2:STA ws+2
+    LDY plot_cars.line
+.loop
+.pl
+    LDX &FFFF,Y                         ; self-modified: the cell's priority bits
+.pe
+    LDA PExpHi,X                        ; self-modified: PExpHi or PExpLo
+.rd
+    LDX &FFFF,Y                         ; self-modified: the column's data
+    ORA MaskTab,X                       ; the screen's pixels to keep
+    EOR #&FF:STA nk
+.rs
+    LDA &FFFF,Y                         ; self-modified: the column's screen cell
+.dt
+    EOR DataId,X                        ; self-modified: the car's data table
+    AND nk
+.rs2
+    EOR &FFFF,Y                         ; self-modified: the column's screen cell
+.ws
+    STA &FFFF,Y                         ; self-modified: the column's screen cell
+    INY
+.loopend
+    CPY #0                              ; self-modified: lend
+    BNE loop
+
+    \\ the next column: 8 bytes on in the cell row, h on in the frame
+
+    LDA cs:CLC:ADC #8:STA cs
+    BCC @+
+    INC cs+1
+.@
+    LDA cd:CLC:ADC plot_cars.h:STA cd   ; (in the frame-shift's page)
+    INC cc
+    DEC cols:BEQ @+
+    JMP column
+.@
+    RTS
+}
+
+.PrioNone                               ; a cell's priority bits, none hidden: for the slow loop's other cells
+    EQUB 0, 0, 0, 0, 0, 0, 0, 0
+
+\\ The fast loop's branch back, by the car's width: to column w - 1's block
+
+.PlotBack
+    EQUB 0
+    EQUB LO(FastBlk((1..5) - 1) - (plot_cars.back + 2))
+
+
+\\ The frame-shifts' places and sizes, and each frame's rows (tools/gendata.py)
+
+.CarFsDX
+    EQUB GenFsDX
+.CarFsW
+    EQUB GenFsW
+.CarFsLo
+    EQUB LO(CarData + GenFsOff)
+.CarFsHi
+    EQUB HI(CarData + GenFsOff)
+.CarFrDY
+    EQUB GenFrDY
+.CarFrH
+    EQUB GenFrH
+
+\\ The priority map's rows, and each row's cells' data (less 8: a cell's number counts from 1)
+
+.PrioMapLo
+    EQUB LO(PrioMap + (0..<PlayRows) * 40)
+.PrioMapHi
+    EQUB HI(PrioMap + (0..<PlayRows) * 40)
+.PrioRowLo
+    EQUB LO(PrioData + GenPrioRowOff)
+.PrioRowHi
+    EQUB HI(PrioData + GenPrioRowOff)
+
+    ALIGN &100                          ; (gendata.py's layout: each frame-shift in a page, 7 bytes in)
+.CarData
+    INCBIN "../build/gen/cars.bin"
+.PrioMap
+    INCBIN "../build/gen/priomap.bin"
+.PrioData
+    INCBIN "../build/gen/prio.bin"

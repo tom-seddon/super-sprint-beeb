@@ -1,0 +1,62 @@
+\\ memory.6502 - where everything lives once the renderer test has the machine: the zero page pool, main
+\\ RAM's regions, the banks, and the pools of workspace, as virtual sections claimed where they're used.
+\\
+\\ The OS's memory is left alone (D7): &0200-&03FF but IRQ1V, &0800-&0DFF and HAZEL, so a load could bring
+\\ the OS back between races.
+\\
+\\   &0000  zero page: the banks' numbers at &00-&02 (!BOOT writes them), then the pool, bar &FC
+\\   &0100  the stack
+\\   &0200  the OS's vectors and variables: left alone but IRQ1V
+\\   &0400  the tables, made by the loader: the cars' mask table and data tables
+\\   &0800  the OS's: sound, buffers, the NMI handler
+\\   &0E00  main RAM's code: the IRQ, the frame loop, and what pages banks in
+\\   &2C00  more tables, made by the loader: the priority bits' expansions
+\\   &2E00  the game's variables (GameVars), below &3000 so ACCCON's X never hides them
+\\   &3F00  the screen: the HUD's row, then the play area to &7FFF; in main RAM and in shadow RAM
+\\   &8000  sideways RAM. The background's bank: the clean play area and the erase that reads it.
+\\          The cars' bank: their frames, the priority cells and the plotter that reads them. The
+\\          trace's bank: the ST race's car positions
+\\
+\\ While loading: !BOOT at &1200, the banks' files loaded at &3000 and copied in, SPRINT loaded at &3000
+\\ and its loader copying main RAM's code down to &0E00.
+
+ZA_POOL &03..&FB, &FD..&FF              ; &FC: the MOS's IRQ entry saves A there
+
+bankbg = &00                            ; the sideways RAM banks !BOOT found (it writes them itself, as
+bankcars = &01                          ; boot.6502 has them): the background's, the cars', the trace's
+banktrace = &02
+BanksNeeded = 3
+
+TablesOrg = &0400
+MainCodeOrg = &0E00
+GameVarsOrg = &2E00
+GameVarsEnd = &3000
+LoadAddr = &3000                        ; where SPRINT and the banks' files load
+SwramOrg = &8000
+SwramEnd = &C000
+MoreTablesOrg = &2C00                   ; more tables, made by the loader (MoreTables)
+
+SECTION Tables, org = TablesOrg, guard = &0800, virtual = TRUE
+.MaskTab                                ; a frame's byte -> its key pixels' bits: the screen's to keep
+    SKIP 256
+.DataId                                 ; a frame's byte -> its pixels, the key's cleared: 1 green
+    SKIP 256
+.DataYellow                             ; the same, 1 yellow
+    SKIP 256
+.DataWhite                              ; the same, 1 white
+    SKIP 256
+ENDSECTION
+
+ASSERT LO(MaskTab) == 0, "the tables: on pages"
+
+SECTION GameVars, org = GameVarsOrg, guard = GameVarsEnd, virtual = TRUE
+ENDSECTION
+
+SECTION MoreTables, org = MoreTablesOrg, guard = GameVarsOrg, virtual = TRUE
+.PExpHi                                 ; a cell's line of priority bits -> its left 4 pixels' screen mask
+    SKIP 256
+.PExpLo                                 ; and its right 4
+    SKIP 256
+ENDSECTION
+
+ASSERT LO(PExpHi) == 0 AND HI(PExpLo) == HI(PExpHi) + 1, "the priority expansions: on consecutive pages"

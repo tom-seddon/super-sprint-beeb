@@ -1,0 +1,34 @@
+\\ irq.6502 - the vsync interrupt: counts frames and shows the screen just drawn. In main RAM, so it's there
+\\ whatever's paged in. The System VIA's CA1 (vsync) is its only source.
+
+\\ Shared with the main loop: the main loop sets swapreq once a frame's drawn; the next vsync shows it,
+\\ flipping ACCCON's D, and clears swapreq. Only the IRQ writes ACCCON while swapreq is set, and only the
+\\ main loop while it's clear.
+
+ZA_AUTO1 swapreq                        ; 1: show the screen drawn
+ZA_AUTO1 acccon                         ; ACCCON as written: D the screen shown, X the one drawn
+ZA_AUTO1 vsyncs                         ; vsyncs counted, for pacing and the tests
+
+\\ The IRQ1V handler.
+\\
+\\ Inputs:
+\\     swapreq: 1 to show the other screen
+\\
+\\ Outputs:
+\\     swapreq: 0
+\\     acccon: D flipped, if it was shown
+\\     A: restored from &FC; X, Y: preserved
+
+.irq
+{
+    ZA_INTERRUPT
+    LDA #2:STA &FE4D                    ; system VIA: IFR, CA1 cleared
+    INC vsyncs
+    LDA swapreq:BEQ done
+    STZ swapreq
+    LDA acccon:EOR #AccD:STA acccon
+    STA &FE34                           ; ACCCON: the screen just drawn shown
+.done
+    LDA &FC                             ; (the MOS's IRQ entry saved A there)
+    RTI
+}

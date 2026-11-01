@@ -139,7 +139,8 @@ smaller sprites only when on screen, unrolled plotters in the banks. With double
 screen is erased where it was drawn two frames before.
 
 The main loop counts vsyncs (as Critical Mass does) and runs the logic once for each, so an overrun drops one
-frame and the game keeps its speed. Phase 3 times the renderer with 4 cars from a recorded ST trace; Phase 4
+frame and the game keeps its speed. Phase 3 timed the renderer with 4 cars from a recorded ST trace
+(`docs/renderer.md`: 12,311 cycles a frame on average for erasing and drawing them, 20,822 at worst); Phase 4
 adds the logic.
 
 ## Input and sound
@@ -180,10 +181,12 @@ adds the logic.
 ### Phase 2: graphics and colour (done)
 - The conversion pipeline, six options on all 8 tracks, checked on jsbeeb's Master 128. Packed sizes.
 
-### Phase 3: renderer
-- Boot, take over the OS, MODE 1 with 26 rows, shadow double-buffering, the HUD row.
-- Car and sprite plotting, erasing, priority. Time 4 cars driven from a recorded ST trace (Hatari gives the
-  positions and directions per frame), against the 40,000-cycle frame (D2). Decide the sprite storage.
+### Phase 3: renderer (under way: `docs/renderer.md`)
+- Done: boot, the OS's memory left alone (D7), MODE 1 with 26 rows, shadow double-buffering at 50 fps; the
+  four cars erased, drawn and put under the priority mask, from the ST's race on track 6, every frame
+  checked against a model; timed (12,311 cycles a frame on average, 20,822 at worst). Sprite storage:
+  pre-shifted, trimmed frames, about 10.6K a race.
+- To do: the slow priority loop faster (the worst frames); the HUD row; objects.
 
 ### Phase 4: one race
 - Physics, collisions, drones, laps, scoring, HUD, input for 3 players, sound. One track, played start to
