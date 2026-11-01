@@ -44,31 +44,40 @@ in 1 line, and still space for the drone's lap and the track number. It doesn't 
 cryptic."
 So: one row of 8 × 8 text above the 25-row play area, 26 rows in all.
 
-### D7. Bringing the OS back for a load: Proposed
-Proposed (2026-11-01, for D3): swap the OS's memory back in for each load rather than reserve it for the whole
-game, as Chase HQ plans (its P5), but sized for the Master, where the filing systems' workspace is in HAZEL.
+### D7. Bringing the OS back for a load: Decided (2026-11-01)
+First proposed (2026-11-01): swap the OS's memory, HAZEL included, to and from a bank around each load, so the
+game could use HAZEL for code. Tom asked whether the game would actually need all that or whether it was being
+kept aside just in case, and pointed out that a bank's paging costs little and gives a lot of contiguous space
+for unrolled loops. It was just in case: nothing measured says the game needs HAZEL. So, revised:
+- **Leave the OS's memory to the OS**: HAZEL, `&0200`-`&03FF` and `&0800`-`&0DFF`. The game writes only the
+  vectors it hooks (IRQ1V, BRKV), and puts them back for a load. Zero page `&90`-`&FF` (112 bytes) is the
+  game's during a race and swapped with a copy in main RAM around a load. ANDY stays the OS's unless Phase 3
+  shows the MOS doesn't need it kept.
+- **The game's unpaged space** is then zero page, `&0400`-`&07FF` (the language's workspace), `&0E00`-`&2FFF`
+  and `&3000`-`&3EFF`: about 13.5K for the IRQ, the main loop, the logic and the state. The renderer and other
+  big or unrolled code go in the banks, each beside the data it reads; paging is a `STA &F4:STA &FE30`.
 - **At the takeover**, after the OS has started the filing system: claim NMIs (OSBYTE 143, service call 12),
-  so a network filing system stops listening, and copy the OS's state to a bank: zero page `&90`-`&FF`,
-  `&0200`-`&03FF` and `&0800`-`&0DFF` (vectors, OS variables, buffers, the NMI handler at `&0D00`), and the
-  part of HAZEL the ROMs have claimed. ANDY too if the MOS turns out to touch it during a load.
-- **For a load**, between races: under SEI, put the game's copies of those areas in the screen not shown and
-  the OS's back; give back IRQ1V, the VIAs' enables, ROMSEL with `&F4`, and ACCCON; release NMIs (service call
-  11); CLI; OSFILE. The display shows only the HUD row ("LOADING", R6 = 1), so the rest of both screens is
-  free to land the file in. The filing system's ROM is paged in at `&8000` during the call, so nothing loads
-  straight into a bank: the file lands in main RAM, packed, and is unpacked into the banks.
-- **Afterwards**: under SEI, copy the OS's state back to the bank (the filing system may have changed it: a
-  catalogue, Econet's sequence numbers), put the game's back, claim NMIs, and take over again.
+  so a network filing system stops listening.
+- **For a load**, between races: under SEI, swap zero page, give back IRQ1V and BRKV's old values, the VIAs'
+  enables, ROMSEL with `&F4`, and ACCCON; release NMIs (service call 11); CLI; OSFILE. The display shows only
+  the HUD row ("LOADING", R6 = 1), so the rest of both screens is free to land the file in. The filing
+  system's ROM is paged in at `&8000` during the call, so nothing loads straight into a bank: the file lands in
+  main RAM, packed, and is unpacked into the banks. Then the reverse.
 - **Traps known from Rich's projects**: the files' load addresses carry `&FFFF` (Chase HQ: `&0000` would go
   over the Tube); both DFSes write the catalogue back into OSFILE's block, so the load address goes back in
-  before each call (Teddy Boy); `!BOOT` uses only banks the ROM type table doesn't list, so a filing system in
-  sideways RAM is spared (Chase HQ); the 1770 DFS's NMI claim runs the ROMs' service calls with interrupts off
-  for 582 us (Teddy Boy), harmless between races.
+  before each call (Teddy Boy); `!BOOT` uses only banks the ROM type table doesn't list (Chase HQ); the 1770
+  DFS's NMI claim runs the ROMs' service calls with interrupts off for 582 us (Teddy Boy), harmless between
+  races.
 - **Also needed**: BRKV caught while the OS is back, so a disc error shows in the HUD row and offers a retry;
   Escape off (`*FX229,1`); the OS's colour flashing off (OSBYTE 9 and 10), since its IRQ would otherwise
   rewrite the ULA's control register; no VDU calls.
-- **To measure in Phase 3**, on DFS, MMFS, ADFS and, if one can be had, Econet: how much of HAZEL each claims,
-  and whether the MOS touches ANDY during OSFILE or its IRQ. If the filing systems claim most of HAZEL, leaving
-  HAZEL to the OS for the whole game is simpler at the same cost, and the code goes elsewhere.
-- Cost: up to about 12K of a bank for the OS's copy (3K of pages, up to 8K of HAZEL, zero page), against 8K of
-  HAZEL and the low pages kept for code. Unpaged code space is scarcer than a bank's data space, so the swap
-  is worth it unless the measurements say otherwise.
+- **Cost**: 112 bytes of main RAM, and HAZEL's 8K, ANDY's 4K and about 2K of low pages not available to the
+  game.
+
+Tom: "I think copying HAZEL is worth considering, as it's an 8 KB chunk. But for the main RAM in OS, it feels a
+bit more questionable to exchange 2 KB of contiguous sideways RAM for 2 KB of fragmented main RAM. I agree with
+the idea of leaving this stuff alone for now, and revisiting if the game turns out to actually need it."
+So: leave the OS's memory alone for now, as above. If the game turns out to need more room, the first thing
+to consider is HAZEL, swapped through a bank (sized by how much each filing system claims: DFS, MMFS, ADFS,
+Econet). The OS's low pages stay the OS's: 2K of contiguous bank isn't worth giving up for 2K of fragmented
+main RAM.

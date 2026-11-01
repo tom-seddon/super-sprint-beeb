@@ -80,14 +80,18 @@ and a CRT: the checkerboard reads as grey and isn't too busy).
 
 | Range | Size | Use |
 |---|---|---|
-| `&0000`-`&2FFF` | ~12K | Zero page, stack, IRQ, sound, game logic, the drawing code |
+| `&0000`-`&00FF` | 256 | Zero page; `&90`-`&FF` swapped with a copy around a load (D7) |
+| `&0100`-`&03FF` | 768 | Stack; the OS's vectors and variables (the game hooks IRQ1V and BRKV only) |
+| `&0400`-`&07FF` | 1,024 | The game's (the language's workspace) |
+| `&0800`-`&0DFF` | 1,536 | The OS's: sound, buffers, the NMI handler |
+| `&0E00`-`&2FFF` | 8,704 | IRQ, main loop, game logic, state |
 | `&3000`-`&3EFF` main | 3,840 | Variables and tables (read when the CPU is not mapped to shadow) |
 | `&3F00`-`&7FFF` main | 16,640 | Screen A |
 | `&3000`-`&3EFF` shadow | 3,840 | Data read only while drawing into shadow (awkward) |
 | `&3F00`-`&7FFF` shadow | 16,640 | Screen B |
-| `&8000`-`&8FFF` ANDY | 4K | Code (hides the first 4K of the paged bank while in) |
-| `&8000`-`&BFFF` banks 4-7 | 64K | Data |
-| `&C000`-`&DFFF` HAZEL | 8K | Code, independent of sideways paging; the filing system's while the OS is back for a load (D7) |
+| `&8000`-`&8FFF` ANDY | 4K | The OS's, unless Phase 3 shows the MOS doesn't need it kept (D7) |
+| `&8000`-`&BFFF` banks 4-7 | 64K | Data, and the code that reads it: the renderer, unrolled loops |
+| `&C000`-`&DFFF` HAZEL | 8K | The OS's: the filing systems' workspace (D7) |
 
 **The data, as measured or estimated:**
 
@@ -106,8 +110,8 @@ and a CRT: the checkerboard reads as grey and isn't too busy).
 All of it at once is about 90K with unshifted sprites; the banks hold 64K. So:
 - **Load one track's data per race (D3, decided):** its art (about 2.6K packed), wall vectors, priority
   rectangles, attribute runs and drone path, unpacked or rebuilt into the current track's buffers. The load
-  goes through OSFILE, so it works on any filing system (DFS, MMFS, ADFS, Econet). The OS's memory is swapped
-  back in for each load and out again after it (D7); its copy costs up to about 12K of a bank. The
+  goes through OSFILE, so it works on any filing system (DFS, MMFS, ADFS, Econet). The game leaves the OS's
+  memory alone, HAZEL included, so a load needs only zero page swapped and the vectors put back (D7). The
   front-end screens load the same way.
 - **Shift the car sprites while drawing** (256-byte shift tables) rather than store 4 copies, unless the
   timings say otherwise.
@@ -191,7 +195,7 @@ planned, but Phase 3's timings will show how far off it is.
 | D4 | Machines | Proposed: Master 128 only. Decided (Tom, 2026-11-01): 4 free banks of sideways RAM needed |
 | D5 | Controls | Proposed: two joysticks and the keyboard, as on the ST, once ghosting has been tested |
 | D6 | HUD | Decided (Tom, 2026-11-01): one row of 8-pixel text above the play area |
-| D7 | Bringing the OS back for a load | Proposed: swap its memory (pages, zero page, HAZEL's claimed part) to and from a bank |
+| D7 | Bringing the OS back for a load | Decided (Tom, 2026-11-01): leave the OS's memory alone; HAZEL through a bank only if needed |
 
 ## Risks
 
@@ -202,4 +206,5 @@ planned, but Phase 3's timings will show how far off it is.
 - **Keyboard ghosting** may limit how many players can share the keyboard.
 - **A filing system in sideways RAM** (MMFS is often loaded that way) leaves 3 banks; the game needs 4 free
   (D4), so such a machine is told so at boot.
-- **The OS's state** for loads (D7) costs up to about 12K of a bank, more if the MOS needs ANDY kept.
+- **Unpaged space** is about 13.5K with the OS's memory left alone (D7). If the IRQ, logic and state don't
+  fit, HAZEL can be taken, with the OS's copy swapped through a bank (up to 8K); the low pages stay the OS's.

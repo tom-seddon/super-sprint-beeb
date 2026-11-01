@@ -51,7 +51,16 @@
 - **D3 decided:** one track's data per race, loaded through OSFILE, so the game works on MMFS, Econet and any
   other filing system. The 1770 loader is dropped.
 - Proposed D7 for how: swap the OS's memory back in for each load, as Chase HQ's P5, with the Master's extra:
-  the filing systems' workspace is in HAZEL. Up to about 12K of a bank for the OS's copy. HAZEL's claimed size
+  the filing systems' workspace is in HAZEL. Up to 10,352 bytes of a bank for the OS's copy. HAZEL's claimed size
   per filing system and the MOS's use of ANDY are to be measured in Phase 3.
 - D4 in part: the game needs 4 free banks of sideways RAM (Tom). A filing system loaded into sideways RAM
   isn't supported; `!BOOT` says so.
+- **Mistake: I wrote D7's cost as about 12K.** The areas it lists add up to 10,352 bytes at most: zero page
+  `&90`-`&FF` (112), `&0200`-`&03FF` (512), `&0800`-`&0DFF` (1,536) and all of HAZEL (8,192). Tom asked what
+  the other 4K was; there wasn't any.
+- D7 revised after Tom asked whether the game needed HAZEL or it was kept just in case: just in case. Now
+  the game leaves HAZEL, ANDY and the OS's low pages alone, puts its big and unrolled code in the banks
+  beside its data, and swaps only zero page `&90`-`&FF` (112 bytes) around a load. The bank swap is the
+  fallback if Phase 3 runs out of room.
+- **D7 decided** (Tom): leave the OS's memory alone for now. If more room is needed, HAZEL (8K in one piece)
+  is worth swapping through a bank; the OS's 2K of low pages isn't, being fragmented.
