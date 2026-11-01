@@ -2,11 +2,14 @@
 
 Each decision is Proposed until Tom agrees. Tom's words are recorded verbatim, with the date.
 
-### D1. Palette and dithering: Proposed
-Proposed (2026-11-01, after Phase 2): option A2 from `docs/colours.md`. MODE 1 in black, green, yellow and
-white; a black road; the players' cars white, green and yellow with their outlines drawn as a grey
-checkerboard, and every drone a hollow grey outline. Option B (a grey checkerboard road, which keeps the bridges' shading) is the
-alternative. The pictures are in `docs/img/`; the viewer discs are made by `make viewer`.
+### D1. Palette and dithering: Decided (2026-11-01)
+Proposed (2026-11-01, after Phase 2): option A2 from `docs/colours.md`, a black road with grey-outlined cars,
+with option B (a grey checkerboard road, which keeps the bridges' shading) as the alternative.
+Tom, after the viewer discs on a real BBC: "I think track viewer option B looks the best on a CRT. The
+dithering looks like grey and isn't too busy."
+So: option B. MODE 1 in black, green, yellow and white; the road a black/white checkerboard fixed to the
+screen, its shadows black; the players' cars white, green and yellow with black outlines, car 3 and
+drone-driven cars black.
 
 ### D2. Frame rate: Proposed
 Proposed in the plan: 25 fps, double-buffered. Phase 1 found that the ST runs its race at 50 fps, logic and

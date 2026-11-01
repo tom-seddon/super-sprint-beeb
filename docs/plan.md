@@ -18,8 +18,8 @@ done in `JOURNAL.md`.
 - The ST runs its race at **50 fps**, logic and drawing, with no time compensation: every speed and timer is
   per frame. On the BBC, draw at 25 fps and run the logic twice per drawn frame, so every constant stays as the
   ST has it (D2). Estimated 58,000 of the 80,000 cycles a drawn frame (Speed, below).
-- Four colours are enough with the right mapping: proposed option A2, a black road with grey-outlined cars
-  (D1, `docs/colours.md`).
+- Four colours are enough with the right mapping: option B, a grey checkerboard road on black, green, yellow
+  and white (D1, decided; `docs/colours.md`).
 - Everything for the race is about 90K before any cleverness, against about 64K of sideways RAM, so the data
   needs work: one track's data at a time (a multiload, D3), the masks rebuilt from the ST's vector and
   rectangle lists, or the background restored from tiles (Memory, below).
@@ -67,14 +67,14 @@ In short (the details, with addresses, are in the two specs):
 ## Colours (D1)
 
 Phase 2 converted all 8 tracks and the cars in six options (`docs/colours.md`, pictures in `docs/img/`,
-bootable viewer discs from `make viewer`). **Proposed: A2.**
-- MODE 1 in black, green, yellow and white; a black road; grass green, dark greens as green/black
-  checkerboards, kerbs white, stripes yellow and black.
-- Players' cars white, green and yellow (for the ST's blue, red and yellow), with their black outlines drawn
-  as a grey checkerboard so they show on the black road. Every drone, car 3 and drone-driven players alike, is
-  a hollow grey outline; a drone-driven player's car keeps its colour as stripes.
-- Its weakness: the road's shading is lost, so bridges show only by their kerbs. Option B (a grey
-  checkerboard road) keeps the shading but the road is busy.
+bootable viewer discs from `make viewer`). **Decided: B** (Tom, 2026-11-01, after the viewer on a real BBC
+and a CRT: the checkerboard reads as grey and isn't too busy).
+- MODE 1 in black, green, yellow and white. The road is a black/white checkerboard, fixed to the screen;
+  the ST's shadows and underpasses are black on it, so the bridges keep their depth. Grass green, dark greens
+  as green/black checkerboards, kerbs white, stripes yellow and black.
+- Players' cars white, green and yellow (for the ST's blue, red and yellow), with the ST's black outlines and
+  wheels. Car 3 and drone-driven cars have black bodies; a drone-driven player's car keeps its colour as
+  stripes.
 
 ## Memory (Master 128, the OS taken over)
 
@@ -96,7 +96,7 @@ bootable viewer discs from `make viewer`). **Proposed: A2.**
 | Clean background, current track | 16,000 | Or tiles for the erase: about 7K a track (estimate) |
 | Wall mask and priority mask, current track | 16,000 | 1 bit a pixel, as the ST. Rebuildable from 3,000 bytes of wall vectors and 526 of priority rectangles for all 8 tracks |
 | Attribute map, current track | 1,000 | From 1,688 bytes of runs for all 8 |
-| All 8 tracks' art, packed | 19,262 | ZX02, option A; about 2.4K a track |
+| All 8 tracks' art, packed | 20,754 | ZX02, option B; about 2.6K a track |
 | All 8 tracks' masks, packed | 9,670 | If not rebuilt from the vectors |
 | Car sprites | 6,000-30,000 | 8 sets (4 cars, and 4 drone-driven) × 16 directions, 16 × 12: 6K unshifted, 30K pre-shifted to 4 positions |
 | Object sprites | ~6,000 | Estimate: explosion, pickups, tornado, gates, barriers, helicopter |
@@ -104,7 +104,7 @@ bootable viewer discs from `make viewer`). **Proposed: A2.**
 | Sound | ~12,000 | The ST's sequences and instruments, before transcoding |
 
 All of it at once is about 90K with unshifted sprites; the banks hold 64K. So:
-- **Load one track's data per race (D3):** its art (about 2.4K packed), wall vectors, priority rectangles,
+- **Load one track's data per race (D3):** its art (about 2.6K packed), wall vectors, priority rectangles,
   attribute runs and drone path, unpacked or rebuilt into the current track's buffers. A 1770 sector loader
   (WD1770 at `&FE24`, `&FE28`-`&FE2B`) keeps the MOS and DFS dead and HAZEL ours; a load between races is well
   under a second. The front-end screens load the same way.
@@ -164,7 +164,7 @@ planned, but Phase 3's timings will show how far off it is.
 - Left for later phases: the front-end screens' data (`SUPER1.DAT`, the first three `SUPER.DAT` blocks) and the
   object sprites' exact formats.
 
-### Phase 2: graphics and colour (done; D1 waits for Tom)
+### Phase 2: graphics and colour (done)
 - The conversion pipeline, six options on all 8 tracks, checked on jsbeeb's Master 128. Packed sizes.
 
 ### Phase 3: renderer
@@ -184,7 +184,7 @@ planned, but Phase 3's timings will show how far off it is.
 
 | | Question | State |
 |---|---|---|
-| D1 | Palette and dithering | Proposed: A2 (black road, grey-outlined cars); B the alternative |
+| D1 | Palette and dithering | Decided (Tom, 2026-11-01): option B, a grey checkerboard road |
 | D2 | Frame rate | Proposed: draw at 25 fps, logic at 50 Hz (twice a drawn frame) |
 | D3 | Multiload or all in memory | Proposed: a 1770 loader, one track's data per race |
 | D4 | Machines | Proposed: Master 128 only |
@@ -198,4 +198,3 @@ planned, but Phase 3's timings will show how far off it is.
 - **The logic's cost at 50 Hz.** Four cars' wall probes and drone steering twice a drawn frame is the biggest
   item, and the least certain.
 - **Keyboard ghosting** may limit how many players can share the keyboard.
-- **Bridges in A2** show only by their kerbs. If that plays badly, B's grey road is the fallback.

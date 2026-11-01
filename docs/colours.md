@@ -67,12 +67,15 @@ yellow, car 3, and the blue car driven by a drone.
 
 **Recommendation: A2.** Clean tracks, and cars that are easy to tell apart, which is what the game needs. Its
 weakness is the bridges. If that matters more, B is the alternative: it keeps the depth, at the cost of a busy
-road. **Your call (D1).**
+road.
+
+**Decided: B** (D1, Tom, 2026-11-01). On a real BBC and a CRT the checkerboard road reads as grey and isn't too
+busy: the busy look above was judged from the PNGs, which show every pixel sharp.
 
 Smaller points, whichever is chosen:
 - The cars' colours can't follow the ST's (blue, red, yellow, and a green car 3): no palette with a readable
-  road and green grass has room for them. A2's players are white, green and yellow, and every drone is a
-  hollow grey outline (a drone-driven player's car keeps its colour as stripes).
+  road and green grass has room for them. B's players are white, green and yellow, and car 3 and
+  drone-driven cars are black (a drone-driven player's car keeps its colour as stripes).
 - The HUD row's colours match the cars, so for every option it uses the play area's palette, and **no palette
   split is needed** (the plan expected one). The drone's lap is printed in white.
 - The ST map's "TRACK n" and "DRONE LAP" text, in the bottom row of tiles, and the top rows' grandstands under

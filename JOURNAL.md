@@ -42,4 +42,7 @@
 - First attempt at option A showed the cars losing their black outlines on the black road. A2 draws the
   cars' black as a grey checkerboard: every car reads clearly, and drones are hollow outlines.
 - Packed (ZX02): 8 tracks 19,262 bytes (A) to 20,763 (D); masks 5,525 (road) and 4,145 (priority).
-- Proposed A2 for D1; B is the alternative. Waiting for Tom.
+- Proposed A2 for D1; B is the alternative.
+- **D1 decided: option B.** Tom looked at the viewer discs on a real BBC: on a CRT the checkerboard road reads
+  as grey and isn't too busy. I had judged it busy from the PNGs, which show every pixel sharp; the real
+  display is the test. B's tracks pack to 20,754 bytes for all 8, 1,492 more than A.
