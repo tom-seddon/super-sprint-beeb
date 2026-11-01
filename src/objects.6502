@@ -23,8 +23,14 @@ SECTION GameVars
 ENDSECTION
 
 SECTION ObjBuf
-.ObjBufPrio                             ; a variant's priority bits, a byte per 8 pixels, column by column
-    SKIP 96
+.ObjBufPrio                             ; a gate's or barrier's priority runs, on their way to the cars' bank
+    SKIP 160                            ; (first: on a page)
+.RunLo                                  ; and where each goes, and how many bytes
+    SKIP 3
+.RunHi
+    SKIP 3
+.RunLen
+    SKIP 3
 ENDSECTION
 
 \\ The passes' column blocks (column MaxObjCols - 1 first) and their operands' offsets
@@ -47,8 +53,6 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
 .obj_events
 {
     ZA_AUTO1 event                      ; local: the event's offset in ObjEvents
-    ZA_AUTO2 src                        ; local: the priority bits, in the objects' bank
-    ZA_AUTO1 count                      ; local: their bytes
 
     LDA ObjCount:BNE @+
     RTS
@@ -72,39 +76,31 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     LDA ObjDataHi,Y:STA obj_bands.dhi
     LDA ObjMaskLo,Y:STA obj_bands.mlo
     LDA ObjMaskHi,Y:STA obj_bands.mhi
-    LDA ObjEvents,X:AND #ObjAgain:BEQ first
 
-    \\ the second call: the background copied into this screen
+    \\ both calls: the variant into this screen (from the objects' bank)
 
-    LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
-    LDA #3:JSR obj_bands
-    BRA done
-
-    \\ the first: the object into this screen, and its priority bits to ObjBuf (from the objects' bank),
-    \\ the screen into the background, the priority bits into the cells
-
-.first
-    LDA obj_bands.flags:AND #ObjHasPrio:BEQ copied
-    LDA ObjPrioLo,Y:STA src
-    LDA ObjPrioHi,Y:STA src+1
-    LDA obj_bands.w:LSR A:TAX           ; (a byte per 8 pixels: w / 2 a row)
-    LDA #0
-.mul
-    CLC:ADC obj_bands.h                 ; (w / 2 * h bytes, 96 at most)
-    DEX:BNE mul
-    STA count
-    LDY #0
-.pbyte
-    LDA (src),Y:STA ObjBufPrio,Y
-    INY
-    CPY count:BNE pbyte
-.copied
     LDA obj_bands.flags:AND #ObjMasked  ; pass 0 opaque, 1 masked
     JSR obj_bands
+    LDX event
+    LDA ObjEvents,X:AND #ObjAgain:BEQ first
+
+    \\ the second: this screen into the background (the background a frame behind the screens between
+    \\ the calls: each frame's erase comes before its objects, so what it restores is drawn over)
+
     LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
     LDA #2:JSR obj_bands
+    BRA done
+
+    \\ the first: a gate's or barrier's priority runs, this frame's (ObjEvents+1 is frame * 2 + parity)
+
+.first
     LDA obj_bands.flags:AND #ObjHasPrio:BEQ done
-    JSR obj_prio
+    LDA ObjEvents,X:LSR A:LSR A:LSR A:AND #7:TAY    ; the instance
+    LDA ObjEvents+1,X:LSR A             ; the frame
+    CLC:ADC InstBase,Y:TAX
+    LDA InstDataLo,X:STA obj_runs.src
+    LDA InstDataHi,X:STA obj_runs.src+1
+    JSR obj_runs
 .done
     LDA event:CLC:ADC #4:STA event
     LSR A:LSR A:CMP ObjCount
@@ -455,69 +451,81 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
 .BlkSizes
     EQUB CopyBlkSize, MaskBlkSize, CopyBlkSize, CopyBlkSize
 
-.obj_prio
+\\ A gate's or barrier's priority runs into its cells: the frame's bits for the cells it covers, worked out by
+\\ tools/gendata.py (the track's own bits, the frame's over the lines it covers), up to 3 runs, each a cell
+\\ row's cells together in the cars' bank's priority data; copied through ObjBufPrio, from the objects'
+\\ bank to the cars'. The cells' classes are 2 for both halves (gendata.py reserves them so), so the plotter
+\\ goes by the bits.
+\\
+\\ Inputs:
+\\     Y: the instance
+\\     src: the frame's bits, the runs' one after another (in the objects' bank, paged in)
+\\
+\\ Outputs:
+\\     ROMSEL: the cars' bank; A, X, Y: corrupted
+
+.obj_runs
 {
-    ZA_AUTO1 line                       ; local: the cell row's first line the object covers
-    ZA_AUTO1 lend                       ; local: and the line after its last there
-    ZA_AUTO1 yend                       ; local: the line after the object's last
-    ZA_AUTO1 cx                         ; local: the cell's column (8 pixels)
-    ZA_AUTO1 k                          ; local: the cell's byte in a row of ObjBufPrio
-    ZA_AUTO1 cells                      ; local: cells across, w / 2
-    ZA_AUTO1 ph                         ; local: a cell's data offset's high byte
-    ZA_AUTO2 pmap                       ; local: the priority map's row
-    ZA_AUTO2 bits                       ; local: the cell's 8 lines of bits
-    ZA_AUTO1 rowbase                    ; local: the cell row's first line's row in the object
-    ZA_AUTO1 kbase                      ; local: the 8-pixel column's first byte in ObjBufPrio
-    ZA_AUTO1 lineend                    ; local: the line in the cell after the cell row's last
+    ZA_AUTO2 src                        ; in: the bits
+    ZA_AUTO1 runs                       ; local: the runs
+    ZA_AUTO1 total                      ; local: their bytes
+    ZA_AUTO1 r                          ; local: the run
+    ZA_AUTO1 at                         ; local: its end in ObjBufPrio
 
-    LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank
-    LDA obj_bands.w:LSR A:STA cells
-    LDA obj_bands.y:STA line
-    CLC:ADC obj_bands.h:STA yend
-.crow
-    LDA line:ORA #7:CLC:ADC #1          ; the next cell row's line 0,
-    CMP yend:BCC @+
-    LDA yend                            ; or the object's end
-.@
-    STA lend
-    DEC A:AND #7:INC A:STA lineend      ; (the line in the cell after the last: 1-8)
-    LDA line:SEC:SBC obj_bands.y:STA rowbase ; (the cell row's first line's row in the object)
-    STZ kbase                           ; (column k's first byte: k * h)
-    LDA line:LSR A:LSR A:LSR A:TAX
-    LDA PrioMapLo,X:STA pmap
-    LDA PrioMapHi,X:STA pmap+1
-    LDA obj_bands.col:LSR A:STA cx     ; (col 4-byte aligned: cells of 8 pixels from col / 2)
-    STZ k
-.nextcell
-    LDY cx
-    LDA (pmap),Y                        ; (never 0: gendata.py reserves a gate's and a barrier's cells)
-    STZ ph
-    ASL A:ASL A                         ; (a row's cells number 40 at most: no carry)
-    ASL A:ROL ph                        ; 8 * n
-    CLC:ADC PrioRowLo,X:STA bits
-    LDA PrioRowHi,X:ADC ph:STA bits+1
+    \\ the runs' places and sizes to RunLo, RunHi and RunLen, and their bytes to ObjBufPrio (the objects'
+    \\ bank in: none of it can be read once the cars' is), 4 a pass, Y counting down
 
-    \\ each line the object covers in the cell: ObjBufPrio's 8-pixel column k, from its row line - y
-
-    LDA kbase:CLC:ADC rowbase:TAX       ; (X: the byte)
-    LDA line:AND #7:TAY                 ; (Y: the line in the cell)
-.lines
-    LDA ObjBufPrio,X:STA (bits),Y
+    LDA InstRuns,Y:STA runs
+    TYA:ASL A:STA r                     ; 3 * the instance: its first run
+    TYA:CLC:ADC r:TAX
+    LDY #0
+    STZ total
+.sum
+    LDA InstRunLo,X:STA RunLo,Y
+    LDA InstRunHi,X:STA RunHi,Y
+    LDA InstRunLen,X:STA RunLen,Y
+    CLC:ADC total:STA total
     INX
     INY
-    CPY lineend:BNE lines
-    LDA kbase:CLC:ADC obj_bands.h:STA kbase ; (the next column's)
-.celldone
-    LDA line:LSR A:LSR A:LSR A:TAX      ; (X: the cell row again)
-    INC cx
-    INC k
-    LDA k:CMP cells
-    BEQ @+
-    JMP nextcell
-.@
-    LDA lend:STA line
-    CMP yend:BCS @+
-    JMP crow
+    CPY runs:BNE sum
+    FOR k = 0..3                        ; (operand k: the bits less k + 1, Y from the end in 4s)
+        LDA src:SEC:SBC #k+1:STA copy+1+6*k
+        LDA src+1:SBC #0:STA copy+2+6*k
+    NEXT
+    LDY total
+.copy
+    FOR k = 0..3
+        LDA &FF00,Y:STA ObjBufPrio-1-k,Y ; self-modified: the bits, less k + 1
+    NEXT
+    TYA:SEC:SBC #4:TAY
+    BNE copy
+
+    \\ each run from ObjBufPrio into its cells (the cars' bank in), 4 a pass
+
+    LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank
+    STZ at
+    STZ r
+.run
+    LDX r
+    FOR k = 0..3                        ; (operand pair k: the run's bytes and its cells, less k + 1)
+        LDA RunLo,X:SEC:SBC #k+1:STA bytes+4+6*k
+        LDA RunHi,X:SBC #0:STA bytes+5+6*k
+        LDA at:SEC:SBC #k+1:STA bytes+1+6*k
+        LDA #HI(ObjBufPrio):SBC #0:STA bytes+2+6*k
+    NEXT
+    LDY RunLen,X
+    TYA:CLC:ADC at:STA at
+.bytes
+    FOR k = 0..3
+        LDA &FF00,Y:STA &FF00,Y         ; self-modified: the run's bytes in ObjBufPrio, its cells, less k + 1
+    NEXT
+    TYA:SEC:SBC #4:TAY
+    BNE bytes
+    INC r
+    DEC runs:BEQ @+
+    JMP run
 .@
     RTS
 }
+
+ASSERT LO(ObjBufPrio) == 0, "ObjBufPrio: on a page"

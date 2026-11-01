@@ -172,6 +172,26 @@ def rows_bytes(lidx):
 
 # the background objects' kinds in the trace, and the variants each has
 ObjKinds = {'slot': 1, 'gate': 2, 'barrier': 3}
+ObjSizes = {'gate': (48, 16), 'barrier': (16, 8)}       # (w, h): the kinds that write mask C
+ObjFrames = {'gate': 5, 'barrier': 8}
+
+
+def instances(frames):
+    """The race's gates and barriers, each at its place: [(kind, x, y)], in the order they first come."""
+    out = []
+    for fr in frames:
+        for c in fr['calls']:
+            if c[0] in ObjSizes:
+                key = (c[0],) + objects.place(c[0], c[1])
+                if key not in out:
+                    out.append(key)
+    return out
+
+
+def instance_cells(kind, x, y):
+    """The 8 x 8 cells an instance covers, by cell row: [(row, first column, columns)]."""
+    w, h = ObjSizes[kind]
+    return [(r, x // 8, w // 8) for r in range(y // 8, (y + h - 1) // 8 + 1)]
 
 
 def object_variants(dat):
@@ -186,17 +206,15 @@ def object_variants(dat):
         out['slot'].append((4, 8, rows_bytes(map_at(objects.slot(dat, sprite), lmap, 0, 0)), None, None))
     for frame in range(5):
         col, mc = objects.gate(dat, frame)
-        pb = bytes(np.packbits(1 - mc, axis=1).T.flatten())     # (column by column)
         for parity in range(2):
-            out['gate'].append((12, 16, rows_bytes(map_at(col, lmap, 0, parity)), None, pb))
+            out['gate'].append((12, 16, rows_bytes(map_at(col, lmap, 0, parity)), None, None))
     for frame in range(8):
         col, mc = objects.barrier(dat, frame)
-        pb = bytes(np.packbits(1 - mc, axis=1).T.flatten())     # (column by column)
         keep = np.where(col == 0, 3, 0).astype(np.uint8)
         for parity in range(2):
             lidx = map_at(col, lmap, 0, parity)
             lidx[col == 0] = 0
-            out['barrier'].append((4, 8, rows_bytes(lidx), rows_bytes(keep), pb))
+            out['barrier'].append((4, 8, rows_bytes(lidx), rows_bytes(keep), None))
     return out
 
 
@@ -278,11 +296,11 @@ def moving_variant(dat, key):
 MaxMovers = 8
 
 
-def trace(frames, sets, movkeys, room):
+def trace(frames, sets, movkeys, insts, room):
     """The race's frames, as many as fit in room bytes with the HUD's events: per frame the cars drawn
     (their count, then 4 bytes each: car | drone-driven << 2, x's low byte, y, frame | on top << 6 | x's
-    high bit << 7) and the background objects' calls (their count, then 4 bytes each: kind | again << 6 | x's
-    high bit << 7, variant, x's low byte, y). The ST calls each a second time the frame after, for its other
+    high bit << 7) and the background objects' calls (their count, then 4 bytes each: kind | instance << 3 |
+    again << 6 | x's high bit << 7, variant, x's low byte, y; the instance a gate's or barrier's). The ST calls each a second time the frame after, for its other
     screen: "again" marks that call, for which the BBC only copies the background into the screen. A wrecked
     car's explosion is among the cars: &80 | x's high bit << 6, x's low byte, y, its moving variant. Then the
     moving objects (their count, then 5 bytes each: the variant, x, y as 16-bit words)."""
@@ -306,7 +324,8 @@ def trace(frames, sets, movkeys, room):
         for n, w in objs:
             x, y = objects.place(n, w)
             again = 1 if (n, w) in prev else 0          # the ST's second call, for its other screen
-            rec += bytes([ObjKinds[n] | again << 6 | (x >> 8) << 7, variant_of(n, w, y), x & 255, y])
+            inst = insts.index((n, x, y)) if n in ObjSizes else 0
+            rec += bytes([ObjKinds[n] | inst << 3 | again << 6 | (x >> 8) << 7, variant_of(n, w, y), x & 255, y])
         prev = objs
         assert len(movers) <= MaxMovers
         rec.append(len(movers))
@@ -356,14 +375,38 @@ def main(track, tracepath, out):
         f.write(f'CarDataSize = {len(data)}\n')
 
     # the cells a gate or barrier of this race covers: their priority bits change as it moves
+    insts = instances(frames)
+    assert len(insts) <= 8
     reserved = set()
-    for fr_ in frames:
-        for call in fr_['calls']:
-            if call[0] in ('gate', 'barrier'):
-                x, y = objects.place(call[0], call[1])
-                h, w = (16, 48) if call[0] == 'gate' else (8, 16)
-                reserved |= {(r, c) for r in range(y // 8, (y + h - 1) // 8 + 1) for c in range(x // 8, (x + w) // 8)}
+    for kind, x, y in insts:
+        for r, c0, n in instance_cells(kind, x, y):
+            cells = {(r, c) for c in range(c0, c0 + n)}
+            assert not cells & reserved, "instances share a cell"
+            reserved |= cells
     pdata, classes, cellmap, rowoff = prio(track, reserved)
+
+    # each instance's runs of cells (a cell row's, together in prio.bin: reserved cells side by side are
+    # numbered in turn), and for each of its frames those cells' bits: the track's own, with the frame's
+    # mask C over the lines it covers
+    dat_ = open('orig/st/SUPER.DAT', 'rb').read()
+    base_mask = np.load(f'build/gfx/mask2_t{track}.npy')
+    inst_runs, inst_frames = [], []
+    for kind, x, y in insts:
+        runs = []
+        for r, c0, n in instance_cells(kind, x, y):
+            v = int(cellmap[r, c0])
+            assert all(cellmap[r, c0 + k] == v + k for k in range(n))
+            runs.append((8 * (rowoff[r] + v - 1), 8 * n))
+        inst_runs.append(runs)
+        frs = []
+        for f in range(ObjFrames[kind]):
+            m = base_mask.copy()
+            bgc = np.zeros((200, 320), np.uint8)
+            objects.apply(dat_, kind, [f, (y * 160 + x // 16 * 8)], bgc, m)
+            hidden = (m == 0)
+            frs.append(bytes(int(np.packbits(hidden[r * 8 + line, c * 8:c * 8 + 8])[0])
+                             for r, c0, n in instance_cells(kind, x, y) for c in range(c0, c0 + n) for line in range(8)))
+        inst_frames.append(frs)
     open(f'{out}/prio.bin', 'wb').write(pdata)
     open(f'{out}/prioclass.bin', 'wb').write(classes)
     # the map: each row from 2 cells before its first with hidden pixels to 2 after its last (a car covers 3
@@ -428,11 +471,14 @@ def main(track, tracepath, out):
     vt = []
     for kind in ObjKinds:
         for i, (w, h, d, m, pb) in enumerate(variants[kind]):
-            po = 0
-            if pb:
-                po = len(obin)
-                obin += pb
-            vt.append((w, h, (1 if m else 0) | (2 if pb else 0), where[(kind, i), 0], where.get(((kind, i), 1), 0), po))
+            vt.append((w, h, (1 if m else 0) | (2 if kind in ObjSizes else 0), where[(kind, i), 0],
+                       where.get(((kind, i), 1), 0)))
+    inst_base, inst_data = [], []
+    for frs in inst_frames:
+        inst_base.append(len(inst_data))
+        for b in frs:
+            inst_data.append(len(obin))
+            obin += b
     mt = [(dx, dy, w, h, t, where[('move', i), 0]) for i, (dx, dy, w, h, t, d) in enumerate(movers_)]
     open(f'{out}/objects.bin', 'wb').write(obin)
     with open(f'{out}/objects.6502', 'w') as f:
@@ -442,15 +488,24 @@ def main(track, tracepath, out):
             bases.append(base)
             base += len(variants[kind])
         f.write(lst('GenObjKindBase', [0] + bases))
-        for i, name in enumerate(('GenObjW', 'GenObjH', 'GenObjFlags', 'GenObjData', 'GenObjMask', 'GenObjPrio')):
+        for i, name in enumerate(('GenObjW', 'GenObjH', 'GenObjFlags', 'GenObjData', 'GenObjMask')):
             f.write(lst(name, [v[i] for v in vt]))
+        # the gates' and barriers' priority runs: per instance up to 3 runs (an offset in prio.bin, bytes),
+        # its first frame's entry; per entry, the frame's bits in objects.bin, the runs' bytes one after another
+        runs3 = [r + [(0, 0)] * (3 - len(r)) for r in inst_runs] or [[(0, 0)] * 3]
+        f.write(lst('GenInstRuns', [len(r) for r in inst_runs] or [0]))
+        f.write(lst('GenInstRunOff', [o for r in runs3 for o, n in r]))
+        f.write(lst('GenInstRunLen', [n for r in runs3 for o, n in r]))
+        f.write(lst('GenInstBase', inst_base or [0]))
+        f.write(lst('GenInstData', inst_data or [0]))
+        f.write(f'Instances = {len(inst_runs)}\n')
         f.write(f'ObjVariants = {len(vt)}\n')
         for i, name in enumerate(('GenMovDX', 'GenMovDY', 'GenMovW', 'GenMovH', 'GenMovTable', 'GenMovData')):
             f.write(lst(name, [m[i] for m in mt]))
         f.write(f'MovVariants = {len(mt)}\n')
         f.write(f'MaxMovers = {MaxMovers}\n')
 
-    tdata, nframes, events = trace(frames, sets, movkeys, 16384)
+    tdata, nframes, events = trace(frames, sets, movkeys, insts, 16384)
     open(f'{out}/trace.bin', 'wb').write(tdata)
     open(f'{out}/hudevents.bin', 'wb').write(events)
     with open(f'{out}/trace.6502', 'w') as f:

@@ -24,8 +24,22 @@
     EQUB LO(ObjData + GenObjMask)
 .ObjMaskHi
     EQUB HI(ObjData + GenObjMask)
-.ObjPrioLo
-    EQUB LO(ObjData + GenObjPrio)
-.ObjPrioHi
-    EQUB HI(ObjData + GenObjPrio)
+
+\\ The gates' and barriers' priority runs: per instance its runs (up to 3: where in the cars' bank's
+\\ priority data, how many bytes) and its first frame's entry; per entry the frame's bits
+
+.InstRuns
+    EQUB GenInstRuns
+.InstRunLo
+    EQUB LO(PrioData + GenInstRunOff)
+.InstRunHi
+    EQUB HI(PrioData + GenInstRunOff)
+.InstRunLen
+    EQUB GenInstRunLen
+.InstBase
+    EQUB GenInstBase
+.InstDataLo
+    EQUB LO(ObjData + GenInstData)
+.InstDataHi
+    EQUB HI(ObjData + GenInstData)
 

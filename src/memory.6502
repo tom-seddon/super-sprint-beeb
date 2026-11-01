@@ -57,7 +57,7 @@ ASSERT LO(MaskTab) == 0, "the tables: on pages"
 SECTION GameVars, org = GameVarsOrg, guard = GameVarsEnd, virtual = TRUE
 ENDSECTION
 
-SECTION ObjBuf, org = ObjBufOrg, guard = MoreTablesOrg, virtual = TRUE
+SECTION ObjBuf, org = ObjBufOrg, guard = MoreTablesOrg - &100, virtual = TRUE
 ENDSECTION
 
 SECTION BlackTable, org = MoreTablesOrg - &100, guard = MoreTablesOrg, virtual = TRUE

@@ -77,18 +77,22 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   recorded with the cars): 78 of them, 782 bytes in the trace's bank.
 
 - **Background objects**: gates, pop-up barriers and the pickups and hazards in the track's slots. The ST
-  draws one into the screen being drawn and the clean background when it changes, and copies it into its
-  other screen the frame after; gates and barriers also write mask C, so the cars' priority around them
-  changes as they move (a gate frame hides up to 392 of its 768 pixels). On the BBC (`src/objects.6502`,
-  in main RAM, paging three banks): the first call writes the variant from a fourth bank, the objects'
-  (48 variants, 5,383 bytes: the slots' 22 sprites, the gates' 5 frames and the barriers' 8, each for an
-  even and an odd top line, the patterns' phase; each variant's bytes column by column, wholly in a page),
-  into the screen being drawn (a barrier over what's there, its colour 0 kept), then copies the screen
-  into the background, and writes a gate's or barrier's priority bits into its cells, which
-  `tools/gendata.py` reserves in the map with class "some hidden", so the plotter goes by the bits. The
-  second call copies the background into the other screen. Each copy goes a band at a time through
-  unrolled column blocks (up to 12, a gate's width) with Y the line in the cell, their operands patched
-  once a band, as the car plotter's.
+  draws one into the screen being drawn and the clean background when it changes, and again into its other
+  screen the frame after; gates and barriers also write mask C, so the cars' priority around them changes as
+  they move (a gate frame hides up to 392 of its 768 pixels). On the BBC (`src/objects.6502`, in main RAM,
+  paging three banks), each call writes the variant from a fourth bank, the objects' (48 variants: the
+  slots' 22 sprites, the gates' 5 frames and the barriers' 8, each for an even and an odd top line, the
+  patterns' phase; each variant's bytes column by column, wholly in a page), into the screen being drawn
+  (a barrier over what's there, its colour 0 kept), through unrolled column blocks (up to 12, a gate's
+  width) with Y the line in the cell, their operands patched once a band, as the car plotter's. The
+  second call then copies the screen into the background: the background is a frame behind the screens
+  between the calls, which is safe because each frame's erase comes before its objects, so whatever it
+  restores is drawn over. The first call also writes a gate's or barrier's priority: the race's gates and
+  barriers are numbered by place (per track, Tom's suggestion), and `tools/gendata.py` works out, for each
+  one and each of its frames, the finished bits of the cells it covers (the track's own, the frame's over
+  the lines it covers). Their cells are reserved in the map with class "some hidden", and sit together in
+  the cars' bank, a run of 48 bytes a cell row for a gate; so a change is a copy of up to 3 runs (144
+  bytes for a gate), through a buffer in main RAM, 4 bytes a loop pass. 3,072 bytes of these on track 5.
 - **Moving objects** (`src/movers.6502`, in the objects' bank): a wrecked car's explosion (26 frames, drawn
   in the car's place in the draw order), the banner (36 frames, 16 x 8, at a place fixed per track), the
   sparks (8 x 8 on 8-pixel steps) and the helicopter (4 frames, 32 x 36, on 16-pixel steps, its carried
@@ -198,6 +202,12 @@ The worst frames are a gate's step with the helicopter in flight: with the plan'
 (16,000) they'd run over a TV frame and drop to 25 fps for a moment. The gate's step (12,542 on its first
 call) and the helicopter (272 bytes drawn and erased, about 8,000 with its share of the erase) are where
 the time would come from.
+
+Then, the work of a change split between the ST's two calls and the priority precomputed per gate and
+barrier (above): a gate's step 8,142 on the first call and 6,772 on the second (was 12,542 and 3,626), a
+barrier's 3,477 and 3,166. The whole race: 18,751 cycles a frame on average (18,864 before), 33,738 at
+99% (38,023); the worst 20 frames 33,760 (37,576): the gates 9,747 of it, the helicopter about 9,300,
+the erase 6,553.
 
 ## Memory
 

@@ -161,3 +161,13 @@
 - jsbeeb: after a breakpoint stops `runFor`, the next `runFor` runs the stopped run's leftover cycles too.
   `tools/jsbeeb.mjs`'s `runTo` now drops them first (`settle`), so a debugging script's `runFor(1)` is one
   instruction, not a jump of thousands of frames.
+- Tom's idea: per-track code or data for the per-track objects. Generated code for the gates' bytes would be
+  23K (14K for the changed bytes only), too much; precomputed per-track data for their priority fits. Each
+  gate and barrier is numbered by place, and each of its frames' finished cell bits worked out at build time
+  (3,072 bytes on track 5), so a change copies up to 3 runs into the cars' bank instead of finding each cell
+  through the map. And the work of a change is split between the ST's two calls (the second copies the
+  screen into the background). A gate's step 12,542 -> 8,142 on its first call (6,772 on its second); the
+  worst 20 frames 37,576 -> 33,760. Every frame matches.
+- Two bugs on the way, caught by the model check: the run loop read its targets from the objects' bank's
+  tables after paging the cars' bank in (it wrote into the car frames); and the runs' buffer, aligned to a
+  page, landed on car 3's black data table.
