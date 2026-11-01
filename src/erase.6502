@@ -32,6 +32,7 @@ ScHi = 5                                ; and the screen's (STA abs,X)
     ZA_AUTO1 left                       ; local: lines still to erase
     ZA_AUTO1 lend                       ; local: the line in the cell after the band's last
     ZA_AUTO2 cx8                        ; local: the first column * 8
+    ZA_AUTO1 wi                         ; local: 2 * (w - 1), the patching's entries' index
 
     LDA ebuf:STA slot
 .next
@@ -42,6 +43,7 @@ ScHi = 5                                ; and the screen's (STA abs,X)
     STA left
     LDY EraseW,X
     LDA EraseBack,Y:STA back+1         ; the loop's branch back: to column w - 1's block
+    TYA:DEC A:ASL A:STA wi              ; (the patching's entry: column w - 1's step)
     LDA EraseTop,X:AND #7:STA line
     LDA EraseTop,X:LSR A:LSR A:LSR A:STA row
     LDA EraseCol,X:ASL A:ASL A:ASL A:STA cx8
@@ -62,11 +64,17 @@ ScHi = 5                                ; and the screen's (STA abs,X)
     LDA RowLo,X:CLC:ADC cx8
     TAY                                 ; (Y: the first cell's low byte)
     LDA RowHi,X:ADC cx8+1               ; (C clear after: the screen ends at &8000)
-    FOR n = 0..EraseCols-1
+    LDX wi:JMP (ScEntry,X)              ; (only the box's columns: from column w - 1's step)
+    ZA_CANJUMP scseq
+.scseq
+    FOR n = EraseCols-1..0
         STA EraseBlk(n)+ScHi
     NEXT
     ADC #HI(BgOffset)
-    FOR n = 0..EraseCols-1
+    JMP (BgEntry,X)
+    ZA_CANJUMP bgseq
+.bgseq
+    FOR n = EraseCols-1..0
         STA EraseBlk(n)+BgHi
     NEXT
     TYA:CLC:ADC lend:STA loopend+1      ; X's end (the page's end wraps it to 0)
@@ -106,3 +114,10 @@ ScHi = 5                                ; and the screen's (STA abs,X)
 .EraseBack
     EQUB 0
     EQUB LO(EraseBlk((1..EraseCols) - 1) - (erase_cars.back + 2))
+
+\\ The patching sequences' entries, by 2 * (w - 1): column w - 1's step (3 bytes each)
+
+.ScEntry
+    EQUW erase_cars.scseq + (EraseCols - (1..EraseCols)) * 3
+.BgEntry
+    EQUW erase_cars.bgseq + (EraseCols - (1..EraseCols)) * 3

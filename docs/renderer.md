@@ -102,8 +102,13 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   ST draws them over everything). One shift each: the explosion snapped to 4-pixel steps (D8), the banner's
   frames shifted for its place, the sparks and helicopter aligned already. The frame loop (main RAM) calls
   the car plotter or the object plotter car by car, then the object plotter for the rest; the erase lists
-  hold 16 boxes a screen and end at one of height 0. 93 variants in this race (the helicopter's 272 bytes
-  each, so the plotter carries each column's address in full).
+  hold 16 boxes a screen and end at one of height 0. Each sprite is cut into pieces by `tools/gendata.py`:
+  rectangles of neighbouring byte columns, each trimmed to the rows its columns cover, chosen to draw the
+  fewest bytes with a piece costing 50 bytes more (a helicopter's columns run from 2 rows to 36; it comes
+  to 1 to 3 pieces, 184 to 198 bytes rather than 272). Each piece is a record of its own, with its own erase
+  box. The plotter carries each column's data address in full (a piece can be more than a page), and
+  patches only the piece's own columns, its unrolled patching entered at column w - 1 through a table by
+  width; so does the erase.
 - **The test race for objects**: a real race recorded in Hatari (`tools/st_trace_objects.py`,
   `tools/st_race.py`): track 5, as the 17th race of a game (barriers, oil-type hazards; the tornado and
   cones are coin flips that didn't come up), one player on the keyboard accelerating with no steering, so
@@ -208,6 +213,12 @@ barrier (above): a gate's step 8,142 on the first call and 6,772 on the second (
 barrier's 3,477 and 3,166. The whole race: 18,751 cycles a frame on average (18,864 before), 33,738 at
 99% (38,023); the worst 20 frames 33,760 (37,576): the gates 9,747 of it, the helicopter about 9,300,
 the erase 6,553.
+
+Then the moving objects in pieces, and the plotter and the erase patching only their boxes' own columns:
+18,318 cycles a frame on average, 32,557 at 99%, the worst 20 frames 32,718 (33,760 before). The pieces
+alone drew a third fewer of the helicopter's bytes but cost as much in set-up as they saved, until the
+patching stopped doing all 8 columns for every piece. The helicopter's middle columns run its full height,
+so what's left of its cost (about 7,000 drawn and erased) is mostly bytes it really draws.
 
 ## Memory
 

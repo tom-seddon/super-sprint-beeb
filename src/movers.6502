@@ -85,6 +85,9 @@ FUNCTION MovBlk(n) = mov_plot.blocks + (MovCols - 1 - n) * MovBlkSize
     ZA_AUTO2 cs                         ; local: the band's first cell
     ZA_AUTO1 last                       ; local: 8 * (w - 1)
     ZA_AUTO2 ccs                        ; local: the crossing's column's cell
+    ZA_AUTO1 wi                         ; local: 2 * (w - 1), the patching's entries' index
+    ZA_AUTO2 lastoff                    ; local: (w - 1) * h: column w - 1's data from column 0's
+    ZA_AUTO1 dl                         ; local: a scratch
 
     \\ the box: its column, its top and rows clipped to lines 0-199
 
@@ -121,9 +124,15 @@ FUNCTION MovBlk(n) = mov_plot.blocks + (MovCols - 1 - n) * MovBlkSize
     LDA MovW,Y:TAX
     DEC A:ASL A:ASL A:ASL A:STA last
     LDA MovBack,X:STA back+1            ; the loop's branch back: to column w - 1's block
+    LDA MovW,Y:DEC A:ASL A:STA wi       ; (the patching's entry: column w - 1's step)
+    LDA MovLastLo,Y:STA lastoff
+    LDA MovLastHi,Y:STA lastoff+1
     LDX MovTable,Y
     LDA MovTablePages,X                 ; the variant's data table
-    FOR n = 0..MovCols-1
+    LDX wi:JMP (DtEntry,X)
+    ZA_CANJUMP dtseq
+.dtseq
+    FOR n = MovCols-1..0
         STA MovBlk(n)+DtHi
     NEXT
     LDX eidx:INC eidx                   ; (the erase list's next entry)
@@ -173,26 +182,39 @@ FUNCTION MovBlk(n) = mov_plot.blocks + (MovCols - 1 - n) * MovBlkSize
     LDX row
     LDA RowLo,X:CLC:ADC cx8:STA cs
     LDA RowHi,X:ADC cx8+1:STA cs+1
-    LDA cs:CLC:ADC last:BCS crossing
-    LDA cs                              ; (C clear)
-    FOR n = 0..MovCols-1
+    LDA cs:CLC:ADC last:BCS crossing    ; (A: column w - 1's cell's low byte)
+
+    \\ only the object's columns patched: each sequence entered at column w - 1's step, down to column 0
+
+    SEC
+    LDX wi:JMP (SloEntry,X)
+    ZA_CANJUMP sloseq
+.sloseq
+    FOR n = MovCols-1..0
         STA MovBlk(n)+RsLo:STA MovBlk(n)+WsLo
-        IF n < MovCols-1 : ADC #8 : ENDIF
+        SBC #8                          ; (no borrow: the cells in one page)
     NEXT
     LDA cs+1
-    FOR n = 0..MovCols-1
+    JMP (ShiEntry,X)
+    ZA_CANJUMP shiseq
+.shiseq
+    FOR n = MovCols-1..0
         STA MovBlk(n)+RsHi:STA MovBlk(n)+WsHi
     NEXT
 .patched
-    LDA data:LDX data+1:CLC             ; (a variant can be more than a page: each column's high byte
-    FOR n = 0..MovCols-1                ; carried)
-        STA MovBlk(n)+RdLo:STX MovBlk(n)+RdHi
-        IF n < MovCols-1
-            ADC h
-            BCC @+
-            INX:CLC
-        .@
-        ENDIF
+    LDA data:CLC:ADC lastoff:STA dl     ; column w - 1's data (a variant can be more than a page: each
+    LDA data+1:ADC lastoff+1:TAY        ; column's high byte carried, in Y)
+    LDA dl
+    SEC
+    LDX wi:JMP (DataEntry,X)
+    ZA_CANJUMP dataseq
+.dataseq
+    FOR n = MovCols-1..0
+        STA MovBlk(n)+RdLo:STY MovBlk(n)+RdHi
+        SBC h
+        BCS @+
+        DEY:SEC
+    .@
     NEXT
     LDY line
     DEY
@@ -241,6 +263,22 @@ FUNCTION MovBlk(n) = mov_plot.blocks + (MovCols - 1 - n) * MovBlkSize
 .MovTablePages
     EQUB HI(DataId), HI(DataYellow)
 
+\\ The patching sequences' entries, by 2 * (w - 1): column w - 1's step in each
+
+DtStep = 3
+SloStep = 8
+ShiStep = 6
+DataStep = 12
+ASSERT mov_plot.shiseq - mov_plot.sloseq == MovCols * SloStep + 5, "the screen's low bytes' steps"
+.DtEntry
+    EQUW mov_plot.dtseq + (MovCols - (1..MovCols)) * DtStep
+.SloEntry
+    EQUW mov_plot.sloseq + (MovCols - (1..MovCols)) * SloStep
+.ShiEntry
+    EQUW mov_plot.shiseq + (MovCols - (1..MovCols)) * ShiStep
+.DataEntry
+    EQUW mov_plot.dataseq + (MovCols - (1..MovCols)) * DataStep
+
 \\ The moving variants (tools/gendata.py): each one's first byte column and line in its box, its width and
 \\ height, its data table, its bytes
 
@@ -258,3 +296,7 @@ FUNCTION MovBlk(n) = mov_plot.blocks + (MovCols - 1 - n) * MovBlkSize
     EQUB LO(ObjData + GenMovData)
 .MovHi
     EQUB HI(ObjData + GenMovData)
+.MovLastLo                              ; (w - 1) * h
+    EQUB LO((GenMovW - 1) * GenMovH)
+.MovLastHi
+    EQUB HI((GenMovW - 1) * GenMovH)

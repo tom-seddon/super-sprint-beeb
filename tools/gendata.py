@@ -268,10 +268,14 @@ def moving_sprite(dat, key):
     return idx, idx != 8
 
 
-def moving_variant(dat, key):
-    """A moving object's sprite as the BBC stores it: trimmed, column by column, 2-bit values (Key
-    transparent), shifted by the banner's shift. -> (dx bytes, dy, w bytes, h, table 0 DataId or 1 DataYellow,
-    bytes)."""
+PieceCost = 50                          # a piece's cost beyond its bytes, in bytes (its set-up and erase box)
+
+
+def moving_pieces(dat, key):
+    """A moving object's sprite as the BBC stores it: 2-bit values (Key transparent), shifted by the banner's
+    shift, cut into pieces: rectangles of neighbouring byte columns, each trimmed to the rows its columns
+    cover, chosen to draw the fewest bytes, PieceCost a piece more (a helicopter's columns run from 2 rows
+    to 33). -> [(dx bytes, dy, w bytes, h, table 0 DataId or 1 DataYellow, bytes column by column)]."""
     idx, opaque = moving_sprite(dat, key)
     lidx = apply_map(idx, logical_map(Opt, Opt['bg'])).astype(np.uint8)
     used = set(lidx[opaque].tolist())
@@ -287,23 +291,47 @@ def moving_variant(dat, key):
     canvas[:, shift:shift + w0] = v
     op = np.zeros(canvas.shape, bool)
     op[:, shift:shift + w0] = opaque
-    ys, xs = np.where(op.any(1))[0], np.where(op.any(0))[0]
-    y0, y1, c0, c1 = ys.min(), ys.max(), xs.min() // 4, xs.max() // 4
-    data = bytes(pixel_byte(canvas[r, 4 * n:4 * n + 4]) for n in range(c0, c1 + 1) for r in range(y0, y1 + 1))
-    return int(c0), int(y0), int(c1 - c0 + 1), int(y1 - y0 + 1), table, data
+    cols = []
+    for c in range(canvas.shape[1] // 4):
+        rows = np.where(op[:, 4 * c:4 * c + 4].any(1))[0]
+        cols.append((int(rows.min()), int(rows.max())) if len(rows) else None)
+    # the best split of the columns into runs of neighbours (an empty column ends a run): cost[i], the least
+    # for columns from i on
+    n = len(cols)
+    best = [(0, [])] * (n + 1)
+    for i in range(n - 1, -1, -1):
+        if cols[i] is None:
+            best[i] = best[i + 1]
+            continue
+        choice = None
+        r0, r1 = cols[i]
+        for j in range(i, n):
+            if cols[j] is None:
+                break
+            r0, r1 = min(r0, cols[j][0]), max(r1, cols[j][1])
+            cost = (j - i + 1) * (r1 - r0 + 1) + PieceCost + best[j + 1][0]
+            if choice is None or cost < choice[0]:
+                choice = (cost, [(i, j, r0, r1)] + best[j + 1][1])
+        best[i] = choice
+    out = []
+    for c0, c1, y0, y1 in best[0][1]:
+        data = bytes(pixel_byte(canvas[r, 4 * c:4 * c + 4]) for c in range(c0, c1 + 1) for r in range(y0, y1 + 1))
+        out.append((c0, y0, c1 - c0 + 1, y1 - y0 + 1, table, data))
+    return out
 
 
-MaxMovers = 8
+MaxMovers = 12
 
 
-def trace(frames, sets, movkeys, insts, room):
+def trace(frames, sets, movpieces, insts, room):
     """The race's frames, as many as fit in room bytes with the HUD's events: per frame the cars drawn
     (their count, then 4 bytes each: car | drone-driven << 2, x's low byte, y, frame | on top << 6 | x's
     high bit << 7) and the background objects' calls (their count, then 4 bytes each: kind | instance << 3 |
     again << 6 | x's high bit << 7, variant, x's low byte, y; the instance a gate's or barrier's). The ST calls each a second time the frame after, for its other
     screen: "again" marks that call, for which the BBC only copies the background into the screen. A wrecked
     car's explosion is among the cars: &80 | x's high bit << 6, x's low byte, y, its moving variant. Then the
-    moving objects (their count, then 5 bytes each: the variant, x, y as 16-bit words)."""
+    moving objects' pieces (their count, then 5 bytes each: the piece's variant, the object's x, y as 16-bit
+    words)."""
     out, starts, prev, heli = bytearray(), [], [], {}
     for fr in frames:
         cars, movers = frame_draws(fr, heli)
@@ -311,7 +339,8 @@ def trace(frames, sets, movkeys, insts, room):
         for d in cars:
             if d[0] == 'explosion':
                 key, x, y = d[1], d[2], d[3]
-                rec += bytes([0x80 | (x >> 8) << 6, x & 255, y, movkeys.index(key)])
+                assert len(movpieces[key]) == 1, "an explosion in one piece"
+                rec += bytes([0x80 | (x >> 8) << 6, x & 255, y, movpieces[key][0]])
                 continue
             c = d[1]
             x, y, facing, flags = fr['cars'][c]
@@ -327,10 +356,12 @@ def trace(frames, sets, movkeys, insts, room):
             inst = insts.index((n, x, y)) if n in ObjSizes else 0
             rec += bytes([ObjKinds[n] | inst << 3 | again << 6 | (x >> 8) << 7, variant_of(n, w, y), x & 255, y])
         prev = objs
-        assert len(movers) <= MaxMovers
-        rec.append(len(movers))
-        for key, x, y in movers:
-            rec += bytes([movkeys.index(key), x & 255, x >> 8, y & 255, (y >> 8) & 255])
+        rec.append(0)
+        pieces = [(p, x, y) for key, x, y in movers for p in movpieces[key]]
+        assert len(pieces) <= MaxMovers, len(pieces)
+        rec[-1:] = bytes([len(pieces)])
+        for p, x, y in pieces:
+            rec += bytes([p, x & 255, x >> 8, y & 255, (y >> 8) & 255])
         starts.append(len(out))
         out += rec
     # the HUD's events: a car's laps or score as it changes (every car's at frame 0), 10 bytes each
@@ -450,7 +481,12 @@ def main(track, tracepath, out):
         for k in [d[1] for d in cars_ if d[0] == 'explosion'] + [m[0] for m in movers]:
             if k not in movkeys:
                 movkeys.append(k)
-    movers_ = [moving_variant(dat, k) for k in movkeys]
+    movers_, movpieces = [], {}
+    for k in movkeys:
+        movpieces[k] = []
+        for piece in moving_pieces(dat, k):
+            movpieces[k].append(len(movers_))
+            movers_.append(piece)
     pages, where = [], {}
     for key, part, b in sorted(blocks, key=lambda t: -len(t[2])):
         for p, used in enumerate(pages):
@@ -505,7 +541,7 @@ def main(track, tracepath, out):
         f.write(f'MovVariants = {len(mt)}\n')
         f.write(f'MaxMovers = {MaxMovers}\n')
 
-    tdata, nframes, events = trace(frames, sets, movkeys, insts, 16384)
+    tdata, nframes, events = trace(frames, sets, movpieces, insts, 16384)
     open(f'{out}/trace.bin', 'wb').write(tdata)
     open(f'{out}/hudevents.bin', 'wb').write(events)
     with open(f'{out}/trace.6502', 'w') as f:

@@ -171,3 +171,8 @@
 - Two bugs on the way, caught by the model check: the run loop read its targets from the objects' bank's
   tables after paging the cars' bank in (it wrote into the car frames); and the runs' buffer, aligned to a
   page, landed on car 3's black data table.
+- The helicopter: 156 of its 288 bytes are empty, its columns 2 to 36 rows high. Moving sprites are now cut
+  into pieces of neighbouring columns (`moving_pieces`, a piece costing 50 bytes), each its own record and
+  erase box; the object plotter and the erase patch only a box's own columns (unrolled patching entered by a
+  table on the width). The worst 20 frames 33,760 -> 32,718, the average 18,751 -> 18,318; every frame
+  matches. The pieces alone gained nothing: their set-up patched all 8 columns each band.
