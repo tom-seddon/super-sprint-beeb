@@ -197,3 +197,15 @@
   races recorded, so it didn't show).
 - Cost: the tornado about 4,200 cycles a frame, all race long (22,602 a frame on average with it, 18,424
   without); 5 frames of 463 over a TV frame. It's the general path's set-up and bands for a small sprite.
+- **The tornado's own plotter** (Tom chose it over the gates' speed): its 12 frame-shifts compiled by
+  `tools/gendata.py` (an opaque byte `LDA #:STA (zp),Y`, a mixed one `LDA:AND #:ORA #:STA`, an empty one
+  nothing), drawn through 16 zero-page pointers, one a line, set each call (about 230 cycles), so its
+  character rows cost nothing and a line outside the play area just points at a junk area. The plot fell by
+  1,609 cycles a frame (22,602 -> 20,994 on average; the worst 20 frames 39,541 -> 37,905). Every frame
+  matches. The cost: about 2.8K more of the objects' bank (3,561 for the routine and code, less the
+  pieces' 736); 1,346 bytes left in it.
+- The recorded tornado never reaches the screen's top or bottom, so `tools/tornado_sweep.py` makes a race
+  with its place swept over both edges; every frame matches, and a clipped line put wrong fails 180.
+- A trap in the Makefile: build/gen depends on the trace file's date, so after `make check
+  TRACEFILE=...` the default race isn't regenerated until its file is touched (the check then fails every
+  frame, the disc playing the other race).

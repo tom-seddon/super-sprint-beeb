@@ -190,8 +190,8 @@ adds the logic.
   pre-shifted, trimmed frames, about 10.6K a race.
 - Done too: the HUD row, from the ST's scores and laps, checked with the rest.
 - Done too: the objects (gates, barriers, pickups, oil-type hazards, cones, the explosion, banner, sparks,
-  tornado and helicopter), from a real ST race on track 5, checked with the rest. With all of them a frame
-  averages about 22,600 cycles (`docs/renderer.md`).
+  tornado and helicopter), from a real ST race on track 5, checked with the rest. The tornado's frames are
+  compiled (about 3.5K). With all of them a frame averages about 21,000 cycles (`docs/renderer.md`).
 - To do: the helicopter's horizontal flight and big variant; the other tracks; the objects' speed.
 
 ### Phase 4: one race

@@ -1,10 +1,9 @@
-\\ movers.6502 - the objects' bank's plotter for the moving objects: a wrecked car's explosion, the sparks, the
-\\ banner, the tornado, the helicopter. Each variant is stored as the cars' frames are (tools/gendata.py): trimmed, a
-\\ column's rows together (a helicopter's more than a page: each column's address is carried in full),
-\\ 2-bit values with 2 the key, drawn through
+\\ movers.6502 - the objects' bank's plotters for the moving objects: a wrecked car's explosion, the sparks, the
+\\ banner, the helicopter; and the tornado's own, its frame-shifts compiled. Each of the others' variants is
+\\ stored as the cars' frames are (tools/gendata.py): trimmed, a column's rows together (a helicopter's more
+\\ than a page: each column's address is carried in full), 2-bit values with 2 the key, drawn through
 \\ MaskTab and the variant's data table. One shift each: the explosion on 4-pixel steps (D8), the banner's
-\\ frames shifted for its place, the tornado's for each place (4 shifts), the sparks and the helicopter on 8- and
-\\ 16-pixel steps. No priority: the ST
+\\ frames shifted for its place, the sparks and the helicopter on 8- and 16-pixel steps. No priority: the ST
 \\ draws them over everything. Clipped to the play area's lines (the helicopter flies in and out).
 
 MovCols = 8                             ; the widest variant's bytes (the helicopter's)
@@ -45,12 +44,17 @@ FUNCTION MovBlk(n) = mov_plot.blocks + (MovCols - 1 - n) * MovBlkSize
     STZ m
     BRA test
 .next
-    LDA MovVar,X:STA mov_plot.v
+    LDA MovVar,X:CMP #MovVariants:BCC plot
+    JSR mov_tornado                     ; (the tornado's variants come last)
+    BRA drawn
+.plot
+    STA mov_plot.v
     LDA MovXLo,X:STA mov_plot.x
     LDA MovXHi,X:STA mov_plot.x+1
     LDA MovYLo,X:STA mov_plot.y
     LDA MovYHi,X:STA mov_plot.y+1
     JSR mov_plot
+.drawn
     INC m
 .test
     LDX m
@@ -254,6 +258,123 @@ FUNCTION MovBlk(n) = mov_plot.blocks + (MovCols - 1 - n) * MovBlkSize
     JMP band
 .done
     RTS
+}
+
+\\ The tornado: one of its frame-shifts, compiled (tools/gendata.py), drawn into the screen being drawn
+\\ through 16 pointers, one a line: its line's cell in the box's first byte column, or TorJunk for a line
+\\ outside the play area (the ST's tornado goes from 16 lines above it to its last line). Each line's
+\\ pointer found as it goes, so the character rows it crosses cost nothing in the drawing. Its box kept for
+\\ the erase.
+\\
+\\ Inputs:
+\\     X: the object: MovVar (MovVariants on), MovXLo, MovXHi, MovYLo, MovYHi
+\\     eidx: the erase list's next entry
+\\
+\\ Outputs:
+\\     EraseCol, EraseTop, EraseW, EraseH: what it drew, at eidx, and eidx one on (if any line shows)
+\\     A, X, Y: corrupted
+
+.mov_tornado
+{
+    ZA_AUTO 32, ts                      ; local: per line its pointer
+    ZA_AUTO1 t                          ; local: 2 * the frame-shift
+    ZA_AUTO1 col                        ; local: the box's first byte column
+    ZA_AUTO2 cx8                        ; local: col * 8
+    ZA_AUTO2 ln                         ; local: y; then, if clipped, the line
+
+    LDA MovYLo,X:STA ln
+    LDA MovYHi,X:STA ln+1
+    LDA MovVar,X:SEC:SBC #MovVariants:TAY
+    ASL A:STA t
+    LDA MovXHi,X:LSR A                  ; (C: x's bit 8)
+    LDA MovXLo,X:ROR A:LSR A            ; x DIV 4
+    CLC:ADC TorDX,Y:STA col
+    ASL A:ASL A:ASL A:STA cx8
+    LDA col:LSR A:LSR A:LSR A:LSR A:LSR A:STA cx8+1
+    LDX eidx
+    LDA col:STA EraseCol,X
+    LDA TorW,Y:STA EraseW,X
+
+    \\ the box's lines, clipped to the play area's
+
+    LDA ln+1:BMI above
+    BNE none                            ; (y 256 on)
+    LDA ln:CMP #PlayRows*8-15:BCC whole ; (its last line in the play area)
+    CMP #PlayRows*8:BCS none            ; y 185 to 199: its last y - 184 not shown
+    STA EraseTop,X
+    EOR #&FF:SEC:ADC #PlayRows*8        ; (200 - y)
+    BRA clipped
+.above                                  ; y -16 to -1: its first -y lines not shown
+    LDA ln:CLC:ADC #16
+    BEQ none
+    BMI none
+    STZ EraseTop,X
+.clipped
+    STA EraseH,X
+    INC eidx
+
+    \\ clipped: each line's pointer found on its own, or TorJunk's
+
+    LDX #0
+.line
+    LDA ln+1:BNE junk                   ; (above the play area)
+    LDA ln:CMP #PlayRows*8:BCS junk
+    LSR A:LSR A:LSR A:TAY
+    LDA ln:AND #7:ORA RowLo,Y
+    CLC:ADC cx8:STA ts,X
+    ZA_INDEXEDBY 0..30
+    LDA RowHi,Y:ADC cx8+1:STA ts+1,X
+    ZA_INDEXEDBY 0..30
+    BRA next
+.junk
+    LDA #LO(TorJunk):STA ts,X
+    ZA_INDEXEDBY 0..30
+    LDA #HI(TorJunk):STA ts+1,X
+    ZA_INDEXEDBY 0..30
+.next
+    INC ln
+    BNE @+
+    INC ln+1
+.@
+    INX:INX
+    CPX #32:BNE line
+    JMP draw
+.none
+    RTS
+
+    \\ all 16 lines shown: each line's pointer the last's plus 1, or, from a cell's line 7, the next row's
+    \\ line 0 (A and X: the pointer)
+
+.whole
+    STA EraseTop,X
+    LDA #16:STA EraseH,X
+    INC eidx
+    LDA ln:LSR A:LSR A:LSR A:TAY        ; (the row)
+    ASSERT (LO(PlayAddr) OR LO(RowBytes)) MOD 8 == 0, "the rows' starts: cells"
+    LDA ln:AND #7:ORA RowLo,Y
+    CLC:ADC cx8:PHA
+    LDA RowHi,Y:ADC cx8+1:TAX
+    PLA
+    FOR l = 0..15
+        STA ts+2*l
+        STX ts+2*l+1
+        IF l < 15
+            INC A
+            BIT #7:BNE @+               ; (still in the cell)
+            SEC:SBC #8                  ; the cell's line 0 (a borrow: the INC's carry lost, from &FF)
+            CLC:ADC #LO(RowBytes)       ; the next row's
+            INX:INX
+            ASSERT HI(RowBytes) == 2, "a row: 2 pages and LO(RowBytes)"
+            BCC @+
+            INX
+        .@
+        ENDIF
+    NEXT
+.draw
+    LDX t:JMP (TorEntry,X)
+    ZA_CANJUMP TorCodes
+
+    INCLUDE "../build/gen/tornado.6502"
 }
 
 \\ The loop's branch back by the width (to column w - 1's block); the data tables' pages

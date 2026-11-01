@@ -335,6 +335,41 @@ def moving_pieces(dat, key):
 MaxMovers = 12
 
 
+def tornado_code(dat, key, n):
+    """A tornado frame-shift compiled (src/movers.6502's mov_tornado calls it): Baron source for routine
+    TorCode{n}, drawing it from the 16 line pointers ts (each its line's cell in the box's first byte
+    column, or junk), Y 8 * the byte column: an opaque byte LDA #:STA (no LDA if A has it already), a mixed
+    one LDA:AND #:ORA #:STA (no ORA of 0), an empty one nothing. Its colours as the model maps them, the patterns' phase its own. -> (source, first
+    byte column, width in bytes)"""
+    idx, opaque = moving_sprite(dat, key)
+    lidx = apply_map(idx, logical_map(Opt, Opt['bg'])).astype(np.uint8)
+    h, w0 = idx.shape
+    assert h == 16 and opaque[0].any() and opaque[-1].any(), "the tornado's lines all drawn"
+    canvas = np.zeros((h, w0 + 4), np.uint8)
+    op = np.zeros(canvas.shape, bool)
+    canvas[:, key[2]:key[2] + w0] = lidx
+    op[:, key[2]:key[2] + w0] = opaque
+    cols = [c for c in range(canvas.shape[1] // 4) if op[:, 4 * c:4 * c + 4].any()]
+    lines, a = [f'.TorCode{n}'], None          # (a: A's value, if known)
+    for c in cols:
+        lines.append(f'    LDY #{8 * (c - cols[0])}')
+        for r in range(h):
+            o = op[r, 4 * c:4 * c + 4]
+            if not o.any():
+                continue
+            data = pixel_byte(np.where(o, canvas[r, 4 * c:4 * c + 4], 0))
+            if o.all():
+                lines.append(('' if a == data else f'    LDA #&{data:02X}\n') + f'    STA (ts+{2 * r}),Y')
+                a = data
+            else:
+                keep = pixel_byte(np.where(o, 0, 3))
+                lines.append(f'    LDA (ts+{2 * r}),Y:AND #&{keep:02X}' + (f':ORA #&{data:02X}' if data else '')
+                             + f':STA (ts+{2 * r}),Y')
+                a = None
+    lines.append('    RTS')
+    return '\n'.join(lines) + '\n', cols[0], cols[-1] - cols[0] + 1
+
+
 def trace(frames, sets, movpieces, insts, room):
     """The race's frames, as many as fit in room bytes with the HUD's events: per frame the cars drawn
     (their count, then 4 bytes each: car | drone-driven << 2, x's low byte, y, frame | on top << 6 | x's
@@ -494,7 +529,10 @@ def main(track, tracepath, out):
             if k not in movkeys:
                 movkeys.append(k)
     movers_, movpieces = [], {}
+    torkeys = [k for k in movkeys if k[0] == 'tornado']
     for k in movkeys:
+        if k[0] == 'tornado':
+            continue
         movpieces[k] = []
         for piece in moving_pieces(dat, k):
             movpieces[k].append(len(movers_))
@@ -528,6 +566,9 @@ def main(track, tracepath, out):
             inst_data.append(len(obin))
             obin += b
     mt = [(dx, dy, w, h, t, where[('move', i), 0]) for i, (dx, dy, w, h, t, d) in enumerate(movers_)]
+    torcode = [tornado_code(dat, k, i) for i, k in enumerate(torkeys)] or [('.TorCode0\n    RTS\n', 0, 1)]
+    for i, k in enumerate(torkeys):
+        movpieces[k] = [len(mt) + i]
     open(f'{out}/objects.bin', 'wb').write(obin)
     with open(f'{out}/objects.6502', 'w') as f:
         f.write('\\\\ objects.6502 - made by tools/gendata.py: the background objects\' variants in objects.bin\n\n')
@@ -552,6 +593,18 @@ def main(track, tracepath, out):
             f.write(lst(name, [m[i] for m in mt]))
         f.write(f'MovVariants = {len(mt)}\n')
         f.write(f'MaxMovers = {MaxMovers}\n')
+    with open(f'{out}/tornado.6502', 'w') as f:
+        f.write('\\\\ tornado.6502 - made by tools/gendata.py: the tornado\'s frame-shifts in the race, compiled, from\n'
+                '\\\\ variant MovVariants on; each one\'s first byte column in its box and width in bytes\n\n')
+        for src, dx, w in torcode:
+            f.write(src)
+        f.write('.TorEntry\n')
+        f.write(''.join(f'    EQUW TorCode{i}\n' for i in range(len(torcode))) or '    EQUW 0\n')
+        f.write(lst('GenTorDX', [dx for s, dx, w in torcode] or [0]))
+        f.write(lst('GenTorW', [w for s, dx, w in torcode] or [0]))
+        f.write('.TorDX\n    EQUB GenTorDX\n.TorW\n    EQUB GenTorW\n')
+        f.write(f'TorVariants = {len(torcode)}\n')
+        f.write(lst('TorCodes', [f'TorCode{i}' for i in range(len(torcode))]))
 
     tdata, nframes, events = trace(frames, sets, movpieces, insts, 16384)
     open(f'{out}/trace.bin', 'wb').write(tdata)

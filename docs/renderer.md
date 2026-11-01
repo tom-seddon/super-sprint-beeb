@@ -30,6 +30,9 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   `tools/hud.py`'s layout and `tools/font.py`'s glyphs, brought up to date by the same rule as the 6502's.
   Broken on purpose, it fails: with priority off, 282 frames are wrong; with one car's erase skipped, 96 of
   the first 100; with two players' HUD colours swapped, 18 of the first 20.
+  The ST's tornado never comes near the top or bottom in the recorded race, so `tools/tornado_sweep.py`
+  makes a race with its place swept, y from -17 to 201 and x across the screen (`make check TRACE=sweep
+  TRACEFILE=...`): every frame matches; with a clipped line's place in its cell off by one, 180 fail.
 
 ## How it draws
 
@@ -101,8 +104,7 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   the same key-colour scheme (every frame uses black, white and at most one of green and yellow) and a copy
   of the car plotter's fast loop, 8 columns wide, clipped to the play area's lines, with no priority (the
   ST draws them over everything). One shift each: the explosion snapped to 4-pixel steps (D8), the banner's
-  frames shifted for its place, the tornado's for each place (its 3 frames at 4 shifts, 12 variants of
-  one 48- or 64-byte piece), the sparks and helicopter aligned already. The frame loop (main RAM) calls
+  frames shifted for its place, the sparks and helicopter aligned already. The frame loop (main RAM) calls
   the car plotter or the object plotter car by car, then the object plotter for the rest; the erase lists
   hold 16 boxes a screen and end at one of height 0. Each sprite is cut into pieces by `tools/gendata.py`:
   rectangles of neighbouring byte columns, each trimmed to the rows its columns cover, chosen to draw the
@@ -111,6 +113,16 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   box. The plotter carries each column's data address in full (a piece can be more than a page), and
   patches only the piece's own columns, its unrolled patching entered at column w - 1 through a table by
   width; so does the erase.
+- **The tornado** has a plotter of its own (`mov_tornado`), as it's on screen all race when it comes up:
+  each of its frame-shifts (3 frames at 4 shifts) is compiled by `tools/gendata.py`, column by column, an
+  opaque byte `LDA #:STA (ts+2l),Y` (8 cycles; no `LDA` if A has the byte already), a mixed one
+  `LDA (ts+2l),Y:AND #:ORA #:STA (ts+2l),Y` (15; no `ORA` of 0), an empty one nothing; Y is 8 times the
+  byte column, set once a column. `ts` is 16 zero-page pointers, one a sprite line, to its line's cell in
+  the box's first column: set each call from the last plus 1, or from a cell's line 7 the next row's line 0
+  (about 230 cycles), so the character rows it crosses cost nothing in the drawing. A line outside the play
+  area points at `TorJunk` instead (a slower loop, for a tornado partly above or below). Its frame-shifts
+  draw 45 bytes each on average (of 64 in the box), in about 600 cycles. Its variants are numbered after the
+  other moving objects', and `mov_all` sends them to it; its box goes in the erase list like the others'.
 - **The test race for objects**: a real race recorded in Hatari (`tools/st_trace_objects.py`,
   `tools/st_race.py`): track 5 with the race counter 17, the 18th race of a game (barriers, oil-type
   hazards, and the tornado and cones, whose coin flips are forced: a breakpoint after each one's call of
@@ -247,6 +259,14 @@ slots' sprite &14, drawn at the start, and the road sprite over each when it's h
 | Background objects (main RAM) | 1,445 | 8,859 |
 | The frame loop, the trace, the HUD (main RAM) | 927 | 1,260 |
 
+Then the tornado's own plotter, compiled (above): 20,994 cycles a frame on average (22,602 before), 38,262
+at 99% (40,048), 50,781 at worst; the worst 20 frames 37,905 (39,541); 4 frames over a TV frame (5). The
+plot fell by 1,609 a frame, about what was estimated (2,450 through the general path, 850 compiled); the
+tornado now costs about 2,600 a frame, half of it the erase's (unchanged). In the profile the general
+path's loop fell from 2,966 to 1,538, and "set-up, bands" (2,745) now includes the tornado's set-up and
+its compiled code. The cost is memory: 3,561 bytes in the objects' bank (509 the routine, 3,052 its 12
+frame-shifts), less the 736 its pieces took, so about 2.8K more; 1,346 bytes are left in the bank.
+
 ## Memory
 
 | Region | Used | Free |
@@ -254,6 +274,7 @@ slots' sprite &14, drawn at the start, and the road sprite over each when it's h
 | Background's bank | 207 erase, then 16,000 background from `&8180` | 177 |
 | Cars' bank | 10,615 frames (659 of it page padding), 643 priority map, 2,664 priority cells, 333 classes, 1,138 tables, 863 plotter | 154 |
 | Trace's bank (test only) | 13,728 trace, 782 HUD events | 1,874 |
+| Objects' bank (race 17, track 5) | 9,195 the variants' bytes; 2,282 their tables, the background objects' and the moving objects' plotters; 3,561 the tornado's plotter (its compiled frame-shifts 3,052) | 1,346 |
 | Main RAM | 754 code at `&0E00` (the HUD 394 of it, with its font); tables at `&0400`-`&07FF` (MaskTab, 3 data tables) and `&2C00`-`&2DFF` (the priority expansions, which the HUD uses too); 180 bytes of variables at `&2E00` | |
 | Zero page | `&00`-`&1E` | |
 
@@ -269,7 +290,8 @@ as pre-shifted, trimmed frames, about 10.6K a race; the cars' bank is then all b
   a perfect packing) and the frame tables (1,138 bytes) are where room could come from.
 - **Objects still to do**: the helicopter's horizontal flight and its big variant, and the remaining tracks.
 - **Objects' speed**: a gate's step, the helicopter and now the tornado, above. In a race with all of them
-  the average frame is about 22,600 before the logic's estimated 16,000: 38,600 of 39,936. The tornado,
-  on screen all race when it comes up, could have a plotter of its own (one piece, 4 or 5 columns, at most
-  3 bands), sparing the general path's patching by table; the erase's per-band cost is the same for every
-  box.
+  the average frame is about 21,000 before the logic's estimated 16,000: 37,000 of 39,936. The tornado's
+  erase (about 1,300) is the general one's, by bands.
+- **Memory**: the objects' bank has 1,346 bytes left with the tornado compiled; the helicopter's big
+  variant is still to come. The tornado's code is needed only in a race that has it (D3: a race's data is
+  loaded per race).
