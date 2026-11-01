@@ -8,24 +8,25 @@ BgOrg = PlayAddr + BgOffset
 \\ patched (the background's, the screen's). EraseBlk(n) is column n's.
 
 EraseBlkSize = 6
-FUNCTION EraseBlk(n) = erase_cars.blocks + (4 - n) * EraseBlkSize
+EraseCols = 8                           ; the widest box: the helicopter's
+FUNCTION EraseBlk(n) = erase_cars.blocks + (EraseCols - 1 - n) * EraseBlkSize
 BgHi = 2                                ; a block's operands' high bytes: the background's (LDA abs,X)
 ScHi = 5                                ; and the screen's (STA abs,X)
 
-\\ Erase what the four cars drew into the screen being drawn, two frames ago: each car's box copied back
+\\ Erase what was drawn into the screen being drawn, two frames ago: each car's and object's box copied back
 \\ from the clean background, a band (character row) at a time, a line of every column a pass, as
 \\ plot_cars drew it.
 \\
 \\ Inputs:
-\\     ebuf: the screen drawn (0 or 4), the erase lists' index
-\\     EraseCol, EraseTop, EraseW, EraseH: the boxes (a height of 0: nothing)
+\\     ebuf: the screen drawn: its erase list's first entry (0 or ErasePer)
+\\     EraseCol, EraseTop, EraseW, EraseH: the boxes, to the first of height 0
 \\
 \\ Outputs:
 \\     A, X, Y: corrupted
 
 .erase_cars
 {
-    ZA_AUTO1 slot                       ; local: the erase list's entry, ebuf + 0-3
+    ZA_AUTO1 slot                       ; local: the erase list's entry, from ebuf
     ZA_AUTO1 line                       ; local: the band's first line in the cell
     ZA_AUTO1 row                        ; local: the band's character row
     ZA_AUTO1 left                       ; local: lines still to erase
@@ -36,7 +37,7 @@ ScHi = 5                                ; and the screen's (STA abs,X)
 .next
     LDX slot
     LDA EraseH,X:BNE @+
-    JMP done                            ; nothing drawn there yet
+    RTS                                 ; (a height of 0: the list's end)
 .@
     STA left
     LDY EraseW,X
@@ -61,11 +62,11 @@ ScHi = 5                                ; and the screen's (STA abs,X)
     LDA RowLo,X:CLC:ADC cx8
     TAY                                 ; (Y: the first cell's low byte)
     LDA RowHi,X:ADC cx8+1               ; (C clear after: the screen ends at &8000)
-    FOR n = 0..4
+    FOR n = 0..EraseCols-1
         STA EraseBlk(n)+ScHi
     NEXT
     ADC #HI(BgOffset)
-    FOR n = 0..4
+    FOR n = 0..EraseCols-1
         STA EraseBlk(n)+BgHi
     NEXT
     TYA:CLC:ADC lend:STA loopend+1      ; X's end (the page's end wraps it to 0)
@@ -74,11 +75,11 @@ ScHi = 5                                ; and the screen's (STA abs,X)
     BRA enter                           ; (X less one: the INX makes it the first line's)
 
 .blocks
-    FOR n = 4..0
+    FOR n = EraseCols-1..0
         LDA &FF00+8*n,X                 ; self-modified: the page of column n's cell in the clean
         STA &FF00+8*n,X                 ; background, and of its screen cell
     NEXT
-    ASSERT P% - blocks == 5 * EraseBlkSize, "the loop's blocks: 6 bytes each"
+    ASSERT P% - blocks == EraseCols * EraseBlkSize, "the loop's blocks: 6 bytes each"
 .enter
     INX
 .loopend
@@ -96,11 +97,7 @@ ScHi = 5                                ; and the screen's (STA abs,X)
 
 .done
     INC slot
-    LDA slot:AND #3
-    BEQ @+
     JMP next
-.@
-    RTS
 
 }
 
@@ -108,4 +105,4 @@ ScHi = 5                                ; and the screen's (STA abs,X)
 
 .EraseBack
     EQUB 0
-    EQUB LO(EraseBlk((1..5) - 1) - (erase_cars.back + 2))
+    EQUB LO(EraseBlk((1..EraseCols) - 1) - (erase_cars.back + 2))

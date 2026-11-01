@@ -55,12 +55,20 @@ export async function bootDisc(disc = "build/sprint.ssd", model = "Master") {
     return s;
 }
 
+// After a breakpoint stops a run, jsbeeb's next runFor also runs the cycles the stopped run had left: drop
+// them, so a run is the cycles asked for from where the CPU is.
+export function settle(s) {
+    const cpu = s._machine.processor;
+    cpu.targetCycles = cpu.currentCycles;
+}
+
 // run until the CPU reaches addr (an execute breakpoint, removed after), or throw after limit cycles
 export async function runTo(s, addr, limit = 40000000) {
     const id = s.addBreakpoint("execute", addr);
     try {
         for (let ran = 0; ran < limit; ran += 200000) {
             s.resetBreakpointHits();
+            settle(s);
             await s.runFor(200000);
             if (s.hitBreakpoint()) return;
         }

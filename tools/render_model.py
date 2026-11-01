@@ -8,7 +8,9 @@ variants): the clean background in the ST's colours, changed by the frame's back
 changes it (tools/objects.py), mask C likewise, mapped to option B; then each car the ST drew, in its order,
 its frame (a player's car driven by a drone from the second set) mapped through the car's colours
 (convert.py), drawn where the ST frame isn't colour 8, and, for a car on the ground (not elevated or airborne),
-not where mask C is 0. Above it the HUD row: the ST's scores and laps, as tools/hud.py
+not where mask C is 0; a wrecked car's explosion in its place; then the moving objects (sparks, the banner,
+the helicopter) in the ST's order, each mapped with the patterns' phase its own, in the BBC's places
+(gendata.py's frame_draws: the explosion on 4-pixel steps, D8). Above it the HUD row: the ST's scores and laps, as tools/hud.py
 lays them out, in tools/font.py's glyphs, brought up to date as the BBC does it (D6): each screen keeps what
 it shows, and after a change the screen drawn each frame (they take turns) has at most HudPerFrame of its
 columns that differ redrawn, scanning from column 39 down, until a pass over each finds nothing.
@@ -22,7 +24,7 @@ sys.path.insert(0, 'tools')
 from st_sprites import car_frame
 from convert import OPTIONS, car_table, logical_map, apply_map, mode1_bytes
 from font import glyph_bytes
-from gendata import load_race
+from gendata import load_race, frame_draws, moving_sprite
 import hud, objects
 
 
@@ -57,6 +59,18 @@ def main(track, tracepath, out):
     shown = [[hud.Blank] * hud.Width, [hud.Blank] * hud.Width]
     want, count = None, 0
     bg = apply_map(stbg, bgmap)
+    heli = {}
+
+    def put(lidx, key, x, y):
+        """A moving object at (x, y), its colours mapped with the patterns' phase its own, clipped."""
+        idx, opaque = moving_sprite(dat, key)
+        sprite = apply_map(idx, bgmap)
+        h, w = idx.shape
+        for r in range(h):
+            if 0 <= y + r < 200:
+                row = opaque[r]
+                lidx[y + r, x:x + w][row[:320 - x]] = sprite[r, :320 - x][row[:320 - x]]
+
     with open(out, 'wb') as fo:
         for n, fr in enumerate(load_race(tracepath)):
             now = hud.text(fr['laps'], fr['scores'], track)
@@ -79,13 +93,20 @@ def main(track, tracepath, out):
                 bg = apply_map(stbg, bgmap)
             lidx = bg.copy()
             shows = maskc == 1
-            for c in fr['order']:
+            cars, movers = frame_draws(fr, heli)
+            for d in cars:
+                if d[0] == 'explosion':
+                    put(lidx, d[1], d[2], d[3])
+                    continue
+                c = d[1]
                 x, y, facing, flags = fr['cars'][c]
-                sprite, opaque = frames[c, bool(fr['drone'][c]) and c < 3, facing]
+                sprite, opaque = frames[c, bool(fr['drone'][c]), facing]
                 draw = opaque.copy()
                 if not flags & 0x0401:
                     draw &= shows[y:y + 12, x:x + 17]
                 lidx[y:y + 12, x:x + 17][draw] = sprite[draw]
+            for key, x, y in movers:
+                put(lidx, key, x, y)
             fo.write(hud_row(screen))
             fo.write(mode1_bytes(lidx))
 

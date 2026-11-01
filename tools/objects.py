@@ -83,3 +83,89 @@ def apply(dat, kind, args, bg, maskc):
 
 
 Background = ('slot', 'gate', 'barrier')
+
+
+# The moving objects, drawn into the screen being drawn each frame over everything before them, colour 8
+# transparent (the sparks', banner's and explosion's routines). Their frames' planes are stored 0, 2, 1, 3, as
+# the cars' are, but for the sparks', which are bytes in the screen's order.
+
+def _words_frame(dat, off, rows, order=(0, 2, 1, 3)):
+    out = []
+    for r in range(rows):
+        w = words(dat, off + r * 8, 4)
+        out.append([sum(((w[k] >> (15 - x)) & 1) << order[k] for k in range(4)) for x in range(16)])
+    return np.array(out, np.uint8)
+
+
+def banner(dat, frame):
+    """F_0148BE's frames (the banners): 16 x 8."""
+    return _words_frame(dat, Objects + 0x1BC0 + frame * 64, 8)
+
+
+def explosion(dat, frame):
+    """F_0152E0's frames: 16 x 14, at the wrecked car's place."""
+    return _words_frame(dat, Objects + 0x5BC0 + frame * 0x70, 14)
+
+
+def spark(dat, frame):
+    """F_014B1C's frames: 8 x 8, bytes in the screen's plane order."""
+    base = Objects + 0x1240 + frame * 32
+    return np.array([[sum(((dat[base + r * 4 + p] >> (7 - x)) & 1) << p for p in range(4)) for x in range(8)]
+                     for r in range(8)], np.uint8)
+
+
+def spark_state(extra, i):
+    """A spark's frame and place, from the state logged with its call (G_01E090, G_01E0A0): (frame, x, y), x
+    on an 8-pixel boundary; or None if it isn't out."""
+    w = lambda a: extra.get(str(a), 0) << 8 | extra.get(str(a + 1), 0)
+    x, y = w(0x1E0A0 + 4 * i), w(0x1E0A0 + 4 * i + 2)
+    if x == 0:
+        return None
+    return w(0x1E090 + 2 * i), x & ~7, y
+
+
+def draw(screen, sprite, x, y):
+    """A sprite into an image of ST colours, colour 8 transparent, clipped to the screen."""
+    h, w = sprite.shape
+    for r in range(h):
+        if 0 <= y + r < screen.shape[0]:
+            for c in range(w):
+                if sprite[r, c] != 8 and 0 <= x + c < screen.shape[1]:
+                    screen[y + r, x + c] = sprite[r, c]
+
+
+def heli_compose(dat, variant, colour, frame):
+    """F_0146DA: a helicopter frame composed for the wreck, its pixels with plane 0 set and planes 1 and 2 clear
+    recoloured by colour (the routine's second argument): below 2 into plane 1, 2 into plane 2, above 2 into
+    planes 0 and 2. The small variant: 36 rows of 32 pixels; each row two groups of 4 plane words, then the
+    mask's two words (set: the screen kept). -> (colours 36 x 32, mask 36 x 32)."""
+    rows, size, base = (52, 0x410, Objects + 0x24C0 + 0x1680) if variant & 2 else (36, 0x2D0, Objects + 0x24C0)
+    base += ((variant & 1) * 4 + frame) * size
+    col, mask = [], []
+    for r in range(rows):
+        w = list(words(dat, base + r * 20, 10))
+        for g in range(2):
+            p0, p1, p2, p3 = w[4 * g:4 * g + 4]
+            m = p0 & ~p1 & ~p2 & 0xFFFF
+            p0 &= ~m
+            if colour < 2:
+                p1 |= m
+            elif colour == 2:
+                p2 |= m
+            else:
+                p0 |= m
+                p2 |= m
+            w[4 * g:4 * g + 4] = [p0 & 0xFFFF, p1, p2, p3]
+        col.append(sum((planes_to_indices(w[4 * g:4 * g + 4]) for g in range(2)), []))
+        mask.append(bits(w[8]) + bits(w[9]))
+    return np.array(col, np.uint8), np.array(mask, np.uint8)
+
+
+def draw_masked(screen, col, mask, x, y):
+    """A sprite with its own mask (set: the screen kept), clipped to the screen."""
+    h, w = col.shape
+    for r in range(h):
+        if 0 <= y + r < screen.shape[0]:
+            for c in range(w):
+                if not mask[r, c] and 0 <= x + c < screen.shape[1]:
+                    screen[y + r, x + c] = col[r, c]

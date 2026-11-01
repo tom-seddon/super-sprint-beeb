@@ -59,21 +59,22 @@ def car_values(dat, car, droned, facing):
 
 
 def car_sets(frames):
-    """The frame sets a race draws: each player's own and car 3's, and the drone-driven one if any player's
-    car is a drone. -> [(car, droned)], car None for the shared drone-driven set."""
+    """The frame sets a race draws: the cars' own, and the drone-driven one if any car is driven by a drone
+    (in a real race car 3 always is; the attract race draws every car in its own). -> [(car, droned)], car
+    None for the shared drone-driven set."""
     used = set()
     for fr in frames:
         for c in fr['order']:
-            used.add((None, True) if fr['drone'][c] and c < 3 else (c, False))
+            used.add((None, True) if fr['drone'][c] else (c, False))
     return sorted(used, key=lambda k: (k[0] is None, k[0] or 0))
 
 
 def set_of(sets, car, droned):
-    return sets.index((None, True) if droned and car < 3 else (car, False))
+    return sets.index((None, True) if droned else (car, False))
 
 
-# a car's data table, by car and drone-driven: 0 DataId (1 green), 1 DataYellow, 2 DataWhite
-CarTable = {(0, 0): 0, (1, 0): 0, (2, 0): 1, (3, 0): 0, (0, 1): 2, (1, 1): 0, (2, 1): 1, (3, 1): 0}
+# a car's data table, by car and drone-driven: 0 DataId (1 green), 1 DataYellow, 2 DataWhite, 3 DataBlack
+CarTable = {(0, 0): 0, (1, 0): 0, (2, 0): 1, (3, 0): 0, (0, 1): 2, (1, 1): 0, (2, 1): 1, (3, 1): 3}
 
 
 def cars(dat, sets):
@@ -203,18 +204,100 @@ def variant_of(kind, args, y):
     return args[0] if kind == 'slot' else args[0] * 2 + (y & 1)
 
 
-def trace(frames, sets, room):
+# The moving objects: what each frame's calls draw after the background objects, as (key, x, y) in the BBC's
+# places (D8: the explosion on 4-pixel steps; the banner's frames shifted for its place; the sparks and the
+# helicopter where the ST has them, on 8- and 16-pixel steps). A key names a sprite: ('explosion', frame),
+# ('banner', frame, shift), ('spark', frame), ('heli', variant, colour, frame). The explosion is drawn in its
+# car's place among the cars; the others after the cars, in the ST's order.
+
+def frame_draws(fr, heli):
+    """A frame's draws, in order: ('car', car) or ('explosion', key, x, y) among the cars, then the moving
+    objects as (key, x, y). heli: the helicopter's composed frames, (variant, colour) by buffer frame,
+    updated by the frame's composing calls."""
+    cars, movers = [], []
+    for c in fr['calls']:
+        n, w = c[0], c[1]
+        if n == 'car':
+            cars.append(('car', w[0]))
+        elif n == 'explosion':
+            x, y = fr['cars'][w[0]][:2]
+            cars.append(('explosion', ('explosion', w[1]), x & ~3, y))
+        elif n == 'small':
+            movers.append((('banner', w[0], w[1] & 3), w[1] & ~3, w[2]))
+        elif n == 'spark':
+            st = objects.spark_state(c[2] if len(c) > 2 else {}, w[0])
+            if st:
+                movers.append((('spark', st[0]), st[1], st[2]))
+        elif n == 'heli':
+            heli[w[2]] = (w[0], w[1])
+        elif n == 'heli2':
+            y = w[2] - 65536 if w[2] >= 32768 else w[2]
+            movers.append((('heli',) + heli[w[0]] + (w[0],), w[1] & ~15, y))
+    return cars, movers
+
+
+def moving_sprite(dat, key):
+    """A moving object's sprite: (ST colours, opaque)."""
+    if key[0] == 'explosion':
+        idx = objects.explosion(dat, key[1])
+    elif key[0] == 'banner':
+        idx = objects.banner(dat, key[1])
+    elif key[0] == 'spark':
+        idx = objects.spark(dat, key[1])
+    else:
+        idx, mask = objects.heli_compose(dat, key[1], key[2], key[3])
+        return idx, mask == 0
+    return idx, idx != 8
+
+
+def moving_variant(dat, key):
+    """A moving object's sprite as the BBC stores it: trimmed, column by column, 2-bit values (Key
+    transparent), shifted by the banner's shift. -> (dx bytes, dy, w bytes, h, table 0 DataId or 1 DataYellow,
+    bytes)."""
+    idx, opaque = moving_sprite(dat, key)
+    lidx = apply_map(idx, logical_map(Opt, Opt['bg'])).astype(np.uint8)
+    used = set(lidx[opaque].tolist())
+    if used <= {0, 1, 3}:
+        table, v = 0, lidx.copy()
+    else:
+        assert used <= {0, 2, 3}, (key, used)
+        table, v = 1, np.where(lidx == 2, 1, lidx).astype(np.uint8)
+    v[~opaque] = Key
+    shift = key[2] if key[0] == 'banner' else 0
+    h0, w0 = v.shape
+    canvas = np.full((h0, w0 + 4), Key, np.uint8)
+    canvas[:, shift:shift + w0] = v
+    op = np.zeros(canvas.shape, bool)
+    op[:, shift:shift + w0] = opaque
+    ys, xs = np.where(op.any(1))[0], np.where(op.any(0))[0]
+    y0, y1, c0, c1 = ys.min(), ys.max(), xs.min() // 4, xs.max() // 4
+    data = bytes(pixel_byte(canvas[r, 4 * n:4 * n + 4]) for n in range(c0, c1 + 1) for r in range(y0, y1 + 1))
+    return int(c0), int(y0), int(c1 - c0 + 1), int(y1 - y0 + 1), table, data
+
+
+MaxMovers = 8
+
+
+def trace(frames, sets, movkeys, room):
     """The race's frames, as many as fit in room bytes with the HUD's events: per frame the cars drawn
     (their count, then 4 bytes each: car | drone-driven << 2, x's low byte, y, frame | on top << 6 | x's
     high bit << 7) and the background objects' calls (their count, then 4 bytes each: kind | again << 6 | x's
     high bit << 7, variant, x's low byte, y). The ST calls each a second time the frame after, for its other
-    screen: "again" marks that call, for which the BBC only copies the background into the screen."""
-    out, starts, prev = bytearray(), [], []
+    screen: "again" marks that call, for which the BBC only copies the background into the screen. A wrecked
+    car's explosion is among the cars: &80 | x's high bit << 6, x's low byte, y, its moving variant. Then the
+    moving objects (their count, then 5 bytes each: the variant, x, y as 16-bit words)."""
+    out, starts, prev, heli = bytearray(), [], [], {}
     for fr in frames:
-        rec = bytearray([len(fr['order'])])
-        for c in fr['order']:
+        cars, movers = frame_draws(fr, heli)
+        rec = bytearray([len(cars)])
+        for d in cars:
+            if d[0] == 'explosion':
+                key, x, y = d[1], d[2], d[3]
+                rec += bytes([0x80 | (x >> 8) << 6, x & 255, y, movkeys.index(key)])
+                continue
+            c = d[1]
             x, y, facing, flags = fr['cars'][c]
-            droned = 1 if fr['drone'][c] and c < 3 else 0
+            droned = 1 if fr['drone'][c] else 0
             on_top = 1 if flags & 0x0401 else 0
             rec += bytes([c | droned << 2, x & 255, y, set_of(sets, c, droned) * 16 + facing | on_top << 6 | (x >> 8) << 7])
         # each call's own arguments (3 for a slot, 2 for a gate or barrier; the ST's stack has others after)
@@ -225,6 +308,10 @@ def trace(frames, sets, room):
             again = 1 if (n, w) in prev else 0          # the ST's second call, for its other screen
             rec += bytes([ObjKinds[n] | again << 6 | (x >> 8) << 7, variant_of(n, w, y), x & 255, y])
         prev = objs
+        assert len(movers) <= MaxMovers
+        rec.append(len(movers))
+        for key, x, y in movers:
+            rec += bytes([movkeys.index(key), x & 255, x >> 8, y & 255, (y >> 8) & 255])
         starts.append(len(out))
         out += rec
     # the HUD's events: a car's laps or score as it changes (every car's at frame 0), 10 bytes each
@@ -306,12 +393,21 @@ def main(track, tracepath, out):
 
     # the background objects' variants, for the objects' bank: each one's data, mask and priority bits
     variants = object_variants(dat)
-    blocks = []                         # (variant, part, bytes): the data and masks, each in a page, 7 bytes in
+    blocks = []                         # (variant, part, bytes): the background objects' data and masks, each in a
+                                        # page, 7 bytes in
     for kind in ObjKinds:
         for i, (w, h, d, m, pb) in enumerate(variants[kind]):
             blocks.append(((kind, i), 0, d))
             if m:
                 blocks.append(((kind, i), 1, m))
+    movkeys = []
+    heli = {}
+    for fr_ in frames:
+        cars_, movers = frame_draws(fr_, heli)
+        for k in [d[1] for d in cars_ if d[0] == 'explosion'] + [m[0] for m in movers]:
+            if k not in movkeys:
+                movkeys.append(k)
+    movers_ = [moving_variant(dat, k) for k in movkeys]
     pages, where = [], {}
     for key, part, b in sorted(blocks, key=lambda t: -len(t[2])):
         for p, used in enumerate(pages):
@@ -326,6 +422,9 @@ def main(track, tracepath, out):
     for key, part, b in blocks:
         obin[where[key, part]:where[key, part] + len(b)] = b
     obin = obin[:256 * (len(pages) - 1) + pages[-1]]
+    for i, mv in enumerate(movers_):    # (the moving objects' plotter carries each column's address in full:
+        where[('move', i), 0] = len(obin)   # its variants go on after, a helicopter's more than a page)
+        obin += mv[5]
     vt = []
     for kind in ObjKinds:
         for i, (w, h, d, m, pb) in enumerate(variants[kind]):
@@ -334,6 +433,7 @@ def main(track, tracepath, out):
                 po = len(obin)
                 obin += pb
             vt.append((w, h, (1 if m else 0) | (2 if pb else 0), where[(kind, i), 0], where.get(((kind, i), 1), 0), po))
+    mt = [(dx, dy, w, h, t, where[('move', i), 0]) for i, (dx, dy, w, h, t, d) in enumerate(movers_)]
     open(f'{out}/objects.bin', 'wb').write(obin)
     with open(f'{out}/objects.6502', 'w') as f:
         f.write('\\\\ objects.6502 - made by tools/gendata.py: the background objects\' variants in objects.bin\n\n')
@@ -345,8 +445,12 @@ def main(track, tracepath, out):
         for i, name in enumerate(('GenObjW', 'GenObjH', 'GenObjFlags', 'GenObjData', 'GenObjMask', 'GenObjPrio')):
             f.write(lst(name, [v[i] for v in vt]))
         f.write(f'ObjVariants = {len(vt)}\n')
+        for i, name in enumerate(('GenMovDX', 'GenMovDY', 'GenMovW', 'GenMovH', 'GenMovTable', 'GenMovData')):
+            f.write(lst(name, [m[i] for m in mt]))
+        f.write(f'MovVariants = {len(mt)}\n')
+        f.write(f'MaxMovers = {MaxMovers}\n')
 
-    tdata, nframes, events = trace(frames, sets, 16384)
+    tdata, nframes, events = trace(frames, sets, movkeys, 16384)
     open(f'{out}/trace.bin', 'wb').write(tdata)
     open(f'{out}/hudevents.bin', 'wb').write(events)
     with open(f'{out}/trace.6502', 'w') as f:
@@ -358,7 +462,7 @@ def main(track, tracepath, out):
         f.write(lst('GenFont', [b for g in range(len(Glyphs)) for b in glyph_bytes(g)]))
         f.write(f'FontGlyphs = {len(Glyphs)}\n')
     print(f'sets {sets}; cars {len(data)} bytes, prio {len(pdata)} + {len(classes)} + {len(mapdata)} bytes '
-          f'({int((cellmap > 0).sum())} cells), objects {len(obin)} bytes ({len(vt)} variants), '
+          f'({int((cellmap > 0).sum())} cells), objects {len(obin)} bytes ({len(vt)} variants, {len(mt)} moving), '
           f'trace {nframes} frames {len(tdata)} bytes, HUD events {len(events)} bytes')
 
 

@@ -146,3 +146,18 @@
   label that wasn't on a page (each column then read across a page), and `ADC doff` (minus the line) left
   the carry set for the next column's add. And the second call wasn't recognised for gates: the ST's stack
   holds other words after a call's arguments, and they differed between the two calls.
+- **Moving objects**: the explosion (in its car's place), banner, sparks and helicopter, drawn by a plotter in
+  the objects' bank, a copy of the car plotter's fast loop with clipping. Checked first against the ST's own
+  screens dumped at frames 190, 200 and 251 (they match but for the drone-lap digit), then the BBC against
+  the model: all 560 frames match. 18,864 cycles a frame on average, 38,023 at 99%; the worst frames are a
+  gate's step with the helicopter in flight.
+- **Mistake: car 3 isn't always drawn in its own colours.** In a real race the ST draws every drone-driven
+  car, car 3 included, from the second set (grey with stripes); only the attract race uses the cars' own.
+  Found from the ST's screen at frame 200. Car 3 is now drawn from the shared set, black-striped through a
+  fourth data table.
+- Bugs on the way, all caught by the model check: the erase handled 5 columns, the helicopter needs 8; the
+  helicopter's 272-byte variants overran a page in the packer and the next block was put over their tail;
+  the top clip's data offset took a borrow for a carry.
+- jsbeeb: after a breakpoint stops `runFor`, the next `runFor` runs the stopped run's leftover cycles too.
+  `tools/jsbeeb.mjs`'s `runTo` now drops them first (`settle`), so a debugging script's `runFor(1)` is one
+  instruction, not a jump of thousands of frames.

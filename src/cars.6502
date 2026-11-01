@@ -27,7 +27,7 @@ INCLUDE "../build/gen/prio.6502"
 \\ patched (the frame's column, the screen's cell, the car's data table). FastBlk(n) is column n's.
 
 FastBlkSize = 15
-FUNCTION FastBlk(n) = plot_cars.blocks + (4 - n) * FastBlkSize
+FUNCTION FastBlk(n) = plot_car.blocks + (4 - n) * FastBlkSize
 RdLo = 1                                ; a block's operands: the frame's column (LDX abs,Y)
 RdHi = 2
 RsLo = 4                                ; the screen's cell, read (LDA abs,Y)
@@ -36,20 +36,19 @@ DtHi = 11                               ; the data table's page (ORA abs,X)
 WsLo = 13                               ; the screen's cell, written (STA abs,Y)
 WsHi = 14
 
-\\ Draw the four cars, in draw order, into the screen being drawn.
+\\ Draw a car into the screen being drawn.
 \\
 \\ Inputs:
-\\     CarCount, CarId, CarXLo, CarY, CarFlags: the cars
-\\     ebuf: the screen drawn (0 or 4), the erase lists' index
+\\     X: its place in the draw order: CarId, CarXLo, CarY, CarFlags
+\\     eidx: the erase list's next entry
 \\
 \\ Outputs:
-\\     EraseCol, EraseTop, EraseW, EraseH: what each car drew, at ebuf + its place in the draw order (a
-\\         height of 0 for the places after the last)
+\\     EraseCol, EraseTop, EraseW, EraseH: what it drew, at eidx; eidx one on
 \\     A, X, Y: corrupted
 
-.plot_cars
+.plot_car
 {
-    ZA_AUTO1 car                        ; local: the car, 0-3 in draw order
+    ZA_AUTO1 car                        ; local: its place in the draw order
     ZA_AUTO1 flags                      ; local: its CarFlags
     ZA_AUTO1 col                        ; local: its first byte column
     ZA_AUTO1 top                        ; local: its first line
@@ -75,11 +74,7 @@ WsHi = 14
     ZA_AUTO1 scd                        ; local: its data, less the band's first line (in its page)
     ZA_AUTO2 scs                        ; local: its screen cell, line 0
 
-    STZ car
-    LDA CarCount:BNE next
-    JMP undrawn                         ; (no cars)
-.next
-    LDX car
+    STX car
 
     \\ the frame-shift, and where it goes; what it covers kept for the erase
 
@@ -116,7 +111,7 @@ WsHi = 14
     LDA col:DEC A:CLC:ADC w             ; the last column
     LSR A:STA cx1
     SEC:SBC cx0:INC A:STA ncells
-    LDA car:ORA ebuf:TAX                ; (ebuf 0 or 4)
+    LDX eidx:INC eidx                   ; (the erase list's next entry)
     LDA col:STA EraseCol,X
     LDA top:STA EraseTop,X
     LDA w:STA EraseW,X
@@ -270,20 +265,6 @@ WsHi = 14
     JMP band
 
 .done
-    INC car
-    LDA car:CMP CarCount
-    BEQ undrawn
-    JMP next
-
-    \\ the erase lists' entries for cars not drawn this frame (a wrecked car's): nothing
-
-.undrawn
-    LDA car:CMP #4:BEQ @+
-    ORA ebuf:TAX
-    STZ EraseH,X
-    INC car
-    BRA undrawn
-.@
     RTS
 
 
@@ -321,7 +302,7 @@ WsHi = 14
 \\ Inputs:
 \\     cc, cols: the first column and how many
 \\     cd: the first column's data, less the band's first line; cs: its screen cell
-\\     plot_cars.pmap, row, line, lend, h: the band's
+\\     plot_car.pmap, row, line, lend, h: the band's
 \\
 \\ Outputs:
 \\     cc, cols, cd, cs: corrupted
@@ -337,13 +318,13 @@ WsHi = 14
     ZA_AUTO1 nk                         ; local: the loop's: the frame's pixels to draw
 
 .column
-    LDA plot_cars.lend:STA loopend+1
+    LDA plot_car.lend:STA loopend+1
     LDA cc:LSR A:TAY
-    LDA (plot_cars.pmap),Y              ; (some hidden: never 0)
+    LDA (plot_car.pmap),Y              ; (some hidden: never 0)
     STZ ph
     ASL A:ASL A                         ; (a row's cells number 40 at most: no carry)
     ASL A:ROL ph                        ; 8 * n
-    LDX plot_cars.row
+    LDX plot_car.row
     CLC:ADC PrioRowLo,X:STA pl+1
     LDA PrioRowHi,X:ADC ph:STA pl+2
     LDA cc:LSR A                        ; C: the cell's right half
@@ -353,7 +334,7 @@ WsHi = 14
     LDA cd+1:STA rd+2
     LDA cs:STA rs+1:STA rs2+1:STA ws+1
     LDA cs+1:STA rs+2:STA rs2+2:STA ws+2
-    LDY plot_cars.line
+    LDY plot_car.line
 .loop
 .pl
     LDX &FFFF,Y                         ; self-modified: the cell's priority bits
@@ -383,7 +364,7 @@ WsHi = 14
     BCC @+
     INC cs+1
 .@
-    LDA cd:CLC:ADC plot_cars.h:STA cd   ; (in the frame-shift's page)
+    LDA cd:CLC:ADC plot_car.h:STA cd   ; (in the frame-shift's page)
     INC cc
     DEC cols:BEQ @+
     JMP column
@@ -398,7 +379,7 @@ WsHi = 14
 
 \\ Each car's data table, by the car | drone-driven << 2 (tools/gendata.py)
 
-CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite)}
+CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
 .CarTables
     EQUB CarTablePages[GenCarTable]
 
@@ -406,7 +387,7 @@ CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite)}
 
 .PlotBack
     EQUB 0
-    EQUB LO(FastBlk((1..5) - 1) - (plot_cars.back + 2))
+    EQUB LO(FastBlk((1..5) - 1) - (plot_car.back + 2))
 
 \\ Column n's block, from the first (column 4's), and its bit in slows
 

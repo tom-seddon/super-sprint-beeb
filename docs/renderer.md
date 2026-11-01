@@ -89,14 +89,28 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   second call copies the background into the other screen. Each copy goes a band at a time through
   unrolled column blocks (up to 12, a gate's width) with Y the line in the cell, their operands patched
   once a band, as the car plotter's.
+- **Moving objects** (`src/movers.6502`, in the objects' bank): a wrecked car's explosion (26 frames, drawn
+  in the car's place in the draw order), the banner (36 frames, 16 x 8, at a place fixed per track), the
+  sparks (8 x 8 on 8-pixel steps) and the helicopter (4 frames, 32 x 36, on 16-pixel steps, its carried
+  car's pixels recoloured as the ST composes it). Each is erased and drawn every frame like a car, through
+  the same key-colour scheme (every frame uses black, white and at most one of green and yellow) and a copy
+  of the car plotter's fast loop, 8 columns wide, clipped to the play area's lines, with no priority (the
+  ST draws them over everything). One shift each: the explosion snapped to 4-pixel steps (D8), the banner's
+  frames shifted for its place, the sparks and helicopter aligned already. The frame loop (main RAM) calls
+  the car plotter or the object plotter car by car, then the object plotter for the rest; the erase lists
+  hold 16 boxes a screen and end at one of height 0. 93 variants in this race (the helicopter's 272 bytes
+  each, so the plotter carries each column's address in full).
 - **The test race for objects**: a real race recorded in Hatari (`tools/st_trace_objects.py`,
   `tools/st_race.py`): track 5, as the 17th race of a game (barriers, oil-type hazards; the tornado and
   cones are coin flips that didn't come up), one player on the keyboard accelerating with no steering, so
   car 0 is wrecked at frame 80. Every call of the car plotter and the object routines is logged with its
   arguments. Its first 857 frames fit the trace's bank. Cars 1 and 2 are players' cars driven by drones,
-  drawn from the shared second set of frames (3 sets in the cars' bank: car 0's, car 3's, the
-  drone-driven). `tools/objects.py` applies the calls to the ST's background and mask C; checked against
-  a dump of the ST's own at the race's frame 300, it matches to the bit below the ST's HUD strip.
+  drawn from the shared second set of frames, and so is car 3: in a real race the ST draws every
+  drone-driven car from it (only the attract race draws each car in its own), car 3's stripes black on
+  the BBC, through a fourth data table. `tools/objects.py` applies the background calls to the ST's
+  background and mask C, and draws the moving objects as the ST's routines do; checked against dumps of the
+  ST's own background at frame 300 and screens at frames 190, 200 and 251, it matches to the bit, but for
+  the ST's HUD strip and its drone-lap digit (in the BBC's HUD row instead, D6).
 
 ## Measurements
 
@@ -166,6 +180,25 @@ in a game it comes before the race starts. A change, first call and second: a ga
 objects' bank 2,010); a barrier's 4,503 and 1,763; a pickup's 2,257 and 1,396. Gates step every 6 frames
 while they move.
 
+With the moving objects too (the race's first 560 frames, all matching the model): 18,864 cycles a frame
+on average, 38,023 at 99%, 64,328 at worst (the first frame); 2 frames over a TV frame.
+
+| Region (`tools/render_profile.mjs`) | Mean | The worst 20 frames |
+|---|---|---|
+| Erase: the copy loop | 2,316 | 3,702 |
+| Erase: per box and per band | 2,282 | 2,764 |
+| Plot the cars: set-up, bands, fast loop | 6,647 | 6,226 |
+| Plot the cars: priority (classify, slow loop and columns) | 1,819 | 1,565 |
+| Moving objects: the fast loop | 1,520 | 4,717 |
+| Moving objects: set-up, bands | 1,917 | 3,478 |
+| Background objects (main RAM) | 1,534 | 13,741 |
+| The frame loop, the trace, the HUD (main RAM) | 836 | 1,381 |
+
+The worst frames are a gate's step with the helicopter in flight: with the plan's estimate for the logic
+(16,000) they'd run over a TV frame and drop to 25 fps for a moment. The gate's step (12,542 on its first
+call) and the helicopter (272 bytes drawn and erased, about 8,000 with its share of the erase) are where
+the time would come from.
+
 ## Memory
 
 | Region | Used | Free |
@@ -186,4 +219,6 @@ as pre-shifted, trimmed frames, about 10.6K a race; the cars' bank is then all b
   are the ones with every car near a bridge (classifying columns, the slow loop's columns).
 - **Memory**: the cars' bank has 154 bytes left. The frames' page padding (659 bytes, about 375 more than
   a perfect packing) and the frame tables (1,138 bytes) are where room could come from.
-- **Objects** (pickups, cones, tornado, helicopter, sparks) and the remaining tracks.
+- **Objects still to do**: the tornado and cones (coin flips that didn't come up in the recorded race), the
+  helicopter's horizontal flight and its big variant, and the remaining tracks.
+- **Objects' speed**: a gate's step and the helicopter, above.

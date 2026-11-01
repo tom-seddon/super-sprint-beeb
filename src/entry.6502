@@ -99,7 +99,8 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
 \\
 \\ Outputs:
 \\     MaskTab: the key's pixels' bits
-\\     DataId, DataYellow, DataWhite: the byte with the key's pixels cleared, 1 as green, yellow, white
+\\     DataId, DataYellow, DataWhite, DataBlack: the byte with the key's pixels cleared, 1 as green, yellow,
+\\         white, black
 \\     PExpHi, PExpLo: a byte of 8 pixels' bits -> its left or right 4 as a screen mask
 \\     A, X: corrupted
 
@@ -122,6 +123,8 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     LDA hi4:EOR #&0F:AND lo4:STA ones   ; value 1: high bit clear, low set
     ASL A:ASL A:ASL A:ASL A:STA t        ; (their high bits)
     ORA DataId,X:STA DataWhite,X        ; 1 -> 3
+    LDA ones:ASL A:ASL A:ASL A:ASL A:ORA ones:EOR #&FF
+    AND DataId,X:STA DataBlack,X        ; 1 -> 0
     LDA ones:EOR #&FF:AND DataId,X
     ORA t:STA DataYellow,X              ; 1 -> 2
 

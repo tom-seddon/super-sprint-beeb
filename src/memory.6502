@@ -10,7 +10,8 @@
 \\   &0400  the tables, made by the loader: the cars' mask table and data tables
 \\   &0800  the OS's: sound, buffers, the NMI handler
 \\   &0E00  main RAM's code: the IRQ, the frame loop, and what pages banks in
-\\   &2A00  a background object's bytes, on their way from the objects' bank to the background's
+\\   &2A00  a background object's priority bits, on their way from the objects' bank to the cars'
+\\   &2B00  one more of the cars' data tables, made by the loader
 \\   &2C00  more tables, made by the loader: the priority bits' expansions
 \\   &2E00  the game's variables (GameVars), below &3000 so ACCCON's X never hides them
 \\   &3F00  the screen: the HUD's row, then the play area to &7FFF; in main RAM and in shadow RAM
@@ -57,6 +58,11 @@ SECTION GameVars, org = GameVarsOrg, guard = GameVarsEnd, virtual = TRUE
 ENDSECTION
 
 SECTION ObjBuf, org = ObjBufOrg, guard = MoreTablesOrg, virtual = TRUE
+ENDSECTION
+
+SECTION BlackTable, org = MoreTablesOrg - &100, guard = MoreTablesOrg, virtual = TRUE
+.DataBlack                              ; a frame's byte -> its pixels, the key's cleared, 1 black (car 3's
+    SKIP 256                            ; stripes when driven by a drone)
 ENDSECTION
 
 SECTION MoreTables, org = MoreTablesOrg, guard = GameVarsOrg, virtual = TRUE

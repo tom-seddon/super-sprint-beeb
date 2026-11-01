@@ -5,22 +5,34 @@
 SECTION GameVars
 .CarCount                               ; the cars drawn this frame (a wrecked car isn't)
     SKIP 1
-.CarId                                  ; per car in draw order: the car | drone-driven << 2
-    SKIP 4
+.CarId                                  ; per car in draw order: the car | drone-driven << 2; or an explosion,
+    SKIP 4                              ; &80 | x's high bit << 6 (CarFlags its moving variant)
 .CarXLo                                 ; x's low byte (the ST's sprite box, pixels)
     SKIP 4
 .CarY                                   ; y
     SKIP 4
 .CarFlags                               ; frame (its set * 16 + facing) | on top (elevated or airborne) << 6 |
     SKIP 4                              ; x's high bit << 7
-.EraseCol                               ; per screen (X, 0 or 4) and car: what it drew, to erase: the first
-    SKIP 8                              ; byte column,
+.EraseCol                               ; per screen (ErasePer entries from ebuf): what each car and object
+    SKIP 2 * ErasePer                   ; drew, to erase: the first byte column,
 .EraseTop                               ; the first line,
-    SKIP 8
+    SKIP 2 * ErasePer
 .EraseW                                 ; the width in bytes,
-    SKIP 8
-.EraseH                                 ; and the height in lines (0: nothing drawn)
-    SKIP 8
+    SKIP 2 * ErasePer
+.EraseH                                 ; and the height in lines (0: the list's end)
+    SKIP 2 * ErasePer
+.MovCount                               ; the frame's moving objects (drawn after the cars)
+    SKIP 1
+.MovVar                                 ; each one's variant, x and y (16-bit, y signed)
+    SKIP MaxMovers
+.MovXLo
+    SKIP MaxMovers
+.MovXHi
+    SKIP MaxMovers
+.MovYLo
+    SKIP MaxMovers
+.MovYHi
+    SKIP MaxMovers
 .Frames                                 ; frames drawn, for the tests
     SKIP 2
 .Junk                                   ; where the plotter's fast loop draws a column that's hidden
@@ -29,10 +41,13 @@ SECTION GameVars
     SKIP 2
 ENDSECTION
 
-ZA_AUTO1 ebuf                           ; the screen drawn: ACCCON's X bit, 0 or 4, the erase lists' index
+ErasePer = 16                           ; erase list entries a screen: 4 cars, MaxMovers objects, the end
+ZA_AUTO1 ebuf                           ; the screen drawn: its erase list's first entry, 0 or ErasePer
+ZA_AUTO1 eidx                           ; the erase list's next entry
 ZA_AUTO2 tptr                           ; the trace's next frame
 ZA_AUTO2 eptr                           ; and its next HUD event
 ZA_AUTO1 objend                         ; the frame's object events' end in ObjEvents
+ZA_AUTO1 carnum                         ; the car being drawn
 
 \\ The screen's character rows' addresses (in main RAM: both banks' code reads them)
 
@@ -147,7 +162,8 @@ ZA_AUTO1 objend                         ; the frame's object events' end in ObjE
     LDA acccon:EOR #AccX:STA acccon
     STA &FE34                           ; ACCCON: the CPU's &3000-&7FFF the screen not shown
 .frame_top
-    AND #AccX:STA ebuf
+    AND #AccX:ASL A:ASL A:STA ebuf      ; (X, 4: ErasePer)
+    ASSERT AccX * 4 == ErasePer, "ebuf from ACCCON's X"
 
     \\ the cars drawn into this screen two frames ago, erased
 
@@ -162,15 +178,15 @@ ZA_AUTO1 objend                         ; the frame's object events' end in ObjE
     LDY #0
     LDA (tptr),Y:STA CarCount
     LDX #0
-    BRA cars
-.car
+    BRA tcars
+.tcar
     INY:LDA (tptr),Y:STA CarId,X
     INY:LDA (tptr),Y:STA CarXLo,X
     INY:LDA (tptr),Y:STA CarY,X
     INY:LDA (tptr),Y:STA CarFlags,X
     INX
-.cars
-    CPX CarCount:BNE car
+.tcars
+    CPX CarCount:BNE tcar
     INY:LDA (tptr),Y:STA ObjCount
     ASL A:ASL A:STA objend              ; (4 bytes an event)
     LDX #0
@@ -180,6 +196,18 @@ ZA_AUTO1 objend                         ; the frame's object events' end in ObjE
     INX
 .objs
     CPX objend:BNE obj
+    INY:LDA (tptr),Y:STA MovCount
+    LDX #0
+    BRA movs
+.mov
+    INY:LDA (tptr),Y:STA MovVar,X
+    INY:LDA (tptr),Y:STA MovXLo,X
+    INY:LDA (tptr),Y:STA MovXHi,X
+    INY:LDA (tptr),Y:STA MovYLo,X
+    INY:LDA (tptr),Y:STA MovYHi,X
+    INX
+.movs
+    CPX MovCount:BNE mov
     INY
     TYA:CLC:ADC tptr:STA tptr
     BCC @+
@@ -217,9 +245,26 @@ ZA_AUTO1 objend                         ; the frame's object events' end in ObjE
     \\ the background objects, then the cars
 
     JSR obj_events
-    LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank
 .read
-    JSR plot_cars
+    LDA ebuf:STA eidx
+    LDX #0
+    BRA cars
+.car
+    STX carnum
+    LDA CarId,X:BMI explosion
+    LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank
+    JSR plot_car
+    BRA carnext
+.explosion
+    LDA bankobj:STA &FE30               ; ROMSEL: the objects' bank
+    JSR mov_explosion
+.carnext
+    LDX carnum:INX
+.cars
+    CPX CarCount:BNE car
+    LDA bankobj:STA &FE30               ; ROMSEL: the objects' bank
+    JSR mov_all
+    LDX eidx:STZ EraseH,X               ; (the list's end)
 .plotted
     JSR hud_update
 .frame_end

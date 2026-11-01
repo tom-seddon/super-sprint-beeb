@@ -4,8 +4,8 @@ Usage: st_race.py RAW.json OUT.json
 
 Each frame: "frame" (the ST's counter), "order" (the cars the car plotter drew, in order), "cars" ([x, y,
 facing, flags] per car, at the flip), "drone" (each car's drone flag: a player's car driven by a drone is
-drawn from the second set of frames), "laps", "scores", and "calls": the object routines called that frame,
-in order, each [name, args]. A frame's calls come before its flip and its state is dumped at the flip, so
+drawn from the second set of frames), "laps", "scores", and "calls": the car plotter and object routines
+called that frame, in order, each [name, args] (and the sparks' state with theirs). A frame's calls come before its flip and its state is dumped at the flip, so
 calls_k pairs with the state dumped at flip k.
 """
 import json, sys
@@ -29,7 +29,7 @@ def main(raw, out):
                        'drone': [word(m, 0x1E34C + 2 * c) for c in range(4)],
                        'laps': [word(m, 0x1E354 + 2 * c) for c in range(4)],
                        'scores': [bytes(m.get(str(0x1DFA8 + 6 * c + i), 0) for i in range(6)).hex() for c in range(4)],
-                       'calls': [[n, w] + ([e] if e else []) for n, w, e in calls if n != 'car']})
+                       'calls': [[n, w] + ([e] if e else []) for n, w, e in calls]})
     runs, run = [], [frames[0]]
     for f in frames[1:]:
         if f['frame'] == run[-1]['frame'] + 1:

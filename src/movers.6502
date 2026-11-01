@@ -1,0 +1,260 @@
+\\ movers.6502 - the objects' bank's plotter for the moving objects: a wrecked car's explosion, the sparks, the
+\\ banner, the helicopter. Each variant is stored as the cars' frames are (tools/gendata.py): trimmed, a
+\\ column's rows together (a helicopter's more than a page: each column's address is carried in full),
+\\ 2-bit values with 2 the key, drawn through
+\\ MaskTab and the variant's data table. One shift each: the explosion on 4-pixel steps (D8), the banner's
+\\ frames shifted for its place, the sparks and the helicopter on 8- and 16-pixel steps. No priority: the ST
+\\ draws them over everything. Clipped to the play area's lines (the helicopter flies in and out).
+
+MovCols = 8                             ; the widest variant's bytes (the helicopter's)
+MovBlkSize = 15                         ; as the car plotter's blocks
+FUNCTION MovBlk(n) = mov_plot.blocks + (MovCols - 1 - n) * MovBlkSize
+
+\\ A wrecked car's explosion, in the car's place in the draw order.
+\\
+\\ Inputs:
+\\     X: the place: CarId (&80 | x's high bit << 6), CarXLo, CarY, CarFlags (the variant)
+\\
+\\ Outputs:
+\\     as mov_plot
+
+.mov_explosion
+{
+    LDA CarFlags,X:STA mov_plot.v
+    LDA CarXLo,X:STA mov_plot.x
+    LDA CarId,X:AND #&40:ASL A:ASL A    ; (C: x's high bit)
+    LDA #0:ROL A:STA mov_plot.x+1
+    LDA CarY,X:STA mov_plot.y
+    STZ mov_plot.y+1
+    JMP mov_plot
+}
+
+\\ The frame's moving objects, after the cars.
+\\
+\\ Inputs:
+\\     MovCount, MovVar, MovXLo, MovXHi, MovYLo, MovYHi
+\\
+\\ Outputs:
+\\     as mov_plot, for each
+
+.mov_all
+{
+    ZA_AUTO1 m                          ; local: the object
+
+    STZ m
+    BRA test
+.next
+    LDA MovVar,X:STA mov_plot.v
+    LDA MovXLo,X:STA mov_plot.x
+    LDA MovXHi,X:STA mov_plot.x+1
+    LDA MovYLo,X:STA mov_plot.y
+    LDA MovYHi,X:STA mov_plot.y+1
+    JSR mov_plot
+    INC m
+.test
+    LDX m
+    CPX MovCount:BNE next
+    RTS
+}
+
+\\ A moving object drawn into the screen being drawn, its box clipped to the play area's lines and kept for the
+\\ erase.
+\\
+\\ Inputs:
+\\     v: the variant; x: its place's x (0-319); y: its y (signed)
+\\     eidx: the erase list's next entry
+\\
+\\ Outputs:
+\\     EraseCol, EraseTop, EraseW, EraseH: what it drew, at eidx, and eidx one on (if anything shows)
+\\     A, X, Y: corrupted
+
+.mov_plot
+{
+    ZA_AUTO1 v                          ; in: the variant
+    ZA_AUTO2 x                          ; in: x
+    ZA_AUTO2 y                          ; in: y
+    ZA_AUTO1 col                        ; local: the first byte column
+    ZA_AUTO2 top                        ; local: the first line
+    ZA_AUTO1 h                          ; local: the variant's height: a column's bytes
+    ZA_AUTO1 rows                       ; local: the lines shown
+    ZA_AUTO2 data                       ; local: the band's column 0 data, less its first line
+    ZA_AUTO2 cx8                        ; local: col * 8
+    ZA_AUTO1 line                       ; local: the band's first line in the cell
+    ZA_AUTO1 row                        ; local: the band's character row
+    ZA_AUTO1 lend                       ; local: the line in the cell after the band's last
+    ZA_AUTO2 cs                         ; local: the band's first cell
+    ZA_AUTO1 last                       ; local: 8 * (w - 1)
+    ZA_AUTO2 ccs                        ; local: the crossing's column's cell
+
+    \\ the box: its column, its top and rows clipped to lines 0-199
+
+    LDY v
+    LDA x+1:LSR A                       ; (C: x's bit 8)
+    LDA x:ROR A:LSR A                   ; x DIV 4
+    CLC:ADC MovDX,Y:STA col
+    LDA MovDY,Y:CLC:ADC y:STA top
+    LDA y+1:ADC #0:STA top+1
+    LDA MovH,Y:STA h:STA rows
+    LDA MovLo,Y:STA data
+    LDA MovHi,Y:STA data+1
+    LDA top+1:BPL below                 ; above the play area: the rows above skipped
+    LDA top:CLC:ADC rows                ; (rows still shown: top + rows, top < 0)
+    BEQ none
+    BMI none
+    STA rows
+    LDA #0:SEC:SBC top                  ; - top: the rows above
+    CLC:ADC data:STA data               ; (the data on by them)
+    BCC @+
+    INC data+1
+.@
+    STZ top
+    BRA clipped
+.none
+    RTS                                 ; (nothing shows)
+.below
+    BNE none                            ; (top 256 on)
+    LDA top:CMP #PlayRows*8:BCS none
+    CLC:ADC rows
+    CMP #PlayRows*8+1:BCC clipped
+    LDA #PlayRows*8:SEC:SBC top:STA rows ; (to the last line)
+.clipped
+    LDA MovW,Y:TAX
+    DEC A:ASL A:ASL A:ASL A:STA last
+    LDA MovBack,X:STA back+1            ; the loop's branch back: to column w - 1's block
+    LDX MovTable,Y
+    LDA MovTablePages,X                 ; the variant's data table
+    FOR n = 0..MovCols-1
+        STA MovBlk(n)+DtHi
+    NEXT
+    LDX eidx:INC eidx                   ; (the erase list's next entry)
+    LDA col:STA EraseCol,X
+    LDA top:STA EraseTop,X
+    LDA MovW,Y:STA EraseW,X
+    LDA rows:STA EraseH,X
+
+    \\ the first band: its line and row, the data less the line
+
+    LDA top:AND #7:STA line
+    EOR #&FF:SEC:ADC data:STA data      ; data - line
+    BCS @+
+    DEC data+1
+.@
+    LDA top:LSR A:LSR A:LSR A:STA row
+    LDA col:ASL A:ASL A:ASL A:STA cx8
+    LDA col:LSR A:LSR A:LSR A:LSR A:LSR A:STA cx8+1
+    BRA band
+
+    \\ a page crossed among the columns' cells: each from the last, the high byte carried (X: column n's block)
+
+.crossing
+    LDA cs:STA ccs
+    LDA cs+1:STA ccs+1
+    LDX #(MovCols - 1) * MovBlkSize
+.cross
+    LDA ccs:STA blocks+RsLo,X:STA blocks+WsLo,X
+    LDA ccs+1:STA blocks+RsHi,X:STA blocks+WsHi,X
+    LDA ccs:CLC:ADC #8:STA ccs
+    BCC @+
+    INC ccs+1
+.@
+    TXA:SEC:SBC #MovBlkSize:TAX
+    BCS cross
+    JMP patched
+
+    \\ each band: its lines, its first cell, the blocks' operands; then a line of every column a pass
+
+.band
+    LDA #8:SEC:SBC line                 ; lines to the cell's end
+    CMP rows:BCC @+
+    LDA rows                            ; or fewer
+.@
+    CLC:ADC line:STA lend
+    STA loopend+1
+    LDX row
+    LDA RowLo,X:CLC:ADC cx8:STA cs
+    LDA RowHi,X:ADC cx8+1:STA cs+1
+    LDA cs:CLC:ADC last:BCS crossing
+    LDA cs                              ; (C clear)
+    FOR n = 0..MovCols-1
+        STA MovBlk(n)+RsLo:STA MovBlk(n)+WsLo
+        IF n < MovCols-1 : ADC #8 : ENDIF
+    NEXT
+    LDA cs+1
+    FOR n = 0..MovCols-1
+        STA MovBlk(n)+RsHi:STA MovBlk(n)+WsHi
+    NEXT
+.patched
+    LDA data:LDX data+1:CLC             ; (a variant can be more than a page: each column's high byte
+    FOR n = 0..MovCols-1                ; carried)
+        STA MovBlk(n)+RdLo:STX MovBlk(n)+RdHi
+        IF n < MovCols-1
+            ADC h
+            BCC @+
+            INX:CLC
+        .@
+        ENDIF
+    NEXT
+    LDY line
+    DEY
+    JMP enter                           ; (Y = line - 1: the INY makes it the line)
+    ZA_UNREACHABLE
+
+    INPAGE MovCols * MovBlkSize + 5     ; (the loop in one page)
+.blocks
+    FOR n = MovCols-1..0
+        LDX &FFFF,Y                     ; self-modified: column n's data
+        LDA &FFFF,Y                     ; self-modified: its screen cell
+        AND MaskTab,X
+        ORA DataId,X                    ; self-modified: the variant's data table
+        STA &FFFF,Y                     ; self-modified: its screen cell
+    NEXT
+    ASSERT P% - blocks == MovCols * MovBlkSize, "the loop's blocks: 15 bytes each"
+.enter
+    INY
+.loopend
+    CPY #0                              ; self-modified: lend
+.back
+    BNE blocks                          ; self-modified: to column w - 1's block
+    SAME_PAGE blocks
+
+    \\ the next band: the next row from its line 0, the data on by the lines drawn
+
+    LDA rows:SEC:SBC lend:CLC:ADC line  ; (rows - lines drawn)
+    BEQ done
+    STA rows
+    LDA data:CLC:ADC lend:STA data
+    BCC @+
+    INC data+1
+.@
+    STZ line
+    INC row
+    JMP band
+.done
+    RTS
+}
+
+\\ The loop's branch back by the width (to column w - 1's block); the data tables' pages
+
+.MovBack
+    EQUB 0
+    EQUB LO(MovBlk((1..MovCols) - 1) - (mov_plot.back + 2))
+.MovTablePages
+    EQUB HI(DataId), HI(DataYellow)
+
+\\ The moving variants (tools/gendata.py): each one's first byte column and line in its box, its width and
+\\ height, its data table, its bytes
+
+.MovDX
+    EQUB GenMovDX
+.MovDY
+    EQUB GenMovDY
+.MovW
+    EQUB GenMovW
+.MovH
+    EQUB GenMovH
+.MovTable
+    EQUB GenMovTable
+.MovLo
+    EQUB LO(ObjData + GenMovData)
+.MovHi
+    EQUB HI(ObjData + GenMovData)

@@ -37,8 +37,9 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
 ENDSECTION
 
 SECTION ObjFile, filename = "SPRINTD", load = &FFFF0000+LoadAddr
-    SECTION ObjBank, org = SwramOrg, guard = SwramEnd
+    SECTION ObjBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
         INCLUDE "objdata.6502"
+        INCLUDE "movers.6502"
     ENDSECTION
 ENDSECTION
 
