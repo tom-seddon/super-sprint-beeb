@@ -140,7 +140,7 @@ screen is erased where it was drawn two frames before.
 
 The main loop counts vsyncs (as Critical Mass does) and runs the logic once for each, so an overrun drops one
 frame and the game keeps its speed. Phase 3 timed the renderer with 4 cars from a recorded ST trace
-(`docs/renderer.md`: 11,641 cycles a frame on average for erasing and drawing them, 16,689 at worst); Phase 4
+(`docs/renderer.md`: 11,071 cycles a frame on average for erasing and drawing them, 16,259 at worst); Phase 4
 adds the logic.
 
 ## Input and sound
@@ -184,7 +184,7 @@ adds the logic.
 ### Phase 3: renderer (under way: `docs/renderer.md`)
 - Done: boot, the OS's memory left alone (D7), MODE 1 with 26 rows, shadow double-buffering at 50 fps; the
   four cars erased, drawn and put under the priority mask, from the ST's race on track 6, every frame
-  checked against a model; timed (11,641 cycles a frame on average, 16,689 at worst). Sprite storage:
+  checked against a model; timed (11,071 cycles a frame on average, 16,259 at worst). Sprite storage:
   pre-shifted, trimmed frames, about 10.6K a race.
 - To do: the set-up around the loops faster; the HUD row; objects.
 

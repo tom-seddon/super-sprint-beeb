@@ -100,3 +100,8 @@
 - **Mistakes on the way**, both caught by the model check (every frame wrong, some taking 145,000 cycles):
   the page-crossing path's loop left X changed where the row was expected, and the column loop started with
   X holding the cells' OR rather than 0.
+- The erase's blocks indexed by X from the cell's low byte, each operand 8n into the page: only the high
+  bytes patched a band, no page-crossing path. Erase 3,682 -> 3,134 a frame. The data table's page patched
+  only when it changes: 23 cycles. 11,071 a frame on average, 16,259 at worst; every frame matches.
+- Stopped there: what's left is spread thin (per car, per band), and the bigger changes weighed (compiled
+  sprites, the plot's screen indexed by X) cost memory the banks don't have, or more than they save.

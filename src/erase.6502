@@ -4,15 +4,13 @@
 BgOffset = &4000                        ; a screen address + BgOffset: the clean background's byte
 BgOrg = PlayAddr + BgOffset
 
-\\ The loop's five column blocks, column 4 first: each copies a line of one column, its operands patched
-\\ (the background's cell, the screen's). EraseBlk(n) is column n's.
+\\ The loop's five column blocks, column 4 first: each copies a line of one column, its operands' pages
+\\ patched (the background's, the screen's). EraseBlk(n) is column n's.
 
 EraseBlkSize = 6
 FUNCTION EraseBlk(n) = erase_cars.blocks + (4 - n) * EraseBlkSize
-BgLo = 1                                ; a block's operands: the background's cell (LDA abs,Y)
-BgHi = 2
-ScLo = 4                                ; the screen's cell (STA abs,Y)
-ScHi = 5
+BgHi = 2                                ; a block's operands' high bytes: the background's (LDA abs,X)
+ScHi = 5                                ; and the screen's (STA abs,X)
 
 \\ Erase what the four cars drew into the screen being drawn, two frames ago: each car's box copied back
 \\ from the clean background, a band (character row) at a time, a line of every column a pass, as
@@ -33,7 +31,6 @@ ScHi = 5
     ZA_AUTO1 left                       ; local: lines still to erase
     ZA_AUTO1 lend                       ; local: the line in the cell after the band's last
     ZA_AUTO2 cx8                        ; local: the first column * 8
-    ZA_AUTO1 hi                         ; local: a cell's high byte, when a page is crossed
 
     LDA ebuf:STA slot
 .next
@@ -49,31 +46,10 @@ ScHi = 5
     LDA EraseCol,X:ASL A:ASL A:ASL A:STA cx8
     LDA EraseCol,X:LSR A:LSR A:LSR A:LSR A:LSR A:STA cx8+1
 
-    BRA band
 
-    \\ a page crossed among the blocks' cells: each from the last, the high byte carried (X: 6 * (4 - n),
-    \\ column n's block)
-
-.crossing
-    STX hi                              ; (A, X: the cell)
-    LDX #4 * EraseBlkSize
-.cross
-    STA blocks+BgLo,X:STA blocks+ScLo,X
-    TAY
-    LDA hi:STA blocks+ScHi,X
-    CLC:ADC #HI(BgOffset):STA blocks+BgHi,X
-    TYA:CLC:ADC #8
-    BCC @+
-    INC hi
-.@
-    TAY
-    TXA:SEC:SBC #EraseBlkSize:TAX
-    TYA
-    BCS cross
-    JMP patched
-
-    \\ each band: its lines, and the blocks' cells, 8 bytes apart (no page crossed unless the first is &E0
-    \\ or more into its page); the background's &4000 above the screen's
+    \\ each band: its lines, and the blocks' cells' page: X runs from the first cell's low byte plus the
+    \\ line, each block's operand 8 * n into the page (a page crossed is carried by the indexing); the
+    \\ background's &4000 above the screen's
 
 .band
     LDA #8:SEC:SBC line                 ; lines to the cell's end
@@ -81,41 +57,32 @@ ScHi = 5
     LDA left                            ; or fewer
 .@
     CLC:ADC line:STA lend
-    STA loopend+1
     LDX row
     LDA RowLo,X:CLC:ADC cx8
-    TAY
-    LDA RowHi,X:ADC cx8+1
-    TAX                                 ; (X, Y: the first cell)
-    TYA
-    CMP #&E0:BCS crossing
-    FOR n = 0..4                        ; (C clear)
-        STA EraseBlk(n)+BgLo:STA EraseBlk(n)+ScLo
-        IF n < 4 : ADC #8 : ENDIF
-    NEXT
-    TXA
+    TAY                                 ; (Y: the first cell's low byte)
+    LDA RowHi,X:ADC cx8+1               ; (C clear after: the screen ends at &8000)
     FOR n = 0..4
         STA EraseBlk(n)+ScHi
     NEXT
-    CLC:ADC #HI(BgOffset)
+    ADC #HI(BgOffset)
     FOR n = 0..4
         STA EraseBlk(n)+BgHi
     NEXT
-.patched
-    LDY line
-    DEY
-    BRA enter                           ; (Y = line - 1: the INY makes it the line)
+    TYA:CLC:ADC lend:STA loopend+1      ; X's end (the page's end wraps it to 0)
+    TYA:CLC:ADC line:TAX
+    DEX
+    BRA enter                           ; (X less one: the INX makes it the first line's)
 
 .blocks
     FOR n = 4..0
-        LDA &FFFF,Y                     ; self-modified: column n's cell in the clean background
-        STA &FFFF,Y                     ; self-modified: its screen cell
+        LDA &FF00+8*n,X                 ; self-modified: the page of column n's cell in the clean
+        STA &FF00+8*n,X                 ; background, and of its screen cell
     NEXT
     ASSERT P% - blocks == 5 * EraseBlkSize, "the loop's blocks: 6 bytes each"
 .enter
-    INY
+    INX
 .loopend
-    CPY #0                              ; self-modified: lend
+    CPX #0                              ; self-modified: the cell's low byte plus lend
 .back
     BNE blocks                          ; self-modified: to column w - 1's block
     SAME_PAGE blocks

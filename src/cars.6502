@@ -89,10 +89,12 @@ WsHi = 14
     CPY #48:BCS @+
     LDA #HI(DataYellow)
 .@
+    CMP slowcol.dt+2:BEQ @+             ; the last car's: patched already
     FOR n = 0..4
         STA FastBlk(n)+DtHi
     NEXT
     STA slowcol.dt+2
+.@
     LDA CarXLo,X:TAX                    ; (X: x's low byte, for now)
     AND #3:STA line                     ; (line a scratch: the shift)
     TYA:ASL A:ASL A:ORA line:TAY        ; the frame-shift

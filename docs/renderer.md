@@ -54,8 +54,11 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   draws nothing; some hidden, the same, and then it goes on its own through a slow loop that keeps the
   screen where the bits are set as well as where the key is (about 52 cycles a byte).
 - **The erase**: the box each car drew, two frames before in the same screen, copied back from the clean
-  background, a band at a time with the same unrolled blocks (9 cycles a byte). The background lives
-  `&4000` above the screen, at `&8180`-`&BFFF` in its bank.
+  background, a band at a time with the same five unrolled column blocks (`LDA bg,X : STA screen,X`, 9
+  cycles a byte). The background lives `&4000` above the screen, at `&8180`-`&BFFF` in its bank. X runs
+  from the band's first cell's low byte plus the line, and each block's operand is 8n into the page, so
+  only the operands' high bytes are patched a band, and a page crossed among the cells is carried by the
+  indexing. (The plot can't do the same: its blocks need X for the table lookups.)
 
 ## Measurements
 
@@ -67,6 +70,7 @@ drawn, with any IRQ that lands in it. The budget is 39,936 (one TV frame).
 | First (a loop a column, a pass a byte) | 5,213 | 211 | 10,094 | 15,518 | 17,720 | 20,376 | 21,251 |
 | Columns unrolled, frames in pages | 3,682 | 211 | 8,418 | 12,311 | 15,564 | 20,033 | 20,822 |
 | Hidden half-cells not drawn, the slow loop only for the mixed | 3,682 | 211 | 7,748 | 11,641 | 12,945 | 15,552 | 16,689 |
+| The erase indexed by X from the cell's low byte; the data table patched only when it changes | 3,134 | 211 | 7,725 | 11,071 | 12,368 | 14,957 | 16,259 |
 
 Every frame was drawn within the TV frame it started in (1,143 of 1,143 swaps after one vsync).
 
@@ -77,34 +81,39 @@ were in cell lines wholly hidden (100 a frame in the worst 20 frames, 12 on aver
 (40 and 8); only 16 (2 on average) were partly hidden. The third version draws nothing for the first, the
 fast loop for the second, and the slow loop only for the third.
 
-Where the third version's cycles go (`tools/render_profile.mjs`, cycles a frame):
+Where the fourth version's cycles go (`tools/render_profile.mjs`, cycles a frame):
 
 | Region | Mean | The worst 20 frames |
 |---|---|---|
-| Erase: the copy loop | 1,672 | 1,631 |
-| Erase: per car and per band | 1,995 | 1,945 |
-| Plot: per car | 1,243 | 1,242 |
-| Plot: per band (patching the blocks, the priority checks) | 2,495 | 2,875 |
-| Plot: the fast loop | 3,274 | 2,631 |
-| Plot: classifying columns | 377 | 2,276 |
+| Erase: the copy loop | 1,680 | 1,643 |
+| Erase: per car and per band | 1,439 | 1,452 |
+| Plot: per car | 1,222 | 1,220 |
+| Plot: per band (patching the blocks, the priority checks) | 2,496 | 2,867 |
+| Plot: the fast loop | 3,274 | 2,682 |
+| Plot: classifying columns | 377 | 2,233 |
 | Plot: the slow loop | 113 | 986 |
-| Plot: the slow loop's columns | 239 | 1,924 |
+| Plot: the slow loop's columns | 238 | 1,904 |
 | The frame loop (main RAM) | 235 | 235 |
 
-The set-up around the loops now costs more than the loops: about 5,700 cycles a frame against 5,000
-copying and drawing. Patching only the car's own columns (3.9 of the 5 on average) would save about as much
-as arranging it costs.
+The set-up around the loops is spread thin: about 300 cycles a car, 250 a band for the plot and 150 for
+the erase, and in the worst frames the columns under bridges. What was weighed and left:
+- Patching only the car's own columns (3.9 of the 5 on average): it saves about what arranging it costs.
+- The plot's screen indexed by X like the erase's: the table lookups need X; moving them into patched
+  operands costs 8 cycles a byte to save about 60 a band.
+- Compiled sprites (the frame's bytes as immediates, 13 cycles a byte): about 100K of code.
+- The slow columns drawn from the classification directly, with the cell already found: perhaps 500
+  cycles in the worst frames.
 
 Against the plan's estimate (D2: about 42,000 cycles a frame, with 10,100 for drawing and erasing 4 cars):
-the cars measure 11,400 on average and 16,500 at worst. With the plan's other items (logic 16,000; HUD,
-input, sound and IRQ 6,000) the average frame would be about 33,600 and the worst about 38,700, inside the
+the cars measure 10,860 on average and 16,000 at worst. With the plan's other items (logic 16,000; HUD,
+input, sound and IRQ 6,000) the average frame would be about 33,100 and the worst about 38,300, inside the
 39,936 of a TV frame, but only just, and the logic's figure is the least certain.
 
 ## Memory
 
 | Region | Used | Free |
 |---|---|---|
-| Background's bank | 290 erase, then 16,000 background from `&8180` | 94 |
+| Background's bank | 207 erase, then 16,000 background from `&8180` | 177 |
 | Cars' bank | 10,615 frames (659 of it page padding), 643 priority map, 2,664 priority cells, 333 classes, 1,138 tables, 863 plotter | 154 |
 | Trace's bank (test only) | 13,728 | 2,656 |
 | Main RAM | 289 code at `&0E00`; tables at `&0400`-`&07FF` (MaskTab, 3 data tables) and `&2C00`-`&2DFF` (the priority expansions); 42 bytes of variables at `&2E00` | |
