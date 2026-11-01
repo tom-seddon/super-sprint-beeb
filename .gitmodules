@@ -13,3 +13,9 @@
 [submodule "rich/teddyboy"]
 	path = rich/teddyboy
 	url = https://github.com/waitingforvsync/teddyboy
+[submodule "rich/baron"]
+	path = rich/baron
+	url = https://github.com/waitingforvsync/baron
+[submodule "rich/portalc"]
+	path = rich/portalc
+	url = https://github.com/waitingforvsync/portalc
