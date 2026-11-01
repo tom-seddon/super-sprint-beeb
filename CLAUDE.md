@@ -1,6 +1,8 @@
 # Super Sprint → BBC Micro
 
-Use the `beeb-baron` skill for all 6502.
+Use the `beeb-baron` skill for all 6502, with one exception: the game targets the Master 128 only, so 65C12
+(CMOS) opcodes are allowed, in sections with `cmos = TRUE` (D4 in `docs/decisions.md`). The skill's NMOS-only
+rule doesn't apply here.
 
 ## Reference projects
 

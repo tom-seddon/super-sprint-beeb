@@ -869,7 +869,7 @@ counts `G_01D168`, next-track tables `G_01D148` and `G_01D138`.
 
 ## 12. Notes for the port
 
-- **Frame rate.** The ST runs the logic and the drawing at 50 Hz. If the BBC draws at 25 fps, run the car logic
+- **Frame rate.** The ST runs the logic and the drawing at 50 Hz; the BBC aims for the same (D2). If it draws at 25 fps, run the car logic
   twice per drawn frame: it is cheap (a few thousand cycles per car), and every constant, timer and table then stays
   as it is. Halving the rate instead would need every per-frame constant changed (speeds, smoothing, timers,
   spin and jump tables, the 64-frame scoring, sound).

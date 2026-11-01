@@ -11,11 +11,17 @@ So: option B. MODE 1 in black, green, yellow and white; the road a black/white c
 screen, its shadows black; the players' cars white, green and yellow with black outlines, car 3 and
 drone-driven cars black.
 
-### D2. Frame rate: Proposed
+### D2. Frame rate: Decided (2026-11-01)
 Proposed in the plan: 25 fps, double-buffered. Phase 1 found that the ST runs its race at 50 fps, logic and
-drawing, with every speed and timer per frame. Proposed now: draw at 25 fps and run the game logic twice per
+drawing, with every speed and timer per frame. Proposed then: draw at 25 fps and run the game logic twice per
 drawn frame, so every constant stays as the ST has it (`docs/st-logic.md` §12). 50 fps drawing to be tried
 in Phase 3 if the timings allow.
+Tom: "D2: I think 50 Hz should be the goal, even if it currently seems like the timing would be be tight.
+It'll make a big difference when played on a CRT."
+So: 50 fps, double-buffered, the logic once a frame as on the ST: 40,000 cycles a frame. The estimate is about
+42,000 (`docs/plan.md`), so the work is to get under it. The main loop counts vsyncs and runs the logic once
+for each, so a frame that overruns costs that frame only: the game's speed stays right, and the display drops
+to 25 fps for a moment.
 
 ### D3. Multiload or everything in memory: Decided (2026-11-01)
 Proposed in the plan: a 1770 loader, one track's data per race. Phase 2 found that all 8 tracks' art packs to
@@ -26,15 +32,32 @@ files. This would ensure compatibility with filing systems (e.g., MMFS and Econe
 So: a multiload, one track's data per race, loaded through OSFILE with the OS brought back for each load. No
 1770 loader. How the OS comes back is D7.
 
-### D4. Machines: Proposed
+### D4. Machines: Decided (2026-11-01)
 Proposed in the plan: the Master 128 only (shadow RAM, ANDY, HAZEL, 64K of sideways RAM).
 Decided in part (2026-11-01). Asked whether the game must run with a filing system loaded in sideways RAM,
 leaving 3 banks, Tom answered: "No, need 4 free banks". So the game needs 4 banks of sideways RAM that the
 ROM type table doesn't list; a filing system has to be in ROM. `!BOOT` counts the free banks and stops with a
 message if there are fewer than 4.
+Tom: "D4: Master 128 only is fine. This means 65c02, more flexible shadow RAM, and leaves open the option of
+using HAZEL for something."
+So: the Master 128 only, with what that allows:
+- **CMOS opcodes**, in sections with Baron's `cmos = TRUE`. This overrides the beeb-baron skill's NMOS-only
+  rule for this project (noted in `CLAUDE.md`). The Master's CPU is a 65C12: `BRA`, `STZ`, `PHX`/`PHY`/
+  `PLX`/`PLY`, `TSB`/`TRB`, `(zp)`, `INC A`/`DEC A`, `JMP (abs,X)` and the extra `BIT` modes, but not the
+  Rockwell bit opcodes (`RMB`, `SMB`, `BBR`, `BBS`). Baron's CMOS set matches: it assembles the first and
+  refuses the second (checked with `baron --check`). Cycle counts are the 65C12's, and some differ from NMOS
+  (`JMP (abs)` is 6).
+- **Shadow RAM through ACCCON** (`&FE34`): bit 0 (D) picks the screen displayed, bit 2 (X) sends all of the
+  CPU's `&3000`-`&7FFF` accesses to shadow, bit 1 (E) only those made by code running at `&C000`-`&DFFF`.
+- **HAZEL** stays the OS's for now (D7), free to be taken later.
 
-### D5. Controls: Proposed
+### D5. Controls: Decided in part (2026-11-01)
 Proposed in the plan: two joysticks and the keyboard, as on the ST, once keyboard ghosting has been tested.
+Tom: "let's leave open the option of having the 3rd player on keyboard too, as well as possibly on joysticks,
+as joysticks weren't super popular on the BBC. Leave thinking about keyboard clash until later."
+So: any player can be on the keyboard, all three included, and the joysticks are an option rather than the
+way in. The input code reads each player's left, right and accelerate from either. Which keys, and what
+ghosting allows, is left until later.
 
 ### D6. The HUD: Decided (2026-11-01)
 Tom: "it might be worth showing the scores and lap indicators as simple 8-pixel text, outside the main 320x200

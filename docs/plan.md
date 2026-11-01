@@ -8,16 +8,18 @@ done in `JOURNAL.md`.
 
 ## Verdict
 
-**Feasible on a Master 128 in MODE 1, double-buffered in shadow RAM, drawing at 25 fps with the game logic at
-50 Hz.** Colour works out (D1). Memory is now the tightest resource, then speed.
+**Feasible on a Master 128 in MODE 1, double-buffered in shadow RAM. The goal is 50 fps, as the ST (D2),
+which is tight: the estimate is about 5% over.** Colour works out (D1). Memory and speed are the tight
+resources.
 
 - The ST runs at 320×200 in low res. MODE 1 is 320 pixels across, so the art converts pixel for pixel. The
   play area is 25 MODE 1 rows (200 lines), with one row of 8-pixel text above it for the HUD (D6): 26 rows,
   16,640 bytes. Main RAM holds one screen and shadow RAM the other, both at `&3F00`-`&7FFF`. Checked on
   jsbeeb's Master 128 (`docs/img/jsbeeb-option-a2-track1.png`).
 - The ST runs its race at **50 fps**, logic and drawing, with no time compensation: every speed and timer is
-  per frame. On the BBC, draw at 25 fps and run the logic twice per drawn frame, so every constant stays as the
-  ST has it (D2). Estimated 58,000 of the 80,000 cycles a drawn frame (Speed, below).
+  per frame. The BBC aims for the same, so every constant stays as the ST has it: 40,000 cycles a frame,
+  against an estimate of about 42,000 (D2; Speed, below). A frame that overruns runs the logic twice next
+  time, so the game keeps its speed.
 - Four colours are enough with the right mapping: option B, a grey checkerboard road on black, green, yellow
   and white (D1, decided; `docs/colours.md`).
 - Everything for the race is about 90K before any cleverness, against about 64K of sideways RAM, so the data
@@ -117,29 +119,35 @@ All of it at once is about 90K with unshifted sprites; the banks hold 64K. So:
   timings say otherwise.
 - **Transcode the sound** at build time into a compact SN76489 form.
 
-## Speed (estimate; the budget is 80,000 cycles a drawn frame at 25 fps)
+## Speed (estimate; the budget is 40,000 cycles a frame at 50 fps, D2)
 
-| Work, per drawn frame | Cycles |
+| Work, per frame | Cycles |
 |---|---|
 | 4 cars drawn: 16 × 12 pixels is 5 bytes × 12 lines once shifted, colour 0 transparent through a mask table, ~30 cycles a byte | 7,200 |
 | 4 cars erased, ~12 cycles a byte | 2,900 |
 | Priority masking under bridges (tracks 2, 4, 6, 8, cars near bridges only) | 2,000 |
 | Smaller sprites (pickups, cones, tornado, helicopter, sparks), drawn and erased | 8,000 |
-| Car logic, wall probes, attribute probes, car-to-car tests: 4 cars × 2 ticks | 32,000 |
+| Car logic, wall probes, attribute probes, car-to-car tests: 4 cars, one tick | 16,000 |
 | HUD digits, input (keys and ADC), sound, IRQ | 6,000 |
-| **Total** | **~58,000** |
+| **Total** | **~42,000** |
 
-The logic figure is the least certain: the ST's wall test ANDs each car's shape with the wall mask every frame,
-and the drones' path following divides. `docs/st-logic.md` §12 suggests the cheaper forms (a fixed shape per
-direction, a reciprocal table per divisor). 50 fps drawing would need everything in 40,000 cycles: not
-planned, but Phase 3's timings will show how far off it is.
+About 5% over, before any optimisation, and every line is an estimate. The logic figure is the least certain:
+the ST's wall test ANDs each car's shape with the wall mask every frame, and the drones' path following
+divides. `docs/st-logic.md` §12 suggests the cheaper forms (a fixed shape per direction, a reciprocal table
+per divisor). Other savings to look at: HUD digits drawn only when they change (into both screens), the
+smaller sprites only when on screen, unrolled plotters in the banks. With double buffering at 50 fps, each
+screen is erased where it was drawn two frames before.
+
+The main loop counts vsyncs (as Critical Mass does) and runs the logic once for each, so an overrun drops one
+frame and the game keeps its speed. Phase 3 times the renderer with 4 cars from a recorded ST trace; Phase 4
+adds the logic.
 
 ## Input and sound
 
-- **Three players**, as on the ST: two analogue joysticks (the Master 128's ADC, read as left/centre/right, fire
-  buttons on system VIA PB4/PB5) and the keyboard. Each player needs only left, right and accelerate.
-- **Keyboard ghosting** with several keys held must be tested on a real Master before more than one keyboard
-  player is offered (D5).
+- **Three players**, each on the keyboard or a joystick (D5): joysticks weren't common on the BBC, so all
+  three can be on the keyboard. Joysticks are the Master 128's two analogue ones (the ADC, read as
+  left/centre/right, fire buttons on system VIA PB4/PB5). Each player needs only left, right and accelerate.
+- **Keyboard ghosting** with several keys held decides which keys each player gets; left until later (D5).
 - **ADC:** slow conversions (about 10 ms a channel). Poll it from the frame IRQ, not by interrupt.
 - **Sound:** the SN76489's 3 tones and noise against the YM's 3 channels: one engine tone per human car,
   effects taking channels by the ST's priorities, the noise parts on the shared noise channel. The ST's periods
@@ -175,7 +183,7 @@ planned, but Phase 3's timings will show how far off it is.
 ### Phase 3: renderer
 - Boot, take over the OS, MODE 1 with 26 rows, shadow double-buffering, the HUD row.
 - Car and sprite plotting, erasing, priority. Time 4 cars driven from a recorded ST trace (Hatari gives the
-  positions and directions per frame). Decide D2 and the sprite storage.
+  positions and directions per frame), against the 40,000-cycle frame (D2). Decide the sprite storage.
 
 ### Phase 4: one race
 - Physics, collisions, drones, laps, scoring, HUD, input for 3 players, sound. One track, played start to
@@ -190,10 +198,10 @@ planned, but Phase 3's timings will show how far off it is.
 | | Question | State |
 |---|---|---|
 | D1 | Palette and dithering | Decided (Tom, 2026-11-01): option B, a grey checkerboard road |
-| D2 | Frame rate | Proposed: draw at 25 fps, logic at 50 Hz (twice a drawn frame) |
+| D2 | Frame rate | Decided (Tom, 2026-11-01): 50 fps the goal; logic once a frame, as the ST |
 | D3 | Multiload or all in memory | Decided (Tom, 2026-11-01): one track's data per race, loaded through the OS |
-| D4 | Machines | Proposed: Master 128 only. Decided (Tom, 2026-11-01): 4 free banks of sideways RAM needed |
-| D5 | Controls | Proposed: two joysticks and the keyboard, as on the ST, once ghosting has been tested |
+| D4 | Machines | Decided (Tom, 2026-11-01): Master 128 only, CMOS opcodes allowed; 4 free banks of sideways RAM needed |
+| D5 | Controls | Decided in part (Tom, 2026-11-01): any player on the keyboard, all three included; joysticks optional; ghosting later |
 | D6 | HUD | Decided (Tom, 2026-11-01): one row of 8-pixel text above the play area |
 | D7 | Bringing the OS back for a load | Decided (Tom, 2026-11-01): leave the OS's memory alone; HAZEL through a bank only if needed |
 
@@ -201,9 +209,9 @@ planned, but Phase 3's timings will show how far off it is.
 
 - **Memory.** The estimate above is over the banks by about a quarter before the savings listed. Phase 3
   measures the sprites and code.
-- **The logic's cost at 50 Hz.** Four cars' wall probes and drone steering twice a drawn frame is the biggest
-  item, and the least certain.
-- **Keyboard ghosting** may limit how many players can share the keyboard.
+- **Speed at 50 fps.** The estimate is about 42,000 cycles against 40,000. Four cars' wall probes and drone
+  steering is the biggest item, and the least certain.
+- **Keyboard ghosting** may limit which keys three keyboard players can have.
 - **A filing system in sideways RAM** (MMFS is often loaded that way) leaves 3 banks; the game needs 4 free
   (D4), so such a machine is told so at boot.
 - **Unpaged space** is about 13.5K with the OS's memory left alone (D7). If the IRQ, logic and state don't

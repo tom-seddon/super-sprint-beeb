@@ -64,3 +64,11 @@
   fallback if Phase 3 runs out of room.
 - **D7 decided** (Tom): leave the OS's memory alone for now. If more room is needed, HAZEL (8K in one piece)
   is worth swapping through a bank; the OS's 2K of low pages isn't, being fragmented.
+- **D5 decided in part** (Tom): any player can be on the keyboard, all three included, since joysticks
+  weren't common on the BBC; joysticks stay an option. Ghosting is left until later.
+- **D4 decided** (Tom): the Master 128 only. So CMOS opcodes are allowed (`cmos = TRUE`; Baron assembles the
+  65C12's set and refuses the Rockwell bit opcodes, which the Master lacks), overriding the skill's NMOS-only
+  rule; noted in `CLAUDE.md`.
+- **D2 decided** (Tom): 50 fps is the goal, as the ST, for the difference it makes on a CRT. 40,000 cycles a
+  frame against an estimate of about 42,000; the main loop counts vsyncs so an overrun costs one frame, not
+  the game's speed.
