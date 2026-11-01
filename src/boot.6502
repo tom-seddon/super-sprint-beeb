@@ -3,9 +3,10 @@
 \\ its own, in NMOS code, so a Model B gets the error.
 
 bankbg = &00                            ; the banks found, for the game (memory.6502's): the background's,
-bankcars = &01                          ; the cars', the trace's (BASIC's zero page, written once nothing
-banktrace = &02                         ; can fail)
-BanksNeeded = 3
+bankcars = &01                          ; the cars', the trace's, the objects' (BASIC's zero page, written
+banktrace = &02                         ; once nothing can fail)
+bankobj = &03
+BanksNeeded = 4
 
 BootOrg = &1200                         ; below where the files load
 LoadAddr = &3000                        ; where a bank's file loads, to be copied in, and SPRINT
@@ -20,7 +21,7 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
 \\     none
 \\
 \\ Outputs:
-\\     bankbg, bankcars, banktrace: the banks, for the game; it never returns
+\\     bankbg, bankcars, banktrace, bankobj: the banks, for the game; it never returns
 
 .boot_entry
 {
@@ -118,6 +119,7 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     EQUS "SPRINTA", 13
     EQUS "SPRINTB", 13
     EQUS "SPRINTC", 13
+    EQUS "SPRINTD", 13
     ASSERT P% - BankNames == BanksNeeded * 8, "a name for each bank"
 .SprintName
     EQUS "SPRINT", 13

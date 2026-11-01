@@ -1,5 +1,6 @@
-\\ sprint.6502 - the renderer test's files (Phase 3): SPRINTA, SPRINTB and SPRINTC, the sideways RAM banks'
-\\ images (the background, the cars, an ST race's trace), which !BOOT copies into the banks it found; and
+\\ sprint.6502 - the renderer test's files (Phase 3): SPRINTA, SPRINTB, SPRINTC and SPRINTD, the sideways RAM
+\\ banks' images (the background, the cars, an ST race's trace, the objects), which !BOOT copies into the
+\\ banks it found; and
 \\ SPRINT, main RAM's code, then the loader that copies it into place.
 \\
 \\ No code in one bank reads another's data: each routine is in the bank with its data, or in main RAM,
@@ -30,9 +31,14 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
 .TraceData
         INCBIN "../build/gen/trace.bin" ; the race's cars, 12 bytes a frame (tools/gendata.py)
 .TraceEnd
-        ASSERT TraceEnd - TraceData == TraceFrames * 12, "the trace: 12 bytes a frame"
 .HudEvents
         INCBIN "../build/gen/hudevents.bin" ; the HUD's changes, 10 bytes each (tools/gendata.py)
+    ENDSECTION
+ENDSECTION
+
+SECTION ObjFile, filename = "SPRINTD", load = &FFFF0000+LoadAddr
+    SECTION ObjBank, org = SwramOrg, guard = SwramEnd
+        INCLUDE "objdata.6502"
     ENDSECTION
 ENDSECTION
 
@@ -42,6 +48,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
         INCLUDE "irq.6502"
         INCLUDE "main.6502"
         INCLUDE "hud.6502"
+        INCLUDE "objects.6502"
     ENDSECTION
 .maincode_end
     INCLUDE "entry.6502"

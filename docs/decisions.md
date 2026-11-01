@@ -104,3 +104,13 @@ So: leave the OS's memory alone for now, as above. If the game turns out to need
 to consider is HAZEL, swapped through a bank (sized by how much each filing system claims: DFS, MMFS, ADFS,
 Econet). The OS's low pages stay the OS's: 2K of contiguous bank isn't worth giving up for 2K of fragmented
 main RAM.
+
+### D8. Object sprites: the explosion and the helicopter on 4-pixel steps: Decided (2026-11-01)
+Proposed (2026-11-01, Phase 3): the moving objects stored pre-shifted as the cars are would take about 21K,
+more than a bank. Snapping the explosion (26 frames, 16 x 14) and the helicopter (4 frames, 48 x 36) to
+4-pixel steps, so each needs one shift, brings the objects to about 8K; either can then sit up to 3 pixels
+left of where the ST draws it. The banner (fixed per track) and the sparks (8-pixel aligned on the ST) need
+one shift anyway; the background objects (gates, barriers, pickups) are 16-pixel aligned; the tornado keeps
+its 4 shifts (about 1K).
+Tom: "Yes, snap them. The snapping can be reconsidered later if it looks too ugly."
+

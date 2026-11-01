@@ -39,11 +39,12 @@ WsHi = 14
 \\ Draw the four cars, in draw order, into the screen being drawn.
 \\
 \\ Inputs:
-\\     CarXLo, CarY, CarFlags: the cars
+\\     CarCount, CarId, CarXLo, CarY, CarFlags: the cars
 \\     ebuf: the screen drawn (0 or 4), the erase lists' index
 \\
 \\ Outputs:
-\\     EraseCol, EraseTop, EraseW, EraseH: what each car drew, at ebuf + its place in the draw order
+\\     EraseCol, EraseTop, EraseW, EraseH: what each car drew, at ebuf + its place in the draw order (a
+\\         height of 0 for the places after the last)
 \\     A, X, Y: corrupted
 
 .plot_cars
@@ -74,27 +75,26 @@ WsHi = 14
     ZA_AUTO1 scd                        ; local: its data, less the band's first line (in its page)
     ZA_AUTO2 scs                        ; local: its screen cell, line 0
 
-    LDA #0:STA car
+    STZ car
+    LDA CarCount:BNE next
+    JMP undrawn                         ; (no cars)
 .next
     LDX car
 
     \\ the frame-shift, and where it goes; what it covers kept for the erase
 
-    LDA CarFlags,X:STA flags
-    AND #63:TAY                         ; the frame
-    LDA CarY,X:CLC:ADC CarFrDY,Y:STA top
-    LDA CarFrH,Y:STA h
-    LDA #HI(DataId)                     ; the car's data table: the yellow car's (frames 32-47) its own
-    CPY #32:BCC @+
-    CPY #48:BCS @+
-    LDA #HI(DataYellow)
-.@
+    LDY CarId,X
+    LDA CarTables,Y                     ; the car's data table
     CMP slowcol.dt+2:BEQ @+             ; the last car's: patched already
     FOR n = 0..4
         STA FastBlk(n)+DtHi
     NEXT
     STA slowcol.dt+2
 .@
+    LDA CarFlags,X:STA flags
+    AND #63:TAY                         ; the frame
+    LDA CarY,X:CLC:ADC CarFrDY,Y:STA top
+    LDA CarFrH,Y:STA h
     LDA CarXLo,X:TAX                    ; (X: x's low byte, for now)
     AND #3:STA line                     ; (line a scratch: the shift)
     TYA:ASL A:ASL A:ORA line:TAY        ; the frame-shift
@@ -271,9 +271,18 @@ WsHi = 14
 
 .done
     INC car
-    LDA car:CMP #4
-    BEQ @+
+    LDA car:CMP CarCount
+    BEQ undrawn
     JMP next
+
+    \\ the erase lists' entries for cars not drawn this frame (a wrecked car's): nothing
+
+.undrawn
+    LDA car:CMP #4:BEQ @+
+    ORA ebuf:TAX
+    STZ EraseH,X
+    INC car
+    BRA undrawn
 .@
     RTS
 
@@ -386,6 +395,12 @@ WsHi = 14
 
 .PrioClass
     INCBIN "../build/gen/prioclass.bin"
+
+\\ Each car's data table, by the car | drone-driven << 2 (tools/gendata.py)
+
+CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite)}
+.CarTables
+    EQUB CarTablePages[GenCarTable]
 
 \\ The fast loop's branch back, by the car's width: to column w - 1's block
 

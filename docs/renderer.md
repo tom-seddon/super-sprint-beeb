@@ -76,6 +76,25 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   bytes, from `tools/font.py`. In the test the changes come from the ST's race (its scores and laps,
   recorded with the cars): 78 of them, 782 bytes in the trace's bank.
 
+- **Background objects** (under way): gates, pop-up barriers and the pickups and hazards in the track's
+  slots. The ST draws one into the screen being drawn and the clean background when it changes, and again
+  the frame after for its other screen; gates and barriers also write mask C, so the cars' priority around
+  them changes as they move (a gate frame hides up to 392 of its 768 pixels). On the BBC
+  (`src/objects.6502`, in main RAM): each change's bytes are copied from a fourth bank, the objects' (48
+  variants, 4,864 bytes: the slots' 22 sprites, the gates' 5 frames and the barriers' 8, each for an even
+  and an odd top line, the patterns' phase), written into the clean background and both screens (a
+  barrier over what's there, its colour 0 kept), and a gate's or barrier's priority bits written into its
+  cells, which `tools/gendata.py` reserves in the map with class "some hidden", so the plotter goes by the
+  bits. The ST's second call is left out of the trace.
+- **The test race for objects**: a real race recorded in Hatari (`tools/st_trace_objects.py`,
+  `tools/st_race.py`): track 5, as the 17th race of a game (barriers, oil-type hazards; the tornado and
+  cones are coin flips that didn't come up), one player on the keyboard accelerating with no steering, so
+  car 0 is wrecked at frame 80. Every call of the car plotter and the object routines is logged with its
+  arguments. Its first 857 frames fit the trace's bank. Cars 1 and 2 are players' cars driven by drones,
+  drawn from the shared second set of frames (3 sets in the cars' bank: car 0's, car 3's, the
+  drone-driven). `tools/objects.py` applies the calls to the ST's background and mask C; checked against
+  a dump of the ST's own at the race's frame 300, it matches to the bit below the ST's HUD strip.
+
 ## Measurements
 
 jsbeeb, Master 128, the whole race (1,144 frames), cycles a frame from the screen chosen to the last car
@@ -129,6 +148,13 @@ Against the plan's estimate (D2: about 42,000 cycles a frame, with 10,100 for dr
 the cars measure 10,860 on average and 16,000 at worst. With the plan's other items (logic 16,000; HUD,
 input, sound and IRQ 6,000) the average frame would be about 33,100 and the worst about 38,300, inside the
 39,936 of a TV frame, but only just, and the logic's figure is the least certain.
+
+The real race on track 5 (857 frames), background objects included: every frame matches the model. But
+the object events cost 4,770 cycles a frame on average and up to 112,820 (the race's first frame, which
+sets up 7 objects); 47 frames run over a TV frame. A gate's step is 192 bytes, written through general
+loops at about 80 cycles a byte, plus its priority cells. Next: the bytes written by unrolled column
+blocks patched once a band, as the plotter's, and the ST's two calls kept (the first writing the
+background and the screen being drawn, the second only copying the background into the other screen).
 
 ## Memory
 

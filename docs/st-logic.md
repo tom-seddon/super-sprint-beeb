@@ -88,7 +88,8 @@ at 749.3 Hz for sound (section 8) and its own IKBD handler for keys and joystick
 
 **Set-up, once per race:**
 1. `F_015FD6(track, &59E36)`: builds the background picture, the three 1-bit masks and the attribute map (section 3).
-2. `F_01C3E4`, `F_014C1C(0..2)`: HUD and car panels. `F_0102AE`: copies the background. `F_014E34(&G_01DAD8)`: wipe in.
+2. `F_01C3E4`: tracks 5, 6 and 7's skid marks, lines from per-track tables drawn into the background (found
+   in Phase 3; this was listed as part of the HUD). `F_014C1C(0..2)`: HUD and car panels. `F_0102AE`: copies the background. `F_014E34(&G_01DAD8)`: wipe in.
 3. `F_00FAD8(track)`: selects the track's drone path (section 5).
 4. For each car: start position, speed 0, laps 0, upgrades applied (section 2), drone set-up (section 5).
 5. Draw order `G_01E2CC` = {0, 1, 2, 3}.

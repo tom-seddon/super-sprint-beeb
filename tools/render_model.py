@@ -3,10 +3,12 @@
 Usage: render_model.py TRACK TRACE.json OUT.bin   (OUT: 16,640 bytes a frame, the HUD row and the play area
 in screen order)
 
-Independent of the BBC's data (gendata.py's trimming, shifts, key colour and priority cells): the clean
-background (option B), then each car in the ST's draw order, its frame mapped through the car's colours
+Independent of the BBC's data (gendata.py's trimming, shifts, key colour, priority cells and object
+variants): the clean background in the ST's colours, changed by the frame's background objects as the ST
+changes it (tools/objects.py), mask C likewise, mapped to option B; then each car the ST drew, in its order,
+its frame (a player's car driven by a drone from the second set) mapped through the car's colours
 (convert.py), drawn where the ST frame isn't colour 8, and, for a car on the ground (not elevated or airborne),
-not where the priority mask (mask C) is 0. Above it the HUD row: the ST's scores and laps, as tools/hud.py
+not where mask C is 0. Above it the HUD row: the ST's scores and laps, as tools/hud.py
 lays them out, in tools/font.py's glyphs, brought up to date as the BBC does it (D6): each screen keeps what
 it shows, and after a change the screen drawn each frame (they take turns) has at most HudPerFrame of its
 columns that differ redrawn, scanning from column 39 down, until a pass over each finds nothing.
@@ -20,7 +22,8 @@ sys.path.insert(0, 'tools')
 from st_sprites import car_frame
 from convert import OPTIONS, car_table, logical_map, apply_map, mode1_bytes
 from font import glyph_bytes
-import hud
+from gendata import load_race
+import hud, objects
 
 
 def hud_row(text):
@@ -42,16 +45,20 @@ def hud_row(text):
 def main(track, tracepath, out):
     opt = OPTIONS['B']
     dat = open('orig/st/SUPER.DAT', 'rb').read()
-    bg = np.load(f'build/conv/B_t{track}_bg.npy')
-    shows = np.load(f'build/gfx/mask2_t{track}.npy') == 1
-    frames = []
-    for f in range(64):
-        st = car_frame(dat, f)[:, :17]
-        frames.append((apply_map(st, logical_map(opt, car_table(opt, f // 16))), st != 8))
+    stbg = np.load(f'build/gfx/bg_t{track}.npy').copy()
+    maskc = np.load(f'build/gfx/mask2_t{track}.npy').copy()
+    bgmap = logical_map(opt, opt['bg'])
+    frames = {}
+    for car in range(4):
+        for droned in (False, True):
+            for facing in range(16):
+                st = car_frame(dat, (64 if droned else 0) + car * 16 + facing)[:, :17]
+                frames[car, droned, facing] = (apply_map(st, logical_map(opt, car_table(opt, car, droned))), st != 8)
     shown = [[hud.Blank] * hud.Width, [hud.Blank] * hud.Width]
     want, count = None, 0
+    bg = apply_map(stbg, bgmap)
     with open(out, 'wb') as fo:
-        for n, fr in enumerate(json.load(open(tracepath))):
+        for n, fr in enumerate(load_race(tracepath)):
             now = hud.text(fr['laps'], fr['scores'], track)
             if now != want:
                 want, count = now, 2
@@ -65,10 +72,16 @@ def main(track, tracepath, out):
                         if budget == 0:
                             break
                 count = 2 if budget == 0 else count - 1
+            calls = [c for c in fr['calls'] if c[0] in objects.Background]
+            for kind, args, *_ in calls:
+                objects.apply(dat, kind, args, stbg, maskc)
+            if calls:
+                bg = apply_map(stbg, bgmap)
             lidx = bg.copy()
+            shows = maskc == 1
             for c in fr['order']:
                 x, y, facing, flags = fr['cars'][c]
-                sprite, opaque = frames[c * 16 + facing]
+                sprite, opaque = frames[c, bool(fr['drone'][c]) and c < 3, facing]
                 draw = opaque.copy()
                 if not flags & 0x0401:
                     draw &= shows[y:y + 12, x:x + 17]

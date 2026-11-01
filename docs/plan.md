@@ -209,6 +209,7 @@ adds the logic.
 | D4 | Machines | Decided (Tom, 2026-11-01): Master 128 only, CMOS opcodes allowed; 4 free banks of sideways RAM needed |
 | D5 | Controls | Decided in part (Tom, 2026-11-01): any player on the keyboard, all three included; joysticks optional; ghosting later |
 | D6 | HUD | Decided (Tom, 2026-11-01): one row of 8-pixel text above the play area |
+| D8 | Object sprites | Decided (Tom, 2026-11-01): the explosion and helicopter snapped to 4-pixel steps |
 | D7 | Bringing the OS back for a load | Decided (Tom, 2026-11-01): leave the OS's memory alone; HAZEL through a bank only if needed |
 
 ## Risks

@@ -1,7 +1,7 @@
 # Super Sprint for the BBC Master: tools for studying the ST original (Phases 1-2), and the renderer test
 # (Phase 3). Generated files go in build/ (git-ignored); comparison pictures in docs/img/.
 #
-#   make beeb      build/sprint.ssd: the renderer test (!BOOT, SPRINTA-C the banks, SPRINT), on track TRACK
+#   make beeb      build/sprint.ssd: the renderer test (!BOOT, SPRINTA-D the banks, SPRINT), playing TRACE
 #   make check     the renderer test in headless jsbeeb (a Master 128): every frame of the ST race against
 #                  the model, and each frame's work timed (tools/render_check.mjs)
 
@@ -9,7 +9,17 @@ PYTHON3 ?= python3.14
 PY = .venv/bin/python -P
 VENV = .venv/installed
 
-TRACK ?= 5
+# The race the renderer test plays: by default a real race on track 5 (index 4) as the 17th race of a game,
+# with gates, barriers, pickups and a wreck; TRACE=attract plays the attract mode's race on track 6 instead.
+TRACE ?= race
+ifeq ($(TRACE),attract)
+TRACK = 5
+TRACEFILE = build/trace/cars_t5.json
+else
+TRACK = 4
+RACE = 17
+TRACEFILE = build/trace/race_t4_r$(RACE).json
+endif
 GEN = build/gen
 
 .PHONY: all venv disasm tracks convert sheets viewer beeb check clean
@@ -47,26 +57,32 @@ sheets: convert | $(VENV)
 viewer: convert | $(VENV)
 	$(PY) tools/make_viewer.py
 
-# The ST's attract race on TRACK: the four cars' places and frames, every frame (Hatari, about 15 s).
-build/trace/cars_t$(TRACK).json: tools/st_trace_cars.py tools/hatari.sh | $(VENV)
-	$(PY) tools/st_trace_cars.py $(TRACK) $@
+# The ST's attract race on track 6: the four cars' places and frames, every frame (Hatari, about 15 s).
+build/trace/cars_t5.json: tools/st_trace_cars.py tools/hatari.sh | $(VENV)
+	$(PY) tools/st_trace_cars.py 5 $@
+
+# A real race (Hatari, about 20 s): every object drawing routine's calls logged, then turned into frames.
+build/trace/obj_t4_r$(RACE).json: tools/st_trace_objects.py tools/hatari.sh | $(VENV)
+	$(PY) tools/st_trace_objects.py 4 $(RACE) $@
+build/trace/race_t4_r$(RACE).json: tools/st_race.py build/trace/obj_t4_r$(RACE).json | $(VENV)
+	$(PY) tools/st_race.py build/trace/obj_t4_r$(RACE).json $@
 
 # The renderer test's data, and its disc. Baron 0.6 is on the PATH.
-$(GEN)/cars.6502: tools/gendata.py tools/convert.py tools/st_sprites.py build/conv/A_t0.bin \
-		build/trace/cars_t$(TRACK).json | $(VENV)
-	$(PY) tools/gendata.py $(TRACK) build/trace/cars_t$(TRACK).json $(GEN)
+$(GEN)/cars.6502: tools/gendata.py tools/convert.py tools/st_sprites.py tools/objects.py build/conv/A_t0.bin \
+		$(TRACEFILE) | $(VENV)
+	$(PY) tools/gendata.py $(TRACK) $(TRACEFILE) $(GEN)
 
 beeb: build/sprint.ssd
 build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502
 	baron -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
 
 # The model each frame's play area is checked against, and the check.
-build/check/model_t$(TRACK).bin: tools/render_model.py build/trace/cars_t$(TRACK).json build/conv/A_t0.bin | $(VENV)
+build/check/model_$(TRACE).bin: tools/render_model.py tools/objects.py $(TRACEFILE) build/conv/A_t0.bin | $(VENV)
 	mkdir -p build/check
-	$(PY) tools/render_model.py $(TRACK) build/trace/cars_t$(TRACK).json $@
+	$(PY) tools/render_model.py $(TRACK) $(TRACEFILE) $@
 
-check: build/sprint.ssd build/check/model_t$(TRACK).bin
-	node tools/render_check.mjs --model build/check/model_t$(TRACK).bin
+check: build/sprint.ssd build/check/model_$(TRACE).bin
+	node tools/render_check.mjs --model build/check/model_$(TRACE).bin
 
 clean:
 	rm -rf build/conv build/viewer build/super.s build/super.json build/gen build/check build/sprint.*

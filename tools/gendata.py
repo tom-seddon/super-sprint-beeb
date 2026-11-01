@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from st_sprites import car_frame
 from convert import OPTIONS, car_table, logical_map, apply_map, mode1_bytes
 from font import Glyphs, glyph_bytes
+import objects
 
 Opt = OPTIONS['B']
 Key = 2
@@ -40,14 +41,15 @@ def pixel_byte(vals):
     return b
 
 
-def car_values(dat, f):
-    """Frame f (0-63) as 12 x 17 2-bit values, transparent as Key."""
-    car = f // 16
+def car_values(dat, car, droned, facing):
+    """A car's frame (or the drone-driven set's, with car 1's colours) as 12 x 17 2-bit values, transparent
+    as Key. The drone-driven set's stripes are value 1, coloured by the car's data table."""
+    f = (64 if droned else 0) + (1 if droned else car) * 16 + facing
     st = car_frame(dat, f)[:, :17]
-    lidx = apply_map(st, logical_map(Opt, car_table(Opt, car))).astype(np.uint8)
+    lidx = apply_map(st, logical_map(Opt, car_table(Opt, 1 if droned else car, droned))).astype(np.uint8)
     opaque = st != 8
     v = lidx.copy()
-    if car == 2:
+    if car == 2 and not droned:
         assert not (opaque & (lidx == 1)).any()
         v[lidx == 2] = 1
     else:
@@ -56,12 +58,31 @@ def car_values(dat, f):
     return v, opaque
 
 
-def cars(dat):
+def car_sets(frames):
+    """The frame sets a race draws: each player's own and car 3's, and the drone-driven one if any player's
+    car is a drone. -> [(car, droned)], car None for the shared drone-driven set."""
+    used = set()
+    for fr in frames:
+        for c in fr['order']:
+            used.add((None, True) if fr['drone'][c] and c < 3 else (c, False))
+    return sorted(used, key=lambda k: (k[0] is None, k[0] or 0))
+
+
+def set_of(sets, car, droned):
+    return sets.index((None, True) if droned and car < 3 else (car, False))
+
+
+# a car's data table, by car and drone-driven: 0 DataId (1 green), 1 DataYellow, 2 DataWhite
+CarTable = {(0, 0): 0, (1, 0): 0, (2, 0): 1, (3, 0): 0, (0, 1): 2, (1, 1): 0, (2, 1): 1, (3, 1): 0}
+
+
+def cars(dat, sets):
     blocks = []                 # per frame * 4 + shift: its bytes
     fs = []                     # (dx, w) per frame * 4 + shift
     fr = []                     # (dy, h) per frame
-    for f in range(64):
-        v, opaque = car_values(dat, f)
+    for f in range(16 * len(sets)):
+        car, droned = sets[f // 16]
+        v, opaque = car_values(dat, car, droned, f % 16)
         ys = np.where(opaque.any(1))[0]
         xs = np.where(opaque.any(0))[0]
         y0, h = ys.min(), ys.max() - ys.min() + 1
@@ -93,9 +114,10 @@ def cars(dat):
     return data, [(d, w, o) for (d, w), o in zip(fs, offsets)], fr
 
 
-def prio(track):
-    """Each 8 x 8 cell with hidden pixels: its 8 lines of bits (1 hidden), and a class byte: per half (left
-    in bits 0-1, right in bits 2-3), 0 nothing hidden, 1 all hidden, 2 some."""
+def prio(track, reserved=()):
+    """Each 8 x 8 cell with hidden pixels, or reserved (a gate's or barrier's, whose bits change in the race):
+    its 8 lines of bits (1 hidden), and a class byte: per half (left in bits 0-1, right in bits 2-3), 0 nothing
+    hidden, 1 all hidden, 2 some. A reserved cell's class is always 2 for both: its bits decide."""
     hidden = np.load(f'build/gfx/mask2_t{track}.npy') == 0
     cells = hidden.reshape(25, 8, 40, 8)
     data = bytearray()
@@ -106,7 +128,7 @@ def prio(track):
         rowoff.append(len(classes))
         k = 0
         for c in range(40):
-            if cells[r, :, c, :].any():
+            if cells[r, :, c, :].any() or (r, c) in reserved:
                 k += 1
                 cellmap[r, c] = k
                 for line in range(8):
@@ -115,29 +137,109 @@ def prio(track):
                 for half in range(2):
                     h = cells[r, :, c, half * 4:half * 4 + 4]
                     cls |= (0 if not h.any() else 1 if h.all() else 2) << (2 * half)
-                classes.append(cls)
+                classes.append(2 | 2 << 2 if (r, c) in reserved else cls)
     return bytes(data), bytes(classes), cellmap, rowoff
 
 
-def trace(path):
+def load_race(path):
+    """A trace (st_trace_cars.py's attract race, or st_race.py's real one), every frame with its drone flags
+    and object calls (none in the attract race, whose cars are all drawn in their own colours)."""
     frames = json.load(open(path))
-    out = bytearray()
     for fr in frames:
+        fr.setdefault('drone', [0, 0, 0, 0])
+        fr.setdefault('calls', [])
+    return frames
+
+
+def map_at(idx, lmap, x0, y0):
+    """apply_map for a patch whose top-left is at (x0, y0) on the screen: the patterns' phase the screen's."""
+    h, w = idx.shape
+    yy, xx = np.mgrid[0:h, 0:w]
+    ph = ((x0 + xx) & 1) + 2 * ((y0 + yy) & 1)
+    out = np.zeros((h, w), np.uint8)
+    for c, pat in lmap.items():
+        m = idx == c
+        for k in range(4):
+            out[m & (ph == k)] = pat[k]
+    return out
+
+
+def rows_bytes(lidx):
+    """A patch of logical colours, 4n wide -> its rows of MODE 1 bytes, row by row."""
+    return bytes(pixel_byte(lidx[r, 4 * n:4 * n + 4]) for r in range(lidx.shape[0]) for n in range(lidx.shape[1] // 4))
+
+
+# the background objects' kinds in the trace, and the variants each has
+ObjKinds = {'slot': 1, 'gate': 2, 'barrier': 3}
+
+
+def object_variants(dat):
+    """Every variant of the background objects: the slots' 22 sprites; the gates' 5 frames and the barriers' 8,
+    each for a top line even or odd (the patterns' phase). -> per kind, a list of (w bytes, h, data, mask or
+    None, priority bits or None); the mask's set bits keep the screen (a barrier's colour 0), the priority
+    bits are 1 where a car on the ground is hidden, a byte per 8 pixels."""
+    lmap = logical_map(Opt, Opt['bg'])
+    out = {'slot': [], 'gate': [], 'barrier': []}
+    for sprite in range(22):
+        out['slot'].append((4, 8, rows_bytes(map_at(objects.slot(dat, sprite), lmap, 0, 0)), None, None))
+    for frame in range(5):
+        col, mc = objects.gate(dat, frame)
+        pb = bytes(np.packbits(1 - mc, axis=1).flatten())
+        for parity in range(2):
+            out['gate'].append((12, 16, rows_bytes(map_at(col, lmap, 0, parity)), None, pb))
+    for frame in range(8):
+        col, mc = objects.barrier(dat, frame)
+        pb = bytes(np.packbits(1 - mc, axis=1).flatten())
+        keep = np.where(col == 0, 3, 0).astype(np.uint8)
+        for parity in range(2):
+            lidx = map_at(col, lmap, 0, parity)
+            lidx[col == 0] = 0
+            out['barrier'].append((4, 8, rows_bytes(lidx), rows_bytes(keep), pb))
+    return out
+
+
+def variant_of(kind, args, y):
+    return args[0] if kind == 'slot' else args[0] * 2 + (y & 1)
+
+
+def trace(frames, sets, room):
+    """The race's frames, as many as fit in room bytes with the HUD's events: per frame the cars drawn
+    (their count, then 4 bytes each: car | drone-driven << 2, x's low byte, y, frame | on top << 6 | x's
+    high bit << 7) and the background objects' calls (their count, then 4 bytes each: kind | x's high bit << 7,
+    variant, x's low byte, y). The ST calls each a second time the frame after, for its other screen: that call
+    is left out, since the BBC writes both screens the first time."""
+    out, starts, prev = bytearray(), [], []
+    for fr in frames:
+        rec = bytearray([len(fr['order'])])
         for c in fr['order']:
             x, y, facing, flags = fr['cars'][c]
+            droned = 1 if fr['drone'][c] and c < 3 else 0
             on_top = 1 if flags & 0x0401 else 0
-            out += bytes([x & 255, y, (c * 16 + facing) | on_top << 6 | (x >> 8) << 7])
+            rec += bytes([c | droned << 2, x & 255, y, set_of(sets, c, droned) * 16 + facing | on_top << 6 | (x >> 8) << 7])
+        objs = [(n, w) for n, w in ((c[0], c[1]) for c in fr['calls']) if n in ObjKinds]
+        objs = [o for o in objs if o not in prev]       # (the ST's second call, for its other screen)
+        prev = [(n, w) for n, w in ((c[0], c[1]) for c in fr['calls']) if n in ObjKinds]
+        rec.append(len(objs))
+        for n, w in objs:
+            x, y = objects.place(n, w)
+            rec += bytes([ObjKinds[n] | (x >> 8) << 7, variant_of(n, w, y), x & 255, y])
+        starts.append(len(out))
+        out += rec
     # the HUD's events: a car's laps or score as it changes (every car's at frame 0), 10 bytes each
-    events = bytearray()
-    last = [None] * 4
-    for n, fr in enumerate(frames):
-        for c in range(4):
-            now = (fr['laps'][c], fr['scores'][c])
-            if now != last[c]:
-                events += bytes([n & 255, n >> 8, c, now[0]]) + bytes.fromhex(now[1])
-                last[c] = now
-    events += bytes([255, 255])
-    return bytes(out), len(frames), bytes(events)
+    def hud_events(n):
+        ev, last = bytearray(), [None] * 4
+        for i, fr in enumerate(frames[:n]):
+            for c in range(4):
+                now = (fr['laps'][c], fr['scores'][c])
+                if now != last[c]:
+                    ev += bytes([i & 255, i >> 8, c, now[0]]) + bytes.fromhex(now[1])
+                    last[c] = now
+        return ev + bytes([255, 255])
+    n = len(frames)
+    while (starts[n] if n < len(frames) else len(out)) + len(hud_events(n)) > room:
+        n -= 1
+    end = starts[n] if n < len(frames) else len(out)
+    return bytes(out[:end]), n, hud_events(n)
 
 
 def lst(name, vals):
@@ -149,8 +251,10 @@ def main(track, tracepath, out):
     dat = open('orig/st/SUPER.DAT', 'rb').read()
     bg = np.load(f'build/conv/B_t{track}_bg.npy')
     open(f'{out}/bg.bin', 'wb').write(mode1_bytes(bg))
+    frames = load_race(tracepath)
+    sets = car_sets(frames)
 
-    data, fs, fr = cars(dat)
+    data, fs, fr = cars(dat, sets)
     open(f'{out}/cars.bin', 'wb').write(data)
     with open(f'{out}/cars.6502', 'w') as f:
         f.write('\\\\ cars.6502 - made by tools/gendata.py: the car frames\' layout in cars.bin\n\n')
@@ -158,9 +262,19 @@ def main(track, tracepath, out):
         f.write(lst('GenFsOff', [o for d, w, o in fs]))
         f.write(lst('GenFrDY', [d for d, h in fr]))
         f.write(lst('GenFrH', [h for d, h in fr]))
+        f.write(lst('GenCarTable', [CarTable[(c & 3, c >> 2)] for c in range(8)]))
+        f.write(f'CarFrames = {len(fr)}\n')
         f.write(f'CarDataSize = {len(data)}\n')
 
-    pdata, classes, cellmap, rowoff = prio(track)
+    # the cells a gate or barrier of this race covers: their priority bits change as it moves
+    reserved = set()
+    for fr_ in frames:
+        for call in fr_['calls']:
+            if call[0] in ('gate', 'barrier'):
+                x, y = objects.place(call[0], call[1])
+                h, w = (16, 48) if call[0] == 'gate' else (8, 16)
+                reserved |= {(r, c) for r in range(y // 8, (y + h - 1) // 8 + 1) for c in range(x // 8, (x + w) // 8)}
+    pdata, classes, cellmap, rowoff = prio(track, reserved)
     open(f'{out}/prio.bin', 'wb').write(pdata)
     open(f'{out}/prioclass.bin', 'wb').write(classes)
     # the map: each row from 2 cells before its first with hidden pixels to 2 after its last (a car covers 3
@@ -188,7 +302,29 @@ def main(track, tracepath, out):
         f.write(lst('GenPrioLast', last))
         f.write(f'PrioDataSize = {len(pdata)}\n')
 
-    tdata, nframes, events = trace(tracepath)
+    # the background objects' variants, for the objects' bank: each one's data, mask and priority bits
+    variants = object_variants(dat)
+    obin, vt = bytearray(), []
+    for kind in ObjKinds:
+        for w, h, d, m, pb in variants[kind]:
+            offs = []
+            for part in (d, m, pb):
+                offs.append(len(obin) if part else 0)
+                obin += part or b''
+            vt.append((w, h, (1 if m else 0) | (2 if pb else 0), *offs))
+    open(f'{out}/objects.bin', 'wb').write(obin)
+    with open(f'{out}/objects.6502', 'w') as f:
+        f.write('\\\\ objects.6502 - made by tools/gendata.py: the background objects\' variants in objects.bin\n\n')
+        base, bases = 0, []
+        for kind in ObjKinds:
+            bases.append(base)
+            base += len(variants[kind])
+        f.write(lst('GenObjKindBase', [0] + bases))
+        for i, name in enumerate(('GenObjW', 'GenObjH', 'GenObjFlags', 'GenObjData', 'GenObjMask', 'GenObjPrio')):
+            f.write(lst(name, [v[i] for v in vt]))
+        f.write(f'ObjVariants = {len(vt)}\n')
+
+    tdata, nframes, events = trace(frames, sets, 16384)
     open(f'{out}/trace.bin', 'wb').write(tdata)
     open(f'{out}/hudevents.bin', 'wb').write(events)
     with open(f'{out}/trace.6502', 'w') as f:
@@ -199,7 +335,8 @@ def main(track, tracepath, out):
         f.write('\\\\ font.6502 - made by tools/gendata.py from tools/font.py: the HUD\'s glyphs, 8 lines each\n\n')
         f.write(lst('GenFont', [b for g in range(len(Glyphs)) for b in glyph_bytes(g)]))
         f.write(f'FontGlyphs = {len(Glyphs)}\n')
-    print(f'cars {len(data)} bytes, prio {len(pdata)} + {len(classes)} + {len(mapdata)} bytes ({int((cellmap > 0).sum())} cells), '
+    print(f'sets {sets}; cars {len(data)} bytes, prio {len(pdata)} + {len(classes)} + {len(mapdata)} bytes '
+          f'({int((cellmap > 0).sum())} cells), objects {len(obin)} bytes ({len(vt)} variants), '
           f'trace {nframes} frames {len(tdata)} bytes, HUD events {len(events)} bytes')
 
 

@@ -3,8 +3,9 @@
 Usage: st_dump_tracks.py   (writes build/gfx/bg_t<n>.bin, .npy and mask<k>_t<n>.npy for tracks 0-7)
 
 The attract-mode race calls the race function F_00D1FA at VBL 2001 with the track as its argument, at &217A4.
-A breakpoint there patches in the track wanted; another at &D20A, where the track set-up F_015FD6 returns,
-saves the background (&59E36, 32,000 bytes) and the three 1-bit masks after it (3 x 8,000).
+A breakpoint there patches in the track wanted; another at &D218 saves the background (&59E36, 32,000 bytes)
+and the three 1-bit masks after it (3 x 8,000): after the track set-up F_015FD6 and F_01C3E4, which draws
+tracks 5, 6 and 7's skid marks into the background, and before the ST's HUD panels (F_014C1C).
 """
 import os, subprocess, sys
 import numpy as np
@@ -16,7 +17,7 @@ D = os.path.join(ROOT, 'build', 'gfx')
 
 
 def dump(t):
-    ini = {f'tb{t}.ini': f'b pc = $D1FA :once :file {D}/set{t}.ini\nb pc = $D20A :once :file {D}/dumpbg{t}.ini\n',
+    ini = {f'tb{t}.ini': f'b pc = $D1FA :once :file {D}/set{t}.ini\nb pc = $D218 :once :file {D}/dumpbg{t}.ini\n',
            f'set{t}.ini': f'w $217A4 00 {t:02x}\nc\n',
            f'dumpbg{t}.ini': f'savebin {D}/bg_t{t}.bin $59E36 56000\nc\n'}
     for name, text in ini.items():

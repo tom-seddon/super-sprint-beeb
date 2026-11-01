@@ -1,0 +1,29 @@
+\\ objdata.6502 - the objects' bank: the background objects' variants (tools/gendata.py), their bytes and
+\\ the tables obj_events reads them by.
+
+\\ Each kind's first variant (kind 1 the slots' sprites, 2 the gates', 3 the barriers'), then per variant its
+\\ width in bytes, height, flags (ObjMasked, ObjHasPrio) and where its bytes, mask and priority bits are
+
+.ObjKindBase
+    EQUB GenObjKindBase
+.ObjW
+    EQUB GenObjW
+.ObjH
+    EQUB GenObjH
+.ObjFlags
+    EQUB GenObjFlags
+.ObjDataLo
+    EQUB LO(ObjData + GenObjData)
+.ObjDataHi
+    EQUB HI(ObjData + GenObjData)
+.ObjMaskLo
+    EQUB LO(ObjData + GenObjMask)
+.ObjMaskHi
+    EQUB HI(ObjData + GenObjMask)
+.ObjPrioLo
+    EQUB LO(ObjData + GenObjPrio)
+.ObjPrioHi
+    EQUB HI(ObjData + GenObjPrio)
+
+.ObjData
+    INCBIN "../build/gen/objects.bin"

@@ -1,0 +1,271 @@
+\\ objects.6502 - the background objects: gates, pop-up barriers and the pickups and hazards in the track's
+\\ slots. The ST draws one into the screen being drawn and the clean background when it changes, and a
+\\ second time the frame after, for the other screen; gates and barriers also write mask C. So does this:
+\\ each event's bytes are copied from the objects' bank to ObjBuf, written into the background's bank and
+\\ the screen (a barrier over what's there, its colour 0 kept), and a gate's or barrier's priority bits
+\\ written into its cells in the cars' bank, their classes worked out again. In main RAM: it pages all three.
+
+INCLUDE "../build/gen/objects.6502"
+
+MaxObjEvents = 8                        ; background object events in a frame (tools/gendata.py's at most)
+ObjMasked = 1                           ; a variant's flags: drawn over the screen, its mask's bits kept
+ObjHasPrio = 2                          ; and: has priority bits for its cells
+
+SECTION GameVars
+.ObjCount                               ; the frame's background object events
+    SKIP 1
+.ObjEvents                              ; each: kind | x's high bit << 7, variant, x's low byte, y
+    SKIP 4 * MaxObjEvents
+ENDSECTION
+
+SECTION ObjBuf
+.ObjBufData                             ; the variant's bytes, row by row
+    SKIP 192
+.ObjBufMask                             ; its mask, if masked
+    SKIP 32
+.ObjBufPrio                             ; its priority bits, a byte per 8 pixels, row by row
+    SKIP 96
+ENDSECTION
+
+\\ The frame's background object events, each written into the background and the screen being drawn,
+\\ and a gate's or barrier's priority bits into its cells.
+\\
+\\ Inputs:
+\\     ObjCount, ObjEvents: the events
+\\     the screen being drawn: ACCCON's X
+\\
+\\ Outputs:
+\\     ROMSEL: the cars' or the objects' bank; A, X, Y: corrupted
+
+.obj_events
+{
+    ZA_AUTO1 event                      ; local: the event's offset in ObjEvents
+    ZA_AUTO1 v                          ; local: its variant, in the objects' bank's tables
+    ZA_AUTO1 w                          ; local: its width in bytes
+    ZA_AUTO1 h                          ; local: its height in lines
+    ZA_AUTO1 flags                      ; local: its flags
+    ZA_AUTO1 col                        ; local: its first byte column
+    ZA_AUTO1 y                          ; local: its first line
+    ZA_AUTO1 n                          ; local: a count
+    ZA_AUTO2 src                        ; local: a copy's source
+    ZA_AUTO2 sp                         ; local: a row's first byte on the screen
+    ZA_AUTO2 bp                         ; local: and in the background
+    ZA_AUTO2 cx8                        ; local: col * 8
+    ZA_AUTO1 w8                         ; local: w * 8, a row's end for Y
+
+    LDA ObjCount:BNE @+
+    RTS
+.@
+    STZ event
+.next
+    LDX event
+
+    \\ the variant: its size and flags, and its bytes copied to ObjBuf (the objects' bank paged in)
+
+    LDA bankobj:STA &FE30               ; ROMSEL: the objects' bank
+    LDA ObjEvents,X:AND #7:TAY
+    LDA ObjKindBase,Y:CLC:ADC ObjEvents+1,X:STA v
+    LDA ObjEvents,X:ASL A               ; C: x's high bit
+    LDA ObjEvents+2,X:ROR A:LSR A:STA col   ; x DIV 4
+    LDA ObjEvents+3,X:STA y
+    LDY v
+    LDA ObjW,Y:STA w
+    LDA ObjH,Y:STA h
+    LDA ObjFlags,Y:STA flags
+    LDA ObjDataLo,Y:STA src
+    LDA ObjDataHi,Y:STA src+1
+    LDA #LO(ObjBufData):STA copy_wh.dst+1
+    LDA #HI(ObjBufData):STA copy_wh.dst+2
+    JSR copy_wh                         ; w * h bytes
+    LDY v
+    LDA flags:AND #ObjMasked:BEQ @+
+    LDA ObjMaskLo,Y:STA src
+    LDA ObjMaskHi,Y:STA src+1
+    LDA #LO(ObjBufMask):STA copy_wh.dst+1
+    LDA #HI(ObjBufMask):STA copy_wh.dst+2
+    JSR copy_wh
+    LDY v
+.@
+    LDA flags:AND #ObjHasPrio:BEQ copied
+    LDA ObjPrioLo,Y:STA src
+    LDA ObjPrioHi,Y:STA src+1
+    LDA #LO(ObjBufPrio):STA copy_wh.dst+1
+    LDA #HI(ObjBufPrio):STA copy_wh.dst+2
+    LSR w                               ; (a byte per 8 pixels: half the width)
+    JSR copy_wh
+    ASL w
+.copied
+
+    \\ each row into the background (a masked variant over what it has) and the screen being drawn, a
+    \\ row's first byte at its cell's line y AND 7, a byte 8 on; the background &4000 above the screen
+
+    LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
+    LDA col:ASL A:ASL A:ASL A:STA cx8   ; col * 8 (col 0-79)
+    LDA col:LSR A:LSR A:LSR A:LSR A:LSR A:STA cx8+1
+    LDA w:ASL A:ASL A:ASL A:STA w8      ; (Y's end in a row)
+    LDX #0                              ; (X: the byte in ObjBuf)
+    LDA y:STA n                         ; (n: the row's line)
+.row
+    JSR row_addr
+.byte
+    LDA flags:AND #ObjMasked:BEQ opaque
+    LDA (bp),Y:AND ObjBufMask,X:ORA ObjBufData,X
+    BRA put
+.opaque
+    LDA ObjBufData,X
+.put
+    STA (bp),Y:STA (sp),Y
+    INX
+    TYA:CLC:ADC #8:TAY
+    CPY w8:BNE byte
+    INC n
+    LDA n:SEC:SBC y:CMP h
+    BNE row
+
+    \\ the screen shown too (the ST draws it there the frame after): its rows copied from the background,
+    \\ ACCCON's X flipped while they are
+
+    LDA acccon:EOR #AccX
+    STA &FE34                           ; ACCCON: the screen shown
+    LDA y:STA n
+.row2
+    JSR row_addr
+.byte2
+    LDA (bp),Y:STA (sp),Y
+    TYA:CLC:ADC #8:TAY
+    CPY w8:BNE byte2
+    INC n
+    LDA n:SEC:SBC y:CMP h
+    BNE row2
+    LDA acccon
+    STA &FE34                           ; ACCCON: the screen being drawn again
+
+    \\ a gate's or barrier's priority bits into its cells
+
+    LDA flags:AND #ObjHasPrio:BEQ done
+    JSR obj_prio
+.done
+    LDA event:CLC:ADC #4:STA event
+    LSR A:LSR A:CMP ObjCount
+    BEQ @+
+    JMP next
+.@
+    RTS
+
+    \\ a row's first byte on the screen (sp) and in the background (bp), for line n
+
+.row_addr
+    LDA n:LSR A:LSR A:LSR A:TAY
+    LDA RowLo,Y:CLC:ADC cx8:STA sp
+    LDA RowHi,Y:ADC cx8+1:STA sp+1
+    CLC:ADC #HI(BgOffset):STA bp+1
+    LDA n:AND #7:ORA sp:STA sp          ; (the line in the cell: the cell's address a multiple of 8)
+    STA bp
+    LDY #0
+    RTS
+}
+
+\\ Copy w * h bytes (or, with w halved, the priority bits) from src to ObjBuf's part.
+\\
+\\ Inputs:
+\\     src: the bytes; dst+1, +2: where
+\\     obj_events.w, h: how many
+\\
+\\ Outputs:
+\\     A, X, Y: corrupted
+
+.copy_wh
+{
+    LDX obj_events.h
+    LDY #0
+.row
+    LDA obj_events.w:STA obj_events.n
+.byte
+    LDA (obj_events.src),Y
+.dst
+    STA &FFFF,Y                         ; self-modified: ObjBuf's part
+    INY
+    DEC obj_events.n:BNE byte
+    DEX:BNE row
+    RTS
+}
+
+\\ A gate's or barrier's priority bits into the cells it covers (the cars' bank paged in): for each cell, the
+\\ lines the object covers, each a byte of 8 pixels from ObjBufPrio. The cells' classes are 2 for both halves
+\\ (gendata.py reserves them so), so the plotter goes by the bits.
+\\
+\\ Inputs:
+\\     obj_events.col, y, w, h: where; ObjBufPrio: the bits, row by row, w / 2 bytes a row
+\\
+\\ Outputs:
+\\     A, X, Y: corrupted
+
+.obj_prio
+{
+    ZA_AUTO1 line                       ; local: the cell row's first line the object covers
+    ZA_AUTO1 lend                       ; local: and the line after its last there
+    ZA_AUTO1 yend                       ; local: the line after the object's last
+    ZA_AUTO1 cx                         ; local: the cell's column (8 pixels)
+    ZA_AUTO1 k                          ; local: the cell's byte in a row of ObjBufPrio
+    ZA_AUTO1 cells                      ; local: cells across, w / 2
+    ZA_AUTO1 ph                         ; local: a cell's data offset's high byte
+    ZA_AUTO2 pmap                       ; local: the priority map's row
+    ZA_AUTO2 bits                       ; local: the cell's 8 lines of bits
+    ZA_AUTO1 count                      ; local: lines still to write
+
+    LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank
+    LDA obj_events.w:LSR A:STA cells
+    LDA obj_events.y:STA line
+    CLC:ADC obj_events.h:STA yend
+.crow
+    LDA line:ORA #7:CLC:ADC #1          ; the next cell row's line 0,
+    CMP yend:BCC @+
+    LDA yend                            ; or the object's end
+.@
+    STA lend
+    LDA line:LSR A:LSR A:LSR A:TAX
+    LDA PrioMapLo,X:STA pmap
+    LDA PrioMapHi,X:STA pmap+1
+    LDA obj_events.col:LSR A:STA cx     ; (col 4-byte aligned: cells of 8 pixels from col / 2)
+    STZ k
+.nextcell
+    LDY cx
+    LDA (pmap),Y                        ; (never 0: gendata.py reserves a gate's and a barrier's cells)
+    STZ ph
+    ASL A:ASL A                         ; (a row's cells number 40 at most: no carry)
+    ASL A:ROL ph                        ; 8 * n
+    CLC:ADC PrioRowLo,X:STA bits
+    LDA PrioRowHi,X:ADC ph:STA bits+1
+
+    \\ each line the object covers in the cell: ObjBufPrio's byte (line - y) * cells + k
+
+    LDA line:SEC:SBC obj_events.y       ; the row in ObjBufPrio
+    TAY
+    LDA #0
+.mul
+    DEY:BMI @+
+    CLC:ADC cells
+    BRA mul
+.@
+    CLC:ADC k:TAX                       ; (X: the byte)
+    LDA lend:SEC:SBC line:STA count     ; (the lines)
+    LDA line:AND #7:TAY                 ; (Y: the line in the cell)
+.lines
+    LDA ObjBufPrio,X:STA (bits),Y
+    TXA:CLC:ADC cells:TAX
+    INY
+    DEC count:BNE lines
+.celldone
+    LDA line:LSR A:LSR A:LSR A:TAX      ; (X: the cell row again)
+    INC cx
+    INC k
+    LDA k:CMP cells
+    BEQ @+
+    JMP nextcell
+.@
+    LDA lend:STA line
+    CMP yend:BCS @+
+    JMP crow
+.@
+    RTS
+}

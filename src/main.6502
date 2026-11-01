@@ -1,12 +1,17 @@
 \\ main.6502 - the renderer test's frame loop: each frame, the cars drawn two frames ago in this screen
-\\ erased, the ST race's next frame read, and the four cars drawn, then shown at the next vsync.
+\\ erased, the ST race's next frame read, its background objects drawn and its cars, then shown at the
+\\ next vsync.
 
 SECTION GameVars
-.CarXLo                                 ; per car in draw order: x's low byte (the ST's sprite box, pixels)
+.CarCount                               ; the cars drawn this frame (a wrecked car isn't)
+    SKIP 1
+.CarId                                  ; per car in draw order: the car | drone-driven << 2
+    SKIP 4
+.CarXLo                                 ; x's low byte (the ST's sprite box, pixels)
     SKIP 4
 .CarY                                   ; y
     SKIP 4
-.CarFlags                               ; frame (car * 16 + facing) | on top (elevated or airborne) << 6 |
+.CarFlags                               ; frame (its set * 16 + facing) | on top (elevated or airborne) << 6 |
     SKIP 4                              ; x's high bit << 7
 .EraseCol                               ; per screen (X, 0 or 4) and car: what it drew, to erase: the first
     SKIP 8                              ; byte column,
@@ -27,6 +32,7 @@ ENDSECTION
 ZA_AUTO1 ebuf                           ; the screen drawn: ACCCON's X bit, 0 or 4, the erase lists' index
 ZA_AUTO2 tptr                           ; the trace's next frame
 ZA_AUTO2 eptr                           ; and its next HUD event
+ZA_AUTO1 objend                         ; the frame's object events' end in ObjEvents
 
 \\ The screen's character rows' addresses (in main RAM: both banks' code reads them)
 
@@ -149,18 +155,33 @@ ZA_AUTO2 eptr                           ; and its next HUD event
     JSR erase_cars
 .erased
 
-    \\ the race's next frame: four cars in draw order, 3 bytes each
+    \\ the race's next frame: the cars drawn (their count, then 4 bytes each), then the background object
+    \\ events (their count, then 4 bytes each)
 
     LDA banktrace:STA &FE30             ; ROMSEL: the trace's bank
     LDY #0
+    LDA (tptr),Y:STA CarCount
     LDX #0
+    BRA cars
 .car
-    LDA (tptr),Y:STA CarXLo,X:INY
-    LDA (tptr),Y:STA CarY,X:INY
-    LDA (tptr),Y:STA CarFlags,X:INY
-    INX:CPX #4
-    BNE car
-    TYA:CLC:ADC tptr:STA tptr           ; (Y = 12)
+    INY:LDA (tptr),Y:STA CarId,X
+    INY:LDA (tptr),Y:STA CarXLo,X
+    INY:LDA (tptr),Y:STA CarY,X
+    INY:LDA (tptr),Y:STA CarFlags,X
+    INX
+.cars
+    CPX CarCount:BNE car
+    INY:LDA (tptr),Y:STA ObjCount
+    ASL A:ASL A:STA objend              ; (4 bytes an event)
+    LDX #0
+    BRA objs
+.obj
+    INY:LDA (tptr),Y:STA ObjEvents,X
+    INX
+.objs
+    CPX objend:BNE obj
+    INY
+    TYA:CLC:ADC tptr:STA tptr
     BCC @+
     INC tptr+1
 .@
@@ -193,8 +214,9 @@ ZA_AUTO2 eptr                           ; and its next HUD event
     JSR trace_start
 .@
 
-    \\ the cars drawn
+    \\ the background objects, then the cars
 
+    JSR obj_events
     LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank
 .read
     JSR plot_cars

@@ -115,3 +115,26 @@
 - **Mistake: a stale screenshot.** After a breakpoint stops jsbeeb's `runFor`, the next `runFor` also runs the
   cycles the stopped runs had left, so "frame 700 plus 20,000 cycles" was about 1,000 frames later, the race
   wrapped round. `tools/screenshot.mjs` stops at breakpoints only; both screenshots were retaken.
+
+## 2026-11-01: Phase 3, objects (under way)
+
+- D8 decided (Tom): the explosion and the helicopter snapped to 4-pixel steps. (The ST already draws the
+  helicopter on 16-pixel steps.)
+- `tools/st_trace_objects.py`: a real race in Hatari (a one-player game started by the pokes, the race's track
+  and race counter poked at `F_00C592`'s entry), every call of the car plotter and the object routines logged
+  with its arguments (Hatari's `m a7` dumps the stack). Track 5 as race 17: gates, barriers, pickups, the
+  banner, sparks, a wreck at frame 80 with its explosion and the helicopter.
+- The ST draws a background object into the screen being drawn and the clean background, and calls it
+  again the frame after for the other screen. Gates and barriers write mask C too: the priority around them
+  changes in the race.
+- **Mistake: the track dumps missed tracks 5-7's skid marks.** `F_01C3E4`, listed in the logic spec as "HUD
+  and car panels", draws fixed lines from per-track tables into the background, after the point
+  `st_dump_tracks.py` dumped at. Found because `tools/objects.py`'s background didn't match a dump of the ST's
+  at race frame 300. The dump is now at `&D218`; the conversions and pictures for tracks 5-7 are redone (the
+  marks show on the grey road options; on A and A2's black road they're black). With that, `objects.py`
+  matches the ST's background and mask C to the bit below its HUD strip.
+- The renderer test now needs 4 banks: SPRINTD is the objects'. The trace is variable-length records (the cars
+  drawn, then the background object events), the cars each with their own data table, and up to 3 frame sets.
+- Background objects work (every frame of the 857 matches the model) but are slow: 4,770 cycles a frame on
+  average, 112,820 at worst. Two quick changes (the ST's second call left out, both screens written by the
+  first; the cells found once each) took the average from 6,809; the bytes need the plotter's treatment next.
