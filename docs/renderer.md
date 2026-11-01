@@ -95,12 +95,14 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   bytes for a gate), through a buffer in main RAM, 4 bytes a loop pass. 3,072 bytes of these on track 5.
 - **Moving objects** (`src/movers.6502`, in the objects' bank): a wrecked car's explosion (26 frames, drawn
   in the car's place in the draw order), the banner (36 frames, 16 x 8, at a place fixed per track), the
+  tornado (3 frames, 16 x 16, at any pixel, colour 0 its transparent one), the
   sparks (8 x 8 on 8-pixel steps) and the helicopter (4 frames, 32 x 36, on 16-pixel steps, its carried
   car's pixels recoloured as the ST composes it). Each is erased and drawn every frame like a car, through
   the same key-colour scheme (every frame uses black, white and at most one of green and yellow) and a copy
   of the car plotter's fast loop, 8 columns wide, clipped to the play area's lines, with no priority (the
   ST draws them over everything). One shift each: the explosion snapped to 4-pixel steps (D8), the banner's
-  frames shifted for its place, the sparks and helicopter aligned already. The frame loop (main RAM) calls
+  frames shifted for its place, the tornado's for each place (its 3 frames at 4 shifts, 12 variants of
+  one 48- or 64-byte piece), the sparks and helicopter aligned already. The frame loop (main RAM) calls
   the car plotter or the object plotter car by car, then the object plotter for the rest; the erase lists
   hold 16 boxes a screen and end at one of height 0. Each sprite is cut into pieces by `tools/gendata.py`:
   rectangles of neighbouring byte columns, each trimmed to the rows its columns cover, chosen to draw the
@@ -110,10 +112,16 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   patches only the piece's own columns, its unrolled patching entered at column w - 1 through a table by
   width; so does the erase.
 - **The test race for objects**: a real race recorded in Hatari (`tools/st_trace_objects.py`,
-  `tools/st_race.py`): track 5, as the 17th race of a game (barriers, oil-type hazards; the tornado and
-  cones are coin flips that didn't come up), one player on the keyboard accelerating with no steering, so
-  car 0 is wrecked at frame 80. Every call of the car plotter and the object routines is logged with its
-  arguments. Its first 857 frames fit the trace's bank. Cars 1 and 2 are players' cars driven by drones,
+  `tools/st_race.py`): track 5 with the race counter 17, the 18th race of a game (barriers, oil-type
+  hazards, and the tornado and cones, whose coin flips are forced: a breakpoint after each one's call of
+  the random routine sets the register it's tested in), one player on the keyboard accelerating with no
+  steering, so car 0 is wrecked at frame 81. Every call of the car plotter and the object routines is
+  logged with its arguments. Its first 463 frames fit the trace's bank (the tornado and the sparks are
+  records every frame); in them the 4 cones are placed, and two are knocked over, at frames 19 and 242
+  (each then drawn over with the road, the slots' sprite &15). Before that race the counter was poked
+  as hex into Hatari's `w`, which reads decimal, so the race recorded as "the 17th" was really counter 11:
+  no cones possible. The measurements of the background and moving objects below, before the tornado's,
+  are from that race. Cars 1 and 2 are players' cars driven by drones,
   drawn from the shared second set of frames, and so is car 3: in a real race the ST draws every
   drone-driven car from it (only the attract race draws each car in its own), car 3's stripes black on
   the BBC, through a fourth data table. `tools/objects.py` applies the background calls to the ST's
@@ -220,6 +228,25 @@ alone drew a third fewer of the helicopter's bytes but cost as much in set-up as
 patching stopped doing all 8 columns for every piece. The helicopter's middle columns run its full height,
 so what's left of its cost (about 7,000 drawn and erased) is mostly bytes it really draws.
 
+With the tornado and cones, on the race with the counter 17 (463 frames, all matching the model; broken on
+purpose, the tornado drawn without its shift in the model, 362 fail): 22,602 cycles a frame on average,
+40,048 at 99%, 52,565 at worst; 5 frames over a TV frame. The same race with the tornado left out: 18,424
+on average (541 frames), so the tornado costs about 4,200 a frame, about 2,900 drawn and 1,300 erased, all
+race long. That's the general moving-object path's usual cost for a 64-byte piece over 3 bands (about 250
+of set-up, 200 a band, 21 a byte drawn, 9 erased), not a fault. The cones cost nothing new: they're the
+slots' sprite &14, drawn at the start, and the road sprite over each when it's hit.
+
+| Region (`tools/render_profile.mjs`) | Mean | The worst 20 frames |
+|---|---|---|
+| Erase: the copy loop | 2,998 | 4,384 |
+| Erase: per box and per band | 2,705 | 3,296 |
+| Plot the cars: set-up, bands, fast loop | 6,548 | 5,948 |
+| Plot the cars: priority (classify, slow loop and columns) | 2,098 | 4,784 |
+| Moving objects: the fast loop | 2,966 | 6,195 |
+| Moving objects: set-up, bands | 2,925 | 4,809 |
+| Background objects (main RAM) | 1,445 | 8,859 |
+| The frame loop, the trace, the HUD (main RAM) | 927 | 1,260 |
+
 ## Memory
 
 | Region | Used | Free |
@@ -240,6 +267,9 @@ as pre-shifted, trimmed frames, about 10.6K a race; the cars' bank is then all b
   are the ones with every car near a bridge (classifying columns, the slow loop's columns).
 - **Memory**: the cars' bank has 154 bytes left. The frames' page padding (659 bytes, about 375 more than
   a perfect packing) and the frame tables (1,138 bytes) are where room could come from.
-- **Objects still to do**: the tornado and cones (coin flips that didn't come up in the recorded race), the
-  helicopter's horizontal flight and its big variant, and the remaining tracks.
-- **Objects' speed**: a gate's step and the helicopter, above.
+- **Objects still to do**: the helicopter's horizontal flight and its big variant, and the remaining tracks.
+- **Objects' speed**: a gate's step, the helicopter and now the tornado, above. In a race with all of them
+  the average frame is about 22,600 before the logic's estimated 16,000: 38,600 of 39,936. The tornado,
+  on screen all race when it comes up, could have a plotter of its own (one piece, 4 or 5 columns, at most
+  3 bands), sparing the general path's patching by table; the erase's per-band cost is the same for every
+  box.

@@ -86,8 +86,8 @@ Background = ('slot', 'gate', 'barrier')
 
 
 # The moving objects, drawn into the screen being drawn each frame over everything before them, colour 8
-# transparent (the sparks', banner's and explosion's routines). Their frames' planes are stored 0, 2, 1, 3, as
-# the cars' are, but for the sparks', which are bytes in the screen's order.
+# transparent (the sparks', banner's and explosion's routines; the tornado's colour 0). Their frames' planes
+# are stored 0, 2, 1, 3, as the cars' are, but for the sparks', which are bytes in the screen's order.
 
 def _words_frame(dat, off, rows, order=(0, 2, 1, 3)):
     out = []
@@ -100,6 +100,15 @@ def _words_frame(dat, off, rows, order=(0, 2, 1, 3)):
 def banner(dat, frame):
     """F_0148BE's frames (the banners): 16 x 8."""
     return _words_frame(dat, Objects + 0x1BC0 + frame * 64, 8)
+
+
+def tornado(dat, frame):
+    """F_0147A0's frames (the tornado, 3 of them): 16 x 16, colour 0 transparent, drawn at any pixel. (The
+    routine sign-extends each plane word before shifting it, which would smear a set leftmost pixel; none
+    of the frames has one.)"""
+    base = Objects + frame * 128
+    assert not any(w & 0x8000 for w in words(dat, base, 64))
+    return _words_frame(dat, base, 16)
 
 
 def explosion(dat, frame):

@@ -1,9 +1,10 @@
 \\ movers.6502 - the objects' bank's plotter for the moving objects: a wrecked car's explosion, the sparks, the
-\\ banner, the helicopter. Each variant is stored as the cars' frames are (tools/gendata.py): trimmed, a
+\\ banner, the tornado, the helicopter. Each variant is stored as the cars' frames are (tools/gendata.py): trimmed, a
 \\ column's rows together (a helicopter's more than a page: each column's address is carried in full),
 \\ 2-bit values with 2 the key, drawn through
 \\ MaskTab and the variant's data table. One shift each: the explosion on 4-pixel steps (D8), the banner's
-\\ frames shifted for its place, the sparks and the helicopter on 8- and 16-pixel steps. No priority: the ST
+\\ frames shifted for its place, the tornado's for each place (4 shifts), the sparks and the helicopter on 8- and
+\\ 16-pixel steps. No priority: the ST
 \\ draws them over everything. Clipped to the play area's lines (the helicopter flies in and out).
 
 MovCols = 8                             ; the widest variant's bytes (the helicopter's)

@@ -223,10 +223,11 @@ def variant_of(kind, args, y):
 
 
 # The moving objects: what each frame's calls draw after the background objects, as (key, x, y) in the BBC's
-# places (D8: the explosion on 4-pixel steps; the banner's frames shifted for its place; the sparks and the
-# helicopter where the ST has them, on 8- and 16-pixel steps). A key names a sprite: ('explosion', frame),
-# ('banner', frame, shift), ('spark', frame), ('heli', variant, colour, frame). The explosion is drawn in its
-# car's place among the cars; the others after the cars, in the ST's order.
+# places (D8: the explosion on 4-pixel steps; the banner's and the tornado's frames shifted for their places,
+# x then on a 4-pixel step and the shift in the key; the sparks and the helicopter where the ST has them, on
+# 8- and 16-pixel steps). A key names a sprite: ('explosion', frame), ('banner', frame, shift), ('tornado',
+# frame, shift), ('spark', frame), ('heli', variant, colour, frame). The explosion is drawn in its car's
+# place among the cars; the others after the cars, in the ST's order.
 
 def frame_draws(fr, heli):
     """A frame's draws, in order: ('car', car) or ('explosion', key, x, y) among the cars, then the moving
@@ -242,6 +243,9 @@ def frame_draws(fr, heli):
             cars.append(('explosion', ('explosion', w[1]), x & ~3, y))
         elif n == 'small':
             movers.append((('banner', w[0], w[1] & 3), w[1] & ~3, w[2]))
+        elif n == 'tornado':
+            y = w[2] - 65536 if w[2] >= 32768 else w[2]
+            movers.append((('tornado', w[0], w[1] & 3), w[1] & ~3, y))
         elif n == 'spark':
             st = objects.spark_state(c[2] if len(c) > 2 else {}, w[0])
             if st:
@@ -262,17 +266,25 @@ def moving_sprite(dat, key):
         idx = objects.banner(dat, key[1])
     elif key[0] == 'spark':
         idx = objects.spark(dat, key[1])
+    elif key[0] == 'tornado':
+        idx = objects.tornado(dat, key[1])
+        return idx, idx != 0
     else:
         idx, mask = objects.heli_compose(dat, key[1], key[2], key[3])
         return idx, mask == 0
     return idx, idx != 8
 
 
+def key_shift(key):
+    """The pixels (0-3) a moving object's sprite is shifted right of its x, which is on a 4-pixel step."""
+    return key[2] if key[0] in ('banner', 'tornado') else 0
+
+
 PieceCost = 50                          # a piece's cost beyond its bytes, in bytes (its set-up and erase box)
 
 
 def moving_pieces(dat, key):
-    """A moving object's sprite as the BBC stores it: 2-bit values (Key transparent), shifted by the banner's
+    """A moving object's sprite as the BBC stores it: 2-bit values (Key transparent), shifted by its key's
     shift, cut into pieces: rectangles of neighbouring byte columns, each trimmed to the rows its columns
     cover, chosen to draw the fewest bytes, PieceCost a piece more (a helicopter's columns run from 2 rows
     to 33). -> [(dx bytes, dy, w bytes, h, table 0 DataId or 1 DataYellow, bytes column by column)]."""
@@ -285,7 +297,7 @@ def moving_pieces(dat, key):
         assert used <= {0, 2, 3}, (key, used)
         table, v = 1, np.where(lidx == 2, 1, lidx).astype(np.uint8)
     v[~opaque] = Key
-    shift = key[2] if key[0] == 'banner' else 0
+    shift = key_shift(key)
     h0, w0 = v.shape
     canvas = np.full((h0, w0 + 4), Key, np.uint8)
     canvas[:, shift:shift + w0] = v

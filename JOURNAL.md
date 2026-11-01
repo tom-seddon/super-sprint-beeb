@@ -176,3 +176,24 @@
   erase box; the object plotter and the erase patch only a box's own columns (unrolled patching entered by a
   table on the width). The worst 20 frames 33,760 -> 32,718, the average 18,751 -> 18,318; every frame
   matches. The pieces alone gained nothing: their set-up patched all 8 columns each band.
+
+## 2026-11-01: Phase 3, the tornado and cones
+
+- `tools/st_trace_objects.py` takes a fourth argument, the coin flips to force (`tornado`, `cones`): a
+  breakpoint after each one's call of `F_00ADB8` sets the register it's tested in (`d0` at `&CA4A`, `d1` at
+  `&B00E`). The Makefile's race forces both.
+- **Mistake: the recorded race wasn't race 17.** Hatari's `w` reads its values as decimal, and the tracer
+  wrote the race counter as hex, so "race 17" was counter 11 (and cones, from 16, could never come up).
+  Found when forcing the cones' flip still left `G_01EBB0` at -5. Now written in decimal; the track's poke
+  was right only because tracks are 0-7. The objects' earlier measurements are from the counter-11 race.
+- The tornado (`F_0147A0`): 3 frames of 16 x 16, colour 0 transparent (not 8), at any pixel. It
+  sign-extends each plane word before rotating it into place, which would smear a set leftmost pixel; no
+  frame has one (asserted). On the BBC it's one more moving object: its frames at 4 shifts, each one piece,
+  through the existing plotter; nothing in the 6502 changed. Every frame matches the model (463, the
+  bank's worth); with the shift left out of the model, 362 fail.
+- The cones are the slots' sprite &14, drawn at the race's start; a hit draws the road (&15) over one,
+  twice for the two screens. The background objects' path already did it.
+- The model now places a moving object at its x plus its key's shift (the banner's was always 0 in the
+  races recorded, so it didn't show).
+- Cost: the tornado about 4,200 cycles a frame, all race long (22,602 a frame on average with it, 18,424
+  without); 5 frames of 463 over a TV frame. It's the general path's set-up and bands for a small sprite.

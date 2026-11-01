@@ -9,8 +9,9 @@ PYTHON3 ?= python3.14
 PY = .venv/bin/python -P
 VENV = .venv/installed
 
-# The race the renderer test plays: by default a real race on track 5 (index 4) as the 17th race of a game,
-# with gates, barriers, pickups and a wreck; TRACE=attract plays the attract mode's race on track 6 instead.
+# The race the renderer test plays: by default a real race on track 5 (index 4) as the 18th race of a game
+# (the counter 17), with gates, barriers, pickups, a wreck, and the tornado and cones (their coin flips
+# forced); TRACE=attract plays the attract mode's race on track 6 instead.
 TRACE ?= race
 ifeq ($(TRACE),attract)
 TRACK = 5
@@ -18,6 +19,7 @@ TRACEFILE = build/trace/cars_t5.json
 else
 TRACK = 4
 RACE = 17
+FORCE = tornado,cones
 TRACEFILE = build/trace/race_t4_r$(RACE).json
 endif
 GEN = build/gen
@@ -63,7 +65,7 @@ build/trace/cars_t5.json: tools/st_trace_cars.py tools/hatari.sh | $(VENV)
 
 # A real race (Hatari, about 20 s): every object drawing routine's calls logged, then turned into frames.
 build/trace/obj_t4_r$(RACE).json: tools/st_trace_objects.py tools/hatari.sh | $(VENV)
-	$(PY) tools/st_trace_objects.py 4 $(RACE) $@
+	$(PY) tools/st_trace_objects.py 4 $(RACE) $@ $(FORCE)
 build/trace/race_t4_r$(RACE).json: tools/st_race.py build/trace/obj_t4_r$(RACE).json | $(VENV)
 	$(PY) tools/st_race.py build/trace/obj_t4_r$(RACE).json $@
 

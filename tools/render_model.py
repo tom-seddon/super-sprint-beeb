@@ -9,7 +9,7 @@ changes it (tools/objects.py), mask C likewise, mapped to option B; then each ca
 its frame (a player's car driven by a drone from the second set) mapped through the car's colours
 (convert.py), drawn where the ST frame isn't colour 8, and, for a car on the ground (not elevated or airborne),
 not where mask C is 0; a wrecked car's explosion in its place; then the moving objects (sparks, the banner,
-the helicopter) in the ST's order, each mapped with the patterns' phase its own, in the BBC's places
+the tornado, the helicopter) in the ST's order, each mapped with the patterns' phase its own, in the BBC's places
 (gendata.py's frame_draws: the explosion on 4-pixel steps, D8). Above it the HUD row: the ST's scores and laps, as tools/hud.py
 lays them out, in tools/font.py's glyphs, brought up to date as the BBC does it (D6): each screen keeps what
 it shows, and after a change the screen drawn each frame (they take turns) has at most HudPerFrame of its
@@ -24,7 +24,7 @@ sys.path.insert(0, 'tools')
 from st_sprites import car_frame
 from convert import OPTIONS, car_table, logical_map, apply_map, mode1_bytes
 from font import glyph_bytes
-from gendata import load_race, frame_draws, moving_sprite
+from gendata import load_race, frame_draws, moving_sprite, key_shift
 import hud, objects
 
 
@@ -62,8 +62,10 @@ def main(track, tracepath, out):
     heli = {}
 
     def put(lidx, key, x, y):
-        """A moving object at (x, y), its colours mapped with the patterns' phase its own, clipped."""
+        """A moving object at (x, y) and its key's shift, its colours mapped with the patterns' phase its own,
+        clipped."""
         idx, opaque = moving_sprite(dat, key)
+        x += key_shift(key)
         sprite = apply_map(idx, bgmap)
         h, w = idx.shape
         for r in range(h):
