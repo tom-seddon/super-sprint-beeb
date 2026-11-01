@@ -17,12 +17,16 @@ Usage: gendata.py TRACK TRACE.json OUTDIR
   last; and each row's first cell's number, less 1, from which its data and class are found.
 - trace.bin, trace.6502: the race, 12 bytes a frame: per car in draw order, x's low byte, y, and frame |
   elevated << 6 | x's high bit << 7.
+- hudevents.bin: the HUD's changes, 10 bytes each: the frame (2 bytes), the car, its laps completed, and its
+  score's 6 bytes as the ST has them (a BCD digit each, &80 a leading blank); a frame of &FFFF ends them.
+- font.6502: the HUD's glyphs (tools/font.py).
 """
 import json, os, sys
 import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from st_sprites import car_frame
 from convert import OPTIONS, car_table, logical_map, apply_map, mode1_bytes
+from font import Glyphs, glyph_bytes
 
 Opt = OPTIONS['B']
 Key = 2
@@ -123,7 +127,17 @@ def trace(path):
             x, y, facing, flags = fr['cars'][c]
             on_top = 1 if flags & 0x0401 else 0
             out += bytes([x & 255, y, (c * 16 + facing) | on_top << 6 | (x >> 8) << 7])
-    return bytes(out), len(frames)
+    # the HUD's events: a car's laps or score as it changes (every car's at frame 0), 10 bytes each
+    events = bytearray()
+    last = [None] * 4
+    for n, fr in enumerate(frames):
+        for c in range(4):
+            now = (fr['laps'][c], fr['scores'][c])
+            if now != last[c]:
+                events += bytes([n & 255, n >> 8, c, now[0]]) + bytes.fromhex(now[1])
+                last[c] = now
+    events += bytes([255, 255])
+    return bytes(out), len(frames), bytes(events)
 
 
 def lst(name, vals):
@@ -174,13 +188,19 @@ def main(track, tracepath, out):
         f.write(lst('GenPrioLast', last))
         f.write(f'PrioDataSize = {len(pdata)}\n')
 
-    tdata, nframes = trace(tracepath)
+    tdata, nframes, events = trace(tracepath)
     open(f'{out}/trace.bin', 'wb').write(tdata)
+    open(f'{out}/hudevents.bin', 'wb').write(events)
     with open(f'{out}/trace.6502', 'w') as f:
         f.write('\\\\ trace.6502 - made by tools/gendata.py\n\n')
         f.write(f'TraceFrames = {nframes}\n')
+        f.write(f'TraceTrack = {track}\n')
+    with open(f'{out}/font.6502', 'w') as f:
+        f.write('\\\\ font.6502 - made by tools/gendata.py from tools/font.py: the HUD\'s glyphs, 8 lines each\n\n')
+        f.write(lst('GenFont', [b for g in range(len(Glyphs)) for b in glyph_bytes(g)]))
+        f.write(f'FontGlyphs = {len(Glyphs)}\n')
     print(f'cars {len(data)} bytes, prio {len(pdata)} + {len(classes)} + {len(mapdata)} bytes ({int((cellmap > 0).sum())} cells), '
-          f'trace {nframes} frames {len(tdata)} bytes')
+          f'trace {nframes} frames {len(tdata)} bytes, HUD events {len(events)} bytes')
 
 
 if __name__ == '__main__':

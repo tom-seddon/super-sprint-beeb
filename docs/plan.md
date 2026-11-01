@@ -54,9 +54,11 @@ In short (the details, with addresses, are in the two specs):
 
 - **Layout:** 1 HUD row, then 25 rows of play area. CRTC R6 = 26, R7 = 31, start `&3F00` (R12 = `&07`, R13 =
   `&E0`); 208 lines shown, 24 blank above and below.
-- **The HUD** (D6) is one row of 8 × 8 text, `99,999 L1 99,999 L1 99,999 L1  T8 D1`: each player's score and
-  lap, then the track and the drone's lap. Each player's text is in their car's colour, which is in the play
-  area's palette, so **no palette split is needed**. A changed digit is 16 bytes, written into both screens.
+- **The HUD** (D6) is one row of 8 × 8 text, ` 999,999 L3 999,999 L3 999,999 L3 T6 D3`: each player's
+  score (all 6 of the ST's digits fit) and laps completed, then the track and the drone's laps. Each
+  player's text is in their car's colour, which is in the play area's palette, so **no palette split is
+  needed**. A changed character is 16 bytes, written into both screens, at most 4 a frame each
+  (`docs/renderer.md`).
 - **The ST's own HUD text** in the map's bottom row ("TRACK n", "DRONE LAP") is repainted with grass at build
   time.
 - **Double-buffering in shadow RAM:** ACCCON (`&FE34`) bit 0 picks the screen shown, bit 2 sends the CPU's
@@ -186,7 +188,8 @@ adds the logic.
   four cars erased, drawn and put under the priority mask, from the ST's race on track 6, every frame
   checked against a model; timed (11,071 cycles a frame on average, 16,259 at worst). Sprite storage:
   pre-shifted, trimmed frames, about 10.6K a race.
-- To do: the set-up around the loops faster; the HUD row; objects.
+- Done too: the HUD row, from the ST's scores and laps, checked with the rest.
+- To do: objects (pickups, cones, tornado, helicopter, sparks).
 
 ### Phase 4: one race
 - Physics, collisions, drones, laps, scoring, HUD, input for 3 players, sound. One track, played start to

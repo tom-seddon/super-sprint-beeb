@@ -16,17 +16,20 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   main RAM's code to `&0E00`, makes the tables, and starts the vsync interrupt. It leaves the OS's memory
   alone (D7). The frame loop then plays the race over and over.
 - **The screen**: MODE 1, 26 rows from `&3F00` (R6 = 26, R7 = 31, R12/R13 = `&07E0`), the HUD's row
-  (blank for now) and the 25-row play area from `&4180`. One screen in main RAM, one in shadow RAM. The
+  and the 25-row play area from `&4180`. One screen in main RAM, one in shadow RAM. The
   vsync IRQ (the System VIA's CA1, its only interrupt) flips ACCCON's D bit when the main loop asks; the
   main loop then flips X, so it draws into the screen not shown. All the code and variables that run
   during a frame are below `&3000` or in a bank, so X never hides them.
 - **The check** (`make check`, `tools/render_check.mjs`): headless jsbeeb's Master 128, the real IRQ. At
-  each frame's end the play area just drawn (main or shadow RAM, by X) is compared with
+  each frame's end the screen just drawn (main or shadow RAM, by X: the HUD's row and the play area) is
+  compared with
   `tools/render_model.py`'s frame: the clean background, then each car in the ST's order, its ST frame
   mapped through the car's colours (convert.py), drawn where the ST frame isn't colour 8 and, for a car on
   the ground, where mask C isn't 0. The model shares nothing with the BBC's data path (trimming, shifts,
-  the key colour, the priority cells). Broken on purpose, it fails: with priority off, 282 frames are
-  wrong; with one car's erase skipped, 96 of the first 100.
+  the key colour, the priority cells). Its HUD row is drawn from the ST's scores and laps by
+  `tools/hud.py`'s layout and `tools/font.py`'s glyphs, brought up to date by the same rule as the 6502's.
+  Broken on purpose, it fails: with priority off, 282 frames are wrong; with one car's erase skipped, 96 of
+  the first 100; with two players' HUD colours swapped, 18 of the first 20.
 
 ## How it draws
 
@@ -60,6 +63,19 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   only the operands' high bytes are patched a band, and a page crossed among the cells is carried by the
   indexing. (The plot can't do the same: its blocks need X for the table lookups.)
 
+- **The HUD** (D6, `src/hud.6502`, in main RAM): one row of 40 characters, 8 x 8. From column 1, each
+  player's score and laps completed in their car's colour (white, green, yellow), `999,999 L3`, 11 columns
+  apart; then `T6` (the track) and `D3` (the drone's laps) in white. The score shows all 6 of the ST's
+  digits (D6's example had 5; 6 fit), its comma blank while the thousands are; the laps are laps completed,
+  as the ST shows them. The text wanted is 40 bytes, a glyph and colour each; each screen keeps what it
+  shows. After a change, the screen being drawn has the columns that differ redrawn, at most 4 a frame, the
+  screens taking turns until both have caught up, so a score rolling over can't cost a frame (the ST
+  spreads its HUD the same way, a player's panel every other frame). A character is its glyph's 8 lines,
+  each split into two bytes of 4 pixels through the priority mask's nibble tables and ANDed with the
+  colour's bits: about 350 cycles. The glyphs are 15 (the digits, `,`, `L`, `T`, `D`, a space), 120
+  bytes, from `tools/font.py`. In the test the changes come from the ST's race (its scores and laps,
+  recorded with the cars): 78 of them, 782 bytes in the trace's bank.
+
 ## Measurements
 
 jsbeeb, Master 128, the whole race (1,144 frames), cycles a frame from the screen chosen to the last car
@@ -73,6 +89,11 @@ drawn, with any IRQ that lands in it. The budget is 39,936 (one TV frame).
 | The erase indexed by X from the cell's low byte; the data table patched only when it changes | 3,134 | 211 | 7,725 | 11,071 | 12,368 | 14,957 | 16,259 |
 
 Every frame was drawn within the TV frame it started in (1,143 of 1,143 swaps after one vsync).
+
+With the HUD (fifth version, the same erase and plot): 11,219 a frame on average, 15,305 at 99%, 18,125
+at worst (the race's first frame, which sets every field: its 4 changes cost 1,741 to put in the text and
+1,676 to start drawing). The HUD costs 98 a frame on average; every 64 frames, when each player's score
+goes up by 10, 1,842 in each of two frames (3 characters and the scan of 40 columns); 2,076 at most.
 
 With priority turned off the second version's plot averaged 6,744 (max 8,497), so priority cost about 1,670
 a frame on average and up to about 8,300 in the worst frames. In those frames every car was under a bridge,
@@ -115,8 +136,8 @@ input, sound and IRQ 6,000) the average frame would be about 33,100 and the wors
 |---|---|---|
 | Background's bank | 207 erase, then 16,000 background from `&8180` | 177 |
 | Cars' bank | 10,615 frames (659 of it page padding), 643 priority map, 2,664 priority cells, 333 classes, 1,138 tables, 863 plotter | 154 |
-| Trace's bank (test only) | 13,728 | 2,656 |
-| Main RAM | 289 code at `&0E00`; tables at `&0400`-`&07FF` (MaskTab, 3 data tables) and `&2C00`-`&2DFF` (the priority expansions); 42 bytes of variables at `&2E00` | |
+| Trace's bank (test only) | 13,728 trace, 782 HUD events | 1,874 |
+| Main RAM | 754 code at `&0E00` (the HUD 394 of it, with its font); tables at `&0400`-`&07FF` (MaskTab, 3 data tables) and `&2C00`-`&2DFF` (the priority expansions, which the HUD uses too); 180 bytes of variables at `&2E00` | |
 | Zero page | `&00`-`&1E` | |
 
 A race needs one set of 64 car frames: the human players' cars and car 3, plus the drone-driven set if any
@@ -129,5 +150,4 @@ as pre-shifted, trimmed frames, about 10.6K a race; the cars' bank is then all b
   are the ones with every car near a bridge (classifying columns, the slow loop's columns).
 - **Memory**: the cars' bank has 154 bytes left. The frames' page padding (659 bytes, about 375 more than
   a perfect packing) and the frame tables (1,138 bytes) are where room could come from.
-- **The HUD row**: blank so far.
 - **Objects** (pickups, cones, tornado, helicopter, sparks) and the remaining tracks.

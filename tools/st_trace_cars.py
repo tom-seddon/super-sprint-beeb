@@ -12,7 +12,7 @@ import json, os, re, subprocess, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 D = os.path.join(ROOT, 'build', 'trace')
-Dumps = [(0x1D30E, 2), (0x1E2CC, 8), (0x1E3A4, 8), (0x1E41C, 8), (0x1E424, 16)]
+Dumps = [(0x1D30E, 2), (0x1E2CC, 8), (0x1E3A4, 8), (0x1E41C, 8), (0x1E424, 16), (0x1E354, 8), (0x1DFA8, 24)]
 
 
 def record(track, vbls=5200):
@@ -50,7 +50,9 @@ def parse(log):
         out.append({'frame': word(f, 0x1D30E),
                     'order': [word(f, 0x1E2CC + 2 * i) for i in range(4)],
                     'cars': [[word(f, 0x1E42C + 2 * c), word(f, 0x1E424 + 2 * c), word(f, 0x1E41C + 2 * c),
-                              word(f, 0x1E3A4 + 2 * c)] for c in range(4)]})
+                              word(f, 0x1E3A4 + 2 * c)] for c in range(4)],
+                    'laps': [word(f, 0x1E354 + 2 * c) for c in range(4)],
+                    'scores': [bytes(f[0x1DFA8 + 6 * c + i] for i in range(6)).hex() for c in range(4)]})
     # the race's own frames: the longest run of the counter counting up by one a flip
     runs, run = [], [out[0]]
     for f in out[1:]:

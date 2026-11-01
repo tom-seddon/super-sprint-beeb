@@ -105,3 +105,13 @@
   only when it changes: 23 cycles. 11,071 a frame on average, 16,259 at worst; every frame matches.
 - Stopped there: what's left is spread thin (per car, per band), and the bigger changes weighed (compiled
   sprites, the plot's screen indexed by X) cost memory the banks don't have, or more than they save.
+- **The HUD row** (D6): 40 characters from an 8 x 8 font of 15 glyphs (`tools/font.py`), each player's 6-digit
+  score and laps in their car's colour, then the track and the drone's laps. The trace now records the ST's
+  scores and laps; their 78 changes go into the trace's bank as events. Each screen keeps what it shows and
+  catches up a few characters a frame (at most 4), so a score rolling over can't cost a frame: 98 cycles a
+  frame on average, 2,076 at most (was 5,556 before the cap). The model follows the same rule; every frame
+  matches, HUD row included, and swapping two players' colours fails it.
+- The ST's HUD shows laps completed (its drone digit's glyphs are indexed by `G_01E354` directly).
+- **Mistake: a stale screenshot.** After a breakpoint stops jsbeeb's `runFor`, the next `runFor` also runs the
+  cycles the stopped runs had left, so "frame 700 plus 20,000 cycles" was about 1,000 frames later, the race
+  wrapped round. `tools/screenshot.mjs` stops at breakpoints only; both screenshots were retaken.

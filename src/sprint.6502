@@ -31,6 +31,8 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
         INCBIN "../build/gen/trace.bin" ; the race's cars, 12 bytes a frame (tools/gendata.py)
 .TraceEnd
         ASSERT TraceEnd - TraceData == TraceFrames * 12, "the trace: 12 bytes a frame"
+.HudEvents
+        INCBIN "../build/gen/hudevents.bin" ; the HUD's changes, 10 bytes each (tools/gendata.py)
     ENDSECTION
 ENDSECTION
 
@@ -39,6 +41,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
     SECTION MainCode, org = MainCodeOrg, guard = GameVarsOrg, cmos = TRUE
         INCLUDE "irq.6502"
         INCLUDE "main.6502"
+        INCLUDE "hud.6502"
     ENDSECTION
 .maincode_end
     INCLUDE "entry.6502"

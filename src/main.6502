@@ -20,9 +20,13 @@ SECTION GameVars
     SKIP 2
 .Junk                                   ; where the plotter's fast loop draws a column that's hidden
     SKIP 8
+.TraceFrame                             ; the trace's frame, from 0, for its HUD events
+    SKIP 2
 ENDSECTION
 
 ZA_AUTO1 ebuf                           ; the screen drawn: ACCCON's X bit, 0 or 4, the erase lists' index
+ZA_AUTO2 tptr                           ; the trace's next frame
+ZA_AUTO2 eptr                           ; and its next HUD event
 
 \\ The screen's character rows' addresses (in main RAM: both banks' code reads them)
 
@@ -49,6 +53,7 @@ ZA_AUTO1 ebuf                           ; the screen drawn: ACCCON's X bit, 0 or
     JSR fill_screen
     LDA acccon
     STA &FE34                           ; ACCCON: the main screen written again
+    JSR hud_start
     LDA #8:STA &FE00                    ; CRTC: R8
     LDA #&C0:STA &FE01                  ; display on, cursor off
     JMP frame_loop
@@ -99,6 +104,25 @@ ZA_AUTO1 ebuf                           ; the screen drawn: ACCCON's X bit, 0 or
     RTS
 }
 
+\\ The trace from its start: its first frame and HUD event.
+\\
+\\ Inputs:
+\\     none
+\\
+\\ Outputs:
+\\     tptr, eptr, TraceFrame: the start's
+
+.trace_start
+{
+    LDA #LO(TraceData):STA tptr
+    LDA #HI(TraceData):STA tptr+1
+    LDA #LO(HudEvents):STA eptr
+    LDA #HI(HudEvents):STA eptr+1
+    STZ TraceFrame
+    STZ TraceFrame+1
+    RTS
+}
+
 \\ The frame loop: wait until the last frame's shown, draw the next into the other screen, ask for it.
 \\
 \\ Inputs:
@@ -109,10 +133,8 @@ ZA_AUTO1 ebuf                           ; the screen drawn: ACCCON's X bit, 0 or
 
 .frame_loop
 {
-    ZA_AUTO2 tptr                       ; local: the trace's next frame
 
-    LDA #LO(TraceData):STA tptr
-    LDA #HI(TraceData):STA tptr+1
+    JSR trace_start
 
 .wait
     LDA swapreq:BNE wait
@@ -142,12 +164,33 @@ ZA_AUTO1 ebuf                           ; the screen drawn: ACCCON's X bit, 0 or
     BCC @+
     INC tptr+1
 .@
-    LDA tptr:CMP #LO(TraceEnd)
+
+    \\ the frame's HUD events, each copied to HudEvent and put into the text wanted
+
+.event
+    LDY #0
+    LDA (eptr),Y:CMP TraceFrame:BNE events
+    INY
+    LDA (eptr),Y:CMP TraceFrame+1:BNE events
+.copy
+    INY
+    LDA (eptr),Y:STA HudEvent-2,Y
+    CPY #9:BNE copy
+    JSR hud_set
+    LDA eptr:CLC:ADC #10:STA eptr
+    BCC event
+    INC eptr+1
+    BRA event
+.events
+    INC TraceFrame
+    BNE @+
+    INC TraceFrame+1
+.@
+    LDA tptr:CMP #LO(TraceEnd)          ; the race again from its start, once it's run
     BNE @+
     LDA tptr+1:CMP #HI(TraceEnd)
     BNE @+
-    LDA #LO(TraceData):STA tptr
-    LDA #HI(TraceData):STA tptr+1
+    JSR trace_start
 .@
 
     \\ the cars drawn
@@ -155,11 +198,13 @@ ZA_AUTO1 ebuf                           ; the screen drawn: ACCCON's X bit, 0 or
     LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank
 .read
     JSR plot_cars
+.plotted
+    JSR hud_update
 .frame_end
     INC Frames
     BNE @+
     INC Frames+1
 .@
     INC swapreq                         ; (0 to 1) shown at the next vsync
-    BRA wait
+    JMP wait
 }
