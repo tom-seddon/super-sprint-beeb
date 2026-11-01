@@ -11,20 +11,24 @@ VENV = .venv/installed
 
 # The race the renderer test plays: by default a real race on track 5 (index 4) as the 18th race of a game
 # (the counter 17), with gates, barriers, pickups, a wreck, and the tornado and cones (their coin flips
-# forced); TRACE=attract plays the attract mode's race on track 6 instead.
+# forced); its wreck's helicopter comes from below. TRACE=heli1, heli2 or heli3 plays the same race with
+# the helicopter forced to come from above or either side; TRACE=attract the attract mode's race on track 6.
 TRACE ?= race
+RACE = 17
+FORCE = tornado,cones
 ifeq ($(TRACE),attract)
 TRACK = 5
 TRACEFILE = build/trace/cars_t5.json
+else ifneq ($(filter heli1 heli2 heli3,$(TRACE)),)
+TRACK = 4
+TRACEFILE = build/trace/race_t4_r$(RACE)_$(TRACE).json
 else
 TRACK = 4
-RACE = 17
-FORCE = tornado,cones
 TRACEFILE = build/trace/race_t4_r$(RACE).json
 endif
 GEN = build/gen
 
-.PHONY: all venv disasm tracks convert sheets viewer beeb check clean
+.PHONY: all venv disasm tracks convert sheets viewer beeb check clean always
 
 all: disasm convert sheets viewer beeb
 
@@ -68,10 +72,20 @@ build/trace/obj_t4_r$(RACE).json: tools/st_trace_objects.py tools/hatari.sh | $(
 	$(PY) tools/st_trace_objects.py 4 $(RACE) $@ $(FORCE)
 build/trace/race_t4_r$(RACE).json: tools/st_race.py build/trace/obj_t4_r$(RACE).json | $(VENV)
 	$(PY) tools/st_race.py build/trace/obj_t4_r$(RACE).json $@
+build/trace/obj_t4_r$(RACE)_heli%.json: tools/st_trace_objects.py tools/hatari.sh | $(VENV)
+	$(PY) tools/st_trace_objects.py 4 $(RACE) $@ $(FORCE),heli$*
+build/trace/race_t4_r$(RACE)_heli%.json: tools/st_race.py build/trace/obj_t4_r$(RACE)_heli%.json | $(VENV)
+	$(PY) tools/st_race.py build/trace/obj_t4_r$(RACE)_heli$*.json $@
 
-# The renderer test's data, and its disc. Baron 0.6 is on the PATH.
+# The renderer test's data, and its disc. Baron 0.6 is on the PATH. $(GEN)/tracefile names the trace the
+# data was made from, so playing another (TRACEFILE=...) remakes it, and so does coming back.
+$(GEN)/tracefile: always
+	@mkdir -p $(GEN)
+	@echo '$(TRACEFILE)' | cmp -s - $@ || echo '$(TRACEFILE)' > $@
+always:
+
 $(GEN)/cars.6502: tools/gendata.py tools/convert.py tools/st_sprites.py tools/objects.py build/conv/A_t0.bin \
-		$(TRACEFILE) | $(VENV)
+		$(TRACEFILE) $(GEN)/tracefile | $(VENV)
 	$(PY) tools/gendata.py $(TRACK) $(TRACEFILE) $(GEN)
 
 beeb: build/sprint.ssd

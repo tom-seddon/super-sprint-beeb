@@ -255,6 +255,10 @@ def frame_draws(fr, heli):
         elif n == 'heli2':
             y = w[2] - 65536 if w[2] >= 32768 else w[2]
             movers.append((('heli',) + heli[w[0]] + (w[0],), w[1] & ~15, y))
+        elif n == 'heli3':                      # sideways: clipped to the screen a 16-pixel group at a time
+            x = w[1] - 65536 if w[1] >= 32768 else w[1]
+            assert -48 <= x < 320, "the ST draws garbage further out"
+            movers.append((('heli',) + heli[w[0]] + (w[0],), x & ~15, w[2]))
     return cars, movers
 
 
@@ -280,6 +284,7 @@ def key_shift(key):
     return key[2] if key[0] in ('banner', 'tornado') else 0
 
 
+MovCols = 8                             # the plotter's widest piece, in bytes (macros.6502)
 PieceCost = 50                          # a piece's cost beyond its bytes, in bytes (its set-up and erase box)
 
 
@@ -299,6 +304,7 @@ def moving_pieces(dat, key):
     v[~opaque] = Key
     shift = key_shift(key)
     h0, w0 = v.shape
+    grouped = key[0] == 'heli' and key[1] & 2   # (clipped at the screen's sides by whole groups)
     canvas = np.full((h0, w0 + 4), Key, np.uint8)
     canvas[:, shift:shift + w0] = v
     op = np.zeros(canvas.shape, bool)
@@ -318,7 +324,7 @@ def moving_pieces(dat, key):
         choice = None
         r0, r1 = cols[i]
         for j in range(i, n):
-            if cols[j] is None:
+            if cols[j] is None or j - i == MovCols or (j > i and j % 4 == 0 and grouped):
                 break
             r0, r1 = min(r0, cols[j][0]), max(r1, cols[j][1])
             cost = (j - i + 1) * (r1 - r0 + 1) + PieceCost + best[j + 1][0]
@@ -333,7 +339,7 @@ def moving_pieces(dat, key):
 
 
 MaxMovers = 12
-HeliCode = 800                          # the fourth bank's copy of the moving objects' plotter, at most (Baron
+HeliCode = 840                          # the fourth bank's copy of the moving objects' plotter, at most (Baron
                                         # checks: the bank's guard)
 
 
@@ -372,7 +378,7 @@ def tornado_code(dat, key, n):
     return '\n'.join(lines) + '\n', cols[0], cols[-1] - cols[0] + 1
 
 
-def trace(frames, sets, movpieces, insts, room):
+def trace(frames, sets, movpieces, insts, room, piecedx):
     """The race's frames, as many as fit in room bytes with the HUD's events: per frame the cars drawn
     (their count, then 4 bytes each: car | drone-driven << 2, x's low byte, y, frame | on top << 6 | x's
     high bit << 7) and the background objects' calls (their count, then 4 bytes each: kind | instance << 3 |
@@ -382,6 +388,12 @@ def trace(frames, sets, movpieces, insts, room):
     moving objects' pieces (their count, then 5 bytes each: the piece's variant, the object's x, y as 16-bit
     words)."""
     out, starts, prev, heli = bytearray(), [], [], {}
+
+    def onscreen(p, x):
+        """A piece's columns wholly on the screen, or wholly off it (the sideways helicopter's)."""
+        c0, w = x // 4 + piecedx[p][0], piecedx[p][1]
+        assert c0 + w <= 0 or c0 >= 80 or (c0 >= 0 and c0 + w <= 80), "a piece across the screen's side"
+        return c0 >= 0 and c0 + w <= 80
     for fr in frames:
         cars, movers = frame_draws(fr, heli)
         rec = bytearray([len(cars)])
@@ -406,11 +418,11 @@ def trace(frames, sets, movpieces, insts, room):
             rec += bytes([ObjKinds[n] | inst << 3 | again << 6 | (x >> 8) << 7, variant_of(n, w, y), x & 255, y])
         prev = objs
         rec.append(0)
-        pieces = [(p, x, y) for key, x, y in movers for p in movpieces[key]]
+        pieces = [(p, x, y) for key, x, y in movers for p in movpieces[key] if onscreen(p, x)]
         assert len(pieces) <= MaxMovers, len(pieces)
         rec[-1:] = bytes([len(pieces)])
         for p, x, y in pieces:
-            rec += bytes([p, x & 255, x >> 8, y & 255, (y >> 8) & 255])
+            rec += bytes([p, x & 255, (x >> 8) & 255, y & 255, (y >> 8) & 255])
         starts.append(len(out))
         out += rec
     # the HUD's events: a car's laps or score as it changes (every car's at frame 0), 10 bytes each
@@ -639,7 +651,11 @@ def main(track, tracepath, out):
         f.write(lst('TorCodes', [f'TorCode{i}' for i in range(len(torcode))]))
 
     # the trace fills the fourth bank after the helicopter: its bytes, its plotter and their tables
-    tdata, nframes, events = trace(frames, sets, movpieces, insts, 16384 - len(hbin) - HeliCode - 9 * len(hpieces))
+    piecedx = {i: (m[0], m[2]) for i, m in enumerate(mt)}
+    piecedx.update({heli0 + i: (m[0], m[2]) for i, m in enumerate(hpieces)})
+    piecedx.update({len(mt) + i: (dx, w) for i, (s, dx, w) in enumerate(torcode)})
+    tdata, nframes, events = trace(frames, sets, movpieces, insts,
+                                   16384 - len(hbin) - HeliCode - 9 * len(hpieces), piecedx)
     open(f'{out}/trace.bin', 'wb').write(tdata)
     open(f'{out}/hudevents.bin', 'wb').write(events)
     with open(f'{out}/trace.6502', 'w') as f:

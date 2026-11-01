@@ -221,3 +221,19 @@
   functions are global, so the blocks' offset function went to `macros.6502`. `mov_all` moved to main RAM
   and pages each object's bank: 29 cycles a frame. The fourth bank: the helicopter 5,520 bytes; the
   objects' bank 2,239 free. 304 frames fit the trace now; all match, the helicopter drawn in 116.
+- **The helicopter's other variants**, each checked in a race. The ST picks the side by where the car was
+  wrecked (`F_00BB4E`); the recorded wreck brings it from below, so `tools/st_trace_objects.py` takes
+  `heliN`, writing the variant into `G_01EB2C` just after the ST has chosen it, and `make check
+  TRACE=heli1` (2, 3) plays those races. All match on every frame.
+- **Mistake: the sideways frames' shape.** `tools/objects.py` read them as 52 rows of 32 pixels; they're 26
+  rows of 64, drawn by `F_0144AA` (which the tracer logged as `heli3`, never seen until now). Found by
+  reading the routine once a race called it; a picture of a frame both ways settled it. The helicopter is
+  5,023 bytes in the fourth bank, not 5,520.
+- The sideways helicopter flies in from x -39 or 319, and the ST clips it a 16-pixel group at a time. Its
+  pieces are cut within groups, and the trace leaves out those off the screen's side; the plotter's x DIV
+  4 now works for a negative x (a broken one fails 9 frames of the race from the left), and the model
+  clips x at both sides (it sliced wrongly for a negative x).
+- **Hatari 2.6.1 crashes with 16 breakpoints set**: adding the helicopter's to the 15 aborted it. The forced
+  flips' breakpoints now set each other in turn.
+- **The Makefile trap fixed**: `build/gen/tracefile` names the trace the data was made from, so changing
+  TRACE or TRACEFILE remakes it.

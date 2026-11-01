@@ -146,8 +146,10 @@ def draw(screen, sprite, x, y):
 def heli_compose(dat, variant, colour, frame):
     """F_0146DA: a helicopter frame composed for the wreck, its pixels with plane 0 set and planes 1 and 2 clear
     recoloured by colour (the routine's second argument): below 2 into plane 1, 2 into plane 2, above 2 into
-    planes 0 and 2. The small variant: 36 rows of 32 pixels; each row two groups of 4 plane words, then the
-    mask's two words (set: the screen kept). -> (colours 36 x 32, mask 36 x 32)."""
+    planes 0 and 2. The vertical variants (0, 1): 36 rows of 32 pixels, each row two groups of 4 plane
+    words, then the mask's two words (set: the screen kept). The sideways ones (2, 3), drawn by F_0144AA:
+    26 rows of 64 pixels, each row two such units, left then right. -> (colours, mask), 36 x 32 or
+    26 x 64."""
     rows, size, base = (52, 0x410, Objects + 0x24C0 + 0x1680) if variant & 2 else (36, 0x2D0, Objects + 0x24C0)
     base += ((variant & 1) * 4 + frame) * size
     col, mask = [], []
@@ -167,7 +169,10 @@ def heli_compose(dat, variant, colour, frame):
             w[4 * g:4 * g + 4] = [p0 & 0xFFFF, p1, p2, p3]
         col.append(sum((planes_to_indices(w[4 * g:4 * g + 4]) for g in range(2)), []))
         mask.append(bits(w[8]) + bits(w[9]))
-    return np.array(col, np.uint8), np.array(mask, np.uint8)
+    col, mask = np.array(col, np.uint8), np.array(mask, np.uint8)
+    if variant & 2:
+        col, mask = col.reshape(26, 64), mask.reshape(26, 64)
+    return col, mask
 
 
 def draw_masked(screen, col, mask, x, y):

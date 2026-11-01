@@ -68,10 +68,11 @@ def main(track, tracepath, out):
         x += key_shift(key)
         sprite = apply_map(idx, bgmap)
         h, w = idx.shape
+        c0, c1 = max(0, -x), min(w, 320 - x)
         for r in range(h):
             if 0 <= y + r < 200:
-                row = opaque[r]
-                lidx[y + r, x:x + w][row[:320 - x]] = sprite[r, :320 - x][row[:320 - x]]
+                row = opaque[r, c0:c1]
+                lidx[y + r, x + c0:x + c1][row] = sprite[r, c0:c1][row]
 
     with open(out, 'wb') as fo:
         for n, fr in enumerate(load_race(tracepath)):

@@ -161,7 +161,7 @@ block at about that offset) are confirmed. The others need checking when the haz
 | `&1240` | 32 bytes a frame | `F_014B1C` | Small objects |
 | `&1740` | 8 rows of 6 words, 32 bytes a frame | `F_014A80` | Small objects (oil, wrench) |
 | `&1BC0` | 16 × 8 masked, 64 bytes a frame | `F_0148BE` | Small objects |
-| `&24C0` | `&2D0`-byte frames of 36 rows, or `&410`-byte frames of 52 rows from `&3B40` | `F_0146DA` | Large sprites (the helicopter that brings a new car) |
+| `&24C0` | `&2D0`-byte frames of 36 rows of 32 pixels (flying vertically, `F_01440E`), or `&410`-byte frames of 26 rows of 64 from `&3B40` (sideways, `F_0144AA`) | `F_0146DA` composes them | The helicopter that brings a new car |
 | `&5BC0` | 16 × 14, 112 bytes a frame, 26 frames | `F_0152E0` | The crash explosion |
 | `&6720` | `&150` bytes a frame | `F_014C1C` | HUD car icons |
 | `&6F00` | 48 bytes a character, 10 | `F_014C8C` | HUD's large digits |

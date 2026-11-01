@@ -12,12 +12,13 @@
 \\ erase.
 \\
 \\ Inputs:
-\\     v: the variant; x: its place's x (0-319); y: its y (signed)
+\\     v: the variant; x: its place's x (-48 to 319: the sideways helicopter's pieces off the screen's
+\\        side aren't drawn, so x DIV 4 + the piece's column is on it); y: its y (signed)
 \\     eidx: the erase list's next entry
 \\
 \\ Outputs:
 \\     EraseCol, EraseTop, EraseW, EraseH: what it drew, at eidx, and eidx one on (if anything shows)
-\\     A, X, Y: corrupted
+\\     A, X, Y, x: corrupted
 
 .mov_plot
 {
@@ -44,7 +45,9 @@
 
     LDY v
     LDA x+1:LSR A                       ; (C: x's bit 8)
-    LDA x:ROR A:LSR A                   ; x DIV 4
+    ROR x                               ; (x's bits 8-1)
+    LSR A                               ; (C: x's bit 9)
+    LDA x:ROR A                         ; x DIV 4's low byte
     CLC:ADC MovDX,Y:STA col
     LDA MovDY,Y:CLC:ADC y:STA top
     LDA y+1:ADC #0:STA top+1

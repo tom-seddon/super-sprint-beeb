@@ -99,7 +99,10 @@ Every frame it draws is checked byte for byte against a model made from the ST's
 - **Moving objects** (`src/movers.6502` in the objects' bank, `src/heli.6502` in the fourth): a wrecked car's explosion (26 frames, drawn
   in the car's place in the draw order), the banner (36 frames, 16 x 8, at a place fixed per track), the
   tornado (3 frames, 16 x 16, at any pixel, colour 0 its transparent one), the
-  sparks (8 x 8 on 8-pixel steps) and the helicopter (4 frames, 32 x 36, on 16-pixel steps, its carried
+  sparks (8 x 8 on 8-pixel steps) and the helicopter (4 frames, 32 x 36 flying in from below or above, or
+  64 x 26 from either side, clipped at the screen's sides by whole 16-pixel groups as the ST does it,
+  each piece of a sideways frame within a group, so the trace leaves out the pieces off the side; on
+  16-pixel steps, its carried
   car's pixels recoloured as the ST composes it). Each is erased and drawn every frame like a car, through
   the same key-colour scheme (every frame uses black, white and at most one of green and yellow) and a copy
   of the car plotter's fast loop, 8 columns wide, clipped to the play area's lines, with no priority (the
@@ -272,9 +275,20 @@ path's loop fell from 2,966 to 1,538, and "set-up, bands" (2,745) now includes t
 its compiled code. The cost is memory: 3,561 bytes in the objects' bank (509 the routine, 3,052 its 12
 frame-shifts), less the 736 its pieces took, so about 2.8K more; 1,346 bytes are left in the bank.
 
-Then the helicopter moved to the fourth bank, all 4 variants (5,520 bytes with its plotter's copy), the
+Then the helicopter moved to the fourth bank, all 4 variants (5,520 bytes with its plotter's copy, then
+5,023 once the sideways frames were read right, below), the
 objects' bank's moving objects paged from main RAM: over the first 304 frames (what now fits the trace's
 bank; all match), 22,752 cycles a frame on average against 22,723 before, the paging's 29.
+
+The helicopter's other variants: the ST picks the side it flies in from by where the car was wrecked
+(`F_00BB4E`): from the farther side horizontally if the horizontal distance to it is more than twice the
+vertical, else vertically (variant 0 from below, 1 from above, 2 and 3 from the sides). The recorded race's
+wreck brings it from below, so `make check TRACE=heli1` (`heli2`, `heli3`) plays the same race with the
+variant written over just after the ST chose it (`tools/st_trace_objects.py`'s `heliN`), the flight then
+the ST's own. The sideways frames are 26 rows of 64 pixels (`F_0144AA`), not the 52 rows of 32 that
+`tools/objects.py` first read them as; it flies in from x -39 or 319, 4 pixels a frame. All four races
+match on every frame (303 to 325 frames each); with the plotter's x DIV 4 wrong for a negative x, the
+helicopter from the left fails 9.
 
 ## Memory
 
@@ -282,7 +296,7 @@ bank; all match), 22,752 cycles a frame on average against 22,723 before, the pa
 |---|---|---|
 | Background's bank | 207 erase, then 16,000 background from `&8180` | 177 |
 | Cars' bank | 10,615 frames (659 of it page padding), 643 priority map, 2,664 priority cells, 333 classes, 1,138 tables, 863 plotter | 154 |
-| Fourth bank (race 17, track 5) | 5,520 the helicopter (1,271 its plotter's copy and tables, 4,249 its 4 variants' bytes); the rest the test's trace and HUD events | in the game, about 10.8K for the race's data and some logic |
+| Fourth bank (race 17, track 5) | 5,023 the helicopter (1,561 its plotter's copy and tables, 3,462 its 4 variants' bytes, 84 pieces); the rest the test's trace and HUD events | in the game, about 11.1K for the race's data and some logic |
 | Objects' bank (race 17, track 5) | 8,345 the variants' bytes; 2,239 their tables, the background objects' and the moving objects' plotters; 3,561 the tornado's plotter (its compiled frame-shifts 3,052) | 2,239 |
 | Main RAM | 754 code at `&0E00` (the HUD 394 of it, with its font); tables at `&0400`-`&07FF` (MaskTab, 3 data tables) and `&2C00`-`&2DFF` (the priority expansions, which the HUD uses too); 180 bytes of variables at `&2E00` | |
 | Zero page | `&00`-`&1E` | |
@@ -297,8 +311,7 @@ as pre-shifted, trimmed frames, about 10.6K a race; the cars' bank is then all b
   are the ones with every car near a bridge (classifying columns, the slow loop's columns).
 - **Memory**: the cars' bank has 154 bytes left. The frames' page padding (659 bytes, about 375 more than
   a perfect packing) and the frame tables (1,138 bytes) are where room could come from.
-- **Objects still to do**: the helicopter's other variants (from above and either side: stored, but no
-  recorded race shows them yet), and the remaining tracks.
+- **Objects still to do**: the remaining tracks.
 - **Objects' speed**: a gate's step, the helicopter and now the tornado, above. In a race with all of them
   the average frame is about 21,000 before the logic's estimated 16,000: 37,000 of 39,936. The tornado's
   erase (about 1,300) is the general one's, by bands.
