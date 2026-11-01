@@ -14,3 +14,31 @@ and `docs/reference.md` are in `rich/baron/docs`, its examples in `rich/baron/ex
 instructions or edit them.
 
 Baron 0.6 is on the PATH as `baron`; don't build it from `rich/baron`.
+
+## The beeb-port-kit
+
+`reference/beeb-port-kit` (a submodule) is Kieran Connell's kit from his ports: `PORTING.md`, `docs/`
+(`hardware-facts.md`, `gotchas.md`, `verification.md`), `lib/` and `py/` to fork from (`ay2sn.py`,
+`sfx50.6502`, `zx02depack.6502`, `keydown.6502`), and its skills, copied into `.claude/skills/beeb-*`. Use
+them as advice; where they differ, this project's own way holds: decisions in `docs/decisions.md` (Proposed
+until Tom agrees), the plan in `docs/plan.md`, work done in `JOURNAL.md`, the renderer in `docs/renderer.md`.
+The kit also aims at the Model B (NMOS 6502, `nmos.6502`); this game is the Master 128's only, CMOS opcodes
+allowed (D4, above).
+
+What the skills look up, for this project:
+- **Target**: BBC Master 128 only (jsbeeb `create_machine` model `Master`), 65C12. Two screens, main and
+  shadow RAM at `&3F00`-`&7FFF`; ACCCON `&FE34` D (bit 0) the one shown, X (bit 2) the one the CPU sees at
+  `&3000`-`&7FFF`, `&3000`-`&3EFF` included (ScreenVars). Four sideways RAM banks. The game hooks IRQ1V
+  (the System VIA's vsync only) and leaves the OS's memory alone (D7).
+- **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes
+  `build/sprint.ssd`, the listing `build/sprint.lst` (each bank's free bytes are printed in it) and the
+  symbols `build/sprint.json` (Baron's `--symbols`). No `-D` flags.
+- **Memory**: `src/memory.6502` (the map), `docs/renderer.md` "Memory", `docs/plan.md` Phase 4.
+- **Oracles**: `make check` (`tools/render_check.mjs`: every frame's screen against `tools/render_model.py`'s,
+  exit 1 if any is wrong), `tools/render_profile.mjs` (cycles by region, `--list N` the worst frames),
+  `tools/screenshot.mjs`; all headless through `tools/jsbeeb.mjs`.
+- **Not here**: the kit template's tools (`harness.mjs`, `listing.py`, `verify_cmds.py`, `run_suite.py`,
+  `shadowaudit.mjs`, ...). Use the equivalents above, or fork one from `reference/beeb-port-kit/template/tools`
+  when a skill needs it.
+- **The jsbeeb MCP** here has `run_for_cycles` but no `run_frames` or `elapsed_cycles`: a frame is 39,936
+  cycles, and timings come from the scripts above (`tools/jsbeeb.mjs`'s `cycles`).

@@ -5,6 +5,8 @@
 // drawn): its cycles are the erase, the trace's read and the plot, with any vsync interrupt that lands in
 // it. The vsyncs between frame_tops are the TV frames each drawn frame took.
 //
+// Exit status: 1 if any frame differs from the model, else 0.
+//
 // Usage (from the repo root, after make):
 //   node tools/render_check.mjs [--frames N] [--model build/check/model_t5.bin] [--dump N]
 //       --dump N: write frame N's drawn and expected screens to build/check/frameN-{bbc,model}.bin
@@ -98,4 +100,4 @@ for (const [k, v] of Object.entries(parts)) {
 console.log(`TV frames per drawn frame: ${JSON.stringify(hist)}`);
 if (model) console.log(wrong ? `model: ${wrong} frames wrong, the first frame ${firstWrong.frame} (${firstWrong.bad} bytes)`
     : `model: all ${work.length} frames match`);
-process.exit(0);
+process.exit(wrong ? 1 : 0);
