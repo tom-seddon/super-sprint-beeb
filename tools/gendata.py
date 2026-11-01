@@ -333,6 +333,8 @@ def moving_pieces(dat, key):
 
 
 MaxMovers = 12
+HeliCode = 800                          # the fourth bank's copy of the moving objects' plotter, at most (Baron
+                                        # checks: the bank's guard)
 
 
 def tornado_code(dat, key, n):
@@ -531,7 +533,7 @@ def main(track, tracepath, out):
     movers_, movpieces = [], {}
     torkeys = [k for k in movkeys if k[0] == 'tornado']
     for k in movkeys:
-        if k[0] == 'tornado':
+        if k[0] in ('tornado', 'heli'):
             continue
         movpieces[k] = []
         for piece in moving_pieces(dat, k):
@@ -569,6 +571,36 @@ def main(track, tracepath, out):
     torcode = [tornado_code(dat, k, i) for i, k in enumerate(torkeys)] or [('.TorCode0\n    RTS\n', 0, 1)]
     for i, k in enumerate(torkeys):
         movpieces[k] = [len(mt) + i]
+
+    # the helicopter, for the fourth bank: every variant (from below, above and either side) and frame, in
+    # both data tables (the carried car's colour yellow, or green for car 3), whichever the race uses: any
+    # car can be wrecked anywhere. The two tables' bytes are the same, stored once. Its pieces numbered after
+    # the tornado's.
+    heli0 = len(mt) + len(torcode)
+    hbin, hdata, hpieces, hkey = bytearray(), {}, [], {}
+    for v in range(4):
+        for c in (0, 3):
+            for fr_ in range(4):
+                hkey[v, c, fr_] = []
+                for dx, dy, w, h, t, d in moving_pieces(dat, ('heli', v, c, fr_)):
+                    if d not in hdata:
+                        hdata[d] = len(hbin)
+                        hbin += d
+                    hkey[v, c, fr_].append(heli0 + len(hpieces))
+                    hpieces.append((dx, dy, w, h, t, hdata[d]))
+    for k in movkeys:
+        if k[0] == 'heli':
+            canon = ('heli', k[1], 3 if k[2] == 3 else 0, k[3])
+            assert moving_pieces(dat, k) == moving_pieces(dat, canon), "the helicopter's colours: one copy"
+            movpieces[k] = hkey[canon[1:]]
+    assert heli0 + len(hpieces) <= 256
+    open(f'{out}/heli.bin', 'wb').write(hbin)
+    with open(f'{out}/heli.6502', 'w') as f:
+        f.write('\\\\ heli.6502 - made by tools/gendata.py: the helicopter\'s pieces in heli.bin, from variant HeliVar0 on\n\n')
+        for i, name in enumerate(('GenHeliDX', 'GenHeliDY', 'GenHeliW', 'GenHeliH', 'GenHeliTable', 'GenHeliData')):
+            f.write(lst(name, [m[i] for m in hpieces]))
+        f.write(f'HeliVar0 = {heli0}\n')
+        f.write(f'HeliVariants = {len(hpieces)}\n')
     open(f'{out}/objects.bin', 'wb').write(obin)
     with open(f'{out}/objects.6502', 'w') as f:
         f.write('\\\\ objects.6502 - made by tools/gendata.py: the background objects\' variants in objects.bin\n\n')
@@ -606,7 +638,8 @@ def main(track, tracepath, out):
         f.write(f'TorVariants = {len(torcode)}\n')
         f.write(lst('TorCodes', [f'TorCode{i}' for i in range(len(torcode))]))
 
-    tdata, nframes, events = trace(frames, sets, movpieces, insts, 16384)
+    # the trace fills the fourth bank after the helicopter: its bytes, its plotter and their tables
+    tdata, nframes, events = trace(frames, sets, movpieces, insts, 16384 - len(hbin) - HeliCode - 9 * len(hpieces))
     open(f'{out}/trace.bin', 'wb').write(tdata)
     open(f'{out}/hudevents.bin', 'wb').write(events)
     with open(f'{out}/trace.6502', 'w') as f:
@@ -619,6 +652,7 @@ def main(track, tracepath, out):
         f.write(f'FontGlyphs = {len(Glyphs)}\n')
     print(f'sets {sets}; cars {len(data)} bytes, prio {len(pdata)} + {len(classes)} + {len(mapdata)} bytes '
           f'({int((cellmap > 0).sum())} cells), objects {len(obin)} bytes ({len(vt)} variants, {len(mt)} moving), '
+          f'helicopter {len(hbin)} bytes ({len(hpieces)} pieces), '
           f'trace {nframes} frames {len(tdata)} bytes, HUD events {len(events)} bytes')
 
 

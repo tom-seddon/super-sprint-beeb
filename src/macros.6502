@@ -1,5 +1,12 @@
 \\ macros.6502 - macros and functions for any file.
 
+\\ The moving objects' plotter's unrolled blocks (movplot.6502, a copy in each bank with moving objects): the
+\\ widest variant's bytes (the helicopter's), a block's size (as the car plotter's), column n's offset
+
+MovCols = 8
+MovBlkSize = 15
+FUNCTION MovBlkOff(n) = (MovCols - 1 - n) * MovBlkSize
+
 \\ Pad with zeroes up to an address, saying how many bytes it wasted: for fitting routines into the
 \\ gaps before fixed addresses.
 \\

@@ -25,8 +25,11 @@ const regions = [
     ["plot slow loop", "cars", L("slowcol.loop"), L("slowcol.loopend") + 4],
     ["plot slow columns", "cars", L("plot_car.slow"), L("PrioClass")],
     ["plot classify", "cars", L("plot_car.classify"), L("plot_car.draw")],
-    ["movers loop", "obj", L("mov_plot.blocks"), L("mov_plot.back") + 2],
-    ["movers rest", "obj", L("mov_explosion"), L("MovBack")],
+    ["movers loop", "obj", L("objmov.mov_plot.blocks"), L("objmov.mov_plot.back") + 2],
+    ["tornado", "obj", L("mov_tornado"), 0xC000],
+    ["movers rest", "obj", L("objmov.mov_plot"), 0xC000],
+    ["helicopter loop", "heli", L("helimov.mov_plot.blocks"), L("helimov.mov_plot.back") + 2],
+    ["helicopter rest", "heli", L("helimov.mov_plot"), 0xC000],
     ["objects (main RAM)", null, L("obj_events"), L("obj_events") + 2000],
     ["plot bands", "cars", L("plot_car.crossing"), L("plot_car.slow")],
     ["main RAM", null, 0, 0x3000],
@@ -52,6 +55,7 @@ await runTo(s, syms["frame_loop.frame_top"]);
 bank.bg = peek(syms["bankbg"]);
 bank.cars = peek(syms["bankcars"]);
 bank.obj = peek(syms["bankobj"]);
+bank.heli = peek(syms["banktrace"]);
 const perFrame = [];
 for (let n = 0; n < frames; n++) {
     await runTo(s, syms["frame_loop.frame_top"]);

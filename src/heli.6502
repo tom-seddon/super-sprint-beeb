@@ -1,0 +1,21 @@
+\\ heli.6502 - the fourth bank's moving object: the helicopter that brings a wrecked car back, every variant
+\\ (from below, above and either side; 4 frames each) through the bank's own copy of the moving objects'
+\\ plotter (helimov, movplot.6502), on 16-pixel steps as the ST has it. The carried car's colour is the
+\\ variant's data table's: yellow, or green for car 3 (each variant twice, its bytes once).
+
+INCLUDE "../build/gen/heli.6502"
+
+.helimov
+{
+    MovDataOrg = HeliData
+    GenMovDX = GenHeliDX
+    GenMovDY = GenHeliDY
+    GenMovW = GenHeliW
+    GenMovH = GenHeliH
+    GenMovTable = GenHeliTable
+    GenMovData = GenHeliData
+    INCLUDE "movplot.6502"
+}
+
+.HeliData                               ; each piece's bytes, column by column (tools/gendata.py)
+    INCBIN "../build/gen/heli.bin"

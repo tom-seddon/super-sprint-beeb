@@ -17,7 +17,7 @@
 \\   &3F00  the screen: the HUD's row, then the play area to &7FFF; in main RAM and in shadow RAM
 \\   &8000  sideways RAM. The background's bank: the clean play area and the erase that reads it.
 \\          The cars' bank: their frames, the priority cells and the plotter that reads them. The
-\\          trace's bank: the ST race's cars and objects. The objects' bank: the background objects'
+\\          trace's bank: the helicopter, then the ST race's cars and objects. The objects' bank: the background objects'
 \\          bytes (gates, barriers, pickups)
 \\
 \\ While loading: !BOOT at &1200, the banks' files loaded at &3000 and copied in, SPRINT loaded at &3000
@@ -27,7 +27,8 @@ ZA_POOL &04..&FB, &FD..&FF              ; &FC: the MOS's IRQ entry saves A there
 
 bankbg = &00                            ; the sideways RAM banks !BOOT found (it writes them itself, as
 bankcars = &01                          ; boot.6502 has them): the background's, the cars', the trace's,
-banktrace = &02                         ; the objects'
+banktrace = &02                         ; the objects' (the trace's bank holds the helicopter too:
+bankheli = banktrace                    ; in the game, the fourth bank, the race's data and some logic)
 bankobj = &03
 BanksNeeded = 4
 

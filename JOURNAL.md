@@ -209,3 +209,15 @@
 - A trap in the Makefile: build/gen depends on the trace file's date, so after `make check
   TRACEFILE=...` the default race isn't regenerated until its file is touched (the check then fails every
   frame, the disc playing the other race).
+- **Room for the helicopter.** The full helicopter is 4 variants (from below, above and either side; the
+  52-row frames presumably the sideways ones) of 4 frames, 4,249 bytes; every car's colour shares the
+  bytes (cars 0-2 compose identically, car 3 the same bytes through the green table). With the compiled
+  tornado the objects' bank was about 2,200 bytes short. Tom: put it in a free bank if there is one; logic
+  can be squeezed into sideways RAM, being less reliant on unrolled code or page-aligned data. No bank is
+  wholly free (the Master's 4 are the background's, the cars', the objects' and the one the test fills
+  with its trace), so it went in the fourth, which in the game holds the race's other data.
+- The plotter moved to `src/movplot.6502`, included in each bank with moving objects inside a scope of its
+  own (`objmov`, `helimov`) with its own tables: Baron's scopes keep the copies' labels apart, but its
+  functions are global, so the blocks' offset function went to `macros.6502`. `mov_all` moved to main RAM
+  and pages each object's bank: 29 cycles a frame. The fourth bank: the helicopter 5,520 bytes; the
+  objects' bank 2,239 free. 304 frames fit the trace now; all match, the helicopter drawn in 116.

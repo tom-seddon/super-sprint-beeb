@@ -1,5 +1,5 @@
 \\ sprint.6502 - the renderer test's files (Phase 3): SPRINTA, SPRINTB, SPRINTC and SPRINTD, the sideways RAM
-\\ banks' images (the background, the cars, an ST race's trace, the objects), which !BOOT copies into the
+\\ banks' images (the background, the cars, the helicopter and an ST race's trace, the objects), which !BOOT copies into the
 \\ banks it found; and
 \\ SPRINT, main RAM's code, then the loader that copies it into place.
 \\
@@ -26,7 +26,8 @@ SECTION CarsFile, filename = "SPRINTB", load = &FFFF0000+LoadAddr
 ENDSECTION
 
 SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
-    SECTION TraceBank, org = SwramOrg, guard = SwramEnd
+    SECTION TraceBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
+        INCLUDE "heli.6502"
         INCLUDE "../build/gen/trace.6502"
 .TraceData
         INCBIN "../build/gen/trace.bin" ; the race's cars, 12 bytes a frame (tools/gendata.py)

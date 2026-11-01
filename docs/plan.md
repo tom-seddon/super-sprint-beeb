@@ -192,7 +192,9 @@ adds the logic.
 - Done too: the objects (gates, barriers, pickups, oil-type hazards, cones, the explosion, banner, sparks,
   tornado and helicopter), from a real ST race on track 5, checked with the rest. The tornado's frames are
   compiled (about 3.5K). With all of them a frame averages about 21,000 cycles (`docs/renderer.md`).
-- To do: the helicopter's horizontal flight and big variant; the other tracks; the objects' speed.
+- The helicopter is in the fourth bank, all 4 variants (5.5K), leaving the objects' bank 2.2K and the
+  fourth about 10.8K for the race's data and some logic (Tom: the logic can be squeezed in there).
+- To do: a race showing the helicopter's other variants; the other tracks; the objects' speed.
 
 ### Phase 4: one race
 - Physics, collisions, drones, laps, scoring, HUD, input for 3 players, sound. One track, played start to
