@@ -3,7 +3,8 @@
 \\ ACCCON's X must reach it, and it reads no bank.
 \\
 \\ The text wanted is HudWant, a byte a column: the glyph (0-9 the digits, then , L T D and the blank) |
-\\ the colour << 6; a blank is always HudBlank (colour 0). Each screen keeps what it shows (HudShown), and
+\\ the colour << 6; a blank is always HudBlank (colour 0). Each screen keeps what it shows (HudShown, in its
+\\ own ScreenVars), and
 \\ after a change hud_update draws what differs into the screen being drawn, a few characters a frame, the
 \\ screens taking turns until both have caught up.
 
@@ -23,11 +24,14 @@ DroneCol = 37
 
 ASSERT FontGlyphs == HudBlank + 1, "the font's glyphs: the HUD's codes"
 
+SECTION ScreenVars
+.HudShown                               ; what this screen shows
+    SKIP HudCols
+ENDSECTION
+
 SECTION GameVars
 .HudWant                                ; the text wanted
     SKIP HudCols
-.HudShown                               ; what each screen shows: the main screen's, then the shadow's
-    SKIP 2 * HudCols
 .HudEvent                               ; a change: the car, its laps completed, its score's 6 digits (a
     SKIP 8                              ; BCD digit a byte, &80 a leading blank: the ST's)
 ENDSECTION
@@ -40,19 +44,18 @@ ZA_AUTO1 hudcount                       ; frames still to bring a screen up to H
 \\     none
 \\
 \\ Outputs:
-\\     HudWant, HudShown: blank (both screens' rows are cleared); HudWant the track's
+\\     HudWant: blank, but the track's (each screen's HudShown is fill_screen's)
 \\     hudcount: 2
 \\     A, X: corrupted
 
 .hud_start
 {
     LDA #HudBlank
-    LDX #3 * HudCols - 1
+    LDX #HudCols - 1
 .blank
-    STA HudWant,X                       ; (HudShown straight after it)
+    STA HudWant,X
     DEX
     BPL blank
-    ASSERT HudShown == HudWant + HudCols, "HudShown follows HudWant"
     LDA #(HudT OR HudWhite):STA HudWant+TrackCol
     LDA #((TraceTrack + 1) OR HudWhite):STA HudWant+TrackCol+1
     LDA #2:STA hudcount
@@ -125,7 +128,6 @@ ZA_AUTO1 hudcount                       ; frames still to bring a screen up to H
 \\ over each finds nothing left.
 \\
 \\ Inputs:
-\\     ebuf: the screen drawn (0 or 4: its X bit)
 \\     hudcount: passes still wanted
 \\
 \\ Outputs:
@@ -140,21 +142,13 @@ HudPerFrame = 4
     ZA_AUTO1 budget                     ; local: characters this frame may still draw
 
     LDA hudcount:BEQ done
-    LDA ebuf                            ; the screen's HudShown: 0 or HudCols on
-    BEQ @+
-    LDA #HudCols
-.@
-    CLC:ADC #LO(HudShown):STA shown+1:STA note+1
-    LDA #HI(HudShown):ADC #0:STA shown+2:STA note+2
     LDA #HudPerFrame:STA budget
     LDX #HudCols-1
 .column
     LDA HudWant,X
-.shown
-    CMP HudShown,X                      ; self-modified: the screen's HudShown
+    CMP HudShown,X                      ; (the screen being drawn's)
     BEQ same
-.note
-    STA HudShown,X                      ; self-modified: the screen's HudShown
+    STA HudShown,X
     JSR hud_char
     DEC budget:BEQ short
 .same

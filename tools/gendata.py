@@ -144,11 +144,12 @@ def prio(track, reserved=()):
 
 def load_race(path):
     """A trace (st_trace_cars.py's attract race, or st_race.py's real one), every frame with its drone flags
-    and object calls (none in the attract race, whose cars are all drawn in their own colours)."""
+    and calls (the attract race's only the car plotter's, from its draw order; its cars are all drawn in
+    their own colours)."""
     frames = json.load(open(path))
     for fr in frames:
         fr.setdefault('drone', [0, 0, 0, 0])
-        fr.setdefault('calls', [])
+        fr.setdefault('calls', [['car', [c]] for c in fr['order']])
     return frames
 
 

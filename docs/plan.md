@@ -89,9 +89,9 @@ and a CRT: the checkerboard reads as grey and isn't too busy).
 | `&0400`-`&07FF` | 1,024 | The game's (the language's workspace) |
 | `&0800`-`&0DFF` | 1,536 | The OS's: sound, buffers, the NMI handler |
 | `&0E00`-`&2FFF` | 8,704 | IRQ, main loop, game logic, state |
-| `&3000`-`&3EFF` main | 3,840 | Variables and tables (read when the CPU is not mapped to shadow) |
+| `&3000`-`&3EFF` main | 3,840 | The main screen's own variables (ScreenVars: its erase list, the HUD text it shows); tables, a copy in each, always readable (Tom's idea) |
 | `&3F00`-`&7FFF` main | 16,640 | Screen A |
-| `&3000`-`&3EFF` shadow | 3,840 | Data read only while drawing into shadow (awkward) |
+| `&3000`-`&3EFF` shadow | 3,840 | The shadow screen's: the same layout, ACCCON's X picking the screen being drawn's |
 | `&3F00`-`&7FFF` shadow | 16,640 | Screen B |
 | `&8000`-`&8FFF` ANDY | 4K | The OS's, unless Phase 3 shows the MOS doesn't need it kept (D7) |
 | `&8000`-`&BFFF` banks 4-7 | 64K | Data, and the code that reads it: the renderer, unrolled loops |
@@ -223,8 +223,11 @@ adds the logic.
   The logic (4 cars, the IRQ's sound and ADC, input) has to fit in these. A frame over only drops the
   display to 25 fps for a moment (D2), but the busy tracks (3, 4, 7: bridges, gates, the helicopter) would
   do so a quarter to a third of the time at the plan's 16,000. Aim for about 10,000-12,000.
-- **The logic's memory**: main RAM `&1813`-`&29FF` free (4,589 bytes) for code, about 100 bytes of
-  `&2E00`-`&2FFF` for variables, and `&3000`-`&3EFF` (3,840) when ACCCON's X isn't set to shadow; zero page
+- **The logic's memory**: main RAM `&1813`-`&29FF` free (4,589 bytes) for code, about 300 bytes of
+  `&2E00`-`&2FFF` for variables (the erase lists and the HUD's shown text moved to `&3000`), and
+  `&3000`-`&3EFF` less the 104 bytes of each screen's own variables: about 3,700 bytes, in main and shadow
+  RAM alike, so a table written into both copies is always readable, from a bank or the IRQ too (Tom's
+  idea; rebuilt after each per-race load, which lands in screen memory, D7); zero page
   `&71`-`&FB`. The fourth bank has 11,361 bytes after the helicopter; the objects' bank 2,933 to 8,424 by
   track; the cars' bank 504 to 2,346 with three players. The race's own data: mask B (walls) 8,000 bytes at
   1 bit a pixel, the attribute map 1,000, a drone path about 900; sound about 12K for all, before

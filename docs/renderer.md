@@ -19,7 +19,9 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   and the 25-row play area from `&4180`. One screen in main RAM, one in shadow RAM. The
   vsync IRQ (the System VIA's CA1, its only interrupt) flips ACCCON's D bit when the main loop asks; the
   main loop then flips X, so it draws into the screen not shown. All the code and variables that run
-  during a frame are below `&3000` or in a bank, so X never hides them.
+  during a frame are below `&3000` or in a bank, so X never hides them, but for each screen's own
+  variables (ScreenVars, `&3000`): its erase list and the HUD's text it shows, main RAM's and shadow RAM's
+  copies, so X picks the screen being drawn's (Tom's idea).
 - **The check** (`make check`, `tools/render_check.mjs`): headless jsbeeb's Master 128, the real IRQ. At
   each frame's end the screen just drawn (main or shadow RAM, by X: the HUD's row and the play area) is
   compared with

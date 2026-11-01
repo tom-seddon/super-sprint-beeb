@@ -268,3 +268,16 @@
 - Two bugs on the way, both caught at once: the entry test compared the whole kind byte (with the
   instance and flags in it) with 2, every frame wrong; and passes 2 and 3 used pass 0's branch table,
   whose loop end is now a byte longer, and hung.
+
+## 2026-11-01: each screen's own variables at &3000
+
+- Tom's idea: `&3000`-`&3EFF` is the screen buffer's, main RAM's or shadow's by ACCCON's X, so per-screen
+  state there is switched with the screen being drawn. The erase lists and the HUD's shown text moved
+  there (ScreenVars): `ebuf` and the HUD's address patching are gone, 208 bytes of `&2E00`-`&2FFF` freed,
+  about 20 cycles a frame saved. `fill_screen` sets up each copy (an empty erase list, a blank HUD row).
+  For Phase 4: read-only tables written into both copies are readable whatever X is.
+- **Mistake: the attract race had been checking nothing.** Since the object work, the cars to draw come
+  from a frame's calls, and the attract trace has none, so neither the BBC nor the model drew a car (346
+  cycles a frame). The model also didn't depend on `gendata.py`, whose race loading it uses, so after the
+  fix it stayed stale. Both fixed: the attract race's draw order becomes car calls, and all 576 frames
+  that fit now match.

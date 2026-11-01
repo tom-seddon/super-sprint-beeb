@@ -18,15 +18,14 @@ ScHi = 5                                ; and the screen's (STA abs,X)
 \\ plot_cars drew it.
 \\
 \\ Inputs:
-\\     ebuf: the screen drawn: its erase list's first entry (0 or ErasePer)
-\\     EraseCol, EraseTop, EraseW, EraseH: the boxes, to the first of height 0
+\\     EraseCol, EraseTop, EraseW, EraseH: the boxes, to the first of height 0 (the screen being drawn's)
 \\
 \\ Outputs:
 \\     A, X, Y: corrupted
 
 .erase_cars
 {
-    ZA_AUTO1 slot                       ; local: the erase list's entry, from ebuf
+    ZA_AUTO1 slot                       ; local: the erase list's entry
     ZA_AUTO1 line                       ; local: the band's first line in the cell
     ZA_AUTO1 row                        ; local: the band's character row
     ZA_AUTO1 left                       ; local: lines still to erase
@@ -34,7 +33,7 @@ ScHi = 5                                ; and the screen's (STA abs,X)
     ZA_AUTO2 cx8                        ; local: the first column * 8
     ZA_AUTO1 wi                         ; local: 2 * (w - 1), the patching's entries' index
 
-    LDA ebuf:STA slot
+    STZ slot
 .next
     LDX slot
     LDA EraseH,X:BNE @+

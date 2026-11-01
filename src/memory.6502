@@ -14,6 +14,8 @@
 \\   &2B00  one more of the cars' data tables, made by the loader
 \\   &2C00  more tables, made by the loader: the priority bits' expansions
 \\   &2E00  the game's variables (GameVars), below &3000 so ACCCON's X never hides them
+\\   &3000  each screen's own variables (ScreenVars): main RAM's and shadow RAM's, ACCCON's X picking the
+\\          screen being drawn's (its erase list, the HUD's text it shows)
 \\   &3F00  the screen: the HUD's row, then the play area to &7FFF; in main RAM and in shadow RAM
 \\   &8000  sideways RAM. The background's bank: the clean play area and the erase that reads it.
 \\          The cars' bank: their frames, the priority cells and the plotter that reads them. The
@@ -56,6 +58,10 @@ ENDSECTION
 ASSERT LO(MaskTab) == 0, "the tables: on pages"
 
 SECTION GameVars, org = GameVarsOrg, guard = GameVarsEnd, virtual = TRUE
+ENDSECTION
+
+ScreenVarsOrg = &3000                   ; (SPRINT's loader is here until it jumps to start)
+SECTION ScreenVars, org = ScreenVarsOrg, guard = HudAddr, virtual = TRUE
 ENDSECTION
 
 SECTION ObjBuf, org = ObjBufOrg, guard = MoreTablesOrg - &100, virtual = TRUE
