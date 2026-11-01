@@ -25,21 +25,23 @@
 .ObjMaskHi
     EQUB HI(ObjData + GenObjMask)
 
-\\ The gates' and barriers' priority runs: per instance its runs (up to 3: where in the cars' bank's
-\\ priority data, how many bytes) and its first frame's entry; per entry the frame's bits
+\\ The gates' and barriers' entries, one per transition (an instance from one frame to the next, or its
+\\ first): its variant (from its kind's first), its runs (up to 3: where in the cars' bank's priority data,
+\\ how many bytes; a first draw's every cell, a step's only each cell row's span of cells that change),
+\\ their bits
 
-.InstRuns
-    EQUB GenInstRuns
-.InstRunLo
-    EQUB LO(PrioData + GenInstRunOff)
-.InstRunHi
-    EQUB HI(PrioData + GenInstRunOff)
-.InstRunLen
-    EQUB GenInstRunLen
-.InstBase
-    EQUB GenInstBase
-.InstDataLo
-    EQUB LO(ObjData + GenInstData)
-.InstDataHi
-    EQUB HI(ObjData + GenInstData)
+.EntVar
+    EQUB GenEntVar
+.EntRuns
+    EQUB GenEntRuns
+.EntRunLo
+    EQUB LO(PrioData + GenEntRunOff)
+.EntRunHi
+    EQUB HI(PrioData + GenEntRunOff)
+.EntRunLen
+    EQUB GenEntRunLen
+.EntDataLo
+    EQUB LO(ObjData + GenEntData)
+.EntDataHi
+    EQUB HI(ObjData + GenEntData)
 

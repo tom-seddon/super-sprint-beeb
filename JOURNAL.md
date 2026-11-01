@@ -252,3 +252,19 @@
   free on track 6 (the most priority cells). The objects' bank has 3,263 or more on every track.
 - The Makefile deletes a failed generator's target (`.DELETE_ON_ERROR`): a failure part-way had left a mix
   of files that assembled into a test that hung.
+
+## 2026-11-01: Phase 3, the gates' speed
+
+- `tools/render_profile.mjs --list N` prints the worst frames region by region. On track 4 (index) the
+  frames over were the set-up (2) and two gate steps with the helicopter and cars under a bridge.
+- Weighed and left: drawing only the gate's bytes that change. A step changes 47 to 105 of 192, inside a
+  box of 150-165, and a changed byte costs about 22 cycles against 9 copied: about even.
+- **The priority runs by transition.** A gate or barrier only steps to a neighbouring frame, so the
+  trace's event now gives an entry (instance, from, to), each with its variant and runs trimmed to the
+  cells that change (48-80 of a gate's 144 bytes). First call 7,546 -> 4,870 with the next change.
+- **The copy passes index the screen by X** from the cell's low byte, as the erase does: only high bytes
+  patched a band, no path for a crossed page (the masked barrier pass keeps its). Bands 2,346 -> 1,811 on
+  the second call. A step 13,626 -> 10,453; track 4's worst real frame 42,089 -> 39,359.
+- Two bugs on the way, both caught at once: the entry test compared the whole kind byte (with the
+  instance and flags in it) with 2, every frame wrong; and passes 2 and 3 used pass 0's branch table,
+  whose loop end is now a byte longer, and hung.

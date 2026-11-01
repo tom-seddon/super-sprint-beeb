@@ -188,6 +188,31 @@ def instances(frames):
     return out
 
 
+def transitions(frames, insts):
+    """Each gate's or barrier's call, as an entry: (instance, from frame or None, to frame), the ST's second
+    call for its other screen the same entry as its first. -> (the entries in the order they first come,
+    per frame a list of entry numbers for its gate and barrier calls in order)."""
+    entries, per, prev, now, last = [], [], [], {}, {}
+    for fr in frames:
+        objs = [(c[0], tuple(c[1][:2])) for c in fr['calls'] if c[0] in ObjKinds]
+        mine = []
+        for n, w in objs:
+            if n not in ObjSizes:
+                continue
+            i = insts.index((n,) + objects.place(n, w))
+            if (n, w) not in prev:
+                e = (i, now.get(i), w[0])
+                if e not in entries:
+                    entries.append(e)
+                now[i] = w[0]
+                last[i] = entries.index(e)
+            mine.append(last[i])
+        per.append(mine)
+        prev = objs
+    assert len(entries) * 3 <= 256
+    return entries, per
+
+
 def instance_cells(kind, x, y):
     """The 8 x 8 cells an instance covers, by cell row: [(row, first column, columns)]."""
     w, h = ObjSizes[kind]
@@ -385,7 +410,7 @@ def tornado_code(dat, key, n):
     return '\n'.join(lines) + '\n', cols[0], cols[-1] - cols[0] + 1
 
 
-def trace(frames, sets, movpieces, insts, room, piecedx, used):
+def trace(frames, sets, movpieces, insts, room, piecedx, used, ent_per_frame):
     """The race's frames, as many as fit in room bytes with the HUD's events: per frame the cars drawn
     (their count, then 4 bytes each: car | drone-driven << 2, x's low byte, y, frame | on top << 6 | x's
     high bit << 7) and the background objects' calls (their count, then 4 bytes each: kind | instance << 3 |
@@ -401,7 +426,7 @@ def trace(frames, sets, movpieces, insts, room, piecedx, used):
         c0, w = x // 4 + piecedx[p][0], piecedx[p][1]
         assert c0 + w <= 0 or c0 >= 80 or (c0 >= 0 and c0 + w <= 80), "a piece across the screen's side"
         return c0 >= 0 and c0 + w <= 80
-    for fr in frames:
+    for fi, fr in enumerate(frames):
         cars, movers = frame_draws(fr, heli)
         rec = bytearray([len(cars)])
         for d in cars:
@@ -418,12 +443,14 @@ def trace(frames, sets, movpieces, insts, room, piecedx, used):
         # each call's own arguments (3 for a slot, 2 for a gate or barrier; the ST's stack has others after)
         objs = [(n, w[:3] if n == 'slot' else w[:2]) for n, w in ((c[0], c[1]) for c in fr['calls']) if n in ObjKinds]
         rec.append(len(objs))
+        ents = iter(ent_per_frame[fi])
         for n, w in objs:
             x, y = objects.place(n, w)
             again = 1 if (n, w) in prev else 0          # the ST's second call, for its other screen
             inst = insts.index((n, x, y)) if n in ObjSizes else 0
             assert w[0] < (22 if n == 'slot' else ObjFrames[n]), (n, w)
-            rec += bytes([ObjKinds[n] | inst << 3 | again << 6 | (x >> 8) << 7, variant_of(n, w, y, used), x & 255, y])
+            v = next(ents) if n in ObjSizes else w[0]   # a gate's or barrier's entry (its transition), or a sprite
+            rec += bytes([ObjKinds[n] | inst << 3 | again << 6 | (x >> 8) << 7, v, x & 255, y])
         prev = objs
         rec.append(0)
         pieces = [(p, x, y) for key, x, y in movers for p in movpieces[key] if onscreen(p, x)]
@@ -501,26 +528,37 @@ def main(track, tracepath, out):
     # mask C over the lines it covers (over its sharers' at rest)
     dat_ = open('orig/st/SUPER.DAT', 'rb').read()
     base_mask = np.load(f'build/gfx/mask2_t{track}.npy')
-    inst_runs, inst_frames = [], []
-    for i, (kind, x, y) in enumerate(insts):
-        runs = []
+    def cell_bits(i, f):
+        """Instance i at frame f: its cells' bits, by (row, column), 8 bytes each."""
+        kind, x, y = insts[i]
+        m = base_mask.copy()
+        bgc = np.zeros((200, 320), np.uint8)
+        for j in sharers[i]:
+            kj, xj, yj = insts[j]
+            objects.apply(dat_, kj, [rest[j], (yj * 160 + xj // 16 * 8)], bgc, m)
+        objects.apply(dat_, kind, [f, (y * 160 + x // 16 * 8)], bgc, m)
+        hidden = (m == 0)
+        return {(r, c): bytes(int(np.packbits(hidden[r * 8 + line, c * 8:c * 8 + 8])[0]) for line in range(8))
+                for r, c0, n in instance_cells(kind, x, y) for c in range(c0, c0 + n)}
+
+    # each entry's runs (up to 3: a cell row's cells, together in prio.bin, as reserved cells side by side
+    # are numbered in turn), and their bits: a first draw's every cell, a step's only each row's span of
+    # cells that change
+    entries, ent_per_frame = transitions(frames, insts)
+    ent_runs, ent_bits = [], []
+    for i, f0, f1 in entries:
+        kind, x, y = insts[i]
+        new_, old_ = cell_bits(i, f1), (cell_bits(i, f0) if f0 is not None else None)
+        runs, bits = [], b''
         for r, c0, n in instance_cells(kind, x, y):
             v = int(cellmap[r, c0])
             assert all(cellmap[r, c0 + k] == v + k for k in range(n))
-            runs.append((8 * (rowoff[r] + v - 1), 8 * n))
-        inst_runs.append(runs)
-        frs = []
-        for f in objframes[kind]:
-            m = base_mask.copy()
-            bgc = np.zeros((200, 320), np.uint8)
-            for j in sharers[i]:
-                kj, xj, yj = insts[j]
-                objects.apply(dat_, kj, [rest[j], (yj * 160 + xj // 16 * 8)], bgc, m)
-            objects.apply(dat_, kind, [f, (y * 160 + x // 16 * 8)], bgc, m)
-            hidden = (m == 0)
-            frs.append(bytes(int(np.packbits(hidden[r * 8 + line, c * 8:c * 8 + 8])[0])
-                             for r, c0, n in instance_cells(kind, x, y) for c in range(c0, c0 + n) for line in range(8)))
-        inst_frames.append(frs)
+            cols = [c for c in range(c0, c0 + n) if old_ is None or old_[r, c] != new_[r, c]]
+            if cols:
+                runs.append((8 * (rowoff[r] + v - 1 + cols[0] - c0), 8 * (cols[-1] - cols[0] + 1)))
+                bits += b''.join(new_[r, c] for c in range(cols[0], cols[-1] + 1))
+        ent_runs.append(runs)
+        ent_bits.append(bits)
     open(f'{out}/prio.bin', 'wb').write(pdata)
     open(f'{out}/prioclass.bin', 'wb').write(classes)
     # the map: each row from 2 cells before its first with hidden pixels to 2 after its last (a car covers 3
@@ -595,12 +633,11 @@ def main(track, tracepath, out):
         for i, (w, h, d, m, pb) in enumerate(variants[kind]):
             vt.append((w, h, (1 if m else 0) | (2 if kind in ObjSizes else 0), where[(kind, i), 0],
                        where.get(((kind, i), 1), 0)))
-    inst_base, inst_data = [], []
-    for frs in inst_frames:
-        inst_base.append(len(inst_data))
-        for b in frs:
-            inst_data.append(len(obin))
-            obin += b
+    ent_data = []
+    for b in ent_bits:
+        ent_data.append(len(obin))
+        obin += b
+    ent_var = [variant_of(insts[i][0], [f1], insts[i][2], objframes) for i, f0, f1 in entries]
     mt = [(dx, dy, w, h, t, where[('move', i), 0]) for i, (dx, dy, w, h, t, d) in enumerate(movers_)]
     torcode = [tornado_code(dat, k, i) for i, k in enumerate(torkeys)] or [('.TorCode0\n    RTS\n', 0, 1)]
     for i, k in enumerate(torkeys):
@@ -645,15 +682,16 @@ def main(track, tracepath, out):
         f.write(lst('GenObjKindBase', [0] + bases))
         for i, name in enumerate(('GenObjW', 'GenObjH', 'GenObjFlags', 'GenObjData', 'GenObjMask')):
             f.write(lst(name, [v[i] for v in vt]))
-        # the gates' and barriers' priority runs: per instance up to 3 runs (an offset in prio.bin, bytes),
-        # its first frame's entry; per entry, the frame's bits in objects.bin, the runs' bytes one after another
-        runs3 = [r + [(0, 0)] * (3 - len(r)) for r in inst_runs] or [[(0, 0)] * 3]
-        f.write(lst('GenInstRuns', [len(r) for r in inst_runs] or [0]))
-        f.write(lst('GenInstRunOff', [o for r in runs3 for o, n in r]))
-        f.write(lst('GenInstRunLen', [n for r in runs3 for o, n in r]))
-        f.write(lst('GenInstBase', inst_base or [0]))
-        f.write(lst('GenInstData', inst_data or [0]))
-        f.write(f'Instances = {len(inst_runs)}\n')
+        # the gates' and barriers' entries (each a transition: an instance from one frame to the next, or
+        # its first): its variant, its runs (up to 3: an offset in prio.bin, bytes), its bits in objects.bin
+        # (the runs' bytes one after another)
+        runs3 = [r + [(0, 0)] * (3 - len(r)) for r in ent_runs] or [[(0, 0)] * 3]
+        f.write(lst('GenEntVar', ent_var or [0]))
+        f.write(lst('GenEntRuns', [len(r) for r in ent_runs] or [0]))
+        f.write(lst('GenEntRunOff', [o for r in runs3 for o, n in r]))
+        f.write(lst('GenEntRunLen', [n for r in runs3 for o, n in r]))
+        f.write(lst('GenEntData', ent_data or [0]))
+        f.write(f'Entries = {len(ent_runs)}\n')
         f.write(f'ObjVariants = {len(vt)}\n')
         for i, name in enumerate(('GenMovDX', 'GenMovDY', 'GenMovW', 'GenMovH', 'GenMovTable', 'GenMovData')):
             f.write(lst(name, [m[i] for m in mt]))
@@ -677,7 +715,7 @@ def main(track, tracepath, out):
     piecedx.update({heli0 + i: (m[0], m[2]) for i, m in enumerate(hpieces)})
     piecedx.update({len(mt) + i: (dx, w) for i, (s, dx, w) in enumerate(torcode)})
     tdata, nframes, events = trace(frames, sets, movpieces, insts,
-                                   16384 - len(hbin) - HeliCode - 9 * len(hpieces), piecedx, objframes)
+                                   16384 - len(hbin) - HeliCode - 9 * len(hpieces), piecedx, objframes, ent_per_frame)
     open(f'{out}/trace.bin', 'wb').write(tdata)
     open(f'{out}/hudevents.bin', 'wb').write(events)
     with open(f'{out}/trace.6502', 'w') as f:

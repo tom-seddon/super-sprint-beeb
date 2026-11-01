@@ -198,7 +198,9 @@ adds the logic.
 - All 8 tracks checked, frame by frame, each a real ST race with every hazard: everything fits on each,
   the cars' bank tightest (504 bytes free with three human players on track 6), and only track 5's gates
   take a frame over 40,000 cycles (`docs/renderer.md`).
-- To do: the objects' speed (track 5's gates).
+- The gates' steps made cheaper (about 13,600 cycles over their two frames to 10,500): the priority
+  bits only for the cells that change, the screen copies indexed as the erase's. No frame of any track
+  goes over 40,000 cycles but the race's set-up.
 
 ### Phase 4: one race
 - Physics, collisions, drones, laps, scoring, HUD, input for 3 players, sound. One track, played start to

@@ -2,12 +2,14 @@
 // region (the erase's loop and the rest, the plot's set-up, bands, fast loop, slow loop and its columns),
 // in headless jsbeeb with the real IRQ. Prints the mean over the race and over its worst frames.
 //
-// Usage (from the repo root, after make beeb): node tools/render_profile.mjs [--worst 20]
+// Usage (from the repo root, after make beeb): node tools/render_profile.mjs [--worst 20] [--list N]
+//     --list N: also each of the N worst frames on its own, its number and regions
 
 import { bootDisc, cycles, runTo, symbols } from "./jsbeeb.mjs";
 
 const args = process.argv.slice(2);
 const worstN = Number(args[args.indexOf("--worst") + 1] || 20);
+const listN = args.includes("--list") ? Number(args[args.indexOf("--list") + 1]) : 0;
 const syms = symbols();
 const s = await bootDisc();
 const cpu = s._machine.processor;
@@ -30,6 +32,9 @@ const regions = [
     ["movers rest", "obj", L("objmov.mov_plot"), 0xC000],
     ["helicopter loop", "heli", L("helimov.mov_plot.blocks"), L("helimov.mov_plot.back") + 2],
     ["helicopter rest", "heli", L("helimov.mov_plot"), 0xC000],
+    ["objects: copy loops", null, L("obj_bands.p0blocks"), L("CopyBack")],
+    ["objects: bands", null, L("obj_bands"), L("CopyBack")],
+    ["objects: priority runs", null, L("obj_runs"), L("obj_runs") + 300],
     ["objects (main RAM)", null, L("obj_events"), L("obj_events") + 2000],
     ["plot bands", "cars", L("plot_car.crossing"), L("plot_car.slow")],
     ["main RAM", null, 0, 0x3000],
@@ -62,7 +67,7 @@ for (let n = 0; n < frames; n++) {
     counts = {};
     const t0 = cycles(s);
     await runTo(s, syms["frame_loop.frame_end"]);
-    perFrame.push({ total: cycles(s) - t0, counts });
+    perFrame.push({ n, total: cycles(s) - t0, counts });
     counts = null;
 }
 
@@ -77,4 +82,8 @@ const show = (label, set) => {
 };
 show("all", perFrame);
 show("worst", [...perFrame].sort((a, b) => b.total - a.total).slice(0, worstN));
+for (const f of [...perFrame].sort((a, b) => b.total - a.total).slice(0, listN)) {
+    const parts = names.filter((k) => f.counts[k] > 500).map((k) => `${k} ${f.counts[k]}`);
+    console.log(`frame ${f.n}: ${f.total}: ${parts.join(", ")}`);
+}
 process.exit(0);

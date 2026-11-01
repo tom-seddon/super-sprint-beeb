@@ -14,11 +14,13 @@ MaxObjCols = 12                         ; the widest object's bytes (a gate's)
 ObjMasked = 1                           ; a variant's flags: drawn over the screen, its mask's bits kept
 ObjHasPrio = 2                          ; and: has priority bits for its cells
 ObjAgain = &40                          ; an event's kind byte: the ST's second call, for its other screen
+ObjKindPrio = 2                         ; kinds from 2 (gates, barriers): their events give an entry, not a variant
 
 SECTION GameVars
 .ObjCount                               ; the frame's background object events
     SKIP 1
-.ObjEvents                              ; each: kind | again << 6 | x's high bit << 7, variant, x's low byte, y
+.ObjEvents                              ; each: kind | instance << 3 | again << 6 | x's high bit << 7, a slot's sprite
+                                        ; or a gate's or barrier's entry, x's low byte, y
     SKIP 4 * MaxObjEvents
 ENDSECTION
 
@@ -64,8 +66,15 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     \\ the variant: its size, flags and bytes' places (the objects' bank paged in)
 
     LDA bankobj:STA &FE30               ; ROMSEL: the objects' bank
+    LDY ObjEvents+1,X                   ; a slot's sprite, or a gate's or barrier's entry: its variant
+    LDA ObjEvents,X:AND #7:CMP #ObjKindPrio
+    TYA                                 ; (C kept)
+    BCC @+
+    LDA EntVar,Y
+.@
+    PHA
     LDA ObjEvents,X:AND #7:TAY
-    LDA ObjKindBase,Y:CLC:ADC ObjEvents+1,X:TAY
+    PLA:CLC:ADC ObjKindBase,Y:TAY
     LDA ObjEvents,X:ASL A               ; C: x's high bit
     LDA ObjEvents+2,X:ROR A:LSR A:STA obj_bands.col ; x DIV 4
     LDA ObjEvents+3,X:STA obj_bands.y
@@ -91,15 +100,13 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     LDA #2:JSR obj_bands
     BRA done
 
-    \\ the first: a gate's or barrier's priority runs, this frame's (ObjEvents+1 is frame * 2 + parity)
+    \\ the first: a gate's or barrier's priority runs, its entry's
 
 .first
     LDA obj_bands.flags:AND #ObjHasPrio:BEQ done
-    LDA ObjEvents,X:LSR A:LSR A:LSR A:AND #7:TAY    ; the instance
-    LDA ObjEvents+1,X:LSR A             ; the frame
-    CLC:ADC InstBase,Y:TAX
-    LDA InstDataLo,X:STA obj_runs.src
-    LDA InstDataHi,X:STA obj_runs.src+1
+    LDY ObjEvents+1,X                   ; the entry
+    LDA EntDataLo,Y:STA obj_runs.src
+    LDA EntDataHi,Y:STA obj_runs.src+1
     JSR obj_runs
 .done
     LDA event:CLC:ADC #4:STA event
@@ -146,7 +153,6 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     ZA_AUTO2 cs                         ; local: the band's first cell
     ZA_AUTO1 last                       ; local: 8 * (w - 1)
     ZA_AUTO2 ccs                        ; local: the crossing's column's screen cell
-    ZA_AUTO1 bsize                      ; local: and the pass's blocks' size
 
     STA pass
     LDA col:ASL A:ASL A:ASL A:STA cx8   ; col * 8 (col 0-79)
@@ -181,10 +187,10 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     BRA band
 .@
     CMP #2:BNE @+
-    LDA CopyBack,X:STA p2back+1
+    LDA XCopyBack,X:STA p2back+1
     BRA band
 .@
-    LDA CopyBack,X:STA p3back+1
+    LDA XCopyBack,X:STA p3back+1
 
     \\ each band: its lines, its first cell, the screen's operands (from cs, 8 bytes a column; a page crossed
     \\ among the object's columns patched a column at a time), the variant's (for passes 0 and 1), the run
@@ -195,11 +201,12 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     LDA left                            ; or fewer
 .@
     CLC:ADC line:STA lend
-    STA p0end+1:STA p1end+1:STA p2end+1:STA p3end+1
+    STA p0end+1:STA p1end+1             ; (passes 2 and 3 end by X: theirs at the patching)
     LDX row
     LDA RowLo,X:CLC:ADC cx8:STA cs
     LDA RowHi,X:ADC cx8+1:STA cs+1
-    LDA cs:CLC:ADC last:BCC @+
+    LDA cs:CLC:ADC last:BCC @+          ; a page crossed among the columns' cells: only pass 1 minds
+    LDA pass:CMP #1:BNE @+              ; (the others index the screen by X from the cell's low byte)
     JMP crossing
 .@
     LDA pass:ASL A:TAX                  ; (C clear)
@@ -236,37 +243,29 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     JMP p1enter
     ZA_UNREACHABLE
 
-    \\ pass 0: the screen written, the variant read
+    \\ pass 0: the variant read (Y the line in it), the screen written (X: the cell's low byte and the line,
+    \\ column n's operand 8n into the cell's page, so only its high byte is patched, and a page crossed among
+    \\ the cells is carried by the indexing, as the erase does)
 
 .fast0
-    LDA cs                              ; (C clear)
-    FOR n = 0..MaxObjCols-1
-        STA CopyBlk(p0blocks, n)+4
-        IF n < MaxObjCols-1 : ADC #8 : ENDIF
-    NEXT
     LDA cs+1
     FOR n = 0..MaxObjCols-1
         STA CopyBlk(p0blocks, n)+5
     NEXT
-.patched0
     LDA dlo:CLC:ADC doff
     CLC                                 ; (doff can be negative: its carry discarded)
     FOR n = 0..MaxObjCols-1
         STA CopyBlk(p0blocks, n)+1
         IF n < MaxObjCols-1 : ADC h : ENDIF
     NEXT
+    LDA cs:CLC:ADC line:TAX:DEX         ; (the INX makes it the line's)
     LDY line
     DEY
     JMP p0enter
 
-    \\ pass 2: the screen read, the background written
+    \\ pass 2: the screen read, the background written, both indexed by X as pass 0's screen
 
 .fast2
-    LDA cs                              ; (C clear)
-    FOR n = 0..MaxObjCols-1
-        STA CopyBlk(p2blocks, n)+1:STA CopyBlk(p2blocks, n)+4
-        IF n < MaxObjCols-1 : ADC #8 : ENDIF
-    NEXT
     LDA cs+1
     FOR n = 0..MaxObjCols-1
         STA CopyBlk(p2blocks, n)+2
@@ -275,18 +274,13 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     FOR n = 0..MaxObjCols-1
         STA CopyBlk(p2blocks, n)+5
     NEXT
-    LDY line
-    DEY
+    LDA cs:CLC:ADC lend:STA p2end+1     ; (256 for the last line of a page's last cell: 0, as X wraps)
+    LDA cs:CLC:ADC line:TAX:DEX
     JMP p2enter
 
-    \\ pass 3: the background read, the screen written
+    \\ pass 3: the background read, the screen written, as pass 2
 
 .fast3
-    LDA cs                              ; (C clear)
-    FOR n = 0..MaxObjCols-1
-        STA CopyBlk(p3blocks, n)+1:STA CopyBlk(p3blocks, n)+4
-        IF n < MaxObjCols-1 : ADC #8 : ENDIF
-    NEXT
     LDA cs+1
     FOR n = 0..MaxObjCols-1
         STA CopyBlk(p3blocks, n)+5
@@ -295,8 +289,8 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     FOR n = 0..MaxObjCols-1
         STA CopyBlk(p3blocks, n)+2
     NEXT
-    LDY line
-    DEY
+    LDA cs:CLC:ADC lend:STA p3end+1
+    LDA cs:CLC:ADC line:TAX:DEX
     JMP p3enter
 
     \\ the next band: the next row from its line 0
@@ -312,68 +306,37 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
 .done
     RTS
 
-    \\ a page crossed among the object's columns: each column's screen operands from the last, the high
-    \\ byte carried (X: the column's block); then the variant's as usual
+    \\ pass 1, a page crossed among the object's columns: each column's screen operands from the last, the
+    \\ high byte carried (X: the column's block); then the variant's and the mask's as usual
 
 .crossing
     LDA cs:STA ccs
     LDA cs+1:STA ccs+1
-    LDX pass
-    LDA BlkSizes,X:STA bsize
-    LDA BlkLast,X:TAX                   ; (X: column 0's block)
+    LDX #(MaskCols - 1) * MaskBlkSize   ; (column 0's block)
     LDY w
 .ccol
-    LDA pass:BNE @+
-    LDA ccs:STA p0blocks+4,X
-    LDA ccs+1:STA p0blocks+5,X
-    BRA cnext
-.@
-    CMP #1:BNE @+
     LDA ccs:STA mblocks+1,X:STA mblocks+10,X
     LDA ccs+1:STA mblocks+2,X:STA mblocks+11,X
-    BRA cnext
-.@
-    CMP #2:BNE @+
-    LDA ccs:STA p2blocks+1,X:STA p2blocks+4,X
-    LDA ccs+1:STA p2blocks+2,X
-    CLC:ADC #HI(BgOffset):STA p2blocks+5,X
-    BRA cnext
-.@
-    LDA ccs:STA p3blocks+1,X:STA p3blocks+4,X
-    LDA ccs+1:STA p3blocks+5,X
-    CLC:ADC #HI(BgOffset):STA p3blocks+2,X
-.cnext
     LDA ccs:CLC:ADC #8:STA ccs
     BCC @+
     INC ccs+1
 .@
-    TXA:SEC:SBC bsize:TAX               ; (the next column's block: before this one)
+    TXA:SEC:SBC #MaskBlkSize:TAX        ; (the next column's block: before this one)
     DEY:BNE ccol
-    LDX pass
-    BEQ patched0x
-    CPX #1:BEQ patched1x
-    LDY line
-    DEY
-    CPX #2:BEQ @+
-    JMP p3enter
-.@
-    JMP p2enter
-.patched0x
-    JMP patched0
-.patched1x
     JMP patched1
     ZA_UNREACHABLE
 
     \\ the passes' loops: each a line of the object's columns a pass, column w - 1's block entered by the
     \\ branch back, column 0's last; the loop's end, lend, patched
 
-    INPAGE MaxObjCols * CopyBlkSize + 5                 ; (the loop in one page)
+    INPAGE MaxObjCols * CopyBlkSize + 6                 ; (the loop in one page)
 .p0blocks
     FOR n = MaxObjCols-1..0
         LDA &FFFF,Y                     ; self-modified: the variant's column n
-        STA &FFFF,Y                     ; self-modified: the screen's cell
+        STA &FF00+8*n,X                 ; self-modified (its high byte): the screen's cell
     NEXT
 .p0enter
+    INX
     INY
 .p0end
     CPY #0                              ; self-modified: lend
@@ -404,13 +367,13 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     INPAGE MaxObjCols * CopyBlkSize + 5                 ; (the loop in one page)
 .p2blocks
     FOR n = MaxObjCols-1..0
-        LDA &FFFF,Y                     ; self-modified: the screen's cell
-        STA &FFFF,Y                     ; self-modified: the background's
+        LDA &FF00+8*n,X                 ; self-modified (its high byte): the screen's cell
+        STA &FF00+8*n,X                 ; self-modified (its high byte): the background's
     NEXT
 .p2enter
-    INY
+    INX
 .p2end
-    CPY #0                              ; self-modified: lend
+    CPX #0                              ; self-modified: the cell's low byte and lend
 .p2back
     BNE p2blocks                        ; self-modified: to column w - 1's block
     SAME_PAGE p2blocks
@@ -420,13 +383,13 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     INPAGE MaxObjCols * CopyBlkSize + 5                 ; (the loop in one page)
 .p3blocks
     FOR n = MaxObjCols-1..0
-        LDA &FFFF,Y                     ; self-modified: the background's cell
-        STA &FFFF,Y                     ; self-modified: the screen's
+        LDA &FF00+8*n,X                 ; self-modified (its high byte): the background's cell
+        STA &FF00+8*n,X                 ; self-modified (its high byte): the screen's
     NEXT
 .p3enter
-    INY
+    INX
 .p3end
-    CPY #0                              ; self-modified: lend
+    CPX #0                              ; self-modified: the cell's low byte and lend
 .p3back
     BNE p3blocks                        ; self-modified: to column w - 1's block
     SAME_PAGE p3blocks
@@ -434,32 +397,31 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
 }
 
 
-\\ The loops' branches back by the width (to column w - 1's block), and per pass its column 0's block's
-\\ offset from its first and its blocks' size
+\\ The loops' branches back by the width (to column w - 1's block)
 
 .CopyBack
     EQUB 0
     EQUB LO(CopyBlk(obj_bands.p0blocks, (1..MaxObjCols) - 1) - (obj_bands.p0back + 2))
+.XCopyBack                              ; (passes 2 and 3: a byte less to their branch, X alone counting)
+    EQUB 0
+    EQUB LO(CopyBlk(obj_bands.p2blocks, (1..MaxObjCols) - 1) - (obj_bands.p2back + 2))
+    ASSERT obj_bands.p3back - obj_bands.p3blocks == obj_bands.p2back - obj_bands.p2blocks, "passes 2 and 3 alike"
 .MaskBack
     EQUB 0
     EQUB LO(MaskBlk((1..MaskCols) - 1) - (obj_bands.p1back + 2))
 .FastPass                               ; obj_bands' patching for each pass
     EQUW obj_bands.fast0, obj_bands.fast1, obj_bands.fast2, obj_bands.fast3
-.BlkLast
-    EQUB (MaxObjCols - 1) * CopyBlkSize, (MaskCols - 1) * MaskBlkSize
-    EQUB (MaxObjCols - 1) * CopyBlkSize, (MaxObjCols - 1) * CopyBlkSize
-.BlkSizes
-    EQUB CopyBlkSize, MaskBlkSize, CopyBlkSize, CopyBlkSize
 
-\\ A gate's or barrier's priority runs into its cells: the frame's bits for the cells it covers, worked out by
-\\ tools/gendata.py (the track's own bits, the frame's over the lines it covers), up to 3 runs, each a cell
-\\ row's cells together in the cars' bank's priority data; copied through ObjBufPrio, from the objects'
+\\ A gate's or barrier's priority runs into its cells: its entry's (a transition: tools/gendata.py worked
+\\ out the frame's bits, the track's own with the frame's over the lines it covers, and kept only each cell
+\\ row's span of cells that change, or all for a first draw), up to 3 runs, each cells side by side in the
+\\ cars' bank's priority data; copied through ObjBufPrio, from the objects'
 \\ bank to the cars'. The cells' classes are 2 for both halves (gendata.py reserves them so), so the plotter
 \\ goes by the bits.
 \\
 \\ Inputs:
-\\     Y: the instance
-\\     src: the frame's bits, the runs' one after another (in the objects' bank, paged in)
+\\     Y: the entry
+\\     src: its bits, the runs' one after another (in the objects' bank, paged in)
 \\
 \\ Outputs:
 \\     ROMSEL: the cars' bank; A, X, Y: corrupted
@@ -475,15 +437,18 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
     \\ the runs' places and sizes to RunLo, RunHi and RunLen, and their bytes to ObjBufPrio (the objects'
     \\ bank in: none of it can be read once the cars' is), 4 a pass, Y counting down
 
-    LDA InstRuns,Y:STA runs
-    TYA:ASL A:STA r                     ; 3 * the instance: its first run
+    LDA EntRuns,Y:BNE @+
+    RTS                                 ; (no cell changes)
+.@
+    STA runs
+    TYA:ASL A:STA r                     ; 3 * the entry: its first run
     TYA:CLC:ADC r:TAX
     LDY #0
     STZ total
 .sum
-    LDA InstRunLo,X:STA RunLo,Y
-    LDA InstRunHi,X:STA RunHi,Y
-    LDA InstRunLen,X:STA RunLen,Y
+    LDA EntRunLo,X:STA RunLo,Y
+    LDA EntRunHi,X:STA RunHi,Y
+    LDA EntRunLen,X:STA RunLen,Y
     CLC:ADC total:STA total
     INX
     INY
