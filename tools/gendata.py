@@ -165,8 +165,8 @@ def map_at(idx, lmap, x0, y0):
 
 
 def rows_bytes(lidx):
-    """A patch of logical colours, 4n wide -> its rows of MODE 1 bytes, row by row."""
-    return bytes(pixel_byte(lidx[r, 4 * n:4 * n + 4]) for r in range(lidx.shape[0]) for n in range(lidx.shape[1] // 4))
+    """A patch of logical colours, 4n wide -> its MODE 1 bytes, column by column (each column's rows together)."""
+    return bytes(pixel_byte(lidx[r, 4 * n:4 * n + 4]) for n in range(lidx.shape[1] // 4) for r in range(lidx.shape[0]))
 
 
 # the background objects' kinds in the trace, and the variants each has
@@ -176,20 +176,21 @@ ObjKinds = {'slot': 1, 'gate': 2, 'barrier': 3}
 def object_variants(dat):
     """Every variant of the background objects: the slots' 22 sprites; the gates' 5 frames and the barriers' 8,
     each for a top line even or odd (the patterns' phase). -> per kind, a list of (w bytes, h, data, mask or
-    None, priority bits or None); the mask's set bits keep the screen (a barrier's colour 0), the priority
-    bits are 1 where a car on the ground is hidden, a byte per 8 pixels."""
+    None, priority bits or None); the data and mask column by column, the mask's set bits keep the screen (a
+    barrier's colour 0); the priority bits too, a byte per 8 pixels, each 8-pixel column's lines together, 1
+    where a car on the ground is hidden."""
     lmap = logical_map(Opt, Opt['bg'])
     out = {'slot': [], 'gate': [], 'barrier': []}
     for sprite in range(22):
         out['slot'].append((4, 8, rows_bytes(map_at(objects.slot(dat, sprite), lmap, 0, 0)), None, None))
     for frame in range(5):
         col, mc = objects.gate(dat, frame)
-        pb = bytes(np.packbits(1 - mc, axis=1).flatten())
+        pb = bytes(np.packbits(1 - mc, axis=1).T.flatten())     # (column by column)
         for parity in range(2):
             out['gate'].append((12, 16, rows_bytes(map_at(col, lmap, 0, parity)), None, pb))
     for frame in range(8):
         col, mc = objects.barrier(dat, frame)
-        pb = bytes(np.packbits(1 - mc, axis=1).flatten())
+        pb = bytes(np.packbits(1 - mc, axis=1).T.flatten())     # (column by column)
         keep = np.where(col == 0, 3, 0).astype(np.uint8)
         for parity in range(2):
             lidx = map_at(col, lmap, 0, parity)
@@ -205,9 +206,9 @@ def variant_of(kind, args, y):
 def trace(frames, sets, room):
     """The race's frames, as many as fit in room bytes with the HUD's events: per frame the cars drawn
     (their count, then 4 bytes each: car | drone-driven << 2, x's low byte, y, frame | on top << 6 | x's
-    high bit << 7) and the background objects' calls (their count, then 4 bytes each: kind | x's high bit << 7,
-    variant, x's low byte, y). The ST calls each a second time the frame after, for its other screen: that call
-    is left out, since the BBC writes both screens the first time."""
+    high bit << 7) and the background objects' calls (their count, then 4 bytes each: kind | again << 6 | x's
+    high bit << 7, variant, x's low byte, y). The ST calls each a second time the frame after, for its other
+    screen: "again" marks that call, for which the BBC only copies the background into the screen."""
     out, starts, prev = bytearray(), [], []
     for fr in frames:
         rec = bytearray([len(fr['order'])])
@@ -216,13 +217,14 @@ def trace(frames, sets, room):
             droned = 1 if fr['drone'][c] and c < 3 else 0
             on_top = 1 if flags & 0x0401 else 0
             rec += bytes([c | droned << 2, x & 255, y, set_of(sets, c, droned) * 16 + facing | on_top << 6 | (x >> 8) << 7])
-        objs = [(n, w) for n, w in ((c[0], c[1]) for c in fr['calls']) if n in ObjKinds]
-        objs = [o for o in objs if o not in prev]       # (the ST's second call, for its other screen)
-        prev = [(n, w) for n, w in ((c[0], c[1]) for c in fr['calls']) if n in ObjKinds]
+        # each call's own arguments (3 for a slot, 2 for a gate or barrier; the ST's stack has others after)
+        objs = [(n, w[:3] if n == 'slot' else w[:2]) for n, w in ((c[0], c[1]) for c in fr['calls']) if n in ObjKinds]
         rec.append(len(objs))
         for n, w in objs:
             x, y = objects.place(n, w)
-            rec += bytes([ObjKinds[n] | (x >> 8) << 7, variant_of(n, w, y), x & 255, y])
+            again = 1 if (n, w) in prev else 0          # the ST's second call, for its other screen
+            rec += bytes([ObjKinds[n] | again << 6 | (x >> 8) << 7, variant_of(n, w, y), x & 255, y])
+        prev = objs
         starts.append(len(out))
         out += rec
     # the HUD's events: a car's laps or score as it changes (every car's at frame 0), 10 bytes each
@@ -304,14 +306,34 @@ def main(track, tracepath, out):
 
     # the background objects' variants, for the objects' bank: each one's data, mask and priority bits
     variants = object_variants(dat)
-    obin, vt = bytearray(), []
+    blocks = []                         # (variant, part, bytes): the data and masks, each in a page, 7 bytes in
     for kind in ObjKinds:
-        for w, h, d, m, pb in variants[kind]:
-            offs = []
-            for part in (d, m, pb):
-                offs.append(len(obin) if part else 0)
-                obin += part or b''
-            vt.append((w, h, (1 if m else 0) | (2 if pb else 0), *offs))
+        for i, (w, h, d, m, pb) in enumerate(variants[kind]):
+            blocks.append(((kind, i), 0, d))
+            if m:
+                blocks.append(((kind, i), 1, m))
+    pages, where = [], {}
+    for key, part, b in sorted(blocks, key=lambda t: -len(t[2])):
+        for p, used in enumerate(pages):
+            if used + len(b) <= 256:
+                break
+        else:
+            pages.append(7)
+            p = len(pages) - 1
+        where[key, part] = p * 256 + pages[p]
+        pages[p] += len(b)
+    obin = bytearray(256 * len(pages))
+    for key, part, b in blocks:
+        obin[where[key, part]:where[key, part] + len(b)] = b
+    obin = obin[:256 * (len(pages) - 1) + pages[-1]]
+    vt = []
+    for kind in ObjKinds:
+        for i, (w, h, d, m, pb) in enumerate(variants[kind]):
+            po = 0
+            if pb:
+                po = len(obin)
+                obin += pb
+            vt.append((w, h, (1 if m else 0) | (2 if pb else 0), where[(kind, i), 0], where.get(((kind, i), 1), 0), po))
     open(f'{out}/objects.bin', 'wb').write(obin)
     with open(f'{out}/objects.6502', 'w') as f:
         f.write('\\\\ objects.6502 - made by tools/gendata.py: the background objects\' variants in objects.bin\n\n')

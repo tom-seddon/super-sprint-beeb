@@ -78,6 +78,10 @@ for (const t of tv) hist[t] = (hist[t] || 0) + 1;
 console.log(`frames ${work.length}: work cycles mean ${mean.toFixed(0)}, median ${pct(50)}, 90% ${pct(90)}, ` +
     `99% ${pct(99)}, max ${sorted[sorted.length - 1]}; over a TV frame (${TvFrame}): ` +
     `${work.filter((t) => t > TvFrame).length}`);
+if (args.includes("--readframes")) {
+    const top = parts.read.map((c, i) => [c, i]).filter(([c]) => c > 1000);
+    console.log(`read over 1000 cycles: ${top.map(([c, i]) => `${i}:${c}`).join(" ")}`);
+}
 if (args.includes("--hudframes")) {
     const top = parts.hud.map((c, i) => [c, i]).filter(([c]) => c > 500);
     console.log(`HUD over 500 cycles: ${top.map(([c, i]) => `${i}:${c}`).join(" ")}`);

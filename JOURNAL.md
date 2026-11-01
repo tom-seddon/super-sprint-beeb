@@ -138,3 +138,11 @@
 - Background objects work (every frame of the 857 matches the model) but are slow: 4,770 cycles a frame on
   average, 112,820 at worst. Two quick changes (the ST's second call left out, both screens written by the
   first; the cells found once each) took the average from 6,809; the bytes need the plotter's treatment next.
+- Background objects faster: the ST's two calls kept, the first writing the variant into the screen and
+  copying it into the background, the second only copying the background into the other screen; each copy
+  through unrolled column blocks patched once a band. Objects 4,770 -> 1,865 cycles a frame on average; a
+  gate's step 12,542 then 3,626. One frame over a TV frame: the race's first, setting up 7 objects.
+- Two bugs on the way, caught by the model check: the objects' bytes were packed in pages relative to a
+  label that wasn't on a page (each column then read across a page), and `ADC doff` (minus the line) left
+  the carry set for the next column's add. And the second call wasn't recognised for gates: the ST's stack
+  holds other words after a call's arguments, and they differed between the two calls.
