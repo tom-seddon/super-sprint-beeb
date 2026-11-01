@@ -10,9 +10,11 @@ Usage: gendata.py TRACK TRACE.json OUTDIR
   through a table that makes 1 yellow; the others' 1 is green (or unused).
 - cars.6502: per frame-shift (frame * 4 + shift) its first byte column (from the box's x DIV 4), width in
   bytes and data offset; per frame its first row and height.
-- prio.bin, prio.6502: the priority mask (where a car on the ground is hidden), as 1 bit a pixel, 8 bytes
-  (lines) per 8 x 8 cell, only for cells with a hidden pixel; a map of the 40 x 25 cells (0, or the cell's
-  number in its row from 1) and each row's first cell's offset.
+- prio.bin, prioclass.bin, priomap.bin, prio.6502: the priority mask (where a car on the ground is hidden),
+  for the 8 x 8 cells with a hidden pixel only: each one's 8 lines of 1-bit masks, and a class byte for its
+  two halves (nothing, all or some hidden); a map of the 40 x 25 cells (0, or the cell's number in its row
+  from 1), each row stored from 2 cells before its first to 2 after its last, with its offset, first and
+  last; and each row's first cell's number, less 1, from which its data and class are found.
 - trace.bin, trace.6502: the race, 12 bytes a frame: per car in draw order, x's low byte, y, and frame |
   elevated << 6 | x's high bit << 7.
 """
@@ -88,13 +90,16 @@ def cars(dat):
 
 
 def prio(track):
+    """Each 8 x 8 cell with hidden pixels: its 8 lines of bits (1 hidden), and a class byte: per half (left
+    in bits 0-1, right in bits 2-3), 0 nothing hidden, 1 all hidden, 2 some."""
     hidden = np.load(f'build/gfx/mask2_t{track}.npy') == 0
     cells = hidden.reshape(25, 8, 40, 8)
     data = bytearray()
+    classes = bytearray()
     cellmap = np.zeros((25, 40), np.uint8)
     rowoff = []
     for r in range(25):
-        rowoff.append(len(data))
+        rowoff.append(len(classes))
         k = 0
         for c in range(40):
             if cells[r, :, c, :].any():
@@ -102,7 +107,12 @@ def prio(track):
                 cellmap[r, c] = k
                 for line in range(8):
                     data.append(int(np.packbits(cells[r, line, c, :])[0]))
-    return bytes(data), cellmap, rowoff
+                cls = 0
+                for half in range(2):
+                    h = cells[r, :, c, half * 4:half * 4 + 4]
+                    cls |= (0 if not h.any() else 1 if h.all() else 2) << (2 * half)
+                classes.append(cls)
+    return bytes(data), bytes(classes), cellmap, rowoff
 
 
 def trace(path):
@@ -130,19 +140,38 @@ def main(track, tracepath, out):
     open(f'{out}/cars.bin', 'wb').write(data)
     with open(f'{out}/cars.6502', 'w') as f:
         f.write('\\\\ cars.6502 - made by tools/gendata.py: the car frames\' layout in cars.bin\n\n')
-        f.write(lst('GenFsDX', [d for d, w, o in fs]))
-        f.write(lst('GenFsW', [w for d, w, o in fs]))
+        f.write(lst('GenFsDXW', [d * 8 + w for d, w, o in fs]))
         f.write(lst('GenFsOff', [o for d, w, o in fs]))
         f.write(lst('GenFrDY', [d for d, h in fr]))
         f.write(lst('GenFrH', [h for d, h in fr]))
         f.write(f'CarDataSize = {len(data)}\n')
 
-    pdata, cellmap, rowoff = prio(track)
+    pdata, classes, cellmap, rowoff = prio(track)
     open(f'{out}/prio.bin', 'wb').write(pdata)
-    open(f'{out}/priomap.bin', 'wb').write(cellmap.tobytes())
+    open(f'{out}/prioclass.bin', 'wb').write(classes)
+    # the map: each row from 2 cells before its first with hidden pixels to 2 after its last (a car covers 3
+    # cells at most, so one that overlaps the span reads only the span and its zeroes); first and last for
+    # the plotter to skip a row's span whole (a row with none: first 255, last 0)
+    mapdata, mapoff, first, last = bytearray(), [], [], []
+    for r in range(25):
+        nz = np.where(cellmap[r])[0]
+        if len(nz) == 0:
+            mapoff.append(0)
+            first.append(255)
+            last.append(0)
+            continue
+        s0, e0 = max(0, nz[0] - 2), min(39, nz[-1] + 2)
+        mapoff.append(len(mapdata) - s0)
+        first.append(int(nz[0]))
+        last.append(int(nz[-1]))
+        mapdata += cellmap[r, s0:e0 + 1].tobytes()
+    open(f'{out}/priomap.bin', 'wb').write(mapdata)
     with open(f'{out}/prio.6502', 'w') as f:
         f.write('\\\\ prio.6502 - made by tools/gendata.py: the priority cells\' layout\n\n')
-        f.write(lst('GenPrioRowOff', [o - 8 for o in rowoff]))
+        f.write(lst('GenPrioRowOff', [o - 1 for o in rowoff]))
+        f.write(lst('GenPrioMapOff', mapoff))
+        f.write(lst('GenPrioFirst', first))
+        f.write(lst('GenPrioLast', last))
         f.write(f'PrioDataSize = {len(pdata)}\n')
 
     tdata, nframes = trace(tracepath)
@@ -150,7 +179,7 @@ def main(track, tracepath, out):
     with open(f'{out}/trace.6502', 'w') as f:
         f.write('\\\\ trace.6502 - made by tools/gendata.py\n\n')
         f.write(f'TraceFrames = {nframes}\n')
-    print(f'cars {len(data)} bytes, prio {len(pdata)} + {cellmap.size} bytes ({int((cellmap > 0).sum())} cells), '
+    print(f'cars {len(data)} bytes, prio {len(pdata)} + {len(classes)} + {len(mapdata)} bytes ({int((cellmap > 0).sum())} cells), '
           f'trace {nframes} frames {len(tdata)} bytes')
 
 

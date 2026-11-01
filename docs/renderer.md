@@ -44,10 +44,15 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   of every column a pass, its five column blocks unrolled (`LDX frame,Y : LDA screen,Y : AND MaskTab,X :
   ORA Data,X : STA screen,Y`, 21 cycles a byte); the operands' low bytes are patched once a band, the
   loop's branch back by the car's width.
-- **Priority**: a car on the ground (not elevated or airborne) goes under mask C. A map of the 8 × 8 cells
-  (1,000 bytes) gives each cell with hidden pixels its 8 bytes of 1-bit mask (333 cells, 2,664 bytes on
-  track 6). A band whose cells have any goes column by column through a slow loop that keeps the screen
-  where those bits are set, as well as where the key is (about 52 cycles a byte).
+- **Priority**: a car on the ground (not elevated or airborne) goes under mask C. Each 8 x 8 cell with hidden
+  pixels has its 8 bytes of 1-bit mask and a class byte saying, for each 4-pixel half, whether none, all or
+  some of it is hidden (333 cells on track 6: 2,664 + 333 bytes). A map gives each cell's number in its
+  row; it's stored a row's span at a time, from 2 cells before the row's first such cell to 2 after its
+  last (643 bytes rather than 1,000), with the first and last, so a band outside the span skips the map.
+  In a band with such cells, each of the car's columns is classed by its half-cell: none hidden, it stays
+  in the fast loop; all hidden, its block's screen operands point at an 8-byte Junk area instead, so it
+  draws nothing; some hidden, the same, and then it goes on its own through a slow loop that keeps the
+  screen where the bits are set as well as where the key is (about 52 cycles a byte).
 - **The erase**: the box each car drew, two frames before in the same screen, copied back from the clean
   background, a band at a time with the same unrolled blocks (9 cycles a byte). The background lives
   `&4000` above the screen, at `&8180`-`&BFFF` in its bank.
@@ -61,40 +66,59 @@ drawn, with any IRQ that lands in it. The budget is 39,936 (one TV frame).
 |---|---|---|---|---|---|---|---|
 | First (a loop a column, a pass a byte) | 5,213 | 211 | 10,094 | 15,518 | 17,720 | 20,376 | 21,251 |
 | Columns unrolled, frames in pages | 3,682 | 211 | 8,418 | 12,311 | 15,564 | 20,033 | 20,822 |
+| Hidden half-cells not drawn, the slow loop only for the mixed | 3,682 | 211 | 7,748 | 11,641 | 12,945 | 15,552 | 16,689 |
 
 Every frame was drawn within the TV frame it started in (1,143 of 1,143 swaps after one vsync).
 
-With priority turned off the plot averages 6,744 (max 8,497), so priority costs about 1,670 a frame on
-average and up to about 8,300 in the worst frames. Over the race a frame plots on average 131 bytes by the
-fast loop and 22 by the slow one; 14 of those 22 really overlap hidden pixels, so a finer map would save
-little. The slow loop itself is the cost.
+With priority turned off the second version's plot averaged 6,744 (max 8,497), so priority cost about 1,670
+a frame on average and up to about 8,300 in the worst frames. In those frames every car was under a bridge,
+and the slow loop and its per-column set-up took 13,900 of 20,223 cycles. But of the bytes it drew, most
+were in cell lines wholly hidden (100 a frame in the worst 20 frames, 12 on average) or not hidden at all
+(40 and 8); only 16 (2 on average) were partly hidden. The third version draws nothing for the first, the
+fast loop for the second, and the slow loop only for the third.
+
+Where the third version's cycles go (`tools/render_profile.mjs`, cycles a frame):
+
+| Region | Mean | The worst 20 frames |
+|---|---|---|
+| Erase: the copy loop | 1,672 | 1,631 |
+| Erase: per car and per band | 1,995 | 1,945 |
+| Plot: per car | 1,243 | 1,242 |
+| Plot: per band (patching the blocks, the priority checks) | 2,495 | 2,875 |
+| Plot: the fast loop | 3,274 | 2,631 |
+| Plot: classifying columns | 377 | 2,276 |
+| Plot: the slow loop | 113 | 986 |
+| Plot: the slow loop's columns | 239 | 1,924 |
+| The frame loop (main RAM) | 235 | 235 |
+
+The set-up around the loops now costs more than the loops: about 5,700 cycles a frame against 5,000
+copying and drawing. Patching only the car's own columns (3.9 of the 5 on average) would save about as much
+as arranging it costs.
 
 Against the plan's estimate (D2: about 42,000 cycles a frame, with 10,100 for drawing and erasing 4 cars):
-the cars measure 12,100 on average and 20,600 at worst. With the plan's other items (logic 16,000; HUD,
-input, sound and IRQ 6,000) the average frame would be about 34,300 and the worst about 42,800, so the
-worst frames would drop to 25 fps for a moment until the plot or the logic is faster.
+the cars measure 11,400 on average and 16,500 at worst. With the plan's other items (logic 16,000; HUD,
+input, sound and IRQ 6,000) the average frame would be about 33,600 and the worst about 38,700, inside the
+39,936 of a TV frame, but only just, and the logic's figure is the least certain.
 
 ## Memory
 
 | Region | Used | Free |
 |---|---|---|
-| Background's bank | 16,000 background, 290 erase | 94 |
-| Cars' bank | 10,615 frames (659 of it page padding), 1,000 priority map, 2,664 priority cells, 1,152 frame tables, 732 plotter, 164 alignment | 57 |
+| Background's bank | 290 erase, then 16,000 background from `&8180` | 94 |
+| Cars' bank | 10,615 frames (659 of it page padding), 643 priority map, 2,664 priority cells, 333 classes, 1,138 tables, 863 plotter | 154 |
 | Trace's bank (test only) | 13,728 | 2,656 |
 | Main RAM | 289 code at `&0E00`; tables at `&0400`-`&07FF` (MaskTab, 3 data tables) and `&2C00`-`&2DFF` (the priority expansions); 42 bytes of variables at `&2E00` | |
 | Zero page | `&00`-`&1E` | |
 
 A race needs one set of 64 car frames: the human players' cars and car 3, plus the drone-driven set if any
 player car is a drone (it shares one set of shapes, so at most 64 + 16). So the sprite storage is settled
-as pre-shifted, trimmed frames, about 10.6K a race; the cars' bank is then full with the priority data.
+as pre-shifted, trimmed frames, about 10.6K a race; the cars' bank is then all but full with the priority data.
 
 ## Next
 
-- **Speed**, worst frames first: the slow loop unrolled across columns as the fast one is (about 41 cycles
-  a byte, no per-column overhead, but about 150 bytes the cars' bank doesn't have); or the priority cells
-  stored as screen masks (16 bytes a cell, double the space) so the slow loop needs no expansion table;
-  patching only the car's own columns; checking a ground car's cells once rather than each band.
-- **Memory**: the cars' bank is full. Room could come from the 164 bytes of alignment (the frames first, at
-  the bank's start), the frame tables (1,152 bytes, packable), or moving the plotter to main RAM.
+- **Speed**: the set-up around the loops (per band and per car) is now the biggest part. The worst frames
+  are the ones with every car near a bridge (classifying columns, the slow loop's columns).
+- **Memory**: the cars' bank has 154 bytes left. The frames' page padding (659 bytes, about 375 more than
+  a perfect packing) and the frame tables (1,138 bytes) are where room could come from.
 - **The HUD row**: blank so far.
 - **Objects** (pickups, cones, tornado, helicopter, sparks) and the remaining tracks.

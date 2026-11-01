@@ -18,6 +18,8 @@ SECTION GameVars
     SKIP 8
 .Frames                                 ; frames drawn, for the tests
     SKIP 2
+.Junk                                   ; where the plotter's fast loop draws a column that's hidden
+    SKIP 8
 ENDSECTION
 
 ZA_AUTO1 ebuf                           ; the screen drawn: ACCCON's X bit, 0 or 4, the erase lists' index

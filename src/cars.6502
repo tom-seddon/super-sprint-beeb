@@ -11,6 +11,17 @@
 INCLUDE "../build/gen/cars.6502"
 INCLUDE "../build/gen/prio.6502"
 
+\\ The data first, the frames at the bank's start, on a page (gendata.py's layout: each frame-shift in a
+\\ page, 7 bytes in)
+
+.CarData
+    INCBIN "../build/gen/cars.bin"
+    ASSERT LO(CarData) == 0, "the frames: from a page's start"
+.PrioMap
+    INCBIN "../build/gen/priomap.bin"
+.PrioData
+    INCBIN "../build/gen/prio.bin"
+
 
 \\ The fast loop's five column blocks, column 4 first: each draws a line of one column, its operands
 \\ patched (the frame's column, the screen's cell, the car's data table). FastBlk(n) is column n's.
@@ -45,7 +56,8 @@ WsHi = 14
     ZA_AUTO1 w                          ; local: its width in bytes
     ZA_AUTO2 cx8                        ; local: col * 8
     ZA_AUTO1 cx0                        ; local: its first 8 x 8 cell's column
-    ZA_AUTO1 ncells                     ; local: and its cells across, 1-3
+    ZA_AUTO1 cx1                        ; local: its last
+    ZA_AUTO1 ncells                     ; local: its cells across, 1-3
     ZA_AUTO1 dhi                        ; local: its frame-shift's page
     ZA_AUTO1 dlo                        ; local: the band's data, less its first line (in that page)
     ZA_AUTO1 line                       ; local: the band's first line in the cell
@@ -54,6 +66,13 @@ WsHi = 14
     ZA_AUTO1 lend                       ; local: the line in the cell after the band's last
     ZA_AUTO2 cs                         ; local: the band's first screen cell, line 0
     ZA_AUTO2 pmap                       ; local: the priority map's row
+    ZA_AUTO2 clsrow                     ; local: its cells' classes
+    ZA_AUTO1 slows                      ; local: the band's columns for the slow loop, a bit each
+    ZA_AUTO1 killed                     ; local: and its columns the fast loop draws into Junk
+    ZA_AUTO1 cc                         ; local: the column classified
+    ZA_AUTO1 scc                        ; local: the slow loop's column
+    ZA_AUTO1 scd                        ; local: its data, less the band's first line (in its page)
+    ZA_AUTO2 scs                        ; local: its screen cell, line 0
 
     LDA #0:STA car
 .next
@@ -79,10 +98,13 @@ WsHi = 14
     TYA:ASL A:ASL A:ORA line:TAY        ; the frame-shift
     LDA flags:ASL A                     ; C: x's high bit
     TXA:ROR A:LSR A                     ; x DIV 4
-    CLC:ADC CarFsDX,Y:STA col
+    STA col
+    LDA CarFsDXW,Y:TAX                  ; (dx * 8 + w)
+    AND #7:STA w
+    TXA:LSR A:LSR A:LSR A
+    CLC:ADC col:STA col
     LSR A:STA cx0
-    LDA CarFsW,Y:STA w
-    TAX
+    LDX w
     LDA PlotBack,X:STA back+1         ; the loop's branch back: to column w - 1's block
     LDA CarFsLo,Y:STA dlo
     LDA CarFsHi,Y:STA dhi
@@ -90,7 +112,8 @@ WsHi = 14
         STA FastBlk(n)+RdHi
     NEXT
     LDA col:DEC A:CLC:ADC w             ; the last column
-    LSR A:SEC:SBC cx0:INC A:STA ncells
+    LSR A:STA cx1
+    SEC:SBC cx0:INC A:STA ncells
     LDA car:ORA ebuf:TAX                ; (ebuf 0 or 4)
     LDA col:STA EraseCol,X
     LDA top:STA EraseTop,X
@@ -128,8 +151,9 @@ WsHi = 14
     BCS cross
     JMP patched
 
-    \\ each band: its lines, its first cell; the slow loop if the car's on the ground and the band's cells
-    \\ have hidden pixels
+    \\ each band: its lines, its first cell, and the fast loop's blocks patched: their screen cells, 8
+    \\ bytes apart (no page crossed unless the first is &E0 or more into its page), and their columns, h
+    \\ bytes apart in the frame-shift's page
 
 .band
     LDA #8:SEC:SBC line                 ; lines to the cell's end
@@ -141,24 +165,6 @@ WsHi = 14
     LDX row
     LDA RowLo,X:CLC:ADC cx8:STA cs
     LDA RowHi,X:ADC cx8+1:STA cs+1
-    BIT flags:BVS fast                  ; (V: on top, under nothing)
-    LDA PrioMapLo,X:STA pmap
-    LDA PrioMapHi,X:STA pmap+1
-    LDX ncells
-    LDY cx0
-    LDA #0
-.cells
-    ORA (pmap),Y
-    INY
-    DEX
-    BNE cells
-    TAX:BEQ fast
-    JMP slow
-
-    \\ the fast loop: the blocks' screen cells, 8 bytes apart (no page crossed unless the first is &E0 or
-    \\ more into its page), and their columns, h bytes apart in the frame-shift's page
-
-.fast
     LDA cs:CMP #&E0:BCS crossing
     FOR n = 0..4                        ; (C clear)
         STA FastBlk(n)+RsLo:STA FastBlk(n)+WsLo
@@ -174,9 +180,61 @@ WsHi = 14
         STA FastBlk(n)+RdLo
         IF n < 4 : ADC h : ENDIF
     NEXT
+
+    \\ a car on the ground, where the band's cells have hidden pixels: each column's half-cell, all hidden
+    \\ (its block draws into Junk instead), some hidden (the same, then the slow loop after), or none
+
+    STZ slows
+    BIT flags:BVS draw                  ; (V: on top, under nothing)
+    LDX row                             ; (crossing's loop used X)
+    LDA cx0:CMP PrioLast,X              ; the row's cells with hidden pixels: none in the car's
+    BEQ @+
+    BCS draw                            ; (after its last)
+.@
+    LDA cx1:CMP PrioFirst,X
+    BCC draw                            ; (before its first)
+    LDA PrioMapLo,X:STA pmap
+    LDA PrioMapHi,X:STA pmap+1
+    LDA ClsRowLo,X:STA clsrow
+    LDA ClsRowHi,X:STA clsrow+1
+    LDX ncells
+    LDY cx0
+    LDA #0
+.cells
+    ORA (pmap),Y
+    INY
+    DEX
+    BNE cells
+    TAX:BEQ draw
+    LDX #0                              ; the first column
+    STZ killed
+    LDA col:STA cc
+.classify
+    LDA cc:LSR A:TAY                    ; (C: the cell's right half)
+    LDA (pmap),Y:BEQ keep               ; nothing hidden in the cell
+    TAY
+    LDA (clsrow),Y                      ; its halves' classes (C kept from the LSR: the right half)
+    BCC @+
+    LSR A:LSR A
+.@
+    AND #3:BEQ keep                     ; nothing hidden in this half
+    CMP #2:BNE kill                     ; all hidden
+    LDA SlowBit,X:TSB slows             ; some hidden: the slow loop after
+.kill
+    LDY KillOff,X
+    LDA #LO(Junk):STA blocks+RsLo,Y:STA blocks+WsLo,Y
+    LDA #HI(Junk):STA blocks+RsHi,Y:STA blocks+WsHi,Y
+    INC killed
+.keep
+    INC cc
+    INX:CPX w
+    BNE classify
+    LDA killed:CMP w:BEQ drawn          ; every column hidden: nothing for the fast loop
+.draw
     LDY line
     DEY
     BRA enter                           ; (Y = line - 1: the INY makes it the line)
+    ZA_UNREACHABLE
 
 .blocks
     FOR n = 4..0
@@ -194,6 +252,9 @@ WsHi = 14
 .back
     BNE blocks                          ; self-modified: to column w - 1's block
     SAME_PAGE blocks
+.drawn
+    LDA slows:BEQ bandend
+    JMP slow
 
     \\ the next band: the next row from its line 0, the data on by the lines drawn
 
@@ -215,22 +276,36 @@ WsHi = 14
     RTS
 
 
-    \\ the slow loop, a column at a time: each column's cell's priority bits (none if it has none) kept as
-    \\ well as the key's
+    \\ the slow loop for each column with some of its half-cell hidden, from the first column on
 
 .slow
-    LDA col:STA slowcol.cc
-    LDA w:STA slowcol.cols
-    LDA dlo:STA slowcol.cd
+    LDA col:STA scc
+    LDA dlo:STA scd
+    LDA cs:STA scs
+    LDA cs+1:STA scs+1
+.slowcols
+    LSR slows:BCC nextslow
+    LDA scc:STA slowcol.cc
+    LDA #1:STA slowcol.cols
+    LDA scd:STA slowcol.cd
     LDA dhi:STA slowcol.cd+1
-    LDA cs:STA slowcol.cs
-    LDA cs+1:STA slowcol.cs+1
+    LDA scs:STA slowcol.cs
+    LDA scs+1:STA slowcol.cs+1
     JSR slowcol
+.nextslow
+    INC scc
+    LDA scd:CLC:ADC h:STA scd           ; (in the frame-shift's page)
+    LDA scs:CLC:ADC #8:STA scs
+    BCC @+
+    INC scs+1
+.@
+    LDA slows:BNE slowcols
     JMP bandend
 }
 
 \\ The slow loop: a band's columns drawn one at a time, keeping the screen where the cell's priority bits
-\\ are set (the car's under something there) as well as where the frame's key is.
+\\ are set (the car's under something there) as well as where the frame's key is. For half-cells with
+\\ some pixels hidden.
 \\
 \\ Inputs:
 \\     cc, cols: the first column and how many
@@ -253,18 +328,13 @@ WsHi = 14
 .column
     LDA plot_cars.lend:STA loopend+1
     LDA cc:LSR A:TAY
-    LDA (plot_cars.pmap),Y:BNE cell
-    LDA #LO(PrioNone):STA pl+1          ; no hidden pixels: a cell of zeroes
-    LDA #HI(PrioNone):STA pl+2
-    BRA celled
-.cell
+    LDA (plot_cars.pmap),Y              ; (some hidden: never 0)
     STZ ph
     ASL A:ASL A                         ; (a row's cells number 40 at most: no carry)
     ASL A:ROL ph                        ; 8 * n
     LDX plot_cars.row
     CLC:ADC PrioRowLo,X:STA pl+1
     LDA PrioRowHi,X:ADC ph:STA pl+2
-.celled
     LDA cc:LSR A                        ; C: the cell's right half
     LDA #HI(PExpHi)
     ADC #0:STA pe+2                     ; (PExpLo the next page)
@@ -310,8 +380,10 @@ WsHi = 14
     RTS
 }
 
-.PrioNone                               ; a cell's priority bits, none hidden: for the slow loop's other cells
-    EQUB 0, 0, 0, 0, 0, 0, 0, 0
+\\ The priority cells' classes (after the code: it places the fast loop in one page)
+
+.PrioClass
+    INCBIN "../build/gen/prioclass.bin"
 
 \\ The fast loop's branch back, by the car's width: to column w - 1's block
 
@@ -319,13 +391,18 @@ WsHi = 14
     EQUB 0
     EQUB LO(FastBlk((1..5) - 1) - (plot_cars.back + 2))
 
+\\ Column n's block, from the first (column 4's), and its bit in slows
 
-\\ The frame-shifts' places and sizes, and each frame's rows (tools/gendata.py)
+.KillOff
+    EQUB (4 - (0..4)) * FastBlkSize
+.SlowBit
+    EQUB 1, 2, 4, 8, 16
 
-.CarFsDX
-    EQUB GenFsDX
-.CarFsW
-    EQUB GenFsW
+\\ The frame-shifts' first byte column and width (dx * 8 + w) and places, and each frame's rows
+\\ (tools/gendata.py)
+
+.CarFsDXW
+    EQUB GenFsDXW
 .CarFsLo
     EQUB LO(CarData + GenFsOff)
 .CarFsHi
@@ -335,21 +412,22 @@ WsHi = 14
 .CarFrH
     EQUB GenFrH
 
-\\ The priority map's rows, and each row's cells' data (less 8: a cell's number counts from 1)
+\\ The priority map's rows, and each row's cells' data and classes (less one cell: a cell's number in its
+\\ row counts from 1)
 
 .PrioMapLo
-    EQUB LO(PrioMap + (0..<PlayRows) * 40)
+    EQUB LO(PrioMap + GenPrioMapOff)
 .PrioMapHi
-    EQUB HI(PrioMap + (0..<PlayRows) * 40)
+    EQUB HI(PrioMap + GenPrioMapOff)
+.PrioFirst
+    EQUB GenPrioFirst
+.PrioLast
+    EQUB GenPrioLast
 .PrioRowLo
-    EQUB LO(PrioData + GenPrioRowOff)
+    EQUB LO(PrioData + GenPrioRowOff * 8)
 .PrioRowHi
-    EQUB HI(PrioData + GenPrioRowOff)
-
-    ALIGN &100                          ; (gendata.py's layout: each frame-shift in a page, 7 bytes in)
-.CarData
-    INCBIN "../build/gen/cars.bin"
-.PrioMap
-    INCBIN "../build/gen/priomap.bin"
-.PrioData
-    INCBIN "../build/gen/prio.bin"
+    EQUB HI(PrioData + GenPrioRowOff * 8)
+.ClsRowLo
+    EQUB LO(PrioClass + GenPrioRowOff)
+.ClsRowHi
+    EQUB HI(PrioClass + GenPrioRowOff)

@@ -90,3 +90,13 @@
   frame on average, about 8,300 at worst; every swap came one vsync after the last.
 - The cars' bank is full (57 bytes free): frames 10,615, priority 3,664, tables 1,152, plotter 732. The
   priority expansions moved to main RAM to make room.
+- Profiled by region (`tools/render_profile.mjs`): in the worst 20 frames every car was under a bridge and
+  the slow loop took 13,900 of 20,223 cycles. Most of its bytes were in cell lines wholly hidden or not
+  hidden at all. Each 8 x 8 cell now has a class per half (none, all, some hidden): hidden columns draw into
+  a Junk area, clear ones stay in the fast loop, only mixed ones take the slow loop. 11,641 a frame on
+  average, 16,689 at worst (was 12,311 and 20,822); every frame still matches the model.
+- To fit, the priority map is stored as each row's span padded by 2 cells (643 bytes, was 1,000), the frames
+  moved to the bank's start (no alignment), and the frame-shift's column and width share a byte.
+- **Mistakes on the way**, both caught by the model check (every frame wrong, some taking 145,000 cycles):
+  the page-crossing path's loop left X changed where the row was expected, and the column loop started with
+  X holding the cells' OR rather than 0.
