@@ -46,3 +46,12 @@
 - **D1 decided: option B.** Tom looked at the viewer discs on a real BBC: on a CRT the checkerboard road reads
   as grey and isn't too busy. I had judged it busy from the PNGs, which show every pixel sharp; the real
   display is the test. B's tracks pack to 20,754 bytes for all 8, 1,492 more than A.
+
+## 2026-11-01: D3, loading through the OS
+- **D3 decided:** one track's data per race, loaded through OSFILE, so the game works on MMFS, Econet and any
+  other filing system. The 1770 loader is dropped.
+- Proposed D7 for how: swap the OS's memory back in for each load, as Chase HQ's P5, with the Master's extra:
+  the filing systems' workspace is in HAZEL. Up to about 12K of a bank for the OS's copy. HAZEL's claimed size
+  per filing system and the MOS's use of ANDY are to be measured in Phase 3.
+- D4 in part: the game needs 4 free banks of sideways RAM (Tom). A filing system loaded into sideways RAM
+  isn't supported; `!BOOT` says so.

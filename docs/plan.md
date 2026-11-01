@@ -87,7 +87,7 @@ and a CRT: the checkerboard reads as grey and isn't too busy).
 | `&3F00`-`&7FFF` shadow | 16,640 | Screen B |
 | `&8000`-`&8FFF` ANDY | 4K | Code (hides the first 4K of the paged bank while in) |
 | `&8000`-`&BFFF` banks 4-7 | 64K | Data |
-| `&C000`-`&DFFF` HAZEL | 8K | Code, independent of sideways paging (the DFS's while the OS lives) |
+| `&C000`-`&DFFF` HAZEL | 8K | Code, independent of sideways paging; the filing system's while the OS is back for a load (D7) |
 
 **The data, as measured or estimated:**
 
@@ -104,10 +104,11 @@ and a CRT: the checkerboard reads as grey and isn't too busy).
 | Sound | ~12,000 | The ST's sequences and instruments, before transcoding |
 
 All of it at once is about 90K with unshifted sprites; the banks hold 64K. So:
-- **Load one track's data per race (D3):** its art (about 2.6K packed), wall vectors, priority rectangles,
-  attribute runs and drone path, unpacked or rebuilt into the current track's buffers. A 1770 sector loader
-  (WD1770 at `&FE24`, `&FE28`-`&FE2B`) keeps the MOS and DFS dead and HAZEL ours; a load between races is well
-  under a second. The front-end screens load the same way.
+- **Load one track's data per race (D3, decided):** its art (about 2.6K packed), wall vectors, priority
+  rectangles, attribute runs and drone path, unpacked or rebuilt into the current track's buffers. The load
+  goes through OSFILE, so it works on any filing system (DFS, MMFS, ADFS, Econet). The OS's memory is swapped
+  back in for each load and out again after it (D7); its copy costs up to about 12K of a bank. The
+  front-end screens load the same way.
 - **Shift the car sprites while drawing** (256-byte shift tables) rather than store 4 copies, unless the
   timings say otherwise.
 - **Transcode the sound** at build time into a compact SN76489 form.
@@ -178,7 +179,7 @@ planned, but Phase 3's timings will show how far off it is.
 
 ### Phase 5: the game
 - All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
-  disc and the loader (D3).
+  disc, and the loads through the OS (D3, D7), tested on DFS, MMFS, ADFS and Econet.
 
 ## Decisions
 
@@ -186,10 +187,11 @@ planned, but Phase 3's timings will show how far off it is.
 |---|---|---|
 | D1 | Palette and dithering | Decided (Tom, 2026-11-01): option B, a grey checkerboard road |
 | D2 | Frame rate | Proposed: draw at 25 fps, logic at 50 Hz (twice a drawn frame) |
-| D3 | Multiload or all in memory | Proposed: a 1770 loader, one track's data per race |
-| D4 | Machines | Proposed: Master 128 only |
+| D3 | Multiload or all in memory | Decided (Tom, 2026-11-01): one track's data per race, loaded through the OS |
+| D4 | Machines | Proposed: Master 128 only. Decided (Tom, 2026-11-01): 4 free banks of sideways RAM needed |
 | D5 | Controls | Proposed: two joysticks and the keyboard, as on the ST, once ghosting has been tested |
 | D6 | HUD | Decided (Tom, 2026-11-01): one row of 8-pixel text above the play area |
+| D7 | Bringing the OS back for a load | Proposed: swap its memory (pages, zero page, HAZEL's claimed part) to and from a bank |
 
 ## Risks
 
@@ -198,3 +200,6 @@ planned, but Phase 3's timings will show how far off it is.
 - **The logic's cost at 50 Hz.** Four cars' wall probes and drone steering twice a drawn frame is the biggest
   item, and the least certain.
 - **Keyboard ghosting** may limit how many players can share the keyboard.
+- **A filing system in sideways RAM** (MMFS is often loaded that way) leaves 3 banks; the game needs 4 free
+  (D4), so such a machine is told so at boot.
+- **The OS's state** for loads (D7) costs up to about 12K of a bank, more if the MOS needs ANDY kept.
