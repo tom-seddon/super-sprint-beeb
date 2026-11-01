@@ -195,7 +195,10 @@ adds the logic.
 - The helicopter is in the fourth bank, all 4 variants (5K), each checked in a race, leaving the objects'
   bank 2.2K and the fourth about 11.1K for the race's data and some logic (Tom: the logic can be squeezed
   in there).
-- To do: the other tracks; the objects' speed.
+- All 8 tracks checked, frame by frame, each a real ST race with every hazard: everything fits on each,
+  the cars' bank tightest (504 bytes free with three human players on track 6), and only track 5's gates
+  take a frame over 40,000 cycles (`docs/renderer.md`).
+- To do: the objects' speed (track 5's gates).
 
 ### Phase 4: one race
 - Physics, collisions, drones, laps, scoring, HUD, input for 3 players, sound. One track, played start to

@@ -83,9 +83,9 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   draws one into the screen being drawn and the clean background when it changes, and again into its other
   screen the frame after; gates and barriers also write mask C, so the cars' priority around them changes as
   they move (a gate frame hides up to 392 of its 768 pixels). On the BBC (`src/objects.6502`, in main RAM,
-  paging three banks), each call writes the variant from a fourth bank, the objects' (48 variants: the
-  slots' 22 sprites, the gates' 5 frames and the barriers' 8, each for an even and an odd top line, the
-  patterns' phase; each variant's bytes column by column, wholly in a page), into the screen being drawn
+  paging three banks), each call writes the variant from a fourth bank, the objects' (the
+  slots' 22 sprites, and the gates' and barriers' frames the race uses, of 5 and 12 (a barrier's 3 kinds of
+  4: a track's are of one or two), each for an even and an odd top line, the patterns' phase; each variant's bytes column by column, wholly in a page), into the screen being drawn
   (a barrier over what's there, its colour 0 kept), through unrolled column blocks (up to 12, a gate's
   width) with Y the line in the cell, their operands patched once a band, as the car plotter's. The
   second call then copies the screen into the background: the background is a frame behind the screens
@@ -290,6 +290,34 @@ the ST's own. The sideways frames are 26 rows of 64 pixels (`F_0144AA`), not the
 match on every frame (303 to 325 frames each); with the plotter's x DIV 4 wrong for a negative x, the
 helicopter from the left fails 9.
 
+**All the tracks** (`make check TRACE=t0` to `t7`): the same race (the counter 17, the tornado and cones
+forced, the blue car accelerating with no steering) recorded on each of the 8. Every frame of each matches
+the model (313 to 332 frames each). The other tracks found three things track 4 (index) hadn't:
+- Barriers come in 3 kinds of 4 frames (frames 0-11); only 8 were stored, and track 4's are kind 1. Now
+  only the gates' and barriers' frames the race uses are stored: 1,952 bytes less on track 4 than all 12,
+  and none of the gates' on the 5 tracks without one.
+- Pop-up barriers 9 lines apart share a cell row (tracks 3, 5 and 7 by index). They move one at a time,
+  the others at rest in their first frame, so each one's priority frames carry its sharers' lines at
+  rest; `tools/gendata.py` checks that against the race.
+- The car plotter's fast loop crossed a page with track 2's data before it: it's kept in a page now.
+
+| Track (index) | Mean | 99% | Max | Over a TV frame | Cars' bank free (3 players) | Objects' bank free |
+|---|---|---|---|---|---|---|
+| 0 | 16,385 | 20,324 | 27,037 | 0 | 2,346 | 8,895 |
+| 1 | 16,566 | 21,654 | 29,817 | 0 | 2,097 | 8,019 |
+| 2 | 17,950 | 29,904 | 34,871 | 0 | 1,666 | 5,603 |
+| 3 | 20,965 | 33,687 | 34,807 | 0 | 1,266 | 6,815 |
+| 4 | 22,707 | 40,312 | 50,907 | 4 | 962 | 3,263 |
+| 5 | 17,153 | 26,022 | 30,359 | 0 | 504 | 6,829 |
+| 6 | 16,267 | 21,586 | 31,864 | 0 | 1,281 | 7,859 |
+| 7 | 20,286 | 32,657 | 34,874 | 0 | 1,769 | 4,413 |
+
+The races have one human car, so their cars' frames are 5,331 bytes (the blue car's and the drone-driven
+set); a race with three human players needs 10,615 (three cars' own sets and the drone-driven set, car
+3's), so the cars' bank's free bytes above are what the build prints less 5,284. The tightest is track 5
+(index), the most priority cells (341): 504 bytes. Track 4 (index), with 3 gates, is the slowest and the
+only one over a TV frame (its gates' steps with the helicopter).
+
 ## Memory
 
 | Region | Used | Free |
@@ -311,7 +339,6 @@ as pre-shifted, trimmed frames, about 10.6K a race; the cars' bank is then all b
   are the ones with every car near a bridge (classifying columns, the slow loop's columns).
 - **Memory**: the cars' bank has 154 bytes left. The frames' page padding (659 bytes, about 375 more than
   a perfect packing) and the frame tables (1,138 bytes) are where room could come from.
-- **Objects still to do**: the remaining tracks.
 - **Objects' speed**: a gate's step, the helicopter and now the tornado, above. In a race with all of them
   the average frame is about 21,000 before the logic's estimated 16,000: 37,000 of 39,936. The tornado's
   erase (about 1,300) is the general one's, by bands.

@@ -237,3 +237,18 @@
   flips' breakpoints now set each other in turn.
 - **The Makefile trap fixed**: `build/gen/tracefile` names the trace the data was made from, so changing
   TRACE or TRACEFILE remakes it.
+
+## 2026-11-01: Phase 3, all the tracks
+
+- The same race recorded on all 8 tracks (`make check TRACE=t0` to `t7`); every frame of each matches.
+- **Mistake: barriers have 12 frames, not 8** (3 kinds of 4, a track's barriers of one or two kinds).
+  Track 4's are kind 1, frames 4-7, so it never showed; tracks 3, 5 and 7 (kind 2, frames 8-11) were wrong
+  from the first frame. Only the frames a race uses are stored now (none of the gates' on most tracks).
+- Pop-up barriers 9 lines apart share a cell row of the priority map. As they move one at a time, each
+  one's frames carry its sharers' lines at rest; the generator checks the race keeps to that.
+- Track 2's data put the car plotter's fast loop across a page (an assembly error from `SAME_PAGE`); the
+  loop is kept in a page with `INPAGE`.
+- Memory: the cars' bank is the tightest with three human players (10,615 bytes of frames): 504 bytes
+  free on track 6 (the most priority cells). The objects' bank has 3,263 or more on every track.
+- The Makefile deletes a failed generator's target (`.DELETE_ON_ERROR`): a failure part-way had left a mix
+  of files that assembled into a test that hung.

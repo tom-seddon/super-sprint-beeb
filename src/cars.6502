@@ -233,6 +233,7 @@ WsHi = 14
     BRA enter                           ; (Y = line - 1: the INY makes it the line)
     ZA_UNREACHABLE
 
+    INPAGE 5 * FastBlkSize + 5          ; (the loop in one page, whatever the data before it)
 .blocks
     FOR n = 4..0
         LDX &FFFF,Y                     ; self-modified: column n's data

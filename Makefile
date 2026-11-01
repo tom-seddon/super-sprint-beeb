@@ -12,13 +12,17 @@ VENV = .venv/installed
 # The race the renderer test plays: by default a real race on track 5 (index 4) as the 18th race of a game
 # (the counter 17), with gates, barriers, pickups, a wreck, and the tornado and cones (their coin flips
 # forced); its wreck's helicopter comes from below. TRACE=heli1, heli2 or heli3 plays the same race with
-# the helicopter forced to come from above or either side; TRACE=attract the attract mode's race on track 6.
+# the helicopter forced to come from above or either side; TRACE=t0 to t7 the same race on track 1 to 8
+# (index 0 to 7; t4 is the default's); TRACE=attract the attract mode's race on track 6.
 TRACE ?= race
 RACE = 17
 FORCE = tornado,cones
 ifeq ($(TRACE),attract)
 TRACK = 5
 TRACEFILE = build/trace/cars_t5.json
+else ifneq ($(filter t0 t1 t2 t3 t4 t5 t6 t7,$(TRACE)),)
+TRACK = $(subst t,,$(TRACE))
+TRACEFILE = build/trace/race_t$(TRACK)_r$(RACE).json
 else ifneq ($(filter heli1 heli2 heli3,$(TRACE)),)
 TRACK = 4
 TRACEFILE = build/trace/race_t4_r$(RACE)_$(TRACE).json
@@ -27,6 +31,9 @@ TRACK = 4
 TRACEFILE = build/trace/race_t4_r$(RACE).json
 endif
 GEN = build/gen
+
+# A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
+.DELETE_ON_ERROR:
 
 .PHONY: all venv disasm tracks convert sheets viewer beeb check clean always
 
@@ -68,10 +75,10 @@ build/trace/cars_t5.json: tools/st_trace_cars.py tools/hatari.sh | $(VENV)
 	$(PY) tools/st_trace_cars.py 5 $@
 
 # A real race (Hatari, about 20 s): every object drawing routine's calls logged, then turned into frames.
-build/trace/obj_t4_r$(RACE).json: tools/st_trace_objects.py tools/hatari.sh | $(VENV)
-	$(PY) tools/st_trace_objects.py 4 $(RACE) $@ $(FORCE)
-build/trace/race_t4_r$(RACE).json: tools/st_race.py build/trace/obj_t4_r$(RACE).json | $(VENV)
-	$(PY) tools/st_race.py build/trace/obj_t4_r$(RACE).json $@
+build/trace/obj_t%_r$(RACE).json: tools/st_trace_objects.py tools/hatari.sh | $(VENV)
+	$(PY) tools/st_trace_objects.py $* $(RACE) $@ $(FORCE)
+build/trace/race_t%_r$(RACE).json: tools/st_race.py build/trace/obj_t%_r$(RACE).json | $(VENV)
+	$(PY) tools/st_race.py build/trace/obj_t$*_r$(RACE).json $@
 build/trace/obj_t4_r$(RACE)_heli%.json: tools/st_trace_objects.py tools/hatari.sh | $(VENV)
 	$(PY) tools/st_trace_objects.py 4 $(RACE) $@ $(FORCE),heli$*
 build/trace/race_t4_r$(RACE)_heli%.json: tools/st_race.py build/trace/obj_t4_r$(RACE)_heli%.json | $(VENV)

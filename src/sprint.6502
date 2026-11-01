@@ -22,12 +22,14 @@ ENDSECTION
 SECTION CarsFile, filename = "SPRINTB", load = &FFFF0000+LoadAddr
     SECTION CarsBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
         INCLUDE "cars.6502"
+        PRINT "the cars' bank: ", SwramEnd - P%, " bytes free"
     ENDSECTION
 ENDSECTION
 
 SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
     SECTION TraceBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
         INCLUDE "heli.6502"
+        PRINT "the fourth bank: ", SwramEnd - P%, " bytes after the helicopter (the trace's, in the test)"
         INCLUDE "../build/gen/trace.6502"
 .TraceData
         INCBIN "../build/gen/trace.bin" ; the race's cars, 12 bytes a frame (tools/gendata.py)
@@ -41,6 +43,7 @@ SECTION ObjFile, filename = "SPRINTD", load = &FFFF0000+LoadAddr
     SECTION ObjBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
         INCLUDE "objdata.6502"
         INCLUDE "movers.6502"
+        PRINT "the objects' bank: ", SwramEnd - P%, " bytes free"
     ENDSECTION
 ENDSECTION
 
