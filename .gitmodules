@@ -19,3 +19,6 @@
 [submodule "rich/portalc"]
 	path = rich/portalc
 	url = https://github.com/waitingforvsync/portalc
+[submodule "reference/beeb-port-kit"]
+	path = reference/beeb-port-kit
+	url = https://github.com/kieranhj/beeb-port-kit
