@@ -91,6 +91,11 @@ the average 38,207 -> 34,185 cycles; what's left is spread thin across the logic
 - **Room** (`docs/brief-room-2026-11-02.md`): every track measured; mask B and the logic's state moved into
   ANDY after measuring it untouched by the game and by loads (D15); two layout fixes; all eight tracks now
   assemble, checked by `tools/all_tracks.sh` in the suite (19 checks).
+- **The other tracks** (step 13): every track's race 17 traced from the logic's side and replayed through
+  the BBC's logic, exact on every frame, and drawn from it exactly. Five of the seven new tracks were exact
+  at once; four faults fixed: the bonus's cell (stored before the free test, as the ST), the helicopter's
+  tables read with ANDY in (my fault in D15), moving objects not clipped at the screen's sides, and the
+  race's end run before the frame was drawn instead of after. `tools/tracks_check.sh` checks all eight.
 - **D14** (your "Yes, drop them"): the drones' two accumulators that only dead ST code reads are gone: the
   hazard race's logic 135 cycles a frame less, track 5's fourth bank 10 -> 72 bytes free; its frames taking
   two TV frames 329 -> 315.
@@ -112,12 +117,10 @@ the average 38,207 -> 34,185 cycles; what's left is spread thin across the logic
 
 ## What is open
 
-Resume point: **the other tracks** (`docs/brief-phase4.md`). Room is done (`docs/brief-room-2026-11-02.md`,
-your "Yes, build it"): mask B and the logic's state in ANDY (D15), Shared copied from `&3000`, the plot's
-loop padded outside its routine. Every track's play build now assembles (`tools/all_tracks.sh`, in the
-suite): the fourth bank 3,536 free on each, ANDY 237 (track 8) to 1,496 spare. The tightest place left is the
-cars' bank on track 6, 1 byte (its frames' page padding is the lever, ~375). Then speed's third round and
-the joysticks once measured on a real Master.
+Resume point: **Phase 4's end** (`docs/brief-phase4.md`). Every track's race 17 now runs bit-exact through the
+BBC's logic and is drawn exactly from it (`tools/tracks_check.sh`: 48 checks). What's left of Phase 4: the
+joysticks once measured on a real Master; speed's third round (the hazard race still has 311 frames over);
+the cars' bank on track 6 (1 byte free).
 
 ## Branch ledger
 

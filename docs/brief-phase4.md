@@ -10,15 +10,10 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: speed, step 12, its third round, or room** (§8's last two entries: what's done, what's
-left, the options). The hazards are in (step 11, §8): exact against the ST and drawn from the logic on
-track 5's race 17. Two rounds of speed (step 12) took that race from 38,207 cycles a frame to 34,185 (with D14), and its
-drawn frames taking two TV frames from 734 of 2,240 to 315. What's left is levers of 100-300 cycles each,
-and the measured-not-built list. Room is now the binding limit: measured on every track, four don't build
-(the fourth bank on tracks 6 and 8, Shared's page rule on 4, 6, 7, 8, a layout fault in the cars' bank on 6):
-`docs/brief-room-2026-11-02.md`, done: mask B and the logic's state in ANDY (D15) and two fixes; every
-track now assembles (`tools/all_tracks.sh`, in the suite), the fourth bank 3,536 free on each. Next, the
-other tracks themselves.
+**Resume point: Phase 4's end** (§8's last entries). Step 13 is done: every track's race 17 bit-exact through
+the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Left: the joysticks (once
+measured on a real Master), speed's third round (the hazard race has 311 frames over a TV frame), and the
+cars' bank on track 6 (1 byte free).
 
 ## 0. The proposal in one paragraph
 
@@ -194,7 +189,15 @@ touches the build.
     Each exact on both traces (logic_check, logic_draws) and measured: the logic's cycles (logic_profile)
     and the game's frames over a TV frame (`render_check`), before and after, bytes by region.
 
-Then the other tracks.
+13. **The other tracks** (planned 2026-11-02, Tom: "Yes, other tracks"). Every track's race 17 as track 5's was
+    done in step 11: the renderer's own race (accelerate held, the tornado and cones forced), traced from the
+    logic's side in Hatari (`make build/trace/logic_tN_r17.json`, the rule now for any track), replayed through
+    the BBC's logic (`make logiccheck LOGICTRACE=build/trace/logic_tN_r17.json`: every variable, mask B's boxes
+    and the map, every frame; mask B's bytes; the wall columns; the draw calls), and drawn from it
+    (`make check TRACE=hN`, against the model of `race_tN_r17.json`). Each track's own features the first
+    two never reached (ramps and jumps, the long ramp, bridges and the upper level, water and oil, nudges)
+    are what's expected to fail first; each fault fixed as its own commit, found by the oracle, the race a
+    frame further each time. Then the suite gains them all.
 
 ## 7. What was costed and put down
 
@@ -559,3 +562,43 @@ Measured and not built:
 - The erase: about 80 cycles of set-up a band, 14 bands and 75 lines a frame; its copy is 9 cycles a byte.
   At its floor without a different screen layout.
 - The plot's slow path (cars under the priority cells): twice the fast loop's cost a byte by its nature.
+
+**Step 13, the other tracks** (2026-11-02). Every track's race 17 (accelerate held, the tornado and cones
+forced) traced from the logic's side in Hatari: tracks 1-5's within the tracer's default 6,000 VBLs (1,852,
+2,516, 2,679, 2,878 and 2,240 frames), tracks 6-8's races longer (3,583, 3,517, 4,599 frames), so traced with
+9,000 (`VBLS`; the default cut them at about 2,920, which the draw-call check caught at their last frame). Each
+one's random numbers one run of TOS's generator.
+
+The first pass of the logic oracle: tracks 1, 2, 3, 6 and 7 exact on every frame at once. Then, each found by
+the oracle named and fixed:
+- **The bonus's cell** (tracks 4 and 8, one frame each): F_00B326 stores the chosen slot's cell (G_01EB62)
+  before testing whether it's free; the BBC stored it only when free. Tracks 1 and 5 never chose a taken slot.
+- **The logic test's inputs** (tracks 6-8): carried raw, 3 bytes a frame, they overflowed its file (track 6
+  by 1,638 bytes). Now runs, as the game carries them (`inputs.rle`); `logic_check --from` positions the
+  runs. (`--from` restores the cars' variables but not the map or the pickups, so it fails from frame 500 on
+  track 1 before and after this change: with whole races exact on every track it's no longer needed.)
+- **The helicopter's tables with ANDY in** (track 2's drawing, from frame 647): `heli_pieces` (logicframe)
+  reads the helicopter plotter's `MovDX` and `MovW` to leave out pieces off the screen's side; they're in the
+  fourth bank's first 4K, so with ANDY paged in (D15) it read mask B instead. A fault of D15's, which said
+  the logic never reads the helicopter: track 5's helicopter comes from below, every piece on the screen
+  whatever the tables say. `heli_pieces` now pages ANDY out while it reads them.
+- **Moving objects at the screen's sides** (track 2's drawing, from frame 725): the plotter had no horizontal
+  clipping (the traced frames never needed it: their conversion asserts no piece crosses the side); a spark
+  at x 304 ran past column 79 into the next row's first. `movplot` now clips to the screen's columns as the
+  model does (left: the columns before 0 skipped; right: those from 80 left off), in a path only an object
+  across the side takes (an unclipped one pays a test and a branch, about 14 cycles). It's in both copies:
+  the helicopter's too, since coming down at x 272 its pieces cross x 320 (track 2, frame 725; its sideways
+  pieces come in whole groups, but not the others). The path sits after the plot loop: before it, it pushed
+  the loop across a page (107 bytes of padding). The helicopter's copy is 896 bytes, so `gendata.py`'s
+  allowance for it (`HeliCode`) is 900, not 840: the traced renderer test (`make beeb`) keeps 304 of its
+  race's frames, not 306. Every play build's fourth bank 108 bytes less (3,428 free on each track) and
+  the objects' bank 91 less (its copy grew too); the hazard race game 34,190 -> 34,227 cycles a frame, frames
+  over 306 -> 311 (MEASURED, `make check TRACE=logic4`).
+- **The race's end after the flip** (track 7's last frame, the HUD): `race_end` (F_00C592's end: other cars
+  that finished in the last 4 frames put back to lap 3) ran before the frame's records were built, so the HUD
+  showed it a frame early; the ST runs it after the flip. Now after the records.
+
+`tools/tracks_check.sh` runs every track's checks: the logic oracle, mask B's bytes, the wall columns, the
+draw calls and the game drawn from the logic (`make check TRACE=hN`). MEASURED: all 48 pass (about 13 minutes,
+so outside `tools/suite.sh`, whose 19 also pass). Every track's race 17 is bit-exact through the BBC's logic on
+every frame and drawn exactly from it.

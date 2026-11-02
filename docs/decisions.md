@@ -216,3 +216,7 @@ jsbeeb Master (MOS 3.20, 1770 DFS): ANDY seeded after the takeover, 0 of 4,096 b
 race's 2,240 frames; from BASIC, 0 changed after `*LOAD` of the disc's five files and `*CAT`, 30 after
 `*KEY 1 HELLO`. So D7's "ANDY stays the OS's" no longer holds: the game fills it at the takeover; the OS's
 soft keys and user-defined characters there are lost, which the game never uses.
+A fault found in step 13 (2026-11-02): the premise that the logic never reads the helicopter was wrong.
+`heli_pieces` (logicframe) reads its plotter's `MovDX` and `MovW` to leave out pieces off the screen's side, and
+with ANDY in it read mask B; track 2's sideways helicopter showed it (track 5's comes from below). It now pages
+ANDY out for those reads.

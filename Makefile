@@ -15,8 +15,8 @@ VENV = .venv/installed
 # the helicopter forced to come from above or either side; TRACE=t0 to t7 the same race on track 1 to 8
 # (index 0 to 7; t4 is the default's); TRACE=attract the attract mode's race on track 6; TRACE=logic0 the
 # logic trace's race on track 1, drawn from the BBC's own race logic (Phase 4, step 8); TRACE=logic4 the default
-# race (track 5, race 17, the hazards) drawn from the BBC's logic (step 11); TRACE=play the same
-# race to play (make beeb TRACE=play): three players on the keys (Q W E, V B N, , . /), car 3 a drone.
+# race (track 5, race 17, the hazards) drawn from the BBC's logic (step 11), and TRACE=h0 to h7 race 17 on
+# track 1 to 8 so (h4 is logic4); TRACE=play the same race to play (make beeb TRACE=play): three players on the keys (Q W E, V B N, , . /), car 3 a drone.
 TRACE ?= race
 RACE = 17
 FORCE = tornado,cones
@@ -31,12 +31,12 @@ TRACK = 0
 TRACEFILE = build/trace/race_t0_r0_script.json
 GENFLAGS = --logic
 LOGICDEPS = build/lgen/tables.6502 build/lgen/sound.6502
-else ifeq ($(TRACE),logic4)
-TRACK = 4
-TRACEFILE = build/trace/race_t4_r17.json
+else ifneq ($(filter logic4 h0 h1 h2 h3 h4 h5 h6 h7,$(TRACE)),)
+TRACK = $(if $(filter logic4,$(TRACE)),4,$(subst h,,$(TRACE)))
+TRACEFILE = build/trace/race_t$(TRACK)_r$(RACE).json
 GENFLAGS = --logic
 LOGICDEPS = build/lgen/tables.6502 build/lgen/sound.6502
-LOGICTRACE = build/trace/logic_t4_r17.json
+LOGICTRACE = build/trace/logic_t$(TRACK)_r$(RACE).json
 else ifeq ($(TRACE),play)
 TRACK = 0
 TRACEFILE = build/trace/race_t0_r0_script.json
@@ -107,10 +107,12 @@ build/trace/race_t4_r$(RACE)_heli%.json: tools/st_race.py build/trace/obj_t4_r$(
 # index N), every per-car variable, input and random number, every frame, race 0. `make logictrace`: track 1.
 build/trace/logic_t%_r0.json: tools/st_trace_logic.py tools/hatari.sh tools/logic_scripts/t%.json | $(VENV)
 	$(PY) tools/st_trace_logic.py $* 0 tools/logic_scripts/t$*.json $@
-# the default race's logic (step 11): track 5, race 17, accelerate held, the tornado and cones forced
-build/trace/logic_t4_r$(RACE).json: tools/st_trace_logic.py tools/hatari.sh | $(VENV)
-	$(PY) tools/st_trace_logic.py 4 $(RACE) - $@ $(FORCE)
-logictrace: build/trace/logic_t0_r0.json build/trace/logic_t4_r$(RACE).json
+# race 17's logic on track N (step 11, then every track): accelerate held, the tornado and cones forced, the
+# renderer's own race (race_tN_r17.json) from the logic's side; 9,000 VBLs (about 70 s), as tracks 6-8's races
+# outrun the tracer's default 6,000
+build/trace/logic_t%_r$(RACE).json: tools/st_trace_logic.py tools/hatari.sh | $(VENV)
+	VBLS=9000 $(PY) tools/st_trace_logic.py $* $(RACE) - $@ $(FORCE)
+logictrace: build/trace/logic_t0_r0.json $(foreach t,0 1 2 3 4 5 6 7,build/trace/logic_t$(t)_r$(RACE).json)
 
 # The race logic's test (Phase 4): the logic trace's race replayed through the BBC's logic, no display
 # (build/logic.ssd), and its check against the ST's state every frame (tools/logic_check.mjs). LOGICTRACE picks
