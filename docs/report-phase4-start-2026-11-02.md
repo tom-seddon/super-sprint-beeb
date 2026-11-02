@@ -6,12 +6,11 @@ matches the model), with three players on the keys (Q W E, V B N, , . /; you've 
 sound: the ST's effects captured from its own YM and converted for the SN76489, the engines live. The
 sound's starters match the ST's call for call, and every effect the ST started is found at the BBC's chip
 field for field; how it sounds is yours to judge: `build/sound/race_bbc.wav` against `race_st.wav`, and
-each effect in `build/lgen/wav`. A disc to play: `build/play.ssd` (`make beeb TRACE=play`). Then a RAM
-hunt made room for the hazards, and the hazards went in (below); the room figures that follow are from
-before them. The RAM hunt: main RAM 52 -> 416 bytes free, the fourth bank 136 -> 2,398, the
-objects' bank 10,124 -> 11,687, with nothing on the screen or in the play changed (every oracle passes, the
-default disc byte-identical) and the race a little faster. Next: the hazards (tornado, barriers, gates,
-cones) and the other tracks.
+each effect in `build/lgen/wav`. A disc to play: `build/play.ssd` (`make beeb TRACE=play`). A RAM hunt
+then made room (main RAM 52 -> 416 bytes free, the fourth bank 136 -> 2,398, nothing on the screen or in the
+play changed), and the hazards went in: the tornado, pop-up barriers, gates and cones, bit-exact on track 5's
+race 17 and drawn from the logic, all 2,240 frames matching. That race is too slow, though: a third of its
+frames take two TV frames. Speed is next, then room for the other tracks.
 
 ## What was built and what proves it
 
