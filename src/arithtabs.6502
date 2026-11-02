@@ -1,0 +1,6 @@
+\\ arithtabs.6502 - div_s16's tables (arith.6502): in the logic's bank, which is paged in whenever the logic runs
+
+.Div5                                   ; n DIV 5, for n DIV 40 = (n >> 3) DIV 5
+    EQUB (0..255) DIV 5
+.Times32                                ; a number under 2,048's high byte * 32: the high bits of n >> 3
+    EQUB (0..7) * 32

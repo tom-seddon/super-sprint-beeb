@@ -176,6 +176,7 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
         INCLUDE "pickups.6502"
         INCLUDE "effects.6502"
         INCLUDE "hazards.6502"
+        INCLUDE "arithtabs.6502"
         INCLUDE "../build/lgen/cells.6502"
         INCLUDE "../build/lgen/hazards.6502"
         INCLUDE "../build/lgen/path.6502"

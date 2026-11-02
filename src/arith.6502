@@ -53,6 +53,7 @@ ZA_AUTO2 num                            ; mul_s16's and div_s16's number, in and
 \\ Inputs:
 \\     num: the number
 \\     A: the divisor, 1 to 127
+\\     the logic's bank paged in (Div5, Times32)
 \\
 \\ Outputs:
 \\     num: the quotient
@@ -73,6 +74,15 @@ ZA_AUTO2 num                            ; mul_s16's and div_s16's number, in and
     LDA #0:SBC num:STA num
     LDA #0:SBC num+1:STA num+1
 .@
+    LDA d:CMP #40:BNE general           ; by 40 (nearly every call: a drone's D) under 2,048:
+    LDY num+1:CPY #8:BCS general        ; (n >> 3) DIV 5 from a table
+    LDA num:LSR A:LSR A:LSR A
+    ORA Times32,Y
+    TAY
+    LDA Div5,Y:STA num
+    STZ num+1
+    BRA sign
+.general
     LDA num+1:CMP d:BCS long
 
     \\ the high byte under the divisor: the quotient fits a byte, and the high byte is the remainder so far,

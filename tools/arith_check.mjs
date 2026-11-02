@@ -35,6 +35,7 @@ async function check(name, a, v, want) {
 }
 for (let d = 1; d < 128; d += d < 45 ? 1 : 7)
     for (const v of nums) await check("div_s16", d, v, s16(Math.trunc(v / d)));
+for (let v = -2100; v <= 2100; v++) await check("div_s16", 40, v, Math.trunc(v / 40));   // (40's table, and past it)
 for (const m of [-127, -40, -11, -8, -7, -6, -3, -1, 0, 1, 2, 3, 4, 6, 7, 8, 11, 40, 127])
     for (const v of nums) await check("mul_s16", m, v, s16(v * m));
 for (const m of [-8, -7, -6, -3, 0, 3, 6, 7, 8])                           // DirX and DirY's steps
