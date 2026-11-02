@@ -772,7 +772,8 @@ ENDSECTION
 }
 
 \\ F_00EF9E: the draw order, the cars by y (plus 255 on the bridge's level), sorted from 0, 1, 2, 3 each frame
-\\ by a bubble sort that keeps equal ones in order.
+\\ by a bubble sort that keeps equal ones in order. Any sort that keeps them does as well (its order is the
+\\ only one): here each car's place is the cars before it, counted over the six pairs.
 \\
 \\ Inputs:
 \\     the cars' y and flags
@@ -783,13 +784,14 @@ ENDSECTION
 
 .draw_order
 {
-    ZA_AUTO 4, keylo                    ; local: by place: the key,
+    ZA_AUTO 4, keylo                    ; local: by car: the key,
     ZA_AUTO 4, keyhi
-    ZA_AUTO1 swapped                    ; local: a pass swapped something
+    ZA_AUTO 4, place                    ; local: and its place
 
     LDX #3
 .keys
-    TXA:STA RcOrder,X
+    STZ place,X
+    ZA_INDEXEDBY 0..3
     LDA RcBitsLo,X:LSR A                ; (C: elevated)
     LDA #0:BCC @+
     LDA #255
@@ -802,43 +804,25 @@ ENDSECTION
     ZA_INDEXEDBY 0..3
     DEX
     BPL keys
-.pass
-    STZ swapped
-    LDX #0
-.cmp
-    SEC                                 ; key[X + 1] - key[X] negative: swapped
-    LDA keylo+1,X
-    ZA_INDEXEDBY 0..2
-    SBC keylo,X
-    ZA_INDEXEDBY 0..2
-    LDA keyhi+1,X
-    ZA_INDEXEDBY 0..2
-    SBC keyhi,X
-    ZA_INDEXEDBY 0..2
-    BPL inorder
-    LDA keylo,X
-    ZA_INDEXEDBY 0..2
-    LDY keylo+1,X
-    ZA_INDEXEDBY 0..2
-    STA keylo+1,X
-    ZA_INDEXEDBY 0..2
-    STY keylo,X
-    ZA_INDEXEDBY 0..2
-    LDA keyhi,X
-    ZA_INDEXEDBY 0..2
-    LDY keyhi+1,X
-    ZA_INDEXEDBY 0..2
-    STA keyhi+1,X
-    ZA_INDEXEDBY 0..2
-    STY keyhi,X
-    ZA_INDEXEDBY 0..2
-    LDA RcOrder,X:LDY RcOrder+1,X:STA RcOrder+1,X:TYA:STA RcOrder,X
-    STA swapped
-    INC swapped                         ; (non-zero whatever the car)
-.inorder
-    INX
-    CPX #3:BNE cmp
-    LDA swapped:BNE pass
+
+    \\ each pair, i before j: j's key less i's negative (the bubble sort's swap), i is after j; else j after i
+
+    FOR i = 0..2
+        FOR j = i+1..3
+            LDA keylo+j:CMP keylo+i
+            LDA keyhi+j:SBC keyhi+i
+            BMI iafter
+            INC place+j
+            BRA paired
+        .iafter
+            INC place+i
+        .paired
+        NEXT
+    NEXT
+    FOR i = 0..3
+        LDY place+i
+        LDA #i:STA RcOrder,Y
+    NEXT
     RTS
 }
 
