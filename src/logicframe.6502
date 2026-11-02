@@ -119,6 +119,10 @@ ENDIF
     NEXT
     BRA build
 .race
+    LDA LfFrame+1:BNE @+                ; the first race frame: the ST's start, then its 1 s pause
+    LDA LfFrame:CMP #2:BNE @+
+    JSR start_pause
+.@
     IF GenPlay
         JSR read_players                ; the players' keys
     ELSE
@@ -152,6 +156,20 @@ ENDIF
     BNE @+
     INC LfFrame+1
 .@
+    RTS
+
+    \\ F_00C592's start: the start's sound on each channel (F_0131A8), the 50 VBLs' pause (F_010214(50)) with
+    \\ the set-up's last frame shown, the engines on (F_013582)
+.start_pause
+    FOR c = 0..2
+        LDX #c:LDA #FxStart0+c:LDY #0:JSR fx_car
+    NEXT
+    LDA vsyncs:CLC:ADC #50
+.wait
+    CMP vsyncs:BNE wait
+    FOR c = 0..2
+        LDX #c:LDA #FxEngine:LDY #0:JSR fx_car
+    NEXT
     RTS
 
     \\ the cars in draw order: each the car, or its explosion (&80 | x's high bit << 6, its piece)

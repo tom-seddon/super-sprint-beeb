@@ -353,8 +353,9 @@
     LDA #1:STA RcState,X
     BRA clear
 .landed
-    LDA RcDir,X:CLC:ADC #8:AND #15      ; sparks behind it (F_00BE4A); the bump's sound: with the sound
+    LDA RcDir,X:CLC:ADC #8:AND #15      ; sparks behind it (F_00BE4A), and the bump's sound (F_013032)
     JSR sparks_start
+    LDA #FxBump:LDY #2:JSR fx_car
 .clear
     LDA RcBitsHi,X:AND #HI(&F3FF):STA RcBitsHi,X
 .done

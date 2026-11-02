@@ -363,6 +363,7 @@ ENDSECTION
     LDA RcState,X:BNE next              ; a wrecked car: no control
     LDA RcDrone,X:BNE driven
     JSR human                           ; (X preserved)
+    JSR engine                          ; F_012BA2 (sound.6502)
     BRA next
 .driven
     JSR drone                           ; (X preserved; in the logic's bank)
@@ -392,7 +393,9 @@ ENDSECTION
     LDA RcFrameLo:STA RcFinishLo
     LDA RcFrameHi:STA RcFinishHi
     LDA #2:JSR banner_start
-    \\ (the engines off: with the sound)
+    FOR c = 0..2                        ; the engines off: instrument 15 on each channel (F_013284)
+        LDX #c:LDA #FxSilence:LDY #0:JSR fx_car
+    NEXT
     BRA evented
 .nextcar
     INX
@@ -657,8 +660,7 @@ ENDSECTION
     LDA RcPX8Hi,X:STA RcX8Hi,X
     LDA RcPY8Lo,X:STA RcY8Lo,X
     LDA RcPY8Hi,X:STA RcY8Hi,X
-    \\ the bump's sound: not yet
-    RTS
+    LDA #FxBump:LDY #2:JMP fx_car       ; F_013032
 
     \\ 11 * D, into num
 .impulse
@@ -873,8 +875,7 @@ ENDSECTION
 .@
     STA RcBounce,X
     LDA RcPush:JSR sparks_start
-    \\ (the bump's sound: with the sound)
-    RTS
+    LDA #FxBounce:LDY #1:JMP fx_car     ; F_0130A0
 
     \\ (10 + speed) * 2, into num
 

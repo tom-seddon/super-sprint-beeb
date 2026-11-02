@@ -138,6 +138,16 @@ running ST, its hardware envelope stepped into volumes, converted to SN76489 wri
 played by the vsync IRQ. The engines (one tone per human car) are worked out each frame from the car's speed
 by `F_012BA2`'s formulas. Effects take a car's channel by the ST's priorities (st-logic §8).
 
+Built 2026-11-02 (brief step 10). The details taken, Proposed for Tom's ears (`build/sound/race_bbc.wav`
+against `race_st.wav`, and each effect's `build/lgen/wav/*_ym.wav` against `*_sn.wav`):
+- each effect is one captured instance (its fields at the ST's VBLs; another instance differs a little, by
+  where the 749 Hz timer stood);
+- a channel with tone and noise both on plays the noise alone (the kit's 1942 rule, `tn_noise`: the SN can't
+  gate one by the other): the skid, the slow patches, the crash, the helicopter;
+- a period over 1023 goes up an octave at a time, so the engine (3000 - 4 * speed +- 900) sounds two
+  octaves up, and its +- 900 alternation (every rate + 1 ticks of 749 Hz, 50 to 125 Hz) is sampled at 50 Hz;
+- the race's start keeps the ST's 1 s pause (50 VBLs), the start's sound in it.
+
 ### D12. Keys: Decided in part (2026-11-02)
 Tom: "propose a three-player keyboard layout, check it for ghosting on paper and in jsbeeb, joysticks as an
 option alongside; I'll test it on a real BBC later."

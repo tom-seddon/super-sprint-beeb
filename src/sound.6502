@@ -1,0 +1,456 @@
+\\ sound.6502 - the race's sound (D11): the ST's effects as SN76489 fields (tools/sound_gen.py, from its own sound
+\\ captured in Hatari), played a field a vsync on each car's channel (car MOD 3); and the human cars' engines,
+\\ worked out live from their speeds as the ST's F_012BA2 does. In main RAM: the IRQ plays it.
+\\
+\\ The ST's driver, in brief (st-logic §8): a starter points a channel at an effect if the channel's priority
+\\ is under its threshold; the priority is the effect's instrument's while it plays, set at the driver's next
+\\ tick (so two starters in one frame both start: the BBC sets it at the next vsync); an effect ends in
+\\ instrument 0, the engine, at volume 0, or after the race's start and at its finish in instrument 15,
+\\ silence. The engine's tone alternates its period + and - its step (900) every rate + 1 ticks of the
+\\ 749 Hz timer; F_012BA2 moves its volume, period and rate each frame from the car's speed, unless an effect
+\\ holds the channel.
+\\
+\\ The effects' fields are in the &3000 area of both screens (copied there at the start: sound_init), so the
+\\ IRQ reads them whatever is paged and whichever screen ACCCON's X shows the CPU.
+
+SECTION GameVars
+.SndFx                                  ; the effect each channel plays (Fx...), &FF none
+    SKIP 3
+.SndField                               ; its next field
+    SKIP 3
+.SndPrio                                ; the channel's priority (the ST's G_01F25C)
+    SKIP 3
+.SndPrioNext                            ; a starter's priority, from the next vsync (&FF: none waiting)
+    SKIP 3
+.EngVol                                 ; the engine (instrument 0): its volume, 0-255
+    SKIP 3
+.EngPerLo                               ; its period
+    SKIP 3
+.EngPerHi
+    SKIP 3
+.EngRate                                ; ticks a half-cycle, less 1
+    SKIP 3
+.EngStep                                ; its step: 900 (instrument 0) or 0 (instrument 15)
+    SKIP 3
+.EngNeg                                 ; bit 7: the step taken off, not added
+    SKIP 3
+.EngTicks                               ; ticks to the next turn of the step
+    SKIP 3
+.SndN                                   ; what each channel wrote last: its period, its attenuation
+    SKIP 6
+.SndAtt
+    SKIP 3
+.SndNoise                               ; the noise control written last (&FF none), and its attenuation
+    SKIP 2
+ENDSECTION
+
+IF DEFINED(SoundLog)
+    SECTION GameVars
+    .SndLogCount                        ; the test's: the frame's starters' calls
+        SKIP 1
+    .SndLogFx
+        SKIP 8
+    .SndLogCh
+        SKIP 8
+    ENDSECTION
+ENDIF
+
+FxSilence = &80                         ; (not an effect: a channel's state set to instrument 15's)
+FxEngine = &81                          ; (instrument 0's)
+TicksPerField = 15                      ; the 749.3 Hz timer's ticks in a 50 Hz field (14.99)
+
+IF DEFINED(SoundLog) = 0                ; (the game's: the logic test sets the sound up itself)
+
+\\ The sound's start: the effects copied into both screens' &3000 area (from the objects' bank), every channel
+\\ silent (instrument 15).
+\\
+\\ Inputs:
+\\     ROMSEL: any; acccon: the main screen's X
+\\
+\\ Outputs:
+\\     the effects at FxOrg in both screens; the sound's state; ROMSEL the objects' bank
+\\     A, X, Y: corrupted
+
+.sound_init
+{
+    LDA bankobj:STA &FE30               ; ROMSEL: the objects' bank, where the effects' image is
+    LDA acccon:JSR copy
+    LDA acccon:ORA #AccX:JSR copy
+    LDA acccon:STA &FE34                ; ACCCON: as it was
+    LDX #2
+.channel
+    LDA #FxSilence:JSR set_state
+    LDA #&FF:STA SndPrioNext,X
+    STZ SndPrio,X
+    LDA #&FF:STA SndAtt,X               ; (unknown: the first write goes out)
+    DEX
+    BPL channel
+    LDA #&FF:STA SndNoise
+    RTS
+
+    \\ the image to FxOrg, with ACCCON as A
+.copy
+    STA &FE34                           ; ACCCON: the screen whose &3000 area gets it
+    LDX #HI(FxEnd - FxOrg + &FF)
+    LDY #0
+.page
+    LDA FxImage,Y                       ; self-modified: the page's high byte
+    STA FxOrg,Y                         ; self-modified: the page's high byte
+    INY
+    BNE page
+    INC page+2
+    INC page+5
+    DEX
+    BNE page
+    LDA #HI(FxImage):STA page+2
+    LDA #HI(FxOrg):STA page+5
+    RTS
+}
+
+ENDIF
+
+\\ An effect started on a car's channel, as the ST's starters do: if the channel's priority is under the
+\\ threshold (0: always). Interrupts are held off while it's set.
+\\
+\\ Inputs:
+\\     A: the effect (Fx...), or FxSilence or FxEngine
+\\     Y: the threshold, 0 for always
+\\     X: the car (its channel: car MOD 3)
+\\
+\\ Outputs:
+\\     the channel's state
+\\     A, Y: corrupted; X preserved
+
+.fx_car
+{
+    ZA_AUTO1 fx                         ; local
+    ZA_AUTO1 car                        ; local
+
+    STA fx
+    STX car
+    CPX #3:BNE @+
+    LDX #0                              ; (car 3's channel: 0)
+.@
+    TYA:BEQ start
+    CMP SndPrio,X                       ; the threshold over the priority: it starts
+    BEQ done
+    BCC done
+.start
+    PHP
+    SEI
+    LDA fx:JSR set_state
+    PLP
+    IF DEFINED(SoundLog)
+        LDA #&80:ORA fx:JSR log         ; (the test's: started)
+    ENDIF
+    LDX car
+    RTS
+.done
+    IF DEFINED(SoundLog)
+        LDA fx:JSR log                  ; (the test's: not started)
+    ENDIF
+    LDX car
+    RTS
+    IF DEFINED(SoundLog)
+        \\ the test's log of this frame's starts: the effect | started << 7, the channel
+    .log
+        LDY SndLogCount
+        STA SndLogFx,Y
+        TXA:STA SndLogCh,Y
+        INC SndLogCount
+        RTS
+    ENDIF
+}
+
+\\ F_012C74's and F_012D38's: a state on a car's channel and the next (the wreck and the helicopter, then the
+\\ engine back), always.
+\\
+\\ Inputs: A: the effect or instrument; X: the car (3 for a drone's wreck: channel 0). Outputs: the two
+\\ channels' state. A, Y: corrupted; X preserved.
+
+.fx_two
+{
+    ZA_AUTO1 fx                         ; local
+    ZA_AUTO1 car                        ; local
+
+    STA fx
+    STX car
+    TXA
+.mod3
+    CMP #3:BCC @+
+    SBC #3
+    BRA mod3
+.@
+    TAX
+    PHP
+    SEI
+    IF DEFINED(SoundLog)
+        LDA #&80:ORA fx:JSR fx_car.log  ; (the test's: the first channel's, started)
+    ENDIF
+    LDA fx:JSR set_state
+    INX
+    CPX #3:BNE @+
+    LDX #0
+.@
+    LDA fx:JSR set_state
+    PLP
+    LDX car
+    RTS
+}
+
+\\ A channel's state set: an effect from its first field (its priority from the next vsync), or instrument
+\\ 15 (silent) or 0 (the engine, at volume 0, from its start).
+\\
+\\ Inputs:
+\\     A: the effect, FxSilence or FxEngine
+\\     X: the channel
+\\
+\\ Outputs:
+\\     its state
+\\     A, Y: corrupted; X preserved
+
+.set_state
+{
+    CMP #&80:BCS instrument             ; (A's own: a caller's flags aren't A's)
+    STA SndFx,X
+    STZ SndField,X
+    TAY
+    LDA FxPrio,Y:STA SndPrioNext,X
+    RTS
+.instrument
+    LDY #0                              ; instrument 15: step 0, period 0
+    CMP #FxEngine:BNE @+
+    LDY #1                              ; instrument 0: step 900, period 3000, rate 18
+.@
+    LDA #&FF:STA SndFx,X
+    LDA #0:STA SndPrioNext,X
+    STZ EngVol,X
+    LDA InsPerLo,Y:STA EngPerLo,X
+    LDA InsPerHi,Y:STA EngPerHi,X
+    LDA InsStep,Y:STA EngStep,X
+    LDA InsRate,Y:STA EngRate,X
+    STA EngTicks,X
+    STZ EngNeg,X
+    RTS
+}
+
+.InsPerLo                               ; instruments 15 and 0
+    EQUB LO(0), LO(3000)
+.InsPerHi
+    EQUB HI(0), HI(3000)
+.InsStep                                ; the step, / 4 (900 doesn't fit a byte; 900 = 225 * 4)
+    EQUB 0, 900 / 4
+.InsRate
+    EQUB 0, 18                          ; (15's: 9999, but with no step it never matters)
+
+\\ F_012BA2: a human car's engine, each frame it races, unless an effect holds its channel: over speed 20, its
+\\ volume up 8 to 200 + speed / 8, its period 3000 - 4 * speed, its rate 18 - speed / 8; at 20 or under, its
+\\ volume down 8 while over 130.
+\\
+\\ Inputs:
+\\     X: the car, 0-2 (its channel)
+\\
+\\ Outputs:
+\\     its engine's state
+\\     A, Y: corrupted; X preserved
+
+.engine
+{
+    ZA_AUTO1 eighth                     ; local: speed / 8
+
+    LDA SndPrio,X:BNE done
+    LDA RcSpeedHi,X:BMI slow            ; (signed: under 0 is slow)
+    BNE fast
+    LDA RcSpeedLo,X:CMP #21:BCS fast
+.slow
+    LDA EngVol,X:CMP #131:BCC done      ; slow: down 8 while over 130
+    SBC #8:STA EngVol,X
+.done
+    RTS
+.fast
+    LDA RcSpeedLo,X:LSR A:LSR A:LSR A:STA eighth   ; (speed at most 135: its high byte 0)
+    CLC:ADC #200
+    CMP EngVol,X:BEQ @+:BCC @+          ; under 200 + speed / 8: up 8
+    LDA EngVol,X:ADC #7:STA EngVol,X    ; (C set: + 8)
+.@
+    LDA RcSpeedLo,X:ASL A:STA EngPerLo,X   ; 3000 - 4 * speed
+    LDA #0:ROL A:STA EngPerHi,X
+    ASL EngPerLo,X:ROL EngPerHi,X
+    SEC
+    LDA #LO(3000):SBC EngPerLo,X:STA EngPerLo,X
+    LDA #HI(3000):SBC EngPerHi,X:STA EngPerHi,X
+    LDA #18:SEC:SBC eighth:STA EngRate,X
+    RTS
+}
+
+\\ The vsync's sound: each channel's field, an effect's (then on to its next, its loop, or its end) or the
+\\ engine's; the noise from the loudest effect that has it; written to the chip where it changed. In the
+\\ IRQ.
+\\
+\\ Inputs:
+\\     the sound's state
+\\
+\\ Outputs:
+\\     the chip; the sound's state a field on
+\\     A, X, Y: corrupted
+
+.sound_irq
+{
+    ZA_AUTO2 p                          ; local: the effect's field
+    ZA_AUTO1 nlo, nhi, att              ; local: the channel's period and attenuation
+    ZA_AUTO1 noise, natt                ; local: the noise's control (&FF none) and attenuation
+    ZA_AUTO2 per                        ; local: the engine's period, its step applied
+    ZA_AUTO1 t                          ; local: the engine's ticks
+
+    LDA #&FF:STA noise
+    LDA #15:STA natt
+    LDX #2
+.channel
+    LDA SndPrioNext,X:BMI @+            ; a starter's priority, now
+    STA SndPrio,X
+    LDA #&FF:STA SndPrioNext,X
+.@
+    LDY SndFx,X:BMI engine
+    LDA FxLo,Y:STA p
+    LDA FxHi,Y:STA p+1
+    LDA SndField,X:ASL A:ADC SndField,X ; (C clear: the field * 3, at most 133 * 3: a page and more)
+    BCC @+
+    INC p+1
+    CLC
+.@
+    ADC p:STA p
+    BCC @+
+    INC p+1
+.@
+    LDY #0
+    LDA (p),Y:STA nlo
+    INY
+    LDA (p),Y:AND #3:STA nhi
+    LDA (p),Y:LSR A:LSR A:AND #15:STA att
+    LDA (p),Y:AND #&40:BEQ nonoise
+    INY
+    LDA (p),Y:LSR A:LSR A:LSR A:LSR A   ; its attenuation: the loudest's noise
+    CMP natt:BCS nonoise
+    STA natt
+    LDA (p),Y:AND #3:ORA #4:STA noise   ; white noise at its rate
+.nonoise
+    LDY SndFx,X                         ; on a field; at the end, the loop or the effect's end
+    INC SndField,X
+    LDA SndField,X:CMP FxLen,Y:BNE out
+    LDA FxLoop,Y:CMP FxLen,Y:BEQ ended
+    STA SndField,X
+    BRA out
+.ended
+    LDA #FxEngine                       ; (the start's three end in silence, the rest in the engine)
+    CPY #FxStart2+1:BCS @+
+    LDA #FxSilence
+.@
+    JSR set_state
+    BRA out
+
+    BRA out
+.engine
+    JSR engine_field
+
+    \\ the channel's tone and attenuation to the chip, where they changed
+.out
+    LDA nlo:CMP SndN,X:BNE tone
+    LDA nhi:CMP SndN+3,X:BEQ volume
+.tone
+    LDA nlo:STA SndN,X
+    LDA nhi:STA SndN+3,X
+    LDA nlo:AND #15:ORA ToneBits,X:JSR sn_write   ; 1 cc 0 llll
+    LDA nhi:ASL A:ASL A:ASL A:ASL A:STA per      ; 0 0 hhhhhh: the period >> 4
+    LDA nlo:LSR A:LSR A:LSR A:LSR A:ORA per
+    JSR sn_write
+.volume
+    LDA att:CMP SndAtt,X:BEQ next
+    STA SndAtt,X
+    ORA AttBits,X:JSR sn_write          ; 1 cc 1 aaaa
+.next
+    DEX
+    BMI noises
+    JMP channel
+
+    \\ the noise: its control when it changed (writing it restarts the noise), its attenuation
+.noises
+    LDA noise:BMI quiet
+    CMP SndNoise:BEQ @+
+    STA SndNoise
+    ORA #&E0:JSR sn_write
+.@
+    LDA natt
+    BRA @+
+.quiet
+    LDA #15
+.@
+    CMP SndNoise+1:BEQ done
+    STA SndNoise+1
+    ORA #&F0:JMP sn_write
+.done
+    RTS
+
+    \\ the engine: its period + or - its step, the step turned every rate + 1 ticks; its volume >> 4
+.engine_field
+    LDA EngStep,X:BEQ turned            ; (no step, nothing to turn: instrument 15)
+    LDA EngTicks,X:SEC:SBC #TicksPerField
+.turn
+    BPL turned
+    STA t
+    LDA EngNeg,X:EOR #&80:STA EngNeg,X
+    LDA t
+    SEC:ADC EngRate,X                   ; (+ rate + 1)
+    BRA turn
+.turned
+    STA EngTicks,X
+    LDA EngStep,X:STA per               ; the step * 4
+    STZ per+1
+    ASL per:ROL per+1
+    ASL per:ROL per+1
+    BIT EngNeg,X:BMI minus
+    CLC
+    LDA EngPerLo,X:ADC per:STA per
+    LDA EngPerHi,X:ADC per+1:STA per+1
+    BRA period
+.minus
+    SEC
+    LDA EngPerLo,X:SBC per:STA per
+    LDA EngPerHi,X:SBC per+1:STA per+1
+.period
+    LDA per+1:BEQ @+                    ; over 1023: up an octave at a time
+.octave
+    CMP #4:BCC @+
+    LSR per+1:ROR per
+    LDA per+1
+    BRA octave
+.@
+    LDA per:STA nlo
+    LDA per+1:STA nhi
+    LDA EngVol,X:LSR A:LSR A:LSR A:LSR A:TAY
+    LDA SnAtten,Y:STA att
+    RTS
+}
+
+\\ A byte to the SN76489, as MOS 3.20 writes it (the beeb-port-kit's sfx50.6502): System VIA port A all
+\\ outputs, the byte, the addressable latch's line 0 (the chip's write enable) low, then high.
+\\
+\\ Inputs: A: the byte. Outputs: A, Y corrupted; X preserved.
+
+.sn_write
+{
+    LDY #&FF:STY &FE43                  ; system VIA: DDRA, all outputs
+    STA &FE4F                           ; system VIA: ORA, no handshake
+    LDA #0:STA &FE40                    ; addressable latch: line 0 low, the write enable
+    NOP:NOP:NOP:NOP                     ; (the chip: 32 of its 4 MHz clocks, 16 cycles)
+    NOP:NOP:NOP:NOP
+    LDA #8:STA &FE40                    ; and high
+    RTS
+}
+
+.ToneBits                               ; a channel's tone and attenuation latch bytes
+    EQUB &80, &A0, &C0
+.AttBits
+    EQUB &90, &B0, &D0
+.SnAtten                                ; the YM's 4-bit volume v as an SN attenuation (ay2sn.py's, the kit's: n =
+    EQUB 15, 13, 13, 11, 11, 9, 9, 7    ; v * 2 + (v AND 1), 15 - (MIN(n + 1, 31) >> 1))
+    EQUB 7, 5, 5, 3, 3, 1, 1, 0

@@ -223,7 +223,7 @@ MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wren
     CLC:ADC #LO(BonusPts):STA score_add.add
     LDA #HI(BonusPts):ADC #0:STA score_add.add+1
     JSR score_add
-    \\ the bonus's sound: not yet
+    LDA #FxBonus:LDY #4:JSR fx_car      ; F_012EDC
     INC gone
     STZ RcBonusTaken
     BRA timer
@@ -322,6 +322,8 @@ MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wren
 {
     LDA RcWrenchTaken:BEQ nottaken
     DEC A:STA RcWrenchTimerLo           ; (the taker: the HUD's wrench count redrawn, with the renderer)
+    TAX
+    LDA #FxWrench:LDY #4:JSR fx_car     ; F_012E00
     STZ RcWrenchTimerHi
     LDA #&15:JSR wrench_draw            ; the road over it
     STZ RcWrenchTaken

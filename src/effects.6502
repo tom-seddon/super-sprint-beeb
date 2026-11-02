@@ -207,6 +207,7 @@ ENDSECTION
 .heli_start
 {
     ZA_AUTO1 side                       ; local
+    ZA_AUTO1 car                        ; local: X
     ZA_AUTO2 v                          ; local: a place from the wreck's
     ZA_AUTO2 most                       ; local: clamp's limit
 
@@ -218,7 +219,10 @@ ENDSECTION
     LDA #3
 .@
     STA RcHeliCar
-    \\ (the wreck and helicopter's sound: not yet)
+    STX car
+    TAX
+    LDA #FxWreck:JSR fx_two             ; F_012C74: the crash, then the helicopter
+    LDX car
     LDA side:STA RcHeliVariant
     LDA #&FF:STA RcHeliStateLo:STA RcHeliStateHi
     STZ RcHeliFrame
@@ -299,6 +303,7 @@ ENDSECTION
 {
     ZA_AUTO1 step                       ; local: -2 or 2
     ZA_AUTO1 left                       ; local: the timer before it's counted down, its bytes ORed
+    ZA_AUTO1 keep                       ; local: X
 
     STZ RcHeliDrawn
     LDA RcHeliStateLo:ORA RcHeliStateHi
@@ -326,7 +331,11 @@ ENDSECTION
 .@
     DEC RcHeliTimerLo
     LDA left:BNE move
-    LDA #&80:STA RcHeliStateLo          ; gone (the engines back: with the sound)
+    LDA #&80:STA RcHeliStateLo          ; gone: the engines back (F_012D38)
+    STX keep
+    LDX RcHeliCar
+    LDA #FxEngine:JSR fx_two
+    LDX keep
     RTS
 .move
     INC RcHeliDrawn

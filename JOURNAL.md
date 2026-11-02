@@ -369,3 +369,9 @@
 - **Trap**: a headless check that reads a bank number at boot reads 0: the disc copies its banks first.
 - **Player 1's keys: Q W E**, not Z X SHIFT (Tom: the two SHIFT keys are one key, at opposite sides). Same
   columns, so still no ghosting on paper; all read right in jsbeeb.
+- **Sound**: the race's effects captured from the ST (YM writes per VBL), converted to the SN offline,
+  played from the vsync IRQ; engines live. All 31 starter calls match the ST's; all 29 started effects
+  found at the chip, field for field. Mistake found by the chip check: the loader left the latch's line 3
+  low, so the keyboard drove PA7 and every sound byte lost bit 7; the loader now leaves it high (as the
+  MOS does) and the key read drops it. Hatari ran away with 16 breakpoints set (a 2.9 GB log).
+- Room is the next problem: 52 bytes of main RAM left in the play build, 136 in the fourth bank.

@@ -77,7 +77,9 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     LDA #&7F:STA &FE4E:STA &FE6E        ; system, user VIAs: IER, every interrupt off
     STA &FE4D:STA &FE6D                 ; IFR: every flag cleared
     LDA #&0F:STA &FE42                  ; system VIA: DDRB, PB0-3 drive the addressable latch
-    LDA #&03:STA &FE40                  ; addressable latch: keyboard auto-scan off
+    LDA #&0B:STA &FE40                  ; addressable latch: line 3 high, the keyboard's auto-scan on, as the
+                                        ; MOS leaves it (low, the keyboard drives PA7, and every byte to the
+                                        ; sound chip loses its bit 7; keyboard.6502 drops it to read a key)
     LDA #4:STA &FE4C                    ; system VIA: PCR 4, CA1 on vsync's falling edge
     LDA #&82:STA &FE4E                  ; system VIA: IER, CA1 only
 

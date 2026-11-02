@@ -21,6 +21,10 @@ LogicBank = 4                           ; the logic's bank: the Master's sideway
 
 SECTION LogicVars, org = LogicVarsOrg, guard = &0800, virtual = TRUE
 ENDSECTION
+SECTION GameVars, org = &0900, guard = &0E00, virtual = TRUE  ; (the OS's, which the test doesn't use)
+ENDSECTION
+SoundLog = 1                            ; sound.6502 logs each frame's starters' calls (SndLog...)
+GenLogic = 1
 
 SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec = &FFFF0000+test_entry, guard = &7C00, cmos = TRUE
 
@@ -85,6 +89,14 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
         LDA #LgDrones[c]:STA RcDrone+c
     NEXT
     JSR race_setup
+    LDX #2                              ; the sound as after the race's start: every channel's engine on
+.engines
+    LDA #&FF:STA SndPrioNext,X:STA SndAtt,X
+    STZ SndPrio,X
+    LDA #FxEngine:JSR set_state
+    DEX
+    BPL engines
+    LDA #&FF:STA SndNoise
     LDA #LO(Inputs):STA iptr
     LDA #HI(Inputs):STA iptr+1
 .setup_done                             ; (the check may write the state and iptr here)
@@ -94,7 +106,9 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     LDA (iptr),Y:STA RcInput,Y
     INY
     CPY #3:BNE input
+    STZ SndLogCount
     JSR race_frame
+    JSR sound_irq                       ; (the vsync's sound, a frame on: the ST's priorities change between)
 .frame_done
     JSR race_end
     CLC
@@ -111,6 +125,8 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
 
     INCLUDE "arith.6502"
     INCLUDE "random.6502"
+    INCLUDE "sound.6502"
+    INCLUDE "../build/lgen/sound.6502"
     INCLUDE "race.6502"
     INCLUDE "human.6502"
     INCLUDE "../build/lgen/tables.6502"

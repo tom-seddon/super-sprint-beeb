@@ -10,10 +10,10 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 10 (sound).** The keys are in and a disc plays (§8; `make beeb TRACE=play`; Tom:
-"feels really good" in jsbeeb). The joysticks wait for a measurement on a real Master (Tom); the ST's HUD
-text in the bottom row stays (Tom). Then: the hazards (tornado, barriers, gates, cones), the frame's worst
-cases, the other tracks.
+**Resume point: the hazards, or main RAM.** Sound is in (§8). Main RAM has 52 bytes left in the play build
+and the fourth bank 136: the next feature needs room first (a RAM hunt: the logic's set-up and frame
+builder's unrolled set-up code are candidates, `beeb-ram-hunt`). Then the hazards (tornado, barriers,
+gates, cones: they trap), the frame's worst cases (5 of 2,197 over a TV frame), the other tracks.
 
 ## 0. The proposal in one paragraph
 
@@ -385,3 +385,30 @@ F_012BA2 from the human car's speed, its pitch alternating period +- 900 at the 
    st-logic's plan), else silence. The logic starts effects where the ST does (the stubs left so far).
 4. **Prove**: the BBC's effect starts (which, the channel, the frame) against the ST's on the logic race;
    the BBC's SN writes against the streams (`beeb-sound-verify`'s way); WAVs of both chips for Tom's ears.
+
+**Step 10, sound, built.** `tools/st_trace_sound.py` captures a race's YM writes (Hatari's `psg_write`
+trace), sampled at each VBL (TOS's VBL routine, &FC06C0: the start's sound plays in the race's 1 s pause,
+when there are no flips), with each conditional starter's call (its channel, the priorities it found, the
+frame). Three captures: the logic race, a hazard race (track 7, race 17, tornado and cones) and the logic
+race with oil poked across the start straight (no traced race's car ever met the oil). Two traps on the
+way: 16 breakpoints set at once made Hatari run away (a 2.9 GB log: the always-starting starters lost
+theirs), and at the VBL the frame counter's reset is never seen (the race starts at a fall to 1).
+`tools/sound_gen.py` cuts each effect (11: the start on each channel, bounce, bump, slow, skid, wrench,
+bonus, tornado, wreck with the helicopter's loop) from its start to its channel's priority falling to 0,
+steps the hardware envelope (period 700, shape 12, the only one used), and converts with the kit's rules
+(`tools/ay2sn.py`, forked): 1,566 bytes, in the objects' bank, copied at the start into both screens' &3000
+area so the IRQ reads them whatever is paged. `src/sound.6502`: the starters (`fx_car`, `fx_two`, the ST's
+thresholds; a starter's priority taking effect at the next vsync, as the ST's driver sets it at its next
+tick, so two in one frame both start), the engines (F_012BA2), and `sound_irq` in the vsync IRQ (each
+channel's field, the noise from the loudest, written where changed).
+MEASURED: `tools/sound_check.mjs`, all 31 of the ST's starter calls in the logic race match the BBC's,
+frame by frame, channel and effect, and whether each started. `tools/sn_check.mjs` (the chip's writes
+captured in jsbeeb, cut into fields at each vsync): all 29 effects the ST started are found at the chip,
+field for field, on their channels. Its first run found none: our loader left the addressable latch's line
+3 low (the keyboard's scan off), and while it's low the keyboard drives PA7, so every byte to the chip lost
+its bit 7 (jsbeeb models it; so does a real BBC: the MOS keeps line 3 high and drops it only to scan). Now
+the loader leaves it high and `key_down` drops it for its read (the kit's keydown, unforked in that). The
+default renderer disc differs from Phase 3's in that one byte (&0B for &03), its check still all frames
+matching. `make check TRACE=logic0`: all 2,197 frames still match; 27,012 cycles a frame (mean), 5 frames
+over a TV frame (3 before: the IRQ's sound, about 700 cycles a vsync). To listen: `build/sound/race_bbc.wav`
+and `race_st.wav` (`tools/sound_wav.py`), and each effect in `build/lgen/wav` (`sound_gen.py --wav`).

@@ -1,6 +1,7 @@
 \\ keyboard.6502 - the players' keys (D12), read straight from the keyboard matrix: the beeb-port-kit's
-\\ lib/keydown.6502, forked (keydown_int; the loader has already stopped the keyboard's free-running scan,
-\\ entry.6502, so the latch is left alone). Each player's left, right and accelerate are in a column of
+\\ lib/keydown.6502, forked (keydown_int): the keyboard's free-running scan stopped for the read (the
+\\ addressable latch's line 3 low) and started again after, since while it's stopped the keyboard drives PA7,
+\\ which the sound chip's writes share. Each player's left, right and accelerate are in a column of
 \\ their own, so no keys of theirs held together can ghost another (tools/keys_ghost.py).
 
 \\ The keys' internal numbers, measured: the kit's docs/hardware-facts.md section 7, and COMMA and PERIOD with
@@ -32,10 +33,13 @@ KeySlash = 104
 
     STA k
     PHP
-    SEI                                 ; (the sound will share port A)
+    SEI                                 ; (the sound's IRQ shares port A)
+    LDA #&03:STA &FE40                  ; addressable latch: line 3 low, the keyboard's scan stopped
     LDA #&7F:STA &FE43                  ; system VIA: DDRA, PA0-6 out (the key asked about), PA7 in
     LDA k:STA &FE4F                     ; system VIA: ORA, no handshake
-    LDA &FE4F                           ; PA7: held
+    LDA &FE4F:STA k                     ; PA7: held
+    LDA #&0B:STA &FE40                  ; addressable latch: line 3 high again
+    LDA k
     PLP
     AND #&80
     RTS

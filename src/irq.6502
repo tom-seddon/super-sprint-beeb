@@ -17,7 +17,7 @@ ZA_AUTO1 vsyncs                         ; vsyncs counted, for pacing and the tes
 \\ Outputs:
 \\     swapreq: 0
 \\     acccon: D flipped, if it was shown
-\\     A: restored from &FC; X, Y: preserved
+\\     A: restored from &FC; X, Y: preserved; the sound a field on (sound.6502, in the game built from the logic)
 
 .irq
 {
@@ -29,6 +29,11 @@ ZA_AUTO1 vsyncs                         ; vsyncs counted, for pacing and the tes
     LDA acccon:EOR #AccD:STA acccon
     STA &FE34                           ; ACCCON: the screen just drawn shown
 .done
+    IF GenLogic
+        PHX:PHY
+        JSR sound_irq                   ; the sound's field (sound.6502)
+        PLY:PLX
+    ENDIF
     LDA &FC                             ; (the MOS's IRQ entry saved A there)
     RTI
 }

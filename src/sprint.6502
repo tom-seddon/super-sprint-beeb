@@ -15,6 +15,7 @@ IF GenLogic
     INCLUDE "../build/gen/logickeys.6502"
     INCLUDE "../build/lgen/race.6502"
     LogicVarsOrg = SwramEnd - &200      ; the logic's state, at the fourth bank's end
+    FxOrg = &3400                       ; the sound's effects, in both screens' &3000 area (ScreenVars below)
     SECTION LogicVars, org = LogicVarsOrg, guard = SwramEnd, virtual = TRUE
     ENDSECTION
 ENDIF
@@ -68,6 +69,14 @@ SECTION ObjFile, filename = "SPRINTD", load = &FFFF0000+LoadAddr
     SECTION ObjBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
         INCLUDE "objdata.6502"
         INCLUDE "movers.6502"
+        IF GenLogic
+.FxImage                                ; the sound's effects, copied to FxOrg in both screens (sound_init)
+            SECTION FxData, org = FxOrg
+                INCLUDE "../build/lgen/sound.6502"
+.FxEnd
+            ENDSECTION
+            ASSERT FxEnd + &FF <= HudAddr, "the effects' pages below the HUD's row"
+        ENDIF
         PRINT "the objects' bank: ", SwramEnd - P%, " bytes free"
     ENDSECTION
 ENDSECTION
@@ -86,7 +95,10 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             INCLUDE "random.6502"
             INCLUDE "race.6502"
             INCLUDE "human.6502"
-            INCLUDE "keyboard.6502"
+            IF GenPlay
+                INCLUDE "keyboard.6502"
+            ENDIF
+            INCLUDE "sound.6502"
             INCLUDE "../build/lgen/tables.6502"
         ENDIF
         PRINT "main RAM's code: ", ObjBufOrg - P%, " bytes free below ObjBuf"
