@@ -46,9 +46,9 @@ SECTION LogicVars
     SKIP 1
 .RcHazDrawCount                         ; the gates and barriers drawn this frame (F_014A04's and F_014A80's
     SKIP 1                              ; calls), for the renderer: how many,
-.RcHazDrawWhat                          ; each one's frame (a gate's position), bit 7 set for a barrier,
+.RcHazDrawWhat                          ; each one's frame (a gate's position, a barrier's 0-3 within its kind),
     SKIP MaxHazDraws
-.RcHazDrawIdx                           ; and which gate or barrier
+.RcHazDrawIdx                           ; and which: a barrier 0-2, a gate 3 on (logicframe.6502's instances)
     SKIP MaxHazDraws
 ENDSECTION
 
@@ -56,13 +56,13 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
 
 \\ A gate's or barrier's draw noted for the renderer.
 \\
-\\ Inputs: A: its frame (bit 7 set: a barrier); X: which. Outputs: the queue. A, Y: corrupted; X preserved.
+\\ Inputs: A: its frame; X: which (a gate 3 on). Outputs: the queue. Y: corrupted; A, X preserved.
 
 .haz_note
 {
     LDY RcHazDrawCount
     STA RcHazDrawWhat,Y
-    TXA:STA RcHazDrawIdx,Y
+    PHA:TXA:STA RcHazDrawIdx,Y:PLA
     INC RcHazDrawCount
     RTS
 }
@@ -145,8 +145,7 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
     STZ i
 .barrier
     LDX i
-    LDA BarKind,X:CLC:ADC #3
-    JSR barrier_draw
+    LDA #3:JSR barrier_draw
     INC i
     LDA i:CMP #3:BNE barrier
 .barred
@@ -182,7 +181,8 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
 
 .gate_draw
 {
-    PHA:JSR haz_note:PLA
+    INX:INX:INX:JSR haz_note            ; (the gate's instance)
+    DEX:DEX:DEX
     STA mb_box.set                      ; (a scratch: the position * 6)
     ASL A:ADC mb_box.set:ASL A          ; (C clear)
     CLC:ADC #LO(GateBar):STA mb_box.set
@@ -203,22 +203,23 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
 \\ F_014A80's mask B: a barrier's 16 x 8, kept where its frame is clear, its studs' walls set.
 \\
 \\ Inputs:
-\\     A: the frame, its kind (0, 4, 8) + 0-3; X: the barrier
+\\     A: its frame within its kind, 0-3; X: the barrier
 \\
 \\ Outputs:
 \\     mask B; A, Y: corrupted; X preserved
 
 .barrier_draw
 {
-    PHA:ORA #&80:JSR haz_note:PLA
+    JSR haz_note
+    CLC:ADC BarKind,X                   ; the sprite's frame: its kind (0, 4, 8) + 0-3
     ASL A:ASL A:ASL A:ASL A             ; 16 bytes a frame
     CLC:ADC #LO(BarSet):STA mb_box.set
     LDA #HI(BarSet):ADC #0:STA mb_box.set+1
     LDA BarKind,X:ASL A:ASL A           ; the kind * 16: (0, 4, 8) * 4
     CLC:ADC #LO(BarKeep):STA mb_box.keep
     LDA #HI(BarKeep):ADC #0:STA mb_box.keep+1
-    LDA BarCol,X:STA mb_box.col
-    LDA BarY,X:STA mb_box.line
+    LDA InstCol,X:STA mb_box.col
+    LDA InstY,X:STA mb_box.line
     LDA #2:STA mb_box.w:STA mb_box.step
     LDA #8:STA mb_box.h
     PHX
@@ -252,7 +253,6 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
     LDA RcBarFrame:BPL @+
     AND #&7F:STA RcBarFrame
     LDX RcBarIdx
-    CLC:ADC BarKind,X
     JSR barrier_draw
 .@
     DEC RcBarTimer:BNE done
@@ -274,7 +274,7 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
     LDA #3:STA RcBarFrame
 .draw
     LDX RcBarIdx
-    LDA RcBarFrame:CLC:ADC BarKind,X
+    LDA RcBarFrame
     JSR barrier_draw
     LDA RcBarFrame:ORA #&80:STA RcBarFrame
 .done

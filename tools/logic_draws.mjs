@@ -45,9 +45,9 @@ function st(f) {
 function bbc() {
     const out = [];
     for (let i = 0; i < peek(syms.RcHazDrawCount); i++) {     // a gate's or barrier's screen offset: y * 160 + column * 4
-        const what = peek(syms.RcHazDrawWhat + i), j = peek(syms.RcHazDrawIdx + i);
-        if (what & 0x80) out.push(`barrier ${what & 0x7f} ${peek(syms.BarY + j) * 160 + peek(syms.BarCol + j) * 4}`);
-        else out.push(`gate ${what} ${peek(syms.GateY + j) * 160 + peek(syms.GateCol + j) * 4}`);
+        const what = peek(syms.RcHazDrawWhat + i), j = peek(syms.RcHazDrawIdx + i);   // (barriers 0-2, gates 3 on)
+        const at = peek(syms.InstY + j) * 160 + peek(syms.InstCol + j) * 4;
+        out.push(j < 3 ? `barrier ${what + peek(syms.BarKind + j)} ${at}` : `gate ${what} ${at}`);
     }
     for (let i = 0; i < peek(syms.RcSlotCount); i++)
         out.push(`slot ${peek(syms.RcSlotSprite + i)} ${peek(syms.RcSlotX + i)} ${peek(syms.RcSlotY + i)}`);

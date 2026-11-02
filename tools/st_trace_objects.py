@@ -95,7 +95,9 @@ def parse(log):
         if a == Flip[0][0]:
             frames.append(cur)
             cur = {'mem': {}, 'calls': []}
-        target = cur['calls'][-1][2] if cur['calls'] and a in (x for x, _ in SparkState) else cur['mem']
+        # a spark's state dump, every line of it (the places are two lines: the second, sparks 4-7's, went to
+        # the frame's memory until 2026-11-02, and the model drew none of them)
+        target = cur['calls'][-1][2] if cur['calls'] and any(x <= a < x + k for x, k in SparkState) else cur['mem']
         for i, b in enumerate(bs):
             target[a + i] = b
     return frames

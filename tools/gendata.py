@@ -224,6 +224,31 @@ def transitions(frames, insts):
     return entries, per
 
 
+def logic_objects(track):
+    """The logic build's gates and barriers (step 11): every one the track has, the barriers first as the ST
+    draws them, each at rest in its first frame (a barrier's kind + 3, a gate shut); every frame of each; and
+    every entry the logic can ask for, by instance: its first draw (code 0), a step up to frame t (code t,
+    1-4), a step down to t (code 5 + t, 0-3), t a gate's position or a barrier's frame within its kind.
+    -> (insts, rest, objframes, entries, the entry for each instance * 9 + code, 255 none)."""
+    ng, gp = logic_maps.words(logic_maps.tb(0x1ED88))[track], logic_maps.words(logic_maps.tb(0x1ED98), False)
+    bp, bk = logic_maps.words(logic_maps.tb(0x1EC00), False), logic_maps.tb(0x1EC30)
+    insts = [('barrier',) + logic_maps.scr(bp[track * 3 + i]) for i in range(3)]
+    insts += [('gate',) + logic_maps.scr(gp[track + i]) for i in range(ng)]
+    base = [bk[track * 3 + i] for i in range(3)] + [0] * ng
+    top = [3] * 3 + [4] * ng
+    rest = {i: base[i] + top[i] if i < 3 else 0 for i in range(len(insts))}
+    objframes = {'gate': list(range(5)) if ng else [],
+                 'barrier': sorted({base[i] + f for i in range(3) for f in range(4)})}
+    entries, codes = [], [255] * (9 * len(insts))
+    for i in range(len(insts)):
+        steps = [(0, None, rest[i])] + [(t, base[i] + t - 1, base[i] + t) for t in range(1, top[i] + 1)] \
+            + [(5 + t, base[i] + t + 1, base[i] + t) for t in range(top[i])]
+        for code, f0, f1 in steps:
+            codes[9 * i + code] = len(entries)
+            entries.append((i, f0, f1))
+    return insts, rest, objframes, entries, codes
+
+
 def instance_cells(kind, x, y):
     """The 8 x 8 cells an instance covers, by cell row: [(row, first column, columns)]."""
     w, h = ObjSizes[kind]
@@ -515,8 +540,11 @@ def main(track, tracepath, out, logic=False, play=False):
         f.write(f'CarDataSize = {len(data)}\n')
 
     # the cells a gate or barrier of this race covers: their priority bits change as it moves
-    insts = instances(frames)
-    objframes = frames_used(frames)
+    if logic:
+        insts, rest, objframes, entries, ent_codes = logic_objects(track)
+    else:
+        insts = instances(frames)
+        objframes = frames_used(frames)
     assert len(insts) <= 8
     # Pop-up barriers can share a cell row (tracks 4 and 6: 9 lines apart). They move one at a time, the
     # others at rest in their first frame, so each one's frames carry its sharers' lines at rest; checked
@@ -525,8 +553,10 @@ def main(track, tracepath, out, logic=False, play=False):
     reserved = set().union(*owned) if owned else set()
     sharers = [[j for j in range(len(insts)) if j != i and owned[i] & owned[j]] for i in range(len(insts))]
     assert all(insts[i][0] == 'barrier' for i in range(len(insts)) if sharers[i]), "only barriers share cells"
-    rest, now = {}, {}
-    for fr_ in frames:
+    if not logic:
+        rest = {}
+    now = {}
+    for fr_ in frames if not logic else []:
         for c in fr_['calls']:
             if c[0] in ObjSizes:
                 i = insts.index((c[0],) + objects.place(c[0], c[1]))
@@ -557,7 +587,8 @@ def main(track, tracepath, out, logic=False, play=False):
     # each entry's runs (up to 3: a cell row's cells, together in prio.bin, as reserved cells side by side
     # are numbered in turn), and their bits: a first draw's every cell, a step's only each row's span of
     # cells that change
-    entries, ent_per_frame = transitions(frames, insts)
+    if not logic:
+        entries, ent_per_frame = transitions(frames, insts)
     ent_runs, ent_bits = [], []
     for i, f0, f1 in entries:
         kind, x, y = insts[i]
@@ -618,7 +649,7 @@ def main(track, tracepath, out, logic=False, play=False):
     if logic:                           # every key the logic can draw
         bx, by = BannerPlace[track]
         for k in ([('explosion', f) for f in range(26)] + [('spark', f) for f in range(41)]
-                  + [('banner', f, bx & 3) for f in range(36)]):
+                  + [('banner', f, bx & 3) for f in range(36)] + [('tornado', f, x) for f in range(3) for x in range(4)]):
             if k not in movkeys:
                 movkeys.append(k)
     movers_, movpieces = [], {}
@@ -751,6 +782,9 @@ def main(track, tracepath, out, logic=False, play=False):
             f.write(lst('GenSetOf', [sets.index((None, True) if d else (c, False)) if ((None, True) if d else (c, False)) in sets
                                      else 255 for c in range(4) for d in (0, 1)]))
             f.write(f'GenBannerX = {bx & ~3}\nGenBannerY = {by}\n')
+            f.write(lst('GenTorPiece', [movpieces[('tornado', fr_, x)][0] for fr_ in range(3) for x in range(4)]))
+            f.write(lst('GenEntCode', ent_codes or [255]))
+            f.write(f'GenGateInst0 = 3\n')
         tdata, nframes, events = b'', len(frames), b''
     else:
         tdata, nframes, events = trace(frames, sets, movpieces, insts,

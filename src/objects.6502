@@ -9,7 +9,8 @@
 
 INCLUDE "../build/gen/objects.6502"
 
-MaxObjEvents = 8                        ; background object events in a frame (tools/gendata.py's at most)
+MaxObjEvents = 14                       ; background object events in a frame (the logic's set-up: 3 barriers, 3 gates, 3
+                                        ; hazards, 4 cones; less in a race frame)
 MaxObjCols = 12                         ; the widest object's bytes (a gate's)
 ObjMasked = 1                           ; a variant's flags: drawn over the screen, its mask's bits kept
 ObjHasPrio = 2                          ; and: has priority bits for its cells

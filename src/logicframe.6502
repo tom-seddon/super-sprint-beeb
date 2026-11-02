@@ -20,11 +20,20 @@ SECTION GameVars
     SKIP MaxSlotDraws
 .LfSlotY
     SKIP MaxSlotDraws
+.LfHazCur                               ; each gate's and barrier's frame drawn last (&FF none yet), its frame within
+    SKIP MaxHazInst                     ; its kind,
+.LfHazEnt                               ; the entry it was drawn with,
+    SKIP MaxHazInst
+.LfHazPrev                              ; and its frame in last frame's calls (&FF: not called)
+    SKIP MaxHazInst
 .LfLaps                                 ; each car's laps and score the HUD has been given
     SKIP 4
 .LfScore
     SKIP 24
 ENDSECTION
+
+MaxHazInst = 6                          ; the gates and barriers: the 3 barriers, then up to 3 gates
+GateInst0 = 3
 
 IF GenPlay = 0
     ZA_AUTO2 lfin                       ; the inputs' next run
@@ -79,12 +88,12 @@ ENDIF
     DEX
     BPL sparks
     JSR race_setup
-    LDA RcHazards:ORA RcCones
-    BEQ @+
-    BRK                                 ; the hazards' and cones' set-up draws: not yet
-    EQUB 0
-    EQUS "hazards", 0
-.@
+    LDA #&FF                            ; no gate or barrier drawn yet
+    LDX #MaxHazInst-1
+.haz
+    STA LfHazCur,X:STA LfHazPrev,X
+    DEX
+    BPL haz
     STZ LfFrame:STZ LfFrame+1
     STZ LfSlotCount
     IF GenPlay = 0
@@ -148,8 +157,8 @@ ASSERT RcSparkYHi == RcSparkTimerLo + 56, "the sparks' arrays in LfSparks's orde
     STZ setup
     LDA LfFrame+1:BNE race
     LDA LfFrame:CMP #2:BCS race
-    INC setup                           ; the set-up's flips: every car drawn, no slots, the banner
-    STZ RcSlotCount
+    INC setup                           ; the set-up's flips: every car drawn, the hazards' and cones' slots, the
+    JSR setup_slots                     ; gates and barriers (noted by the set-up), the banner, the tornado
     LDA #&FF
     FOR c = 0..3
         STA RcExplFrame+c
@@ -193,6 +202,30 @@ ASSERT RcSparkYHi == RcSparkTimerLo + 56, "the sparks' arrays in LfSparks's orde
     BNE @+
     INC LfFrame+1
 .@
+    RTS
+
+    \\ the set-up's slot sprites (F_00C592's): the oil-type hazards (their type + &10), then the cones (&14)
+.setup_slots
+    STZ RcSlotCount
+    LDX #0
+.hazard
+    CPX RcHazards:BEQ hazarded
+    LDA RcHazRow,X:STA slot_draw.row
+    LDY RcHazCol,X
+    LDA RcHazType,X:CLC:ADC #&10
+    JSR slot_draw
+    INX
+    BRA hazard
+.hazarded
+    LDX #0
+.cone
+    CPX RcCones:BEQ coned
+    LDA RcConeRow,X:STA slot_draw.row
+    LDY RcConeCol,X
+    LDA #&14:JSR slot_draw
+    INX
+    BRA cone
+.coned
     RTS
 
     \\ F_00C592's start: the start's sound on each channel (F_0131A8), the 50 VBLs' pause (F_010214(50)) with
@@ -273,6 +306,7 @@ ASSERT RcSparkYHi == RcSparkTimerLo + 56, "the sparks' arrays in LfSparks's orde
     ZA_AUTO1 again                      ; local: its again bit
 
     STZ e
+    JSR hazard_events
     LDX #0
     BRA test
 .slot
@@ -301,7 +335,7 @@ ASSERT RcSparkYHi == RcSparkTimerLo + 56, "the sparks' arrays in LfSparks's orde
     INX
 .test
     CPX RcSlotCount:BNE slot
-    STX ObjCount
+    TXA:CLC:ADC hazard_events.n:STA ObjCount
 .keep
     DEX
     BMI kept
@@ -311,6 +345,88 @@ ASSERT RcSparkYHi == RcSparkTimerLo + 56, "the sparks' arrays in LfSparks's orde
     BRA keep
 .kept
     LDA RcSlotCount:STA LfSlotCount
+    RTS
+}
+
+\\ The gates' and barriers' calls as background object events: kind (2 a gate, 3 a barrier) | instance << 3 |
+\\ again << 6 | x's high bit << 7, the entry, x's low byte, y; again where last frame's calls drew it the same
+\\ (the ST's second call, for its other screen), with the entry it was drawn with; else its first draw, or a
+\\ step up or down to its frame (gendata.py --logic's GenEntCode, by instance * 9 + code). Then this frame's
+\\ kept for the next.
+\\
+\\ Inputs: RcHazDrawCount, RcHazDrawWhat, RcHazDrawIdx; LfHaz*. Outputs: ObjEvents from build_objects.e on,
+\\ build_objects.e past them, n their count; LfHaz*. A, X, Y: corrupted.
+
+.hazard_events
+{
+    ZA_AUTO1 n                          ; out: the events
+    ZA_AUTO1 f, ev                      ; local: the draw's frame, its event's kind byte
+    ZA_AUTO1 t                          ; local: a scratch
+
+    STZ n
+.draw
+    LDY n:CPY RcHazDrawCount:BEQ kept
+    JSR one
+    INC n
+    BRA draw
+
+    \\ this frame's calls kept for the next: each instance's frame if it was called, else none
+.kept
+    LDA #&FF
+    LDX #MaxHazInst-1
+.clear
+    STA LfHazPrev,X
+    DEX
+    BPL clear
+    LDY #0
+.keep
+    CPY RcHazDrawCount:BEQ done
+    LDX RcHazDrawIdx,Y
+    LDA RcHazDrawWhat,Y:STA LfHazPrev,X
+    INY
+    BRA keep
+.done
+    RTS
+
+    \\ draw Y's event
+.one
+    LDX RcHazDrawIdx,Y                  ; the instance
+    LDA RcHazDrawWhat,Y:STA f
+    TXA:ASL A:ASL A:ASL A               ; instance << 3 | kind (3 a barrier, 2 a gate)
+    ORA #3
+    CPX #GateInst0:BCC @+
+    EOR #1
+.@
+    STA ev
+    LDA f:CMP LfHazPrev,X:BNE new
+    LDA ev:ORA #&40:STA ev              ; drawn so last frame: again, the same entry
+    BRA same
+.new
+    LDA LfHazCur,X:BMI first            ; (none yet: code 0)
+    CMP f:BEQ same                      ; (in its frame again after a gap: the barriers' next at rest)
+    LDA f:BCC code                      ; (a step up to f: code f; down: code 5 + f)
+    ADC #4                              ; (C set: + 5)
+    BRA code
+.first
+    LDA #0
+.code
+    STA t                               ; instance * 9 + code
+    TXA:ASL A:ASL A:ASL A:ADC t:STA t   ; (C clear)
+    TXA:CLC:ADC t:TAY
+    LDA EntCode,Y:STA LfHazEnt,X
+    LDA f:STA LfHazCur,X
+.same
+    LDY build_objects.e
+    LDA LfHazEnt,X:STA ObjEvents+1,Y
+    LDA InstY,X:STA ObjEvents+3,Y
+    LDA InstCol,X:ASL A:ASL A:ASL A:STA ObjEvents+2,Y
+    LDA InstCol,X:CMP #32               ; (C: x 256 on)
+    LDA ev
+    BCC @+
+    ORA #&80
+.@
+    STA ObjEvents,Y
+    TYA:CLC:ADC #4:STA build_objects.e
     RTS
 }
 
@@ -356,6 +472,17 @@ ASSERT RcSparkYHi == RcSparkTimerLo + 56, "the sparks' arrays in LfSparks's orde
     STZ yhi
     JSR pieces
 .nobanner
+    LDA RcTornado:BEQ notornado          ; the tornado: its frame and x's shift's key, on a 4-pixel step
+    LDA RcTorXLo:AND #3:STA first
+    LDA RcTorFrame:ASL A:ASL A:ORA first:TAY
+    LDA TorPiece,Y:STA first
+    LDA #1:STA count
+    LDA RcTorXLo:AND #&FC:STA xlo
+    LDA RcTorXHi:STA xhi
+    LDA RcTorYLo:STA ylo
+    LDA RcTorYHi:STA yhi
+    JSR pieces
+.notornado
     LDA RcHeliDrawn:BEQ done
     LDA RcHeliVariant:ASL A             ; ((variant * 2 + car 3) * 4 + frame)
     LDY RcHeliCar:CPY #3:BNE @+
