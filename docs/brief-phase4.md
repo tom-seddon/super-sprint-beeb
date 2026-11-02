@@ -10,10 +10,10 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 10 (sound), or the joysticks, or the frame's speed.** The keys are in and a disc plays
-(§8; `make beeb TRACE=play`), waiting on a real BBC (D12). Next: sound (D11; the capture's feasibility is
-measured, §8), the joysticks (measure the Master's ADC and fire buttons first), the frame's worst cases (3
-of 2,197 frames over a TV frame), the ST's HUD text in the bottom row painted out.
+**Resume point: step 10 (sound).** The keys are in and a disc plays (§8; `make beeb TRACE=play`; Tom:
+"feels really good" in jsbeeb). The joysticks wait for a measurement on a real Master (Tom); the ST's HUD
+text in the bottom row stays (Tom). Then: the hazards (tornado, barriers, gates, cones), the frame's worst
+cases, the other tracks.
 
 ## 0. The proposal in one paragraph
 

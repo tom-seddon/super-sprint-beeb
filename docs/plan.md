@@ -59,8 +59,8 @@ In short (the details, with addresses, are in the two specs):
   player's text is in their car's colour, which is in the play area's palette, so **no palette split is
   needed**. A changed character is 16 bytes, written into both screens, at most 4 a frame each
   (`docs/renderer.md`).
-- **The ST's own HUD text** in the map's bottom row ("TRACK n", "DRONE LAP") is repainted with grass at build
-  time.
+- **The ST's own HUD text** in the map's bottom row ("TRACK n", "DRONE LAP") stays as it is (Tom,
+  2026-11-02: "Don't worry about the track number or DRONE LAP embedded in the track").
 - **Double-buffering in shadow RAM:** ACCCON (`&FE34`) bit 0 picks the screen shown, bit 2 sends the CPU's
   `&3000`-`&7FFF` accesses to shadow. Code that draws, and the data it reads, live outside `&3000`-`&7FFF`.
 - **Erasing:** from a clean copy of the track, each buffer keeping its own list (as the ST does). Or, to save
