@@ -51,6 +51,11 @@ ENDIF
     NEXT
     INX
     BNE clear
+    LDX #LogicZpEnd - LogicZpOrg - 1
+.zclear
+    STZ LogicZpOrg,X
+    DEX
+    BPL zclear
     LDA #LgTrack:STA RcTrack
     LDA #LgRace:STA RcRace
     IF GenPlay                          ; the play build: three players, car 3 the drone

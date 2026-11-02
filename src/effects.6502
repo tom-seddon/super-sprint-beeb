@@ -19,6 +19,9 @@ SECTION LogicVars
     SKIP 8
 .RcSparkYHi
     SKIP 8
+ENDSECTION
+
+SECTION LogicZp                         ; (the hottest, in zero page: memory.6502)
 .RcHeliCar                              ; G_01EB28: the car it carries (3 for a drone: car 3's colours)
     SKIP 1
 .RcHeliTimerLo                          ; G_01EB2A: its flight's frames left

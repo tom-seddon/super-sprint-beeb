@@ -4,17 +4,9 @@
 \\ renderer, step 8). In the logic's bank, with the map and the slots.
 
 SECTION LogicVars
-.RcHazards                              ; G_01EB54: the oil-type hazards placed, 0-3
-    SKIP 1
 .RcWrenchY                              ; G_01EB58: the wrench's slot's row,
     SKIP 1
 .RcWrenchX                              ; G_01EB5A: its column
-    SKIP 1
-.RcWrenchPhase                          ; G_01EB5C: 1 just taken, 2 waiting, 3 placing, 4 drawn once, 5 there
-    SKIP 1
-.RcWrenchTimerLo                        ; G_01EB5E: the wait (and, the frame it's taken, the taker)
-    SKIP 1
-.RcWrenchTimerHi
     SKIP 1
 .RcBonusCellLo                          ; G_01EB62: the bonus's cell, row * 40 + column
     SKIP 1
@@ -23,6 +15,23 @@ SECTION LogicVars
 .RcBonusY                               ; G_01EB64: its row,
     SKIP 1
 .RcBonusX                               ; G_01EB66: its column
+    SKIP 1
+.RcSlotSprite                           ; each one's sprite,
+    SKIP MaxSlotDraws
+.RcSlotX                                ; its cell's column,
+    SKIP MaxSlotDraws
+.RcSlotY                                ; and row
+    SKIP MaxSlotDraws
+ENDSECTION
+
+SECTION LogicZp                         ; (the hottest, in zero page: memory.6502)
+.RcHazards                              ; G_01EB54: the oil-type hazards placed, 0-3
+    SKIP 1
+.RcWrenchPhase                          ; G_01EB5C: 1 just taken, 2 waiting, 3 placing, 4 drawn once, 5 there
+    SKIP 1
+.RcWrenchTimerLo                        ; G_01EB5E: the wait (and, the frame it's taken, the taker)
+    SKIP 1
+.RcWrenchTimerHi
     SKIP 1
 .RcBonusSprite                          ; G_01EB68: its sprite, value * 4 + size; bit 7: to draw in the other
     SKIP 1                              ; screen too
@@ -36,12 +45,6 @@ SECTION LogicVars
     SKIP 1
 .RcSlotCount                            ; this frame's slot sprites drawn (F_0149B4's calls), for the renderer:
     SKIP 1                              ; how many,
-.RcSlotSprite                           ; each one's sprite,
-    SKIP MaxSlotDraws
-.RcSlotX                                ; its cell's column,
-    SKIP MaxSlotDraws
-.RcSlotY                                ; and row
-    SKIP MaxSlotDraws
 ENDSECTION
 
 MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wrench 1; the hazards' and cones' set-up 7)

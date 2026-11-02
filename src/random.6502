@@ -3,10 +3,13 @@
 \\ points to a score of 6 decimal digits.
 
 SECTION LogicVars
-.RcSeed                                 ; TOS's generator's state, 32 bits, low byte first
-    SKIP 4
 .RcScore                                ; G_01DFA8: each car's score, 6 digits from the left, &80 a leading blank
     SKIP 24
+ENDSECTION
+
+SECTION LogicZp                         ; (the hottest, in zero page: memory.6502)
+.RcSeed                                 ; TOS's generator's state, 32 bits, low byte first
+    SKIP 4
 ENDSECTION
 
 RandomMul = 3141592621                  ; TOS's multiplier

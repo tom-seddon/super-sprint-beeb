@@ -10,22 +10,6 @@
 \\ safe place. Not yet: car-to-car, drones, wrecks, scoring, the race's end, hazards, pickups placed.
 
 SECTION LogicVars
-.RcX8Lo                                 ; G_01E3FC: x in eighths of a pixel
-    SKIP 4
-.RcX8Hi
-    SKIP 4
-.RcY8Lo                                 ; G_01E3F4: y
-    SKIP 4
-.RcY8Hi
-    SKIP 4
-.RcXLo                                  ; G_01E42C: x in pixels, the sprite box's left
-    SKIP 4
-.RcXHi
-    SKIP 4
-.RcYLo                                  ; G_01E424: y, its top
-    SKIP 4
-.RcYHi
-    SKIP 4
 .RcPX8Lo                                ; G_01E3CC: x8 before the move
     SKIP 4
 .RcPX8Hi
@@ -44,14 +28,6 @@ SECTION LogicVars
     SKIP 4
 .RcSafeDir                              ; G_01E3DC: facing
     SKIP 4
-.RcDir                                  ; G_01E41C: facing, 0-15 (0 up, clockwise)
-    SKIP 4
-.RcTravel                               ; G_01E414: the direction it moves in when coasting
-    SKIP 4
-.RcSpeedLo                              ; G_01E404: speed
-    SKIP 4
-.RcSpeedHi
-    SKIP 4
 .RcTopLo                                ; G_01E374: top speed
     SKIP 4
 .RcTopHi
@@ -63,10 +39,6 @@ SECTION LogicVars
 .RcThreshLo                             ; G_01E364: the steering threshold
     SKIP 4
 .RcThreshHi
-    SKIP 4
-.RcDiv                                  ; G_01E36C: D, the divisor: 40 - 5 * turbo, 40 for a drone
-    SKIP 4
-.RcSteer                                ; G_01E40C: the steering timer, signed
     SKIP 4
 .RcTVXLo                                ; G_01E2EC: the target velocity's x
     SKIP 4
@@ -88,27 +60,11 @@ SECTION LogicVars
     SKIP 4
 .RcOffXHi
     SKIP 4
-.RcOffYLo                               ; G_01E304: y
-    SKIP 4
 .RcOffYHi
-    SKIP 4
-.RcBounce                               ; G_01E3B4: the bounce timer, or the wreck's
     SKIP 4
 .RcImmune                               ; G_01E3AC: the car-to-car immunity timer
     SKIP 4
-.RcSpin                                 ; G_01E37C: the spin counter, or a jump step's frames
-    SKIP 4
 .RcJump                                 ; G_01E384: the jump sequence's place
-    SKIP 4
-.RcBitsLo                               ; G_01E3A4: the flags (st-logic §2)
-    SKIP 4
-.RcBitsHi
-    SKIP 4
-.RcLatchLo                              ; G_01E39C: the track cells' latches
-    SKIP 4
-.RcLatchHi
-    SKIP 4
-.RcState                                ; G_01E3D4: 0 racing, 1 crash pending, 2 wrecked
     SKIP 4
 .RcLaps                                 ; G_01E354: laps completed
     SKIP 4
@@ -135,6 +91,61 @@ SECTION LogicVars
     SKIP 4
 .RcOrder                                ; G_01E2CC: the draw order, the cars by y
     SKIP 4
+.RcFinishLo                             ; its l8: the frame the winner finished
+    SKIP 1
+.RcFinishHi
+    SKIP 1
+.RcWinner                               ; its lA: the winner
+    SKIP 1
+.RcOver                                 ; the race over: the countdown run out
+    SKIP 1
+ENDSECTION
+
+SECTION LogicZp                         ; (the hottest, in zero page: memory.6502)
+.RcX8Lo                                 ; G_01E3FC: x in eighths of a pixel
+    SKIP 4
+.RcX8Hi
+    SKIP 4
+.RcY8Lo                                 ; G_01E3F4: y
+    SKIP 4
+.RcY8Hi
+    SKIP 4
+.RcXLo                                  ; G_01E42C: x in pixels, the sprite box's left
+    SKIP 4
+.RcXHi
+    SKIP 4
+.RcYLo                                  ; G_01E424: y, its top
+    SKIP 4
+.RcYHi
+    SKIP 4
+.RcDir                                  ; G_01E41C: facing, 0-15 (0 up, clockwise)
+    SKIP 4
+.RcTravel                               ; G_01E414: the direction it moves in when coasting
+    SKIP 4
+.RcSpeedLo                              ; G_01E404: speed
+    SKIP 4
+.RcSpeedHi
+    SKIP 4
+.RcDiv                                  ; G_01E36C: D, the divisor: 40 - 5 * turbo, 40 for a drone
+    SKIP 4
+.RcSteer                                ; G_01E40C: the steering timer, signed
+    SKIP 4
+.RcOffYLo                               ; G_01E304: y
+    SKIP 4
+.RcBounce                               ; G_01E3B4: the bounce timer, or the wreck's
+    SKIP 4
+.RcSpin                                 ; G_01E37C: the spin counter, or a jump step's frames
+    SKIP 4
+.RcBitsLo                               ; G_01E3A4: the flags (st-logic §2)
+    SKIP 4
+.RcBitsHi
+    SKIP 4
+.RcLatchLo                              ; G_01E39C: the track cells' latches
+    SKIP 4
+.RcLatchHi
+    SKIP 4
+.RcState                                ; G_01E3D4: 0 racing, 1 crash pending, 2 wrecked
+    SKIP 4
 .RcPush                                 ; G_01E2A0: the push direction found, &FF none, &80 a wreck
     SKIP 1
 .RcPhase                                ; G_01D178: the coasting cycle, 0-6
@@ -152,14 +163,6 @@ SECTION LogicVars
 .RcFinished                             ; its l4: a car has finished
     SKIP 1
 .RcCountdown                            ; its l6: frames left once a car has finished, from 170
-    SKIP 1
-.RcFinishLo                             ; its l8: the frame the winner finished
-    SKIP 1
-.RcFinishHi
-    SKIP 1
-.RcWinner                               ; its lA: the winner
-    SKIP 1
-.RcOver                                 ; the race over: the countdown run out
     SKIP 1
 ENDSECTION
 

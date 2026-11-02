@@ -14,12 +14,15 @@ SECTION LogicVars
     SKIP 16
 .RcLapTimeHi
     SKIP 16
+.RcConeHit                              ; G_01EBA8: each cone's state, 2 once hit
+    SKIP 4
+ENDSECTION
+
+SECTION LogicZp                         ; (the hottest, in zero page: memory.6502)
 .RcWrenchTaken                          ; G_01EB56: a wrench taken this visit, by car + 1
     SKIP 1
 .RcBonusTaken                           ; G_01EB60: the bonus taken, by car + 1
     SKIP 1
-.RcConeHit                              ; G_01EBA8: each cone's state, 2 once hit
-    SKIP 4
 ENDSECTION
 
 \\ Inputs:

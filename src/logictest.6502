@@ -11,7 +11,11 @@
 INCLUDE "macros.6502"
 INCLUDE "../build/lgen/race.6502"
 
-ZA_POOL &04..&FB, &FD..&FF
+ZA_POOL &04..&7B, &FD..&FF
+LogicZpOrg = &7C                        ; the logic's hottest state, as the game has it (memory.6502)
+LogicZpEnd = &FC
+SECTION LogicZp, org = LogicZpOrg, guard = LogicZpEnd, virtual = TRUE
+ENDSECTION
 
 TestOrg = &1100
 SwramOrg = &8000
@@ -66,6 +70,11 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     NEXT
     INX
     BNE clear
+    LDX #LogicZpEnd - LogicZpOrg - 1
+.zclear
+    STZ LogicZpOrg,X
+    DEX
+    BPL zclear
 
     LDA #LgTrack:STA RcTrack
     LDA #LgRace:STA RcRace

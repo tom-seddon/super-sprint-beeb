@@ -4,7 +4,8 @@
 \\ The OS's memory is left alone (D7): &0200-&03FF but IRQ1V, &0800-&0DFF and HAZEL, so a load could bring
 \\ the OS back between races.
 \\
-\\   &0000  zero page: the banks' numbers at &00-&03 (!BOOT writes them), then the pool, bar &FC
+\\   &0000  zero page: the banks' numbers at &00-&03 (!BOOT writes them), then the pool to &7B, the logic's
+\\          hottest state &7C-&FB (LogicZp), &FC the MOS's
 \\   &0100  the stack
 \\   &0200  the OS's vectors and variables: left alone but IRQ1V
 \\   &0400  the tables, made by the loader: the cars' mask table and data tables
@@ -25,7 +26,12 @@
 \\ While loading: !BOOT at &1200, the banks' files loaded at &3000 and copied in, SPRINT loaded at &3000
 \\ and its loader copying main RAM's code down to &0E00.
 
-ZA_POOL &04..&FB, &FD..&FF              ; &FC: the MOS's IRQ entry saves A there
+ZA_POOL &04..&7B, &FD..&FF              ; &FC: the MOS's IRQ entry saves A there
+
+LogicZpOrg = &7C                        ; the race logic's hottest state, by its accesses per byte (the rest is
+LogicZpEnd = &FC                        ; LogicVars, in the fourth bank)
+SECTION LogicZp, org = LogicZpOrg, guard = LogicZpEnd, virtual = TRUE
+ENDSECTION
 
 bankbg = &00                            ; the sideways RAM banks !BOOT found (it writes them itself, as
 bankcars = &01                          ; boot.6502 has them): the background's, the cars', the trace's,
