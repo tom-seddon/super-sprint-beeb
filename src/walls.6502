@@ -169,7 +169,9 @@ ENDSECTION
     RTS
 }
 
-\\ Whether a column of the car touches a wall: mask B's pixel at x + the column, on each of its lines.
+\\ Whether a column of the car touches a wall: mask B's pixel at x + the column, on each of its lines. The
+\\ lines are taken a cell row at a time: shifted to the top line's place in its cell, a byte a cell row, so a
+\\ cell row with none, or all road, is one test.
 \\
 \\ Inputs:
 \\     A: the column, 0-16
@@ -185,43 +187,60 @@ ENDSECTION
     ZA_AUTO2 lines                      ; in: the lines to test
     ZA_AUTO1 col                        ; local: mask B's column
     ZA_AUTO1 bit                        ; local: the pixel's bit in it
-    ZA_AUTO1 row                        ; local: the line's pixel row
-    ZA_AUTO1 kind                       ; local: its cell: 0 road, &FF wall, 1 mixed (at mask_cell.p)
+    ZA_AUTO1 row                        ; local: a line in the cell row
+    ZA_AUTO1 b2                         ; local: the lines' third cell row's (lines, lines+1: the first two)
+    ZA_AUTO1 bits                       ; local: a cell row's lines left
 
     CLC:ADC RcXLo,X:TAY                 ; px = x + the column, at most 317: its low byte
     LDA RcXHi,X:ADC #0
     LSR A                               ; (C: px's ninth bit)
     LDA BitOf,Y:STA bit                 ; (by px AND 7: the table repeats)
     TYA:ROR A:LSR A:LSR A:STA col       ; px >> 3
+    STZ b2
     LDA RcYLo,X:STA row
-    JSR lookup                          ; the first line's cell
-.line
-    LSR lines+1:ROR lines
-    BCC next
-    LDA kind:BEQ next                   ; road
-    BMI hit                             ; wall: every pixel
-    LDA row:AND #7:TAY
-    LDA (mask_cell.p),Y
-    AND bit
+    AND #7:BEQ aligned                  ; the lines to the top line's place in its cell
+    TAY
+.shift
+    ASL lines:ROL lines+1:ROL b2
+    DEY
+    BNE shift
+.aligned
+    LDA lines:BEQ @+
+    JSR band
     BNE hit
-.next
-    INC row
-    LDA lines:ORA lines+1
-    BEQ hit                             ; (A 0: no wall)
-    LDA row:AND #7
-    BNE line
-    JSR lookup                          ; a new cell row
-    BRA line
+.@
+    LDA row:CLC:ADC #8:STA row
+    LDA lines+1:BEQ @+
+    JSR band
+    BNE hit
+.@
+    LDA row:CLC:ADC #8:STA row
+    LDA b2:BEQ hit                      ; (A 0: no wall)
+    JMP band
 .hit
     RTS
 
-    \\ the cell at col and row: its kind
-.lookup
-    LDA col:LDY row
-    JSR mask_cell
-    STA kind
+    \\ a cell row's lines, A (bit n its line n): its cell road, none; a wall, all; mixed, each line's pixel
+.band
+    STA bits
+    LDA col:LDY row:JSR mask_cell
+    ORA #0                              ; (its flags aren't A's for a wall from the map)
+    BEQ done                            ; road
+    BMI done                            ; wall (A non-zero)
+    LDY #0
+.line
+    LSR bits
+    BCC next
+    LDA (mask_cell.p),Y
+    AND bit
+    BNE done
+.next
+    INY
+    LDA bits:BNE line
+.done
     RTS
 }
+
 \\ Whether a line of the car touches a wall: its opaque columns' pixels against mask B's.
 \\
 \\ Inputs:
@@ -276,7 +295,8 @@ ENDSECTION
 \\     Y: a pixel row in it, 0-199
 \\
 \\ Outputs:
-\\     A: 0 all road, &FF all wall, or 1 mixed with p its address (its 8 lines, a byte each), N and Z by A
+\\     A: 0 all road, &FF all wall, or 1 mixed with p its address (its 8 lines, a byte each); the flags not
+\\         A's (a wall from the row's map returns Z set)
 \\     Y: corrupted; X preserved
 
 .mask_cell

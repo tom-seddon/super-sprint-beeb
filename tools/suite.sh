@@ -21,10 +21,12 @@ run logic_build make logic
 run logic_check node tools/logic_check.mjs
 run maskb_check node tools/maskb_check.mjs
 run logic_draws node tools/logic_draws.mjs
+run walls_check node tools/walls_check.mjs
 run sound_check node tools/sound_check.mjs
 run logic4_build make logic LOGICTRACE=build/trace/logic_t4_r17.json
 run logic4_check node tools/logic_check.mjs --trace build/trace/logic_t4_r17.json
 run logic4_maskb node tools/maskb_check.mjs 4
+run logic4_walls node tools/walls_check.mjs 4
 run logic4_draws node tools/logic_draws.mjs --race build/trace/race_t4_r17.json
 run render_logic4 make check TRACE=logic4
 run render_race make check

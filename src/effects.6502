@@ -125,6 +125,7 @@ ENDSECTION
     BNE @+
     INC RcSparkTimerHi,X
 .@
+    LDA RcSparkFrame,X:CMP #42:BEQ gone ; (gone: its timer on, its x 0)
     LDA RcSparkTimerHi,X:BNE stepped
     LDA RcSparkTimerLo,X:CMP #4:BNE stepped
     LDA RcSparkFrame,X:CMP #40:BCS stepped
@@ -133,6 +134,7 @@ ENDSECTION
 .stepped
     LDA RcSparkFrame,X
     CMP #42:BNE notgone
+.gone
     STZ RcSparkXLo,X
     STZ RcSparkXHi,X
     BRA next
