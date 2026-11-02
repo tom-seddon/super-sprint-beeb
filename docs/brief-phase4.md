@@ -364,3 +364,24 @@ is the part the kit says is judged by ear.
 SHIFT keys are one, at either side of the keyboard. The same columns (0-2), so still no ghosting on paper
 (0 of 511), and in jsbeeb each key and all nine read as their player's; `make check TRACE=logic0` still
 matches on all 2,197 frames.
+
+**Step 10, sound: the plan** (D11). The race's sounds, from the ST's driver (st-logic §8, `tools/logic_snd.py`):
+each effect is a short sequence on one channel, `car MOD 3`, started only if that channel's priority is
+under the starter's threshold, and ending with instrument 0, which leaves the engine's volume at 0; the
+wreck's runs on two channels into the helicopter (instrument 1, the YM's hardware envelope, until the
+helicopter-gone starter); the engine is instrument 0, its volume, period and rate moved each frame by
+F_012BA2 from the human car's speed, its pitch alternating period +- 900 at the 749 Hz timer's rate.
+1. **Capture** (`tools/st_trace_sound.py`): a race with Hatari's `psg_write` trace, the flips' dumps (the
+   frame, the channels' priorities and states), and the starters' calls (which, the car, whether it
+   started); each field's YM state rebuilt; each effect's channel cut from its start to its sequence's end.
+   The logic race has the start, bounces, bumps, the wreck and helicopter, the wrench, the finish; a
+   hazard race (track 5, race 17, as Phase 3's) the water, oil, yellow patch, cones and tornado.
+2. **Convert** (`tools/ay2sn.py`, the kit's, forked): per field, a tone period (the YM's at 2 MHz is the
+   SN's at 4 MHz; over 1023 raised an octave at a time), an attenuation (the hardware envelope stepped from
+   its period and the time since R13 was written), and the noise (the nearest of the SN's rates, its
+   volume the channel's).
+3. **Play** (`src/sound.6502`): the vsync IRQ writes each channel's field: an effect's stream while one
+   plays, else a human car's engine (F_012BA2 on the BBC, its +- 900 sampled at 50 Hz, two octaves up as
+   st-logic's plan), else silence. The logic starts effects where the ST does (the stubs left so far).
+4. **Prove**: the BBC's effect starts (which, the channel, the frame) against the ST's on the logic race;
+   the BBC's SN writes against the streams (`beeb-sound-verify`'s way); WAVs of both chips for Tom's ears.
