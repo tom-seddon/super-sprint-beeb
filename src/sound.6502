@@ -58,6 +58,7 @@ ENDIF
 FxSilence = &80                         ; (not an effect: a channel's state set to instrument 15's)
 FxEngine = &81                          ; (instrument 0's)
 TicksPerField = 15                      ; the 749.3 Hz timer's ticks in a 50 Hz field (14.99)
+EngStepBy = 900                         ; instrument 0's step (an engine's step is it or none)
 
 IF DEFINED(SoundLog) = 0                ; (the game's: the logic test sets the sound up itself)
 
@@ -216,8 +217,8 @@ ENDIF
     EQUB LO(0), LO(3000)
 .InsPerHi
     EQUB HI(0), HI(3000)
-.InsStep                                ; the step, / 4 (900 doesn't fit a byte; 900 = 225 * 4)
-    EQUB 0, 900 / 4
+.InsStep                                ; the step, / 4 (900 doesn't fit a byte), or 0: none
+    EQUB 0, EngStepBy / 4
 .InsRate
     EQUB 0, 18                          ; (15's: 9999, but with no step it never matters)
 
@@ -277,10 +278,12 @@ ENDIF
     ZA_AUTO2 p                          ; local: the effect's field
     ZA_AUTO1 nlo, nhi, att              ; local: the channel's period and attenuation
     ZA_AUTO1 noise, natt                ; local: the noise's control (&FF none) and attenuation
-    ZA_AUTO2 per                        ; local: the engine's period, its step applied
+    ZA_AUTO1 per                        ; local: a tone's second byte
     ZA_AUTO1 t                          ; local: the engine's ticks
 
-    LDA #&FF:STA noise
+    LDA #&FF:STA &FE43                  ; system VIA: DDRA, all outputs, for the field's writes (the keys'
+                                        ; read sets its own, with interrupts off)
+    STA noise
     LDA #15:STA natt
     LDX #2
 .channel
@@ -370,7 +373,7 @@ ENDIF
 
     \\ the engine: its period + or - its step, the step turned every rate + 1 ticks; its volume >> 4
 .engine_field
-    LDA EngStep,X:BEQ turned            ; (no step, nothing to turn: instrument 15)
+    LDA EngStep,X:BEQ still             ; (no step, nothing to turn: instrument 15)
     LDA EngTicks,X:SEC:SBC #TicksPerField
 .turn
     BPL turned
@@ -381,42 +384,39 @@ ENDIF
     BRA turn
 .turned
     STA EngTicks,X
-    LDA EngStep,X:STA per               ; the step * 4
-    STZ per+1
-    ASL per:ROL per+1
-    ASL per:ROL per+1
     BIT EngNeg,X:BMI minus
     CLC
-    LDA EngPerLo,X:ADC per:STA per
-    LDA EngPerHi,X:ADC per+1:STA per+1
-    BRA period
+    LDA EngPerLo,X:ADC #LO(EngStepBy):STA nlo
+    LDA EngPerHi,X:ADC #HI(EngStepBy)
+    BRA octave
 .minus
     SEC
-    LDA EngPerLo,X:SBC per:STA per
-    LDA EngPerHi,X:SBC per+1:STA per+1
-.period
-    LDA per+1:BEQ @+                    ; over 1023: up an octave at a time
-.octave
+    LDA EngPerLo,X:SBC #LO(EngStepBy):STA nlo
+    LDA EngPerHi,X:SBC #HI(EngStepBy)
+    BRA octave
+.still
+    STA EngTicks,X                      ; (0)
+    LDA EngPerLo,X:STA nlo
+    LDA EngPerHi,X
+.octave                                 ; over 1023: up an octave at a time (A the high byte)
     CMP #4:BCC @+
-    LSR per+1:ROR per
-    LDA per+1
+    LSR A:ROR nlo
     BRA octave
 .@
-    LDA per:STA nlo
-    LDA per+1:STA nhi
+    STA nhi
     LDA EngVol,X:LSR A:LSR A:LSR A:LSR A:TAY
     LDA SnAtten,Y:STA att
     RTS
 }
 
-\\ A byte to the SN76489, as MOS 3.20 writes it (the beeb-port-kit's sfx50.6502): System VIA port A all
-\\ outputs, the byte, the addressable latch's line 0 (the chip's write enable) low, then high.
+\\ A byte to the SN76489, as MOS 3.20 writes it (the beeb-port-kit's sfx50.6502): the byte to System VIA
+\\ port A (all outputs: sound_irq sets them), the addressable latch's line 0 (the chip's write enable) low,
+\\ then high.
 \\
-\\ Inputs: A: the byte. Outputs: A, Y corrupted; X preserved.
+\\ Inputs: A: the byte. Outputs: A corrupted; X, Y preserved.
 
 .sn_write
 {
-    LDY #&FF:STY &FE43                  ; system VIA: DDRA, all outputs
     STA &FE4F                           ; system VIA: ORA, no handshake
     LDA #0:STA &FE40                    ; addressable latch: line 0 low, the write enable
     NOP:NOP:NOP:NOP                     ; (the chip: 32 of its 4 MHz clocks, 16 cycles)
