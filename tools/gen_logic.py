@@ -17,8 +17,9 @@ Writes:
 - OUTDIR/path.6502: the track's drone path (F_00FAD8's: SUPER.DAT's entries x8, y8, length, direction word),
   as tables by entry, with 4 entries more than the track has (the ST reads on into the next track's past a
   fork or skip at the end; none does, but the tables cover it);
-- OUTDIR/walls.6502: the track's mask B as D13 stores it (tools/maskb.py), and the walls' probes: per facing
-  the probed lines and columns (G_01E160), and per car and facing what of its frame's shape they test.
+- OUTDIR/walls.6502: the track's mask B as D13 stores it (tools/maskb.py); OUTDIR/probes.6502: the walls'
+  probes: per facing the probed lines and columns (G_01E160), and per car and facing what of its frame's shape
+  they test (read-only: the game has them in both screens' &3000 area, with the path).
 
 The probes. F_01519C ANDs each of a car's 12 lines of opacity (its frame's pixels that aren't colour 8,
 the frame car * 16 + facing, + 64 if a drone drives it) with mask B, the opacity's column j over the
@@ -163,7 +164,7 @@ def walls(track, drones):
     rowlist = lambda v: '{' + ', '.join(map(str, v)) + '}'
     eq = lambda name, comment, v: [f'.{name:<38}; {comment}', '    EQUB ' + byte_list(v)]
     return '\n'.join([
-        '\\\\ walls.6502 - track %d\'s mask B (D13) and the race\'s cars\' wall probes (tools/gen_logic.py)' % (track + 1),
+        '\\\\ walls.6502 - track %d\'s mask B (D13) (tools/gen_logic.py)' % (track + 1),
         '',
         *eq('MbLo', 'a cell row\'s span: its first column', lo),
         *eq('MbEnd', 'and the column after it', [a + b for a, b in zip(lo, n)]),
@@ -179,6 +180,9 @@ def walls(track, drones):
         f'    EQUB HI(MbCells + {rowlist(coff)} - 8)',
         *eq('MbMaps', 'the maps', maps),
         *eq('MbCells', 'the cells', cells),
+        '']), '\n'.join([
+        '\\\\ probes.6502 - the race\'s cars\' wall probes (tools/gen_logic.py): read-only, in both screens\' &3000 area',
+        '',
         *eq('ProbeTop', 'G_01E160 by facing: the top probe line,', top),
         *eq('ProbeBot', 'the bottom one,', bot),
         *eq('ProbeLeft', 'the left column,', left),
@@ -249,7 +253,9 @@ def main(trace_path, out):
     drone = [m[str(0x1E34C + 2 * c)] << 8 | m[str(0x1E34C + 2 * c + 1)] for c in range(4)]
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, 'tables.6502'), 'w').write(tables())
-    open(os.path.join(out, 'walls.6502'), 'w').write(walls(t['track'], drone))
+    wtext, ptext = walls(t['track'], drone)
+    open(os.path.join(out, 'walls.6502'), 'w').write(wtext)
+    open(os.path.join(out, 'probes.6502'), 'w').write(ptext)
     open(os.path.join(out, 'cells.6502'), 'w').write(cells(t['track']))
     open(os.path.join(out, 'path.6502'), 'w').write(path(t['track']))
     inputs = bytearray()

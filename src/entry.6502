@@ -59,6 +59,14 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     DEX
     BNE copy
 
+    \\ in the game built from the logic, Shared copied into the shadow screen's &3000 area (from a bank:
+    \\ while ACCCON's X shows the shadow screen, this code's own place is hidden)
+
+    IF GenLogic
+        LDA bankobj:STA &FE30           ; ROMSEL: the objects' bank, where shared_copy is
+        JSR shared_copy
+    ENDIF
+
     \\ the game's variables zeroed (nothing drawn to erase), IRQ1V ours, the tables made
 
     LDA #0:TAX

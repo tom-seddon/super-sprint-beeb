@@ -1,0 +1,38 @@
+\\ shared.6502 - the loader's copy of Shared into the shadow screen (the game built from the logic). In the
+\\ objects' bank: code in &3000-&7FFF can't run while ACCCON's X shows the shadow screen there.
+
+\\ Shared (the read-only data at SharedOrg, in main RAM's &3000 area from SPRINT's load) copied into the
+\\ shadow screen's, a page at a time through ObjBuf (below &3000, where ACCCON's X doesn't reach).
+\\
+\\ Inputs:
+\\     ROMSEL: this bank
+\\
+\\ Outputs:
+\\     Shared in both screens; ACCCON: X clear (main RAM), D, E and Y clear
+\\     A, X, Y: corrupted
+
+.shared_copy
+{
+    LDX #HI(SharedEnd - SharedOrg + &FF)
+    LDY #0
+.page
+    LDA &FE34:AND #&30:STA &FE34        ; ACCCON: main RAM's &3000 area
+.get
+    LDA SharedOrg,Y                     ; self-modified: the page's high byte
+    STA ObjBufOrg,Y
+    INY
+    BNE get
+    LDA &FE34:AND #&30:ORA #AccX
+    STA &FE34                           ; ACCCON: the shadow screen's
+.put
+    LDA ObjBufOrg,Y
+    STA SharedOrg,Y                     ; self-modified: the page's high byte
+    INY
+    BNE put
+    INC get+2
+    INC put+5
+    DEX
+    BNE page
+    LDA &FE34:AND #&30:STA &FE34        ; ACCCON: main RAM again
+    RTS
+}

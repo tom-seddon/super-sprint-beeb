@@ -82,7 +82,7 @@ ZA_AUTO1 carnum                         ; the car being drawn
     STA &FE34                           ; ACCCON: the main screen written again
     JSR hud_start
     IF GenLogic
-        JSR sound_init                  ; (the effects into both screens' &3000 area: before they're drawn)
+        JSR sound_init
         LDA banktrace:STA &FE30         ; ROMSEL: the logic's bank (the fourth)
         JSR logic_start
     ENDIF

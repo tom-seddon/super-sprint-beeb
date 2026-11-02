@@ -58,15 +58,14 @@ for (let k = 0; k < last; k++) {
     frameEnd.push(irqAt.length - base);
 }
 const writes = chip.stopCapture();
-// the chip's cycles count from the capture's start: line them up with the CPU's by the first IRQ after it
+// the chip's write cycles are the CPU's (MEASURED: each field's first write about 220 cycles after its IRQ)
 const fields = [];
 const st = { n: [0, 0, 0], att: [15, 15, 15], noise: null, natt: 15 };
 let latch = 0, w = 0;
-const t0 = writes.length ? writes[0].cycle : 0;
 const irqs = irqAt.filter((t) => t >= c0).map((t) => t - c0);
 for (let i = 0; i < irqs.length; i++) {
     const end = i + 1 < irqs.length ? irqs[i + 1] : Infinity;
-    while (w < writes.length && writes[w].cycle - t0 + (irqs[0] ?? 0) < end) {
+    while (w < writes.length && writes[w].cycle - c0 < end) {
         const v = writes[w++].value;
         if (v & 0x80) {
             latch = (v >> 5) & 3;

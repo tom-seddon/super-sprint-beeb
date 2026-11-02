@@ -15,7 +15,6 @@ IF GenLogic
     INCLUDE "../build/gen/logickeys.6502"
     INCLUDE "../build/lgen/race.6502"
     LogicVarsOrg = SwramEnd - &200      ; the logic's state, at the fourth bank's end
-    FxOrg = &3400                       ; the sound's effects, in both screens' &3000 area (ScreenVars below)
     SECTION LogicVars, org = LogicVarsOrg, guard = SwramEnd, virtual = TRUE
     ENDSECTION
 ENDIF
@@ -50,9 +49,10 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
             INCLUDE "logictabs.6502"
             INCLUDE "../build/lgen/walls.6502"
             INCLUDE "../build/lgen/cells.6502"
-            INCLUDE "../build/lgen/path.6502"
+            IF GenPlay = 0
 .LogicInputs
-            INCBIN "../build/lgen/inputs.rle" ; the traced race's inputs, as runs (tools/gen_logic.py)
+                INCBIN "../build/lgen/inputs.rle" ; the traced race's inputs, as runs (tools/gen_logic.py)
+            ENDIF
             PRINT "the fourth bank: ", LogicVarsOrg - P%, " bytes free below the logic's state"
             ASSERT P% <= LogicVarsOrg, "the logic's bank: room for its state"
         ELSE
@@ -70,20 +70,28 @@ SECTION ObjFile, filename = "SPRINTD", load = &FFFF0000+LoadAddr
         INCLUDE "objdata.6502"
         INCLUDE "movers.6502"
         IF GenLogic
-.FxImage                                ; the sound's effects, copied to FxOrg in both screens (sound_init)
-            SECTION FxData, org = FxOrg
-                INCLUDE "../build/lgen/sound.6502"
-.FxEnd
-            ENDSECTION
-            ASSERT FxEnd + &FF <= HudAddr, "the effects' pages below the HUD's row"
+            INCLUDE "shared.6502"
         ENDIF
         PRINT "the objects' bank: ", SwramEnd - P%, " bytes free"
     ENDSECTION
 ENDSECTION
 
 \\ SPRINT loads at &3000, below the OS's MODE 7 screen; its loader (entry.6502) runs from its end and copies
-\\ main RAM's code down before anything is drawn at &3F00, so the file may pass it.
+\\ main RAM's code down before anything is drawn at &3F00, so the file may pass it. In the game built from
+\\ the logic it starts with the read-only data the logic and the IRQ read whatever's paged (Shared), at its
+\\ place in the &3000 area; the loader copies it into the shadow screen's.
 SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entry, filename = "SPRINT", guard = &7C00, cmos = TRUE
+    IF GenLogic
+        SKIP SharedOrg - LoadAddr       ; (ScreenVars: set by start)
+        SECTION Shared, org = SharedOrg, guard = HudAddr
+            INCLUDE "../build/lgen/sound.6502"
+            INCLUDE "../build/lgen/path.6502"
+            INCLUDE "../build/lgen/probes.6502"
+.SharedEnd
+            PRINT "the &3000 area: ", HudAddr - SharedEnd, " bytes free after Shared"
+        ENDSECTION
+        ASSERT SharedEnd + &FF <= HudAddr, "Shared's pages below the HUD's row (the loader copies whole pages)"
+    ENDIF
 .maincode_image
     SECTION MainCode, org = MainCodeOrg, guard = GameVarsOrg, cmos = TRUE
         INCLUDE "irq.6502"

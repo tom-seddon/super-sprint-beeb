@@ -10,8 +10,8 @@
 \\ 749 Hz timer; F_012BA2 moves its volume, period and rate each frame from the car's speed, unless an effect
 \\ holds the channel.
 \\
-\\ The effects' fields are in the &3000 area of both screens (copied there at the start: sound_init), so the
-\\ IRQ reads them whatever is paged and whichever screen ACCCON's X shows the CPU.
+\\ The effects' fields are in the &3000 area of both screens (Shared: SPRINT's load and its loader put them
+\\ there), so the IRQ reads them whatever is paged and whichever screen ACCCON's X shows the CPU.
 
 SECTION GameVars
 .SndFx                                  ; the effect each channel plays (Fx...), &FF none
@@ -61,22 +61,18 @@ TicksPerField = 15                      ; the 749.3 Hz timer's ticks in a 50 Hz 
 
 IF DEFINED(SoundLog) = 0                ; (the game's: the logic test sets the sound up itself)
 
-\\ The sound's start: the effects copied into both screens' &3000 area (from the objects' bank), every channel
-\\ silent (instrument 15).
+\\ The sound's start: every channel silent (instrument 15). (The effects are in Shared, in both screens'
+\\ &3000 area: SPRINT's load and its loader put them there.)
 \\
 \\ Inputs:
-\\     ROMSEL: any; acccon: the main screen's X
+\\     none
 \\
 \\ Outputs:
-\\     the effects at FxOrg in both screens; the sound's state; ROMSEL the objects' bank
-\\     A, X, Y: corrupted
+\\     the sound's state
+\\     A, X: corrupted
 
 .sound_init
 {
-    LDA bankobj:STA &FE30               ; ROMSEL: the objects' bank, where the effects' image is
-    LDA acccon:JSR copy
-    LDA acccon:ORA #AccX:JSR copy
-    LDA acccon:STA &FE34                ; ACCCON: as it was
     LDX #2
 .channel
     LDA #FxSilence:JSR set_state
@@ -86,24 +82,6 @@ IF DEFINED(SoundLog) = 0                ; (the game's: the logic test sets the s
     DEX
     BPL channel
     LDA #&FF:STA SndNoise
-    RTS
-
-    \\ the image to FxOrg, with ACCCON as A
-.copy
-    STA &FE34                           ; ACCCON: the screen whose &3000 area gets it
-    LDX #HI(FxEnd - FxOrg + &FF)
-    LDY #0
-.page
-    LDA FxImage,Y                       ; self-modified: the page's high byte
-    STA FxOrg,Y                         ; self-modified: the page's high byte
-    INY
-    BNE page
-    INC page+2
-    INC page+5
-    DEX
-    BNE page
-    LDA #HI(FxImage):STA page+2
-    LDA #HI(FxOrg):STA page+5
     RTS
 }
 
