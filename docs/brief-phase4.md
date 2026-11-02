@@ -10,7 +10,7 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: speed, step 12** (its plan in §6). The hazards are in (step 11, §8): exact against the ST and drawn from the logic on
+**Resume point: speed, step 12, its next round** (§8's last entry: what's done, what's left, the options). The hazards are in (step 11, §8): exact against the ST and drawn from the logic on
 track 5's race 17. That race is too slow: logic and drawing average 38,207 cycles a frame, and 734 of its
 2,240 drawn frames take two TV frames (the logic about 17,800 of it). Then room for the other tracks: the
 play build's fourth bank has 998 bytes free on track 1, which on tracks 6 and 8 (larger mask B) comes to
@@ -488,4 +488,27 @@ their draws (`LgForceTornado`, `LgForceCones`).
   hazards' data moved there (`f8e4fa8`). The play build: the fourth bank 998 free, main RAM 402, Shared 486,
   the objects' bank 7,364 (the tornado's 12 compiled frame-shifts and every gate and barrier frame).
 - Cycles: track 1's race 27,220 a frame (mean), 5 over a TV frame; the hazard race 38,207, 734 of 2,240 over.
+
+**Step 12, speed, the first rounds.** Six exact changes (each checked on both traces; mask B's columns also by a
+new unit test, `tools/walls_check.mjs`), MEASURED on the hazard race with `make check TRACE=logic4`:
+
+| | Logic test, mean (worst 300) | Game, mean | Drawn frames taking 2 TV frames |
+|---|---|---|---|
+| Before (`3bbc668`) | 17,945 (about 21,300) | 38,207 | 734 of 2,240 |
+| mask B's box writes a band at a time | 17,085 | | |
+| TOS's multiply from byte j on | 16,964 | | |
+| all_road cached per car | 16,354 (20,771) | 36,641 | 576 |
+| the wall columns a cell row at a time; spent sparks | 15,711 (19,887) | 35,934 | 481 |
+
+Track 1's race: 27,220 -> 26,314 mean, 5 -> 2 frames over. A fault on the way (mask_cell's flags for a wall
+from a row's map) passed the hazard race and failed track 1's; the unit test now catches it.
+
+Where the 480 slowest frames go now (`render_profile.mjs`, its regions brought up to date): the logic about
+23,400 (the fourth bank's 16,800, main RAM's 6,600, the sound interrupt about 1,000 of it), the cars' plot
+about 10,000, the erase 5,800, the moving objects about 4,000 (the tornado 900, the helicopter 1,100), the
+gates' and slots' copies about 3,000. They average about 47,600 against 39,936. The logic's own profile is
+spread thin: the drones 1,908, the cells 1,416, the divide 1,198, the wall columns 946, mask B's look-ups 883,
+the sound interrupt 849, collide_car 848, car-to-car 700, all_road 606, line_hit 551, mul_dir 541, the rest
+under 460 each (mean a frame). Each further lever is worth a few hundred cycles; clearing most of the slow
+frames needs about 6,000-8,000 off them, from the logic and the renderer both.
 
