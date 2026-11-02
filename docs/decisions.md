@@ -147,8 +147,8 @@ keys held together in jsbeeb (which may not model ghosting: the check there is t
 Master's two joysticks as an option for any player. The layout itself is Proposed until Tom has tried it on
 a real BBC. Hardware gate: real keyboard.
 
-### D13. Mask B (walls): only the mixed cells: Proposed (2026-11-02)
-Taken provisionally for Phase 4's first steps (`docs/brief-phase4.md` §3), for Tom to review.
+### D13. Mask B (walls): only the mixed cells: Decided (2026-11-02)
+Proposed for Phase 4's first steps (`docs/brief-phase4.md` §3).
 Mask B is 8,000 bytes a track at 1 bit a pixel, 70% of the fourth bank's 11,361 free. Of its 1,000 8 x 8
 cells, 144 to 267 a track are neither all road nor all wall (track 1: 144, 1,152 bytes; track 8: 267,
 2,136; `tools/maskb_stats.py`). Options:
@@ -160,3 +160,4 @@ cells, 144 to 267 a track are neither all road nor all wall (track 1: 144, 1,152
   and none at all for a car whose cells are all road. The gates' and barriers' cells reserved as mixed and
   written from precomputed runs. Measured with them (`tools/maskb.py`): 2,168 bytes on track 1, 3,427 at
   most (track 8), decoding to the ST's mask with 0 bytes wrong on every track.
+Tom: "Yes, D13 as proposed"

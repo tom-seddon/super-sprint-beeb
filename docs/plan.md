@@ -207,7 +207,7 @@ adds the logic.
   finish, checked against Hatari traces.
 - **Started 2026-11-02** (`docs/brief-phase4.md`): bit-exact with the ST (D9), on track 1 first (D10), sound as
   captured register streams (D11, which replaces the sequencer plan under "Input and sound"), keys proposed
-  and checked for ghosting (D12), mask B as its mixed cells (D13). The tracer and the oracle come first.
+  and checked for ghosting (D12), mask B as its mixed cells (D13, decided). The tracer and the oracle come first.
 - **The logic's cycles**, what the renderer leaves of a TV frame (39,936), measured over the first ~320
   frames of race 17 on each track with every hazard (`render_check.mjs --json`; the race's set-up and the
   test's own trace reading, about 600 a frame, left out):
@@ -257,7 +257,7 @@ adds the logic.
 | D10 | First track | Decided (Tom, 2026-11-02): track 1 (index 0) |
 | D11 | Sound | Decided (Tom, 2026-11-02): 50 Hz IRQ; captured streams for effects and tunes; engines live |
 | D12 | Keys | Decided in part (Tom, 2026-11-02): a proposed three-player layout, checked for ghosting; joysticks as an option |
-| D13 | Mask B's storage | Proposed (2026-11-02): the mixed cells only, as the priority mask |
+| D13 | Mask B's storage | Decided (Tom, 2026-11-02): the mixed cells only, as the priority mask |
 
 ## Risks
 

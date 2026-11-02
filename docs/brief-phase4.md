@@ -1,8 +1,8 @@
 # Brief - Phase 4, one race: the first steps
 
-> **Status: PROPOSAL, 2026-11-02 (Tom asked for Phase 4's first steps, planned before any code).**
+> **Status: PLAN, agreed 2026-11-02 (Tom: "Yes, D13 as proposed"); steps 1, 2 and mask B's part of 4 built.**
 > Branch `phase4-start`, off `02741da` (the commit Tom last saw). Tom's four answers are D9-D12 in
-> `docs/decisions.md`; the one this brief takes itself is D13 (mask B's storage), Proposed.
+> `docs/decisions.md`; D13 (mask B's storage) was this brief's proposal, decided by Tom 2026-11-02.
 >
 > Figures say **MEASURED** (a tool run, named), **COUNTED** (off the source or a listing) or
 > **PROJECTED** (arithmetic on top).
@@ -118,7 +118,7 @@ under a car is all road: then the code is 0 with no reads at all, and the ST's a
 | D10 | First track | | Decided (Tom): track 1 (index 0) |
 | D11 | Sound | | Decided (Tom): 50 Hz IRQ, captured streams, live engines |
 | D12 | Keys | | Decided in part (Tom): a proposed layout, checked for ghosting; joysticks too |
-| D13 | Mask B's storage | (a) whole, (b) rebuilt, (c) mixed cells | Proposed: (c) |
+| D13 | Mask B's storage | (a) whole, (b) rebuilt, (c) mixed cells | Decided (Tom): (c) |
 
 ## 6. The steps
 
