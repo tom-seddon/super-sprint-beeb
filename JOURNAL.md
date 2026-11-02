@@ -338,3 +338,7 @@
   reads; the asm sets &1000/&2000, which the steering does read. Corrected.
 - A mutation that changes nothing proves nothing: accepting checkpoints out of order passed (car 0 never
   crosses one out of order), so the stripe reset was broken instead, and that failed.
+- **Drones, the draw order, car-to-car**: all four cars exact in all 48 variables to frame 294 (car 0's
+  crash). Mistake: a local label `.drone` in `race_frame` shadowed the routine `drone`, so `JSR drone`
+  called itself and the BBC hung; the skill warns of exactly this. The logic now costs about 19,800 cycles
+  a frame: the multiply and divide have to get much faster.

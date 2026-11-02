@@ -101,8 +101,10 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     SECTION LogicBankCode, org = SwramOrg, guard = SwramEnd, cmos = TRUE
         INCLUDE "walls.6502"
         INCLUDE "cells.6502"
+        INCLUDE "drone.6502"
         INCLUDE "../build/lgen/walls.6502"
         INCLUDE "../build/lgen/cells.6502"
+        INCLUDE "../build/lgen/path.6502"
         PRINT "the logic's bank: ", P% - SwramOrg, " bytes"
     ENDSECTION
 .bank_end

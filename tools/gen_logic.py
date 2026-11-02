@@ -13,6 +13,9 @@ Writes:
   as F_010CF2 returned them (0 where a car read none: a drone, or a wrecked car);
 - OUTDIR/cells.6502: the track's attribute map (F_015CA2's, from INIT.DAT's runs: 40 x 25 bytes, one a cell),
   its rows' addresses, and the two attribute probe points per facing (G_01E0C0);
+- OUTDIR/path.6502: the track's drone path (F_00FAD8's: SUPER.DAT's entries x8, y8, length, direction word),
+  as tables by entry, with 4 entries more than the track has (the ST reads on into the next track's past a
+  fork or skip at the end; none does, but the tables cover it);
 - OUTDIR/walls.6502: the track's mask B as D13 stores it (tools/maskb.py), and the walls' probes: per facing
   the probed lines and columns (G_01E160), and per car and facing what of its frame's shape they test.
 
@@ -186,6 +189,27 @@ def walls(track, drones):
         ''])
 
 
+def path(track):
+    n = L.PATH_COUNT[track]
+    w = L.words(L.SUPER[L.PATH_OFF:L.PATH_OFF + 7100 + 64])
+    base = (L.PATH_START[track] + 2) // 2
+    e = [tuple(v & 0xFFFF for v in w[base + 4 * k:base + 4 * k + 4]) for k in range(n + 4)]
+    assert all(ln < 256 and d < 0x800 for x, y, ln, d in e[:n]), 'lengths a byte, flags in bits 8-10'
+    eq = lambda name, comment, v: [f'.{name:<38}; {comment}', '    EQUB ' + byte_list(v)]
+    return '\n'.join([
+        '\\\\ path.6502 - track %d\'s drone path (tools/gen_logic.py)' % (track + 1),
+        '',
+        'PathCount = %d                          ; G_01D168: its entries' % n,
+        *eq('PathX8Lo', 'by entry: its start, x in eighths', [v[0] for v in e]),
+        *eq('PathX8Hi', '', [v[0] >> 8 for v in e]),
+        *eq('PathY8Lo', 'y', [v[1] for v in e]),
+        *eq('PathY8Hi', '', [v[1] >> 8 for v in e]),
+        *eq('PathLen', 'its length', [v[2] for v in e]),
+        *eq('PathDirLo', 'its direction (bits 0-3), a gate (bits 0-1) or a skip (0-7)', [v[3] for v in e]),
+        *eq('PathDirHi', 'its flags: 1 a fork (the word &100 exactly), 2 a gate, 4 a skip', [v[3] >> 8 for v in e]),
+        ''])
+
+
 def cells(track):
     m, _ = L.attr_map(track)
     pts = L.words(L.tb(0x1E0C0))[:64]
@@ -214,6 +238,7 @@ def main(trace_path, out):
     open(os.path.join(out, 'tables.6502'), 'w').write(tables())
     open(os.path.join(out, 'walls.6502'), 'w').write(walls(t['track'], drone))
     open(os.path.join(out, 'cells.6502'), 'w').write(cells(t['track']))
+    open(os.path.join(out, 'path.6502'), 'w').write(path(t['track']))
     inputs = bytearray()
     for f in frames[FirstFrame:]:
         b = [0, 0, 0]

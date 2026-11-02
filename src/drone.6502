@@ -1,0 +1,322 @@
+\\ drone.6502 - a drone-driven car each frame (D9): the ST's F_00F23C, with F_00FA2E (past the segment's end?)
+\\ and F_00FB14 (onto a segment). A drone follows its path's straight segments, two lanes interleaved: at a
+\\ segment's end it takes the next in its lane (a fork, a gate's lane or a skip can change it) and snaps onto
+\\ its start. Knocked off its line, it steers back by 1/20 of its offset a frame. In the logic's bank with
+\\ the path (path.6502 in build/lgen).
+
+SECTION LogicVars
+.RcPathIdx                              ; G_01E3BC: the drone's path entry
+    SKIP 4
+.RcEndX8Lo                              ; G_01E31C: its segment's end, x8
+    SKIP 4
+.RcEndX8Hi
+    SKIP 4
+.RcEndY8Lo                              ; G_01E314: y8
+    SKIP 4
+.RcEndY8Hi
+    SKIP 4
+.RcAccXLo                               ; G_01E2DC: its moves since the segment's start, x8 (kept, never read:
+    SKIP 4                              ; F_00F92E, which did, is dead)
+.RcAccXHi
+    SKIP 4
+.RcAccYLo                               ; G_01E2D4: y8
+    SKIP 4
+.RcAccYHi
+    SKIP 4
+.RcGateLane                             ; G_01EB6E: each gate's lane step, 2, or 3 while it's shut
+    SKIP 4
+ENDSECTION
+
+\\ Inputs:
+\\     X: the car, a drone, racing
+\\
+\\ Outputs:
+\\     its state, a frame on
+\\     A, Y: corrupted; X preserved
+
+.drone
+{
+    ZA_AUTO2 q                          ; local: svx / D
+    ZA_AUTO1 past                       ; local: bit 7, past the segment's end
+
+    LDA RcBounce,X:BEQ path
+
+    \\ bouncing: coasting the travel direction, the move added to the offset from the line
+
+    DEC RcBounce,X
+    JSR target
+    JSR smooth
+    SEC
+    LDA RcOffXLo,X:SBC RcSVXLo,X:STA RcOffXLo,X
+    LDA RcOffXHi,X:SBC RcSVXHi,X:STA RcOffXHi,X
+    SEC
+    LDA RcOffYLo,X:SBC RcSVYLo,X:STA RcOffYLo,X
+    LDA RcOffYHi,X:SBC RcSVYHi,X:STA RcOffYHi,X
+    JMP moved
+
+    \\ on the path: the segment's direction; past its end? 2 a frame faster up to the top speed
+
+.path
+    LDY RcPathIdx,X
+    LDA PathDirLo,Y:AND #15:STA RcTravel,X
+    JSR passed
+    ROR past                            ; (C: past the end)
+    SEC
+    LDA RcSpeedLo,X:SBC RcTopLo,X
+    LDA RcSpeedHi,X:SBC RcTopHi,X
+    BVC @+
+    EOR #&80
+.@
+    BPL @+
+    CLC
+    LDA RcSpeedLo,X:ADC #2:STA RcSpeedLo,X
+    BCC @+
+    INC RcSpeedHi,X
+.@
+    BIT past:BPL spin
+    JSR next_segment
+
+    \\ a spin: the counter down 1; if that leaves it odd, a step clockwise (and done once it faces its path's
+    \\ way), else back up 2: it turns every other frame until it faces its way. Not in a jump. No spin: it
+    \\ faces its way.
+
+.spin
+    LDA RcSpin,X:BEQ straight
+    LDA RcBitsHi,X:AND #HI(&400):BNE straight
+    DEC RcSpin,X
+    LDA RcSpin,X:LSR A:BCC even
+    LDA RcDir,X:INC A:AND #15:STA RcDir,X
+    CMP RcTravel,X:BNE steer
+    STZ RcSpin,X
+    LDA RcBitsLo,X:AND #LO(&FFCF):STA RcBitsLo,X
+    BRA steer
+.even
+    INC RcSpin,X:INC RcSpin,X
+    BRA steer
+.straight
+    STZ RcSpin,X
+    LDA RcTravel,X:STA RcDir,X
+
+    \\ the target velocity: speed times the path's vector, plus 1/20 of the offset, which loses that 1/20
+
+.steer
+    JSR target
+    LDA RcOffXLo,X:STA num
+    LDA RcOffXHi,X:STA num+1
+    LDA #20:JSR div_s16
+    CLC
+    LDA RcTVXLo,X:ADC num:STA RcTVXLo,X
+    LDA RcTVXHi,X:ADC num+1:STA RcTVXHi,X
+    SEC
+    LDA RcOffXLo,X:SBC num:STA RcOffXLo,X
+    LDA RcOffXHi,X:SBC num+1:STA RcOffXHi,X
+    LDA RcOffYLo,X:STA num
+    LDA RcOffYHi,X:STA num+1
+    LDA #20:JSR div_s16
+    CLC
+    LDA RcTVYLo,X:ADC num:STA RcTVYLo,X
+    LDA RcTVYHi,X:ADC num+1:STA RcTVYHi,X
+    SEC
+    LDA RcOffYLo,X:SBC num:STA RcOffYLo,X
+    LDA RcOffYHi,X:SBC num+1:STA RcOffYHi,X
+    JSR smooth
+
+    \\ the move: on by the smoothed velocity over D, the old position kept after the move (the ST's quirk:
+    \\ a drone isn't put back on a bounce), and the moves summed
+
+.moved
+    LDA RcSVXLo,X:STA num
+    LDA RcSVXHi,X:STA num+1
+    LDA RcDiv,X:JSR div_s16
+    LDA num:STA q
+    LDA num+1:STA q+1
+    CLC
+    LDA RcX8Lo,X:ADC q:STA RcX8Lo,X:STA RcPX8Lo,X
+    LDA RcX8Hi,X:ADC q+1:STA RcX8Hi,X:STA RcPX8Hi,X
+    CLC
+    LDA RcAccXLo,X:ADC q:STA RcAccXLo,X
+    LDA RcAccXHi,X:ADC q+1:STA RcAccXHi,X
+    LDA RcSVYLo,X:STA num
+    LDA RcSVYHi,X:STA num+1
+    LDA RcDiv,X:JSR div_s16
+    CLC
+    LDA RcY8Lo,X:ADC num:STA RcY8Lo,X:STA RcPY8Lo,X
+    LDA RcY8Hi,X:ADC num+1:STA RcY8Hi,X:STA RcPY8Hi,X
+    CLC
+    LDA RcAccYLo,X:ADC num:STA RcAccYLo,X
+    LDA RcAccYHi,X:ADC num+1:STA RcAccYHi,X
+    LDA RcX8Lo,X:STA num
+    LDA RcX8Hi,X:STA num+1
+    LDA #8:JSR div_s16
+    LDA num:STA RcXLo,X
+    LDA num+1:STA RcXHi,X
+    LDA RcY8Lo,X:STA num
+    LDA RcY8Hi,X:STA num+1
+    LDA #8:JSR div_s16
+    LDA num:STA RcYLo,X
+    LDA num+1:STA RcYHi,X
+    RTS
+
+    \\ the target velocity, speed times the travel direction's vector
+
+.target
+    LDY RcTravel,X
+    LDA RcSpeedLo,X:STA num
+    LDA RcSpeedHi,X:STA num+1
+    LDA DirX,Y:JSR mul_s16
+    LDA num:STA RcTVXLo,X
+    LDA num+1:STA RcTVXHi,X
+    LDY RcTravel,X
+    LDA RcSpeedLo,X:STA num
+    LDA RcSpeedHi,X:STA num+1
+    LDA DirY,Y:JSR mul_s16
+    LDA num:STA RcTVYLo,X
+    LDA num+1:STA RcTVYHi,X
+    RTS
+
+    \\ the smoothed velocity halfway to the target's, rounded towards 0
+
+.smooth
+    CLC
+    LDA RcTVXLo,X:ADC RcSVXLo,X:STA num
+    LDA RcTVXHi,X:ADC RcSVXHi,X:STA num+1
+    JSR move.half
+    LDA num:STA RcSVXLo,X
+    LDA num+1:STA RcSVXHi,X
+    CLC
+    LDA RcTVYLo,X:ADC RcSVYLo,X:STA num
+    LDA RcTVYHi,X:ADC RcSVYHi,X:STA num+1
+    JSR move.half
+    LDA num:STA RcSVYLo,X
+    LDA num+1:STA RcSVYHi,X
+    RTS
+}
+
+\\ F_00FA2E: past the segment's end, by the travel direction's quadrant ((dir + 2) AND 15) >> 2: up, y8 at or
+\\ above the end's; right, x8 at or right of it; down, y8 at or below; left, x8 at or left of it.
+\\
+\\ Inputs:
+\\     X: the car; RcTravel its segment's direction
+\\
+\\ Outputs:
+\\     C: set if past
+\\     A, Y: corrupted; X preserved
+
+.passed
+{
+    LDA RcTravel,X:CLC:ADC #2:AND #15:LSR A:LSR A
+    BEQ up
+    CMP #2:BCC right
+    BEQ down
+    SEC                                 ; left: x8 <= end, so end - x8 >= 0
+    LDA RcEndX8Lo,X:SBC RcX8Lo,X
+    LDA RcEndX8Hi,X:SBC RcX8Hi,X
+    BRA sign
+.up
+    SEC                                 ; y8 <= end
+    LDA RcEndY8Lo,X:SBC RcY8Lo,X
+    LDA RcEndY8Hi,X:SBC RcY8Hi,X
+    BRA sign
+.right
+    SEC                                 ; x8 >= end
+    LDA RcX8Lo,X:SBC RcEndX8Lo,X
+    LDA RcX8Hi,X:SBC RcEndX8Hi,X
+    BRA sign
+.down
+    SEC                                 ; y8 >= end
+    LDA RcY8Lo,X:SBC RcEndY8Lo,X
+    LDA RcY8Hi,X:SBC RcEndY8Hi,X
+.sign
+    BVC @+
+    EOR #&80
+.@
+    ASL A                               ; C: the difference's sign
+    BCS no
+    SEC
+    RTS
+.no
+    CLC
+    RTS
+}
+
+\\ The next segment: two on in the lane (the count wrapped); then a fork (the word &100) changes lane, odd
+\\ cars 2 on and even 3; a gate's word adds its lane step; a skip adds its count. Then onto it (F_00FB14).
+\\
+\\ Inputs:
+\\     X: the car
+\\
+\\ Outputs:
+\\     its path entry, and as onto
+\\     A, Y: corrupted; X preserved
+
+.next_segment
+{
+    ZA_AUTO1 t                          ; local: the entry, kept
+    LDA RcPathIdx,X:CLC:ADC #2
+    CMP #PathCount:BCC @+
+    SBC #PathCount                      ; (C set)
+.@
+    TAY
+    LDA PathDirHi,Y:CMP #1:BNE notfork
+    LDA PathDirLo,Y:BNE notfork
+    TXA:AND #1                          ; a fork: odd cars 2 on, even 3
+    EOR #3
+    BRA add
+.notfork
+    LDA PathDirHi,Y:AND #2:BEQ notgate
+    LDA PathDirLo,Y:AND #3              ; a gate's lane step
+    STY t
+    TAY
+    LDA RcGateLane,Y
+    LDY t
+    BRA add
+.notgate
+    LDA PathDirHi,Y:AND #4:BEQ set
+    LDA PathDirLo,Y                     ; a skip
+.add
+    STY t
+    CLC:ADC t
+    TAY
+.set
+    TYA:STA RcPathIdx,X
+    \\ (falls into onto)
+}
+
+\\ F_00FB14: onto a path entry: its start, its direction, no offset, its end worked out, the sums cleared.
+\\
+\\ Inputs:
+\\     X: the car; RcPathIdx its entry
+\\
+\\ Outputs:
+\\     RcX8, RcY8, RcTravel, RcOffX, RcOffY, RcEndX8, RcEndY8, RcAccX, RcAccY
+\\     A, Y: corrupted; X preserved
+
+.onto
+{
+    LDY RcPathIdx,X
+    LDA PathX8Lo,Y:STA RcX8Lo,X
+    LDA PathX8Hi,Y:STA RcX8Hi,X
+    LDA PathY8Lo,Y:STA RcY8Lo,X
+    LDA PathY8Hi,Y:STA RcY8Hi,X
+    LDA PathDirLo,Y:AND #15:STA RcTravel,X
+    STZ RcOffXLo,X:STZ RcOffXHi,X
+    STZ RcOffYLo,X:STZ RcOffYHi,X
+    STZ RcAccXLo,X:STZ RcAccXHi,X
+    STZ RcAccYLo,X:STZ RcAccYHi,X
+    LDA PathLen,Y:STA num               ; the end: start + length * the vector
+    STZ num+1
+    LDY RcTravel,X
+    LDA DirX,Y:JSR mul_s16
+    CLC
+    LDA RcX8Lo,X:ADC num:STA RcEndX8Lo,X
+    LDA RcX8Hi,X:ADC num+1:STA RcEndX8Hi,X
+    LDY RcPathIdx,X
+    LDA PathLen,Y:STA num
+    STZ num+1
+    LDY RcTravel,X
+    LDA DirY,Y:JSR mul_s16
+    CLC
+    LDA RcY8Lo,X:ADC num:STA RcEndY8Lo,X
+    LDA RcY8Hi,X:ADC num+1:STA RcEndY8Hi,X
+    RTS
+}

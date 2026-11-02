@@ -10,9 +10,9 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 7, car-to-car and drones.** The cells are exact (§8). Next: the draw order and
-car-to-car (F_00EF9E, F_00F038/F_00F092, the shove in F_00E66A), then drones (F_00F23C, F_00FB14,
-F_00FAD8, their set-up), reading §8, `src/race.6502` and st-logic §4-5.
+**Resume point: step 7, wrecks.** Every car is exact to frame 294 (§8). Next: the crash and wreck
+(F_00BB4E, the wreck timer in F_01510A, F_00ED28 putting the car back; the helicopter's timing), then the
+race's end, the points and the pickups (the random numbers), reading §8 and st-logic §3, §6.
 
 ## 0. The proposal in one paragraph
 
@@ -249,3 +249,17 @@ in this race (car 0 never crosses one out of order), so it proves nothing and is
 Two findings from the asm, corrected in st-logic: cell types 5 and 7 set flags &1000 and &2000 (the
 steering reads them), not &0010 and &0020; and a finish line makes laps `(laps AND 3) + 1`.
 Cost: 6,648 cycles a frame (mean, frames 2-75) from 5,307; the cells are read for every car every frame.
+
+**Step 7, drones, the draw order and car-to-car.** `src/drone.6502` (in the logic's bank with the path,
+from `tools/gen_logic.py`): F_00F23C, F_00FA2E (past the segment's end, by the travel direction's
+quadrant) and F_00FB14 (onto a segment), with the drones' set-up in `race_setup`. In `src/race.6502`:
+F_00EF9E (the draw order, a bubble sort by y, + 255 elevated, from 0-3 each frame), F_00F038/F_00F092
+(the six pairs' tests) and the shove. MEASURED: all 4 cars match the ST in all 48 variables on every frame
+from 1 to 294 (`make logiccheck LOGICARGS="--until 294"`), through 2 shoves between cars 0 and 3 and the
+draw order's changes; frame 295 is car 0's crash. The set-up matched all four cars, drones included, the
+first time; the bugs were a local label `.drone` shadowing the routine it called (the BBC hung) and a
+scratch byte shared between two uses. Broken on purpose (the shove 10 * D, not 11), 219 frames fail from
+76. A drone's spin, read from the asm: the counter goes down 1, and if that leaves it even, up 2, so it
+turns every other frame until it faces its path.
+Cost: 19,846 cycles a frame (mean, frames 2-294), 26,455 at most: each drone about 3,800, like the human,
+mostly the general multiply and divide. Speed is the next job after the logic is whole.

@@ -43,6 +43,8 @@ const PerCar = [
     ["state", 0x1e3d4, "RcState", "u"], ["laps", 0x1e354, "RcLaps", "u"], ["check", 0x1e38c, "RcCheck", "u"],
     ["stripes", 0x1e394, "RcStripes", "w"], ["drone", 0x1e34c, "RcDrone", "u"], ["order", 0x1e2cc, "RcOrder", "u"],
     ["wrench", 0x1e324, "RcWrench", "u"],
+    ["pathidx", 0x1e3bc, "RcPathIdx", "u"], ["endx8", 0x1e31c, "RcEndX8", "w"], ["endy8", 0x1e314, "RcEndY8", "w"],
+    ["accx", 0x1e2dc, "RcAccX", "w"], ["accy", 0x1e2d4, "RcAccY", "w"],
     // the frame each lap ended: 4 words a car in the ST, car * 4 + lap in the BBC
     ...[0, 1, 2, 3].map((i) => [`lap${i}`, 0x1e32c + 2 * i, "RcLapTime", "w", 8, (c) => c * 4 + i]),
 ];

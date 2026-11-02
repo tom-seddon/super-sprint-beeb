@@ -221,8 +221,35 @@ ENDSECTION
     LDA num:ADC t:STA RcThreshLo,X
     LDA num+1:ADC t+1:STA RcThreshHi,X
 
-    \\ a drone's own constants, and its place on its path: not yet (step 7)
+    \\ a drone: onto its path's first entry (x from it, y the grid's: the difference its offset, times D),
+    \\ speed car * 10, D 40, top 60 - track * 4 + car * 4 + race
 
+    LDA RcDrone,X:BEQ human
+    STZ RcPathIdx,X
+    JSR onto
+    TXA:ASL A:STA t:ASL A:ASL A:ADC t   ; car * 10 (C clear)
+    STA RcSpeedLo,X
+    STZ RcSpeedHi,X
+    LDA #40:STA RcDiv,X
+    TXA:SEC:SBC RcTrack:ASL A:ASL A     ; (car - track) * 4 + 60 + race
+    CLC:ADC #60:CLC:ADC RcRace
+    STA RcTopLo,X
+    STZ RcTopHi,X
+    LDA RcYLo,X:STA t                   ; y * 8
+    LDA #0
+    ASL t:ROL A
+    ASL t:ROL A
+    ASL t:ROL A
+    STA t+1
+    SEC
+    LDA RcY8Lo,X:SBC t:STA num
+    LDA RcY8Hi,X:SBC t+1:STA num+1
+    LDA t:STA RcY8Lo,X
+    LDA t+1:STA RcY8Hi,X
+    LDA #40:JSR mul_s16
+    LDA num:STA RcOffYLo,X
+    LDA num+1:STA RcOffYHi,X
+.human
     DEX
     BMI order
     JMP car
@@ -232,6 +259,11 @@ ENDSECTION
     TXA:STA RcOrder,X
     DEX
     BPL orders
+    LDX #3
+.lanes
+    LDA #2:STA RcGateLane,X             ; the gates' lane steps (F_00AF7A's): 2, as when open
+    DEX
+    BPL lanes
     LDA #1:STA RcFrameLo                ; (the set-up's flips: frames 0 and 1)
     STZ RcFrameHi
     RTS
@@ -256,8 +288,11 @@ ENDSECTION
     LDX #0
 .control
     LDA RcState,X:BNE next              ; a wrecked car: no control
-    LDA RcDrone,X:BNE next              ; a drone: not yet (step 7)
+    LDA RcDrone,X:BNE driven
     JSR human                           ; (X preserved)
+    BRA next
+.driven
+    JSR drone                           ; (X preserved; in the logic's bank)
 .next
     INX
     CPX #4:BNE control
@@ -285,13 +320,8 @@ ENDSECTION
 .@
     STX RcPhase
 
-    \\ F_00F038: last frame's car-to-car flags (&000E) cleared on every car; its tests: not yet (step 7)
-
-    LDX #3
-.clear
-    LDA RcBitsLo,X:AND #LO(NOT(&000E)):STA RcBitsLo,X
-    DEX
-    BPL clear
+    JSR car_to_car
+    JSR draw_order
 
     STZ k
 .next
@@ -391,14 +421,242 @@ ENDSECTION
 .drone
     LDA RcDrone,X:BNE safe
 
-    \\ the car-to-car immunity counted down; a shove: not yet
+    \\ the car-to-car immunity counted down; then, hit by another car and not immune, a shove
 
 .immune
     LDA RcImmune,X:BEQ @+
     DEC RcImmune,X
+    BNE done
 .@
+    LDA RcBitsLo,X:AND #2:BEQ done
+    LDA RcState,X:BNE done
+    JMP shove
+.done
     RTS
 }
+
+\\ F_00E66A's shove, hit by another car: 25 frames immune; travelling the way the other car faces at twice
+\\ the top speed's velocity (11 * D * vector / 2, which the smoothing fades); a drone's offset from its line
+\\ reduced by it; speed * 3 / 4; back where it was. The other car is the one in flags &000C (two hits in a
+\\ frame OR their numbers: the ST's quirk, kept).
+\\
+\\ Inputs:
+\\     X: the car
+\\
+\\ Outputs:
+\\     its state; RcPush the other car's facing
+\\     A, Y: corrupted; X preserved
+
+.shove
+{
+    LDA RcBitsLo,X:AND #LO(NOT(2)):STA RcBitsLo,X
+    LDA #25:STA RcImmune,X
+    LDA RcBitsLo,X:LSR A:LSR A:AND #3:TAY
+    LDA RcDir,Y:STA RcPush
+    STA RcTravel,X
+    JSR impulse
+    LDY RcPush
+    LDA DirX,Y:JSR mul_s16
+    LDA #2:JSR div_s16
+    LDA num:STA RcSVXLo,X
+    LDA num+1:STA RcSVXHi,X
+    SEC
+    LDA RcOffXLo,X:SBC num:STA RcOffXLo,X
+    LDA RcOffXHi,X:SBC num+1:STA RcOffXHi,X
+    JSR impulse
+    LDY RcPush
+    LDA DirY,Y:JSR mul_s16
+    LDA #2:JSR div_s16
+    LDA num:STA RcSVYLo,X
+    LDA num+1:STA RcSVYHi,X
+    SEC
+    LDA RcOffYLo,X:SBC num:STA RcOffYLo,X
+    LDA RcOffYHi,X:SBC num+1:STA RcOffYHi,X
+    LDA RcSpeedLo,X:STA num
+    LDA RcSpeedHi,X:STA num+1
+    LDA #3:JSR mul_s16
+    LDA #4:JSR div_s16
+    LDA num:STA RcSpeedLo,X
+    LDA num+1:STA RcSpeedHi,X
+    LDA RcPX8Lo,X:STA RcX8Lo,X
+    LDA RcPX8Hi,X:STA RcX8Hi,X
+    LDA RcPY8Lo,X:STA RcY8Lo,X
+    LDA RcPY8Hi,X:STA RcY8Hi,X
+    \\ the bump's sound: not yet
+    RTS
+
+    \\ 11 * D, into num
+.impulse
+    LDA RcDiv,X:STA num
+    STZ num+1
+    LDA #11:JMP mul_s16
+}
+
+\\ F_00F038: last frame's car-to-car flags (&000E) cleared, then F_00F092 on the pairs (0, 1), (0, 2), (0, 3),
+\\ (1, 3), (2, 3), (2, 1). Two cars collide if neither is airborne or on a nudge stretch (&0440), they're
+\\ within 7 pixels each way, on the same level, and facing differently. Facing within 4 steps or more than 11
+\\ apart: both flagged (&0002) with the other's number (&000C); 7 to 9 apart (head-on), both at 60 or more:
+\\ both spin 32 frames, if not spinning already.
+\\
+\\ Inputs:
+\\     the cars' places, facings, flags and speeds
+\\
+\\ Outputs:
+\\     their flags and spins
+\\     A, X, Y: corrupted
+
+.car_to_car
+{
+    ZA_AUTO1 b                          ; local: the pair's second car
+    ZA_AUTO1 d                          ; local: a difference's low byte, then |facing difference|
+    ZA_AUTO1 dhi                        ; local: a difference's high byte
+
+    LDX #3
+.clear
+    LDA RcBitsLo,X:AND #LO(NOT(&000E)):STA RcBitsLo,X
+    DEX
+    BPL clear
+    LDX #0:LDY #1:JSR pair
+    LDX #0:LDY #2:JSR pair
+    LDX #0:LDY #3:JSR pair
+    LDX #1:LDY #3:JSR pair
+    LDX #2:LDY #3:JSR pair
+    LDX #2:LDY #1
+
+    \\ the pair X and Y
+.pair
+    STY b
+    LDA RcBitsLo,X:ORA RcBitsLo,Y:AND #&40:BNE no
+    LDA RcBitsHi,X:ORA RcBitsHi,Y:AND #HI(&400):BNE no
+    SEC                                 ; |x difference| <= 7
+    LDA RcXLo,X:SBC RcXLo,Y:STA d
+    LDA RcXHi,X:SBC RcXHi,Y
+    JSR near:BCS no
+    SEC                                 ; |y difference| <= 7
+    LDA RcYLo,X:SBC RcYLo,Y:STA d
+    LDA RcYHi,X:SBC RcYHi,Y
+    JSR near:BCC close
+.no
+    RTS
+.close
+    LDA RcBitsLo,X:EOR RcBitsLo,Y:AND #1:BNE none   ; the same level
+    LDA RcDir,Y:SEC:SBC RcDir,X:BEQ none            ; facing differently
+    BPL @+
+    EOR #&FF:INC A
+.@
+    STA d
+    CMP #5:BCC side
+    CMP #12:BCS side
+    CMP #7:BCC none
+    CMP #10:BCS none
+    LDA RcSpeedHi,X:BMI none            ; head-on: both at 60 or more
+    BNE @+
+    LDA RcSpeedLo,X:CMP #60:BCC none
+.@
+    LDA RcSpeedHi,Y:BMI none
+    BNE @+
+    LDA RcSpeedLo,Y:CMP #60:BCC none
+.@
+    LDA RcSpin,X:BNE @+
+    LDA #32:STA RcSpin,X
+.@
+    LDA RcSpin,Y:BNE none
+    LDA #32:STA RcSpin,Y
+.none
+    RTS
+.side
+    TXA:ASL A:ASL A:ORA #2              ; each flagged with the other's number
+    ORA RcBitsLo,Y:STA RcBitsLo,Y
+    LDA b:ASL A:ASL A:ORA #2
+    ORA RcBitsLo,X:STA RcBitsLo,X
+    RTS
+
+    \\ C clear if the 16-bit difference (A high, d low) is -7 to 7
+.near
+    BPL @+
+    EOR #&FF:STA dhi
+    LDA d:EOR #&FF:CLC:ADC #1:STA d
+    LDA dhi:ADC #0
+.@
+    BNE far
+    LDA d:CMP #8
+    RTS
+.far
+    SEC
+    RTS
+}
+
+\\ F_00EF9E: the draw order, the cars by y (plus 255 on the bridge's level), sorted from 0, 1, 2, 3 each frame
+\\ by a bubble sort that keeps equal ones in order.
+\\
+\\ Inputs:
+\\     the cars' y and flags
+\\
+\\ Outputs:
+\\     RcOrder
+\\     A, X, Y: corrupted
+
+.draw_order
+{
+    ZA_AUTO 4, keylo                    ; local: by place: the key,
+    ZA_AUTO 4, keyhi
+    ZA_AUTO1 swapped                    ; local: a pass swapped something
+
+    LDX #3
+.keys
+    TXA:STA RcOrder,X
+    LDA RcBitsLo,X:LSR A                ; (C: elevated)
+    LDA #0:BCC @+
+    LDA #255
+.@
+    CLC:ADC RcYLo,X
+    STA keylo,X
+    ZA_INDEXEDBY 0..3
+    LDA RcYHi,X:ADC #0
+    STA keyhi,X
+    ZA_INDEXEDBY 0..3
+    DEX
+    BPL keys
+.pass
+    STZ swapped
+    LDX #0
+.cmp
+    SEC                                 ; key[X + 1] - key[X] negative: swapped
+    LDA keylo+1,X
+    ZA_INDEXEDBY 0..2
+    SBC keylo,X
+    ZA_INDEXEDBY 0..2
+    LDA keyhi+1,X
+    ZA_INDEXEDBY 0..2
+    SBC keyhi,X
+    ZA_INDEXEDBY 0..2
+    BPL inorder
+    LDA keylo,X
+    ZA_INDEXEDBY 0..2
+    LDY keylo+1,X
+    ZA_INDEXEDBY 0..2
+    STA keylo+1,X
+    ZA_INDEXEDBY 0..2
+    STY keylo,X
+    ZA_INDEXEDBY 0..2
+    LDA keyhi,X
+    ZA_INDEXEDBY 0..2
+    LDY keyhi+1,X
+    ZA_INDEXEDBY 0..2
+    STA keyhi+1,X
+    ZA_INDEXEDBY 0..2
+    STY keyhi,X
+    ZA_INDEXEDBY 0..2
+    LDA RcOrder,X:LDY RcOrder+1,X:STA RcOrder+1,X:TYA:STA RcOrder,X
+    STA swapped
+    INC swapped                         ; (non-zero whatever the car)
+.inorder
+    INX
+    CPX #3:BNE cmp
+    LDA swapped:BNE pass
+    RTS
+}
+
 
 \\ F_00E66A's bounce off a wall: back where the car was, travelling the push's way at (10 + speed) * 2 (an
 \\ impulse the smoothing fades), speed / 4 + D / 2, no input for 10 frames (5 a drone's).
