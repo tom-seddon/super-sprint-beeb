@@ -11,10 +11,11 @@
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
 **Resume point: Phase 4's end** (§8's last entries). Step 13 is done: every track's race 17 bit-exact through
-the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Speed's third round is done:
-the hazard race's frames over a TV frame 311 -> 209 of 2,240 (mean 34,228 -> 33,056 cycles); its measured,
-unbuilt levers are listed at its end. Left: the joysticks (once measured on a real Master), and whatever
-further speed Tom wants (the rest is spread thin: the plot's and erase's set-up, the logic's routines).
+the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Speed's fourth round is done:
+the hazard race's frames over a TV frame 311 -> 150 of 2,240 over rounds three and four (mean 34,228 ->
+32,224 cycles); what's still over is structural (the helicopter, gate steps, cars under bridges and against
+walls together), and the levers measured and not built are at the end of each round. Left: the joysticks
+(once measured on a real Master).
 
 ## 0. The proposal in one paragraph
 
@@ -648,3 +649,41 @@ Measured and not built:
   table would save about 12 an entry.
 - The engines' two periods (+ and - the step, octave-reduced) worked out when the logic sets them, not each
   field: the same work moved, saving only in frames that span two fields.
+
+**Step 12, speed, the fourth round** (2026-11-02, Tom: "Yes, round four"). Four exact changes, each checked by
+the suite before its commit, MEASURED on the hazard race (the game, `make check TRACE=logic4`, all 2,240
+frames matching the model each time):
+
+| | Game, mean | Frames over a TV frame | Room |
+|---|---|---|---|
+| Before (`a1f1e4e`) | 33,056 | 209 | |
+| the slow loop runs a band's columns, its set-up once a band | 32,661 | 164 | cars' bank +50 |
+| the slow loop's byte as data EOR ((screen EOR data) AND keep) | 32,628 | 162 | cars' bank +11 to +14 |
+| the HUD's scores compared only after points were added | 32,224 | 150 | main RAM -5 |
+
+- **The slow loop** (cars under the priority cells): it was called a column at a time with a count always
+  1, so each column's operands were copied twice and the next column's sums done only to return. Now one
+  call a band. (Counted about 95 cycles a slow column instead of about 250.)
+- **The HUD**: `build_hud` compared all four cars' 6 score digits each frame to find a change; `score_add`,
+  the only writer in a race, now flags the car (`RcScored`), and only a flagged car is compared. Track 1's
+  race (`TRACE=logic0`): mean 24,338 -> 23,939.
+
+Room (play builds, `tools/all_tracks.sh`): the cars' bank 61-64 bytes more (track 6: 361 -> 422), main RAM's
+code 213 -> 208 (the HUD's 4 flags fit the logic's fixed state in ANDY). The suite's 19 checks pass, and `tools/tracks_check.sh`'s 48.
+
+What's left over a TV frame is structural (per-frame routine costs, `tools/game_profile.mjs` and a
+frame-by-frame breakdown): frames 97-195, the start of the race, have the helicopter on screen (about 7,700
+cycles a frame, 4,700 of them its copy loop) and a gate stepping every 6 frames (its copies, `obj_bands` and
+`obj_runs`, 4,600-8,200 over its two frames, and `mb_box` 1,230); the slowest (frame 180, 54,046) adds cars
+under a bridge (the slow loop 5,600) and against walls (`column_hit` and `mask_cell` 3,200). Clearing those
+needs about 5,000-14,000 off a frame: more than any lever left at this level.
+
+Measured and not built:
+- The erase's two patch sequences as one (the background's high byte is the screen's EOR &C0, stored by
+  STX): counted 1 cycle a band, since the cell's low byte then needs a zero-page store.
+- `mb_box`: 29 cycles a byte (a gate's step), its loop's end by a patched CPY # 1 cycle less.
+- The logic's routines are each near their floors: the largest left are the cell probes (646 cycles a
+  frame), a drone's move (528), the road test (388), car-to-car's pairs (352) and the draw order (334).
+- The wall columns' line loop over a mixed cell, where its lines run contiguously: an unrolled ORA chain
+  entered at the first line would be about 7 cycles a line instead of 16-25, but needs first- and last-bit
+  tables (512 bytes); about 300 cycles in the wall-scraping frames.
