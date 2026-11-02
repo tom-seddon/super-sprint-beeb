@@ -154,16 +154,18 @@ ENDIF
         DEC lfleft
     ENDIF
     JSR race_frame
-    JSR race_end
-    IF GenPlay
-        LDA RcOver:BEQ build            ; over: the next race (the same, from its start)
-        JSR logic_start
-    ENDIF
 .build
     JSR build_cars
     JSR build_objects
     JSR build_movers
     JSR build_hud
+    LDA setup:BNE count                 ; (the set-up's flips: no race frame)
+    JSR race_end                        ; after the frame's records: the ST's runs after its flip
+    IF GenPlay
+        LDA RcOver:BEQ count            ; over: the next race (the same, from its start), its set-up's
+        JMP logic_start                 ; flips next (LfFrame 0)
+    ENDIF
+.count
     INC LfFrame
     BNE @+
     INC LfFrame+1
@@ -481,8 +483,10 @@ ENDIF
     STX MovCount
     RTS
 
-    \\ the helicopter's: each piece's columns from x / 4 + its dx; one wholly off the screen's side left out
+    \\ the helicopter's: each piece's columns from x / 4 + its dx; one wholly off the screen's side left out.
+    \\ Its tables are its plotter's, in the bank's first 4K: ANDY out while they're read (D15)
 .heli_pieces
+    LDA banktrace:STA &FE30             ; ROMSEL: the fourth bank, ANDY out (the helicopter's tables)
     LDX MovCount
 .hpiece
     LDA first:SEC:SBC #HeliVar0:TAY
@@ -508,6 +512,8 @@ ENDIF
     DEC count
     BNE hpiece
     STX MovCount
+    LDA banktrace:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: ANDY in again
     RTS
 }
 

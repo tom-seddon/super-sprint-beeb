@@ -40,7 +40,7 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
         INCLUDE "heli.6502"
         PRINT "the fourth bank: ", SwramEnd - P%, " bytes after the helicopter (the trace's, in the test)"
         IF GenLogic
-            ASSERT P% >= AndyEnd, "the logic's code above ANDY: the helicopter, which it doesn't read, under it"
+            ASSERT P% >= AndyEnd, "the logic's code above ANDY: the helicopter under it (read only by heli_pieces, with ANDY out)"
             INCLUDE "walls.6502"
             INCLUDE "cells.6502"
             INCLUDE "drone.6502"
