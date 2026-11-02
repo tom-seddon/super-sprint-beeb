@@ -338,11 +338,15 @@ ENDIF
     LDA nlo:CMP SndN,X:BNE tone
     LDA nhi:CMP SndN+3,X:BEQ volume
 .tone
-    LDA nlo:STA SndN,X
     LDA nhi:STA SndN+3,X
-    LDA nlo:AND #15:ORA ToneBits,X:JSR sn_write   ; 1 cc 0 llll
-    LDA nhi:ASL A:ASL A:ASL A:ASL A:STA per      ; 0 0 hhhhhh: the period >> 4
-    LDA nlo:LSR A:LSR A:LSR A:LSR A:ORA per
+    ASL A:ASL A:ASL A:ASL A:STA per
+    LDA nlo:STA SndN,X
+    AND #15:ORA ToneBits,X              ; 1 cc 0 llll, as sn_write writes it
+    STA &FE4F                           ; system VIA: ORA, no handshake
+    STZ &FE40                           ; addressable latch: line 0 low, the write enable
+    LDA nlo:LSR A:LSR A:LSR A:LSR A     ; (the chip's 16 cycles: the next byte meanwhile)
+    ORA per                             ; 0 0 hhhhhh: the period >> 4
+    LDY #8:STY &FE40                    ; and high
     JSR sn_write
 .volume
     LDA att:CMP SndAtt,X:BEQ next
@@ -418,7 +422,7 @@ ENDIF
 .sn_write
 {
     STA &FE4F                           ; system VIA: ORA, no handshake
-    LDA #0:STA &FE40                    ; addressable latch: line 0 low, the write enable
+    STZ &FE40                           ; addressable latch: line 0 low, the write enable
     NOP:NOP:NOP:NOP                     ; (the chip: 32 of its 4 MHz clocks, 16 cycles)
     NOP:NOP:NOP:NOP
     LDA #8:STA &FE40                    ; and high
