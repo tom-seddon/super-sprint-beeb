@@ -21,14 +21,20 @@
     ZA_AUTO1 f                          ; local: car * 16 + facing
     ZA_AUTO1 d                          ; local: the facing
     ZA_AUTO2 lines                      ; local: a column's lines to test
+    ZA_AUTO1 all_road_end               ; local: all_road's row's span's end
 
     LDA RcBitsHi,X:AND #HI(&400)        ; airborne: the ST's buffer is left 0
     BEQ ground
     LDA #0
     RTS
 .ground
-    STZ code
     LDA RcDir,X:STA d
+    JSR all_road
+    BNE probe
+    LDA #0                              ; all road under the probes: nothing to touch
+    RTS
+.probe
+    STZ code
     TXA:ASL A:ASL A:ASL A:ASL A
     ORA d:STA f
 
@@ -76,6 +82,66 @@
     LDA code:ORA #8:STA code
 .done
     LDA code
+    RTS
+
+\\ Whether the cells under the car's probes are all road: the cell rows from the top probe line's to the
+\\ bottom's, the cell columns from x's to x + 16's. Each row's fill outside its span, and its map inside.
+\\
+\\ Inputs:
+\\     d: the facing
+\\     X: the car
+\\
+\\ Outputs:
+\\     A: 0, and Z set, if all road
+\\     Y: corrupted; X preserved
+
+.all_road
+    ZA_AUTO1 r                          ; local: the cell row
+    ZA_AUTO1 r1                         ; local: the last
+    ZA_AUTO1 c0                         ; local: the first cell column
+    ZA_AUTO1 c1                         ; local: the last
+    ZA_AUTO2 map                        ; local: the row's map
+
+    LDA RcXHi,X:LSR A                   ; c0 = x >> 3 (x at most 301)
+    LDA RcXLo,X:ROR A:LSR A:LSR A
+    STA c0
+    INC A:INC A:STA c1                  ; c1 = (x + 16) >> 3 = c0 + 2
+    LDY d
+    LDA ProbeBot,Y:CLC:ADC RcYLo,X
+    LSR A:LSR A:LSR A:STA r1
+    LDA ProbeTop,Y:CLC:ADC RcYLo,X
+    LSR A:LSR A:LSR A:STA r
+.cellrow
+    LDY r
+    LDA c0:CMP MbLo,Y:BCS inleft        ; left of the span: its fill
+    LDA MbLeft,Y:BNE wall
+.inleft
+    LDA c1:CMP MbEnd,Y:BCC inright      ; right of it: its fill
+    LDA MbRight,Y:BNE wall
+.inright
+    LDA MbMapL,Y:STA map                ; inside it: the map's bytes from MAX(c0, lo) to MIN(c1, end - 1)
+    LDA MbMapH,Y:STA map+1
+    LDA MbEnd,Y:STA all_road_end
+    LDA MbLo,Y
+    CMP c0:BCS @+
+    LDA c0
+.@
+    TAY
+.cell
+    CPY all_road_end:BCS rowdone
+    CPY c1:BEQ @+
+    BCS rowdone
+.@
+    LDA (map),Y:BNE wall
+    INY
+    BRA cell
+.rowdone
+    LDA r:CMP r1:BCS road
+    INC r
+    BRA cellrow
+.road
+    LDA #0
+.wall
     RTS
 
 \\ Whether a column of the car touches a wall: mask B's pixel at x + the column, on each of its lines.

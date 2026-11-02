@@ -10,9 +10,9 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 6's speed, then step 7.** Walls are exact (§8) but cost about 2,150 cycles a car; the
-next session makes them fast (an all-road test of the car's cells first), then starts step 7 (the attribute
-cells, car-to-car, drones), reading §8, `src/race.6502` and st-logic §3-5.
+**Resume point: step 7.** Walls are exact and the all-road cells skipped (§8). The next session starts
+step 7 (the attribute cells, car-to-car, drones), reading §8, `src/race.6502` and st-logic §3-5; the
+general multiply and divide are the logic's biggest cost after that.
 
 ## 0. The proposal in one paragraph
 
@@ -228,3 +228,9 @@ from frames 204 and 398. Two bugs on the way, both caught: the line's row clobbe
 Cost: 12,405 cycles a frame (mean) against 3,824 before: every car's walls are probed, about 2,150
 cycles each, the 3 drones' too though they don't move yet. Too slow for 4 cars (D2's budget leaves the
 logic 10,000-12,000); next, the all-road cells skipped.
+
+Then the cells under a car's probes tested first (`all_road`: each cell row's fill outside its span, its
+map inside): all road, no wall can be touched, and the probes are skipped. MEASURED over frames 361-2024
+(car 0 near walls often, the 3 parked drones on road): 11,702 cycles a frame (mean) to 6,149, max 12,990
+to 8,593; still exact on all 1,933 frames of the stretches. Of what's left, about 3,800 is car 0's own
+control and move, the general multiply and divide most of it.

@@ -330,3 +330,6 @@
 - **Mistakes**: the probe line's row loaded into A and then overwritten before the call, so every car
   wrecked on its first frame (`mask_byte`, checked alone, was right); and the test set its input pointer
   after the label `--from` writes it at.
+- The walls skip a car whose probes are over all-road cells: 11,702 cycles a frame to 6,149 (mean, frames
+  361-2024), exact still. A label named like a variable of its scope (`row`) was refused by Baron, as the
+  skill warns.
