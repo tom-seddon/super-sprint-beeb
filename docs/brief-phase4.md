@@ -11,10 +11,10 @@
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
 **Resume point: Phase 4's end** (§8's last entries). Step 13 is done: every track's race 17 bit-exact through
-the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Left: the joysticks (once
-measured on a real Master) and speed's third round (the hazard race has 311 frames over a TV frame). The
-cars' bank, which had 1 byte on track 6, has 396 there and 815 or more elsewhere (the frames packed tighter,
-`gendata.py`'s `pack_pages`), for the speed round to spend.
+the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Speed's third round is done:
+the hazard race's frames over a TV frame 311 -> 209 of 2,240 (mean 34,228 -> 33,056 cycles); its measured,
+unbuilt levers are listed at its end. Left: the joysticks (once measured on a real Master), and whatever
+further speed Tom wants (the rest is spread thin: the plot's and erase's set-up, the logic's routines).
 
 ## 0. The proposal in one paragraph
 
@@ -603,3 +603,48 @@ the oracle named and fixed:
 draw calls and the game drawn from the logic (`make check TRACE=hN`). MEASURED: all 48 pass (about 13 minutes,
 so outside `tools/suite.sh`, whose 19 also pass). Every track's race 17 is bit-exact through the BBC's logic on
 every frame and drawn exactly from it.
+
+**Step 12, speed, the third round** (2026-11-02, Tom: "Yes, speed"). First a profile of the game itself by
+label (`tools/game_profile.mjs`, new: each bank's labels, so set-up shows apart from loops): in the slowest
+frames the cars' plot spent more on its per-car and per-band set-up (about 4,800 cycles) than in its loop
+(2,600), the erase likewise (2,600 against 2,500), the logic's wall tests spiked (about 4,500), and the sound's
+field cost about 1,100 every TV frame. Five exact changes, each checked by the suite before its commit,
+MEASURED on the hazard race (the logic test, `tools/logic_profile.mjs`; the game, `make check TRACE=logic4`,
+all 2,240 frames matching the model each time):
+
+| | Logic test, mean (worst 300) | Game, mean | Frames over a TV frame |
+|---|---|---|---|
+| Before (`8e1672d`) | 14,015 (17,111) | 34,228 | 311 |
+| the wall probes' shapes stored pre-shifted | 13,476 (16,324) | 33,634 | 258 |
+| a divide by 40 under 2,048 from a table of DIV 5 | 12,989 (15,767) | 33,141 | 225 |
+| the sound's field: port A set once, the engine's step by immediates | 12,815 | 33,120 | 212 |
+| a tone's second byte worked out in the chip's wait | 12,731 | 33,113 | 209 |
+| the cars' plot patches its data once a car | (the renderer's) | 33,056 | 209 |
+
+- **The probes**: every car sprite set's 16 facings have 17 sets of probe shapes between them, so each is
+  stored 8 times, shifted by x AND 7 (the lines) or y AND 7 (the columns), instead of shifted a bit at a
+  time (about 20 cycles a bit, 530 a frame). 1,696 bytes of the fourth bank; the per-car tables leave
+  Shared (640 bytes).
+- **The divide**: 18,383 of the race's 18,878 divides are by 40 (a drone's D), nearly all under 1,024 from 0;
+  n DIV 40 = (n >> 3) DIV 5. `arith_check.mjs` now tries every number from -2,100 to 2,100 by 40 too.
+- **The sound**: the chip's writes are identical, field for field (2,246 fields, `sn_check.mjs --fields` on
+  the builds before and after).
+- **The plot**: Y runs on through a car's rows (8 * the band + the line), so only the screen's operands are
+  patched each band. Smaller than counted (57 cycles a frame, not about 140: the first band still patches
+  both, and only 4 of a frame's 8 bands are later ones); 31-35 bytes of the cars' bank.
+
+Room (play builds, `tools/all_tracks.sh`): the fourth bank 3,428 -> 1,476 free on every track, Shared +640
+(tracks 4 and 6: 128 -> 768), main RAM's code 224 -> 213, the cars' bank 31-35 less (track 6: 396 -> 361).
+The suite's 19 checks pass, and `tools/tracks_check.sh`'s 48.
+
+Measured and not built:
+- The plot's per-band screen patches (10 operands, about 90 cycles a band, 8 bands a frame): what's left of
+  the band's set-up. Zero-page pointers instead would cost 2 cycles a byte more in the loop.
+- `obj_bands` patches all 12 columns a band: but gates, 12 bytes wide, are 978 of its 1,054 copying bands.
+- The wall columns' line loop over a mixed cell (about 400 cycles a frame in the slowest): mask B's mixed
+  cells stored a second time, transposed, would make it one AND, but take as many bytes again (2,136 on
+  track 8), more than the fourth bank has left.
+- The erase's set-up (about 95 cycles an entry, 8 a frame, and 116 + 8 a column a band): its col * 8 by
+  table would save about 12 an entry.
+- The engines' two periods (+ and - the step, octave-reduced) worked out when the logic sets them, not each
+  field: the same work moved, saving only in frames that span two fields.

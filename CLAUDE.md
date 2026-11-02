@@ -37,7 +37,8 @@ What the skills look up, for this project:
 - **Memory**: `src/memory.6502` (the map), `docs/renderer.md` "Memory", `docs/plan.md` Phase 4.
 - **Oracles**: `make check` (`tools/render_check.mjs`: every frame's screen against `tools/render_model.py`'s,
   exit 1 if any is wrong), `tools/render_profile.mjs` (cycles by region, `--list N` the worst frames),
-  `tools/screenshot.mjs`; all headless through `tools/jsbeeb.mjs`.
+  `tools/game_profile.mjs` (by label, each bank's), `tools/screenshot.mjs`; all headless through
+  `tools/jsbeeb.mjs`.
 - **The kit's tools, in place**: run them from `reference/beeb-port-kit/template/tools` (Tom: fine to use
   in situ). Checked 2026-11-02: `listing.py symbols build/sprint.json NAME`, `stream` and `pages
   build/sprint.lst` work as they are; `harness.mjs` works given `open({ disc: "build/sprint.ssd", symbols:

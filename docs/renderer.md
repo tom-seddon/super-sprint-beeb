@@ -48,17 +48,18 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   is `(screen AND MaskTab) OR Data`. The drone-driven cars (frames 64-127) share one set of shapes between
   all three player cars, the stripes as value 1, so a fourth table (1 white) covers them.
 - **The plot**: a character row (a band) at a time. In a band a column's lines are consecutive on the
-  screen and in the frame, so Y, the line in the cell, indexes every column alike. The loop draws one line
-  of every column a pass, its five column blocks unrolled (`LDX frame,Y : LDA screen,Y : AND MaskTab,X :
-  ORA Data,X : STA screen,Y`, 21 cycles a byte); the operands' low bytes are patched once a band, the
-  loop's branch back by the car's width.
+  screen and in the frame, so Y indexes every column alike. The loop draws one line of every column a
+  pass, its five column blocks unrolled (`LDX frame,Y : LDA screen,Y : AND MaskTab,X : ORA Data,X : STA
+  screen,Y`, 21 cycles a byte); the loop's branch back is patched by the car's width. Y is 8 * the band +
+  the line in the cell (since speed's third round, Phase 4), so it runs on through the car's rows as the
+  frame's do: the frame's operands are patched once a car, the screen's (less 8 * the band) once a band.
 - **Priority**: a car on the ground (not elevated or airborne) goes under mask C. Each 8 x 8 cell with hidden
   pixels has its 8 bytes of 1-bit mask and a class byte saying, for each 4-pixel half, whether none, all or
   some of it is hidden (333 cells on track 6: 2,664 + 333 bytes). A map gives each cell's number in its
   row; it's stored a row's span at a time, from 2 cells before the row's first such cell to 2 after its
   last (643 bytes rather than 1,000), with the first and last, so a band outside the span skips the map.
   In a band with such cells, each of the car's columns is classed by its half-cell: none hidden, it stays
-  in the fast loop; all hidden, its block's screen operands point at an 8-byte Junk area instead, so it
+  in the fast loop; all hidden, its block's screen operands point at a Junk area instead (the tornado's), so it
   draws nothing; some hidden, the same, and then it goes on its own through a slow loop that keeps the
   screen where the bits are set as well as where the key is (about 52 cycles a byte).
 - **The erase**: the box each car drew, two frames before in the same screen, copied back from the clean
