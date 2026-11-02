@@ -694,7 +694,6 @@ ENDSECTION
 {
     ZA_AUTO1 b                          ; local: the pair's second car
     ZA_AUTO1 d                          ; local: a difference's low byte, then |facing difference|
-    ZA_AUTO1 dhi                        ; local: a difference's high byte
 
     LDX #3
 .clear
@@ -756,14 +755,13 @@ ENDSECTION
     ORA RcBitsLo,X:STA RcBitsLo,X
     RTS
 
-    \\ C clear if the 16-bit difference (A high, d low) is -7 to 7
+    \\ C clear if the 16-bit difference (A high, its flags, d low) is -7 to 7
 .near
-    BPL @+
-    EOR #&FF:STA dhi
-    LDA d:EOR #&FF:CLC:ADC #1:STA d
-    LDA dhi:ADC #0
-.@
-    BNE far
+    BEQ positive
+    INC A:BNE far                       ; (high &FF: -256 to -1)
+    LDA #&F8:CMP d                      ; (-7 to -1: d &F9 or more)
+    RTS
+.positive
     LDA d:CMP #8
     RTS
 .far
