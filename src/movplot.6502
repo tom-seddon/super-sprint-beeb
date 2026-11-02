@@ -5,15 +5,13 @@
 \\ cars' frames are: trimmed, a column's rows together (a helicopter's more than a page: each column's
 \\ address is carried in full), 2-bit values with 2 the key, drawn through MaskTab and the variant's data
 \\ table. No priority: the ST draws them over everything. Clipped to the play area's lines (the helicopter
-\\ flies in and out).
+\\ flies in and out) and to its columns (a spark or the banner at the screen's side), as the ST's are.
 
 
-\\ A moving object drawn into the screen being drawn, its box clipped to the play area's lines and kept for the
-\\ erase.
+\\ A moving object drawn into the screen being drawn, its box clipped to the play area and kept for the erase.
 \\
 \\ Inputs:
-\\     v: the variant; x: its place's x (-48 to 319: the sideways helicopter's pieces off the screen's
-\\        side aren't drawn, so x DIV 4 + the piece's column is on it); y: its y (signed)
+\\     v: the variant; x: its place's x (-48 to 319); y: its y (signed)
 \\     eidx: the erase list's next entry
 \\
 \\ Outputs:
@@ -28,6 +26,7 @@
     ZA_AUTO1 col                        ; local: the first byte column
     ZA_AUTO2 top                        ; local: the first line
     ZA_AUTO1 h                          ; local: the variant's height: a column's bytes
+    ZA_AUTO1 w                          ; local: its columns shown
     ZA_AUTO1 rows                       ; local: the lines shown
     ZA_AUTO2 data                       ; local: the band's column 0 data, less its first line
     ZA_AUTO2 cx8                        ; local: col * 8
@@ -68,6 +67,7 @@
     BRA clipped
 .none
     RTS                                 ; (nothing shows)
+
 .below
     BNE none                            ; (top 256 on)
     LDA top:CMP #PlayRows*8:BCS none
@@ -75,12 +75,18 @@
     CMP #PlayRows*8+1:BCC clipped
     LDA #PlayRows*8:SEC:SBC top:STA rows ; (to the last line)
 .clipped
-    LDA MovW,Y:TAX
-    DEC A:ASL A:ASL A:ASL A:STA last
-    LDA MovBack,X:STA back+1            ; the loop's branch back: to column w - 1's block
-    LDA MovW,Y:DEC A:ASL A:STA wi       ; (the patching's entry: column w - 1's step)
+    LDA MovW,Y:STA w
     LDA MovLastLo,Y:STA lastoff
     LDA MovLastHi,Y:STA lastoff+1
+    LDA col:CLC:ADC w:BCS toside        ; across the screen's side? (col negative: a carry)
+    CMP #81:BCC across
+.toside
+    JMP side                            ; (after the loop: before it, it would push the loop across a page)
+.across
+    LDX w
+    TXA:DEC A:ASL A:ASL A:ASL A:STA last
+    LDA MovBack,X:STA back+1            ; the loop's branch back: to column w - 1's block
+    TXA:DEC A:ASL A:STA wi              ; (the patching's entry: column w - 1's step)
     LDX MovTable,Y
     LDA MovTablePages,X                 ; the variant's data table
     LDX wi:JMP (DtEntry,X)
@@ -92,7 +98,7 @@
     LDX eidx:INC eidx                   ; (the erase list's next entry)
     LDA col:STA EraseCol,X
     LDA top:STA EraseTop,X
-    LDA MovW,Y:STA EraseW,X
+    LDA w:STA EraseW,X
     LDA rows:STA EraseH,X
 
     \\ the first band: its line and row, the data less the line
@@ -207,6 +213,41 @@
     JMP band
 .done
     RTS
+
+    \\ across the screen's side (rare): left, the columns before 0 skipped, the data on by them; right, the
+    \\ columns from 80 left off; then column w - 1's data from column 0's, (w - 1) * h, counted up
+.side
+    LDA col:BPL right
+    EOR #&FF:INC A:TAX                  ; - col: the columns skipped
+    CPX w:BCS off                      ; (all of them)
+    STX dl
+    LDA w:SEC:SBC dl:STA w              ; (C set: X under w)
+.skip
+    LDA data:CLC:ADC h:STA data
+    BCC @+
+    INC data+1
+.@
+    DEX
+    BNE skip
+    STZ col
+    BRA lastcol
+.right
+    CMP #80:BCS off                    ; (all right of the screen)
+    LDA #80:SEC:SBC col:STA w
+.lastcol
+    STZ lastoff:STZ lastoff+1
+    LDX w
+.count
+    DEX
+    BEQ counted
+    LDA lastoff:CLC:ADC h:STA lastoff
+    BCC count
+    INC lastoff+1
+    BRA count
+.counted
+    JMP across                          ; (Y still the variant)
+.off
+    RTS                                 ; (nothing shows)
 }
 
 \\ The loop's branch back by the width (to column w - 1's block); the data tables' pages

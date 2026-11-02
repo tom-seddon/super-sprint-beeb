@@ -407,7 +407,7 @@ def moving_pieces(dat, key):
 
 
 MaxMovers = 12
-HeliCode = 840                          # the fourth bank's copy of the moving objects' plotter, at most (Baron
+HeliCode = 900                          # the fourth bank's copy of the moving objects' plotter, at most (Baron
                                         # checks: the bank's guard)
 
 
