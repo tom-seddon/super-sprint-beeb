@@ -10,7 +10,7 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: speed.** The hazards are in (step 11, §8): exact against the ST and drawn from the logic on
+**Resume point: speed, step 12** (its plan in §6). The hazards are in (step 11, §8): exact against the ST and drawn from the logic on
 track 5's race 17. That race is too slow: logic and drawing average 38,207 cycles a frame, and 734 of its
 2,240 drawn frames take two TV frames (the logic about 17,800 of it). Then room for the other tracks: the
 play build's fourth bank has 998 bytes free on track 1, which on tracks 6 and 8 (larger mask B) comes to
@@ -174,6 +174,21 @@ touches the build.
      `logic_draws` with the gates', barriers', cones' and tornado's calls, and `make check TRACE=logic4`, the
      renderer's model of that race drawn from the BBC's logic. Each broken on purpose once.
    - **Room**: in the fourth bank, which has about 1,583 for them on track 5 (`docs/brief-ram-2026-11-02.md`).
+
+12. **Speed** (planned 2026-11-02): the hazard race (track 5, race 17, `make check TRACE=logic4`) averages 37,308
+    cycles a frame and 721 of its 2,237 race frames take two TV frames. Those frames average 45,784: the logic
+    22,462 (with the IRQ's sound), the cars' plot 14,655, the erase 5,597, the objects 1,100 (MEASURED,
+    `render_check.mjs --json`). The logic's worst 200 frames (`logic_profile.mjs --worst 200`, 24,924 a
+    frame): mask B's cell look-ups 4,359, the wall probes 3,417, the gates' and barriers' mask B writes 2,109
+    (a look-up a byte), the drones 2,060, TOS's generator 1,943 (the tornado draws 2 numbers every 8th
+    frame, a 32-step multiply each), the cells 1,421, the divide 1,319. In that order of yield for bytes:
+    1. `mb_box` a cell at a time, not a byte (one look-up for a cell's lines);
+    2. TOS's multiply by its constant a byte position at a time (8 shifts, its 16 bits' adds);
+    3. mask B's look-ups: a row's map found once for a line's three bytes, the cell's offset stored in the
+       map (if no row has more than 31 mixed cells), the line's shift by table;
+    4. profile again, then the drones, the cells and the divide.
+    Each exact on both traces (logic_check, logic_draws) and measured: the logic's cycles (logic_profile)
+    and the game's frames over a TV frame (`render_check`), before and after, bytes by region.
 
 Then the other tracks.
 
