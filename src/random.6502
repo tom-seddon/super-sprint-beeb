@@ -5,6 +5,8 @@
 SECTION LogicVars
 .RcScore                                ; G_01DFA8: each car's score, 6 digits from the left, &80 a leading blank
     SKIP 24
+.RcScored                               ; each car's score added to since build_hud last looked (not the ST's)
+    SKIP 4
 ENDSECTION
 
 SECTION LogicZp                         ; (the hottest, in zero page: memory.6502)
@@ -137,7 +139,7 @@ RandomMul = 3141592621                  ; TOS's multiplier
 \\     add: the points, 6 digits as a score's
 \\
 \\ Outputs:
-\\     RcScore: the car's
+\\     RcScore: the car's; RcScored: the car's set (for build_hud)
 \\     A, Y: corrupted; X preserved
 
 .score_add
@@ -148,6 +150,7 @@ RandomMul = 3141592621                  ; TOS's multiplier
     ZA_AUTO1 i                          ; local: the digit, 5 to 0
     ZA_AUTO1 d                          ; local: the points' digit
 
+    LDA #1:STA RcScored,X
     TXA:ASL A:STA base:ASL A:ADC base:STA base   ; car * 6 (C clear: the car at most 3)
     STZ carry
     LDA #5:STA i

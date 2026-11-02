@@ -533,6 +533,8 @@ ENDIF
     LDA LfFrame:ORA LfFrame+1:BEQ changed
     LDX c
     LDA RcLaps,X:CMP LfLaps,X:BNE changed
+    LDA RcScored,X:BEQ next             ; no points added: the same score
+    STZ RcScored,X
     LDX o
     LDY #6
 .digit
@@ -543,6 +545,7 @@ ENDIF
     BRA next
 .changed
     LDX c
+    STZ RcScored,X
     STX HudEvent
     LDA RcLaps,X:STA LfLaps,X:STA HudEvent+1
     LDX o
