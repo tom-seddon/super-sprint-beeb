@@ -1,14 +1,14 @@
 # Report: Phase 4's first steps, 2026-11-02
 
 **Where it ended.** On the branch `phase4-start` (not merged, not pushed). Track 1's race runs on the BBC
-from its own logic, bit-exact with the ST: the logic matches the ST's state on every one of the traced
-race's 2,196 frames (118 variables a frame), its draw calls match the ST's on every frame, and the game drawn
-from it matches the renderer's model (made from the ST's own draws) on all 2,197 frames. A disc to play it,
-three players on the keys: `make beeb TRACE=play` (then `build/sprint.ssd`); the keys are Q W E, V B N
-and , . / (D12, Proposed: no combination of them can ghost another on paper; please try it on a real BBC).
-Not yet: sound (step 10; capturing the ST's YM writes from Hatari is shown to work), the joysticks, the
-tornado, barriers, gates and cones (none on this race: they trap), the other tracks. To check it all:
-`make logiccheck` and `make check TRACE=logic0` (and `make check` for Phase 3's, unchanged, byte-identical).
+from its own logic, bit-exact with the ST on every frame of the traced race, drawn exactly (every frame
+matches the model), with three players on the keys (Q W E, V B N, , . /; you've tried it in jsbeeb) and now
+sound: the ST's effects captured from its own YM and converted for the SN76489, the engines live. The
+sound's starters match the ST's call for call, and every effect the ST started is found at the BBC's chip
+field for field; how it sounds is yours to judge: `build/sound/race_bbc.wav` against `race_st.wav`, and
+each effect in `build/lgen/wav`. A disc to play: `build/play.ssd` (`make beeb TRACE=play`). The next
+thing is room: 52 bytes of main RAM left, 136 in the fourth bank; then the hazards (tornado, barriers,
+gates, cones) and the other tracks.
 
 ## What was built and what proves it
 
@@ -55,11 +55,19 @@ tornado, barriers, gates and cones (none on this race: they trap), the other tra
 - **Keys** (step 9): `src/keyboard.6502`; `tools/keys_ghost.py` (ghosting on paper), `tools/keys_check.mjs`
   (each key and all nine read right in jsbeeb), and the play build.
 
+- **Sound** (step 10, D11): `tools/st_trace_sound.py` (the capture), `tools/sound_gen.py` (11 effects,
+  1,566 bytes), `src/sound.6502` (starters, engines, the IRQ's player). `tools/sound_check.mjs`: all 31
+  starter calls match the ST's; `tools/sn_check.mjs`: all 29 started effects at the chip. A real fault
+  found and fixed: the loader left the keyboard driving PA7, so every byte to the sound chip lost its top
+  bit; the default disc differs from Phase 3's in that one byte now (its check still passes).
+
 ## Please review
 
 - **D12, the keys**: Q W E, V B N, , . / (Proposed; player 1 was Z X SHIFT until your suggestion). Please play `make beeb TRACE=play` on a real BBC:
   the paper check says no ghosting, but jsbeeb can't show it, and comfort is yours to judge.
-- **D11** replaces the plan's earlier sound idea (a sequencer at 83 Hz): `docs/plan.md` now points to D11.
+- **D11's details** (Proposed, for your ears): each effect one captured instance; tone and noise together
+  play as the noise alone (the kit's 1942 rule); the engine two octaves up, its growl sampled at 50 Hz; the
+  start's 1 s pause kept. Each is a small change if it sounds wrong.
 - One finding that follows from D9: 7 of the 16 facings' car shapes differ between the car sets, so the
   wall probes have to use each frame's own shape. The cheaper fixed shape per facing would not be bit-exact.
 
@@ -70,10 +78,12 @@ tornado, barriers, gates and cones (none on this race: they trap), the other tra
 
 ## What is open
 
-Resume point: **step 10, sound** (`docs/brief-phase4.md`), or the joysticks (measure the ADC first), or the
-worst frames' speed. Also open: the ST's "TRACK 1" and "DRONE LAP" text still drawn in the play area's
-bottom row (Phase 2 planned to paint it out); the tornado, barriers, gates and cones' logic (they trap);
-the other 7 tracks.
+Resume point: **room** (`docs/brief-phase4.md`): 52 bytes of main RAM in the play build, 136 in the fourth
+bank (the logic's code, data and state, the frame builder and the inputs beside the helicopter). The next
+features need a plan for what goes where across all 8 tracks (`beeb-ram-hunt`): the objects' bank has
+10,124 bytes free on track 1 but much less on others (2,933 on track 5 in Phase 3). Then: the tornado,
+barriers, gates and cones (they trap), the frame's worst cases (5 of 2,197 frames over a TV frame), the
+other 7 tracks, and the joysticks once measured on a real Master.
 
 ## Branch ledger
 
