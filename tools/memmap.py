@@ -17,6 +17,7 @@ Regions = [                             # (name, the PRINT that gives its end, i
     ('The fourth bank', 'the fourth bank', 0xBE00),
     ('The objects\' bank', 'the objects\' bank', 0xC000),
     ('Main RAM\'s code', 'main RAM\'s code', 0x2A00),
+    ('Shared, both screens\' `&3100`-`&3EFF`', 'the &3000 area', 0x3F00),
 ]
 Labels = ['FxImage', 'LogicInputs', 'TraceData', 'HudEvents']   # data INCBINned, not INCLUDEd: marked by label
 Vars = {'GameVars': (0x2E00, 0x3000), 'ScreenVars': (0x3000, 0x3F00), 'LogicVars': (0xBE00, 0xC000),
@@ -78,7 +79,7 @@ def report(path):
         idx = [i for i, (a, n, s) in enumerate(marks)
                if s and s[-1] == {'The background\'s bank': 'BgBank', 'The cars\' bank': 'CarsBank',
                                   'The fourth bank': 'TraceBank', 'The objects\' bank': 'ObjBank',
-                                  'Main RAM\'s code': 'MainCode'}[name]]
+                                  'Main RAM\'s code': 'MainCode'}.get(name, 'Shared')]
         if not idx:
             continue
         stop = end - f if f is not None else end

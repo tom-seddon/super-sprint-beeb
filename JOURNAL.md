@@ -375,3 +375,13 @@
   low, so the keyboard drove PA7 and every sound byte lost bit 7; the loader now leaves it high (as the
   MOS does) and the key read drops it. Hatari ran away with 16 breakpoints set (a 2.9 GB log).
 - Room is the next problem: 52 bytes of main RAM left in the play build, 136 in the fourth bank.
+- **A RAM hunt** (`docs/brief-ram-2026-11-02.md`): the ledger over all 8 tracks first, seven levers costed,
+  three built. Main RAM 52 -> 416 free, the fourth bank 136 -> 2,398, the objects' bank +1,563, every oracle
+  passing after each (`tools/suite.sh`), the default disc byte-identical. The logic's 128 hottest bytes in
+  zero page paid twice: 654 bytes and 105 cycles a frame. Mistake: the shadow copy ran in the loader, whose
+  code is in `&3000`-`&7FFF`, so setting ACCCON's X hid the running code; it runs from a bank now. And
+  `sn_check` lined the chip's writes up by assuming the first came in the first field; the new boot's
+  first came in the third, so it found nothing while the chip was right. It goes by the writes' own cycles
+  now (they're the CPU's). Another: a `git stash` to test the old build left the old generator's files in
+  `build/lgen` with a newer timestamp, and the next build failed on duplicate symbols.
+

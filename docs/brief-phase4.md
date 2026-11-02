@@ -10,10 +10,10 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: the hazards, or main RAM.** Sound is in (§8). Main RAM has 52 bytes left in the play build
-and the fourth bank 136: the next feature needs room first (a RAM hunt: the logic's set-up and frame
-builder's unrolled set-up code are candidates, `beeb-ram-hunt`). Then the hazards (tornado, barriers,
-gates, cones: they trap), the frame's worst cases (5 of 2,197 over a TV frame), the other tracks.
+**Resume point: the hazards.** Sound is in (§8), and a RAM hunt made room (`docs/brief-ram-2026-11-02.md`):
+the play build now has 416 bytes of main RAM free and 2,398 in the fourth bank, about 1,139 on track 8 once
+its larger mask B is in (PROJECTED). Then the hazards (tornado, barriers, gates, cones: they trap), the
+frame's worst cases (4 of 2,197 drawn frames take two TV frames), the other tracks.
 
 ## 0. The proposal in one paragraph
 
