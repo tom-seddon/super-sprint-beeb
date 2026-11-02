@@ -186,8 +186,16 @@ if (from > 2) {
     }
     const sd = seeds[from - 1];
     s.writeMemory(syms.RcSeed, [sd & 0xff, (sd >> 8) & 0xff, (sd >> 16) & 0xff, (sd >>> 24) & 0xff]);
-    const inputs = syms["Inputs"] + (from - 2) * 3;
-    s.writeMemory(syms["test_entry.iptr"], [inputs & 0xff, inputs >> 8]);
+    // the inputs as runs (build/lgen/inputs.rle, as the test has them): the run holding race frame from - 2,
+    // its inputs as read, the frames left in it, the next run's place, and the race's frames left
+    const rle = readFileSync("build/lgen/inputs.rle");
+    let at = 0, frame = 0;
+    while (frame + rle[at] <= from - 2) frame += rle[at], at += 4;
+    const next = syms["Inputs"] + at + 4, left = syms.LgFrames - 2 - (from - 2);
+    s.writeMemory(syms.RcInput, [...rle.subarray(at + 1, at + 4)]);
+    s.writeMemory(syms["test_entry.ileft"], [rle[at] - (from - 2 - frame)]);
+    s.writeMemory(syms["test_entry.iptr"], [next & 0xff, next >> 8]);
+    s.writeMemory(syms["test_entry.left"], [left & 0xff, left >> 8]);
 } else compare(1);
 for (let k = from; k <= until; k++) {
     const t0 = cycles(s);

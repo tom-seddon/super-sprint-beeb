@@ -47,7 +47,9 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
 .test_entry
 {
     ZA_ENTRY
-    ZA_AUTO2 iptr                       ; local: the next frame's inputs
+    ZA_AUTO2 iptr                       ; local: the inputs' next run
+    ZA_AUTO1 ileft                      ; local: the frames left in the run
+    ZA_AUTO2 left                       ; local: the race's frames left
 
     SEI
     CLD
@@ -124,25 +126,35 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     LDA #&FF:STA SndNoise
     LDA #LO(Inputs):STA iptr
     LDA #HI(Inputs):STA iptr+1
-.setup_done                             ; (the check may write the state and iptr here)
+    STZ ileft
+    LDA #LO(LgFrames - 2):STA left
+    LDA #HI(LgFrames - 2):STA left+1
+.setup_done                             ; (the check may write the state, iptr, ileft and left here)
 .frame
-    LDY #0
-.input
-    LDA (iptr),Y:STA RcInput,Y
-    INY
-    CPY #3:BNE input
+    LDA ileft:BNE same                  ; the next run of inputs, as the game reads them (logicframe.6502)
+    LDA (iptr):BEQ same                 ; (none left: the last ones held)
+    STA ileft
+    LDY #3
+.run
+    LDA (iptr),Y:STA RcInput-1,Y
+    DEY
+    BNE run
+    CLC
+    LDA iptr:ADC #4:STA iptr
+    BCC same
+    INC iptr+1
+.same
+    DEC ileft
     STZ SndLogCount
     JSR race_frame
     JSR sound_irq                       ; (the vsync's sound, a frame on: the ST's priorities change between)
 .frame_done
     JSR race_end
-    CLC
-    LDA iptr:ADC #3:STA iptr
-    BCC @+
-    INC iptr+1
+    LDA left:BNE @+
+    DEC left+1
 .@
-    LDA iptr:CMP #LO(InputsEnd):BNE frame
-    LDA iptr+1:CMP #HI(InputsEnd):BNE frame
+    DEC left
+    LDA left:ORA left+1:BNE frame
 .finished
     BRA finished
     ZA_UNREACHABLE
@@ -178,8 +190,7 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     ENDSECTION
 .andy_end
 
-.Inputs                                 ; each race frame's inputs, cars 0-2 (tools/gen_logic.py)
-    INCBIN "../build/lgen/inputs.bin"
-.InputsEnd
+.Inputs                                 ; the race frames' inputs, cars 0-2, as runs: frames, then the 3
+    INCBIN "../build/lgen/inputs.rle"   ; (tools/gen_logic.py; a 0 ends them)
 
 ENDSECTION
