@@ -1,0 +1,418 @@
+\\ cells.6502 - a car on the track's cells (D9): the ST's F_00BEEA, hand-written 68000 there, followed branch for
+\\ branch. Two probe points at the car's front corners each read the attribute map's cell under it: a stripe
+\\ (bit 7) counts once per visit; then each probe's cell acts by its class (bits 0-1) and type (bits 2-6):
+\\ class 0 levels, ramps and nudges, class 1 objects (patches, pickups, cones), class 2 checkpoints, class 3
+\\ bridge edges. Each acts once per visit, through latches in RcLatch that clear when both probes read 0.
+\\ In the logic's bank, with the map (cells.6502 in build/lgen, tools/gen_logic.py), which it writes when a
+\\ pickup or cone is taken.
+\\
+\\ The ST's flags and latches are words; here each is a Lo and a Hi byte: the ST's "btst #n, (a1)" is the
+\\ high byte's bit n, "btst #n, 1(a1)" the low byte's.
+
+SECTION LogicVars
+.RcLapTimeLo                            ; G_01E32C: the frame each lap ended, car * 4 + lap AND 3
+    SKIP 16
+.RcLapTimeHi
+    SKIP 16
+.RcWrenchTaken                          ; G_01EB56: a wrench taken this visit, by car + 1
+    SKIP 1
+.RcBonusTaken                           ; G_01EB60: the bonus taken, by car + 1
+    SKIP 1
+.RcConeHit                              ; G_01EBA8: each cone's state, 2 once hit
+    SKIP 4
+ENDSECTION
+
+\\ Inputs:
+\\     X: the car, racing
+\\     RcPush: its walls' push direction
+\\
+\\ Outputs:
+\\     the car's flags, latches, stripes, checkpoint, laps, speed, spin, jump, facing, wrenches; RcPush; the
+\\     map, for a pickup or cone taken
+\\     A, Y: corrupted; X preserved
+
+.cells
+{
+    ZA_AUTO1 v1, v2                     ; local: the probes' cells' bytes
+    ZA_AUTO2 c1, c2                     ; local: their cells' addresses, the pair's first (even)
+    ZA_AUTO1 v                          ; local: the cell acting
+    ZA_AUTO2 c                          ; local: its pair's address
+    ZA_AUTO1 second                     ; local: 0 the first probe, 1 the second
+    ZA_AUTO1 act                        ; local: what happened (d4): 0 nothing, 1 an edge, 2 slowed, 3 a skid,
+                                        ; 4 a cone
+    ZA_AUTO1 o                          ; local: probe's offset in AttrProbe
+    ZA_AUTO2 vec                        ; local: a class's handler
+    ZA_AUTO1 t                          ; local: a scratch
+
+    \\ the two probes' cells: (x + dx) >> 3 across, (y + dy) >> 3 down
+
+    LDA RcDir,X:ASL A:ASL A:TAY
+    JSR probe:STA v1
+    LDA c:STA c1
+    LDA c+1:STA c1+1
+    INY:INY
+    JSR probe:STA v2
+    LDA c:STA c2
+    LDA c+1:STA c2+1
+    STZ act
+
+    \\ a stripe under either: counted once a visit, on the ground
+
+    LDA v1:ORA v2:BPL nostripe
+    LDA RcBitsHi,X:AND #HI(&400):BNE stripes
+    LDA RcLatchLo,X:BMI stripes
+    ORA #&80:STA RcLatchLo,X
+    INC RcStripesLo,X
+    BNE stripes
+    INC RcStripesHi,X
+    BRA stripes
+.nostripe
+    LDA RcLatchLo,X:AND #&7F:STA RcLatchLo,X
+.stripes
+    LDA v1:ORA v2:AND #&7F:BNE some
+    STZ RcLatchHi,X                     ; both empty: every latch but the stripe's cleared
+    LDA RcLatchLo,X:AND #&80:STA RcLatchLo,X
+    JMP finish
+.some
+    LDA v1:AND #&7F:STA v1
+    LDA v2:AND #&7F:STA v2
+
+    \\ each probe's cell in turn
+
+    STZ second
+    LDA v1:STA v
+    LDA c1:STA c
+    LDA c1+1:STA c+1
+.each
+    LDA v:BEQ next
+    AND #3:BEQ class0
+    TAY
+    LDA RcBitsHi,X:AND #HI(&400):BNE next  ; airborne: only class 0
+    CPY #2:BCC class1
+    BEQ class2
+    JMP class3
+.class1
+    JMP class1_
+.class2
+    JMP class2_
+.class0
+    LDA v:LSR A:LSR A
+    JSR class0_                         ; C set: the second probe isn't looked at
+    BCS finish
+.next
+    LDA second:BNE finish
+    INC second
+    LDA v2:STA v
+    LDA c2:STA c
+    LDA c2+1:STA c+1
+    BRA each
+
+    \\ an elevated car ignores mask B but where a cell acted (the ST's quirk: a hazard cell's included);
+    \\ then the sounds and sparks of what happened: not yet
+
+.finish
+    LDA RcBitsLo,X:AND #1:BEQ @+
+    LDA act:BNE @+
+    LDA #&FF:STA RcPush
+.@
+    RTS
+
+    \\ A probe's cell: its byte, and its pair's address in c.
+    \\ Inputs: Y: the probe's offset in AttrProbe. Outputs: A: the byte. Y preserved.
+
+.probe
+    STY o
+    LDA RcYLo,X:CLC:ADC AttrProbe+1,Y   ; (y at most 185 racing)
+    LSR A:LSR A:LSR A
+    TAY
+    LDA AttrRowL,Y:STA c
+    LDA AttrRowH,Y:STA c+1
+    LDY o
+    LDA RcXLo,X:CLC:ADC AttrProbe,Y     ; (x + dx) >> 3, x + dx at most 317
+    STA t
+    LDA RcXHi,X:ADC #0
+    LSR A
+    LDA t:ROR A:LSR A:LSR A
+    CLC:ADC c:STA c
+    BCC @+
+    INC c+1
+.@
+    LDA (c):STA t                       ; the cell's byte
+    LDA c:AND #&FE:STA c                ; its pair's first (the map's address even)
+    LDA t
+    RTS
+
+    \\ class 0, type in A: levels, ramps, a nudge, the flag cells. Out: C set to stop (a jump started:
+    \\ the second probe isn't looked at).
+
+.class0_
+    CMP #10:BCS none0                   ; types 10 on: nothing
+    ASL A:TAY
+    LDA Class0Jmp,Y:STA vec
+    LDA Class0Jmp+1,Y:STA vec+1
+    JMP (vec)
+    ZA_CANJUMP class0s
+.none0
+    CLC
+    RTS
+
+class0s = {none0, up, ground, land, ramp, flag1000, nudge, flag2000, ramp, long}
+.Class0Jmp
+    EQUW class0s
+
+.up                                     ; &04: elevated
+    LDA RcLatchHi,X:BMI @+
+    ORA #&80:STA RcLatchHi,X
+    LDA RcBitsLo,X:ORA #1:STA RcBitsLo,X
+    LDA RcBitsHi,X:ORA #&80:STA RcBitsHi,X
+.@
+    CLC
+    RTS
+
+.ground                                 ; &08: flags &0001, &0040, &0200, &0400, &1000, &2000 off
+    LDA RcLatchHi,X:AND #2:BNE @+
+    LDA RcLatchHi,X:ORA #2:AND #HI(&CFFE):STA RcLatchHi,X
+    LDA RcLatchLo,X:AND #LO(&CFFE):STA RcLatchLo,X
+    LDA RcBitsHi,X:AND #HI(&C9BE):STA RcBitsHi,X
+    LDA RcBitsLo,X:AND #LO(&C9BE):STA RcBitsLo,X
+.@
+    CLC
+    RTS
+
+.land                                   ; &0C: if airborne, the jump lands safely
+    LDA RcLatchHi,X:AND #8:BNE @+
+    LDA RcBitsHi,X:AND #4:BEQ @+
+.landed
+    LDA RcLatchHi,X:ORA #8:STA RcLatchHi,X
+    LDA RcBitsHi,X:ORA #8:STA RcBitsHi,X
+.@
+    CLC
+    RTS
+
+.ramp                                   ; &10 (facing 8-15, sequence 0), &20 (facing 0-7, sequence 8): a jump
+    STA t                               ; if elevated, a landing if airborne
+    JSR unland
+    LDA RcLatchHi,X:AND #4:BNE no
+    LDA RcBitsHi,X:AND #4:BNE landed
+    LDA RcBitsLo,X:AND #1:BEQ no
+    LDA RcDir,X:AND #8
+    LDY t:CPY #8:BEQ upward
+    CMP #8:BNE no
+    LDA #0
+    BRA jump
+.upward
+    CMP #0:BNE no
+    LDA #8
+.jump
+    JSR takeoff
+    LDA RcSpeedHi,X:BMI fifteen         ; speed at least 15
+    BNE @+
+    LDA RcSpeedLo,X:CMP #16:BCS @+
+.fifteen
+    LDA #15:STA RcSpeedLo,X
+    STZ RcSpeedHi,X
+.@
+    SEC
+    RTS
+.no
+    CLC
+    RTS
+
+.long                                   ; &24: facing 12 exactly, airborne and elevated
+    JSR unland
+    LDA RcLatchHi,X:AND #4:BNE no
+    LDA RcBitsHi,X:AND #4:BNE no
+    LDA RcDir,X:CMP #12:BNE no
+    LDA #16
+    JSR takeoff
+    LDA RcBitsLo,X:ORA #1:STA RcBitsLo,X
+    SEC
+    RTS
+
+.nudge                                  ; &18: flag &0040; facing 12 -> 13, 4 -> 3
+    LDA RcLatchLo,X:AND #&40:BNE @+
+    LDA RcLatchLo,X:ORA #&40:STA RcLatchLo,X
+    LDA RcBitsLo,X:ORA #&40:STA RcBitsLo,X
+    LDA RcDir,X
+    LDY #13:CMP #12:BEQ turn
+    LDY #3:CMP #4:BNE @+
+.turn
+    TYA:STA RcDir,X
+.@
+    CLC
+    RTS
+
+.flag1000                               ; &14: flag &1000
+    LDA #&10
+    BRA flaghi
+.flag2000                               ; &1C: flag &2000
+    LDA #&20
+.flaghi
+    STA t
+    LDA RcLatchHi,X:AND t:BNE @+
+    LDA RcLatchHi,X:ORA t:STA RcLatchHi,X
+    LDA RcBitsHi,X:ORA t:STA RcBitsHi,X
+.@
+    CLC
+    RTS
+
+    \\ a ramp's first act: latch and flag &0800 (landed) cleared
+.unland
+    LDA RcLatchHi,X:AND #HI(&F7FF):STA RcLatchHi,X
+    LDA RcBitsHi,X:AND #HI(&F7FF):STA RcBitsHi,X
+    RTS
+
+    \\ airborne (&0400, latched), jump sequence A from its start
+.takeoff
+    STA RcJump,X
+    STZ RcSpin,X
+    LDA RcLatchHi,X:ORA #4:STA RcLatchHi,X
+    LDA RcBitsHi,X:ORA #4:STA RcBitsHi,X
+    RTS
+}
+
+\\ F_00BEEA's class 1: the patches, the pickups, the cones.
+\\
+\\ Inputs: cells' v (the cell, class 1), c (its pair), X (the car). Outputs: as cells'; it goes on to
+\\ cells' next.
+
+.class1_
+{
+    LDA cells.v:LSR A:LSR A
+    CMP #9:BCS none1                    ; types 9 on: nothing
+    ASL A:TAY
+    LDA Class1Jmp,Y:STA cells.vec
+    LDA Class1Jmp+1,Y:STA cells.vec+1
+    JMP (cells.vec)
+    ZA_CANJUMP class1s
+.none1
+    JMP cells.next
+
+class1s = {water, oil, yellow, wrench, bonus, cone, cone, cone, cone}
+.Class1Jmp
+    EQUW class1s
+
+.oil                                    ; &05: speed at least 10, a 32-frame spin
+    LDA RcLatchLo,X:ORA RcBitsLo,X
+    AND #&10:BNE done
+    LDA RcLatchLo,X:ORA #&10:STA RcLatchLo,X
+    LDA RcBitsLo,X:ORA #&10:STA RcBitsLo,X
+    JSR ten
+    LDA #32:STA RcSpin,X
+    LDA #3:STA cells.act
+    BRA done
+
+.yellow                                 ; &09: speed halved, at least 10, a 32-frame spin
+    LDA RcLatchLo,X:ORA RcBitsLo,X
+    AND #&20:BNE done
+    LDA RcLatchLo,X:ORA #&20:STA RcLatchLo,X
+    LDA RcBitsLo,X:ORA #&20:STA RcBitsLo,X
+    JSR halve
+    JSR ten
+    LDA #32:STA RcSpin,X
+    LDA #2:STA cells.act
+    BRA done
+
+.water                                  ; &01: speed halved
+    LDA RcLatchLo,X:AND #8:BNE done
+    LDA RcLatchLo,X:ORA #8:STA RcLatchLo,X
+    JSR halve
+    LDA #2:STA cells.act
+.done
+    JMP cells.next
+
+.wrench                                 ; &0D: one a frame
+    LDA RcWrenchTaken:BNE done
+    INC RcWrench,X
+    INX:STX RcWrenchTaken:DEX
+    BRA clear
+
+.bonus                                  ; &11
+    LDA RcBonusTaken:BNE done
+    INX:STX RcBonusTaken:DEX
+    BRA clear
+
+.cone                                   ; &15-&21: cone type - 5 knocked over, speed 0
+    LDA cells.v:LSR A:LSR A
+    SEC:SBC #5
+    TAY
+    LDA #2:STA RcConeHit,Y
+    STZ RcSpeedLo,X
+    STZ RcSpeedHi,X
+    LDA #4:STA cells.act
+.clear
+    LDA (cells.c):AND #&80:STA (cells.c)   ; the pair's cells: only their stripes left
+    LDY #1
+    LDA (cells.c),Y:AND #&80:STA (cells.c),Y
+    BRA done
+
+    \\ speed at least 10 (the ST's: if not over 10, 10)
+.ten
+    LDA RcSpeedHi,X:BMI set10
+    BNE @+
+    LDA RcSpeedLo,X:CMP #11:BCS @+
+.set10
+    LDA #10:STA RcSpeedLo,X
+    STZ RcSpeedHi,X
+.@
+    RTS
+
+    \\ speed halved, rounded down (asr.w)
+.halve
+    LDA RcSpeedHi,X:CMP #&80:ROR A:STA RcSpeedHi,X
+    ROR RcSpeedLo,X
+    RTS
+}
+
+\\ F_00BEEA's class 2: a checkpoint, n 1-4. The next in order becomes the last passed (the stripes counted
+\\ from it again); the 4th, the finish, ends a lap: the lap's frame kept, laps + 1, the checkpoint 0.
+\\
+\\ Inputs, outputs: as class1_'s.
+
+.class2_
+{
+    LDA RcLatchHi,X:AND #1:BNE done     ; once a visit
+    LDA RcLatchHi,X:ORA #1:STA RcLatchHi,X
+    LDA cells.v:LSR A:LSR A:AND #7
+    TAY
+    DEY:TYA
+    CMP RcCheck,X:BNE done              ; not the next: nothing
+    INY
+    CPY #4:BNE set
+    TXA:ASL A:ASL A:STA cells.v         ; car * 4 + (laps AND 3); laps = (laps AND 3) + 1
+    LDA RcLaps,X:AND #3
+    TAY
+    INC A:STA RcLaps,X
+    TYA:ORA cells.v:TAY
+    LDA RcFrameLo:STA RcLapTimeLo,Y
+    LDA RcFrameHi:STA RcLapTimeHi,Y
+    LDY #0
+.set
+    TYA:STA RcCheck,X
+    STZ RcStripesLo,X
+    STZ RcStripesHi,X
+.done
+    JMP cells.next
+}
+
+\\ F_00BEEA's class 3: a bridge's edge, for a car on the bridge. Bit 2: a wall, its push direction (v >> 3)
+\\ AND 15; else bit 3: mask B as on the ground; else off the edge, a wreck (&80).
+\\
+\\ Inputs, outputs: as class1_'s.
+
+.class3
+{
+    LDA cells.v:AND #4:BEQ notwall
+    LDA RcBitsLo,X:AND #1:BEQ done
+    LDA cells.v:LSR A:LSR A:LSR A:AND #15
+    STA RcPush
+    BRA acted
+.notwall
+    LDA cells.v:AND #8:BNE acted
+    LDA RcBitsLo,X:AND #1:BEQ done
+    LDA #&80:STA RcPush
+.acted
+    LDA #1:STA cells.act
+.done
+    JMP cells.next
+}

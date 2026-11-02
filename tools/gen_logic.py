@@ -11,6 +11,8 @@ Writes:
   seed before the race's first draw, and how many frames the trace has;
 - OUTDIR/inputs.bin: from the race's first frame (the trace's frame 2) on, 3 bytes a frame: cars 0-2's inputs
   as F_010CF2 returned them (0 where a car read none: a drone, or a wrecked car);
+- OUTDIR/cells.6502: the track's attribute map (F_015CA2's, from INIT.DAT's runs: 40 x 25 bytes, one a cell),
+  its rows' addresses, and the two attribute probe points per facing (G_01E0C0);
 - OUTDIR/walls.6502: the track's mask B as D13 stores it (tools/maskb.py), and the walls' probes: per facing
   the probed lines and columns (G_01E160), and per car and facing what of its frame's shape they test.
 
@@ -184,6 +186,24 @@ def walls(track, drones):
         ''])
 
 
+def cells(track):
+    m, _ = L.attr_map(track)
+    pts = L.words(L.tb(0x1E0C0))[:64]
+    assert all(0 <= v < 128 for v in pts), 'the probe points are small and positive'
+    eq = lambda name, comment, v: [f'.{name:<38}; {comment}', '    EQUB ' + byte_list(v)]
+    return '\n'.join([
+        '\\\\ cells.6502 - track %d\'s attribute map and its probe points (tools/gen_logic.py)' % (track + 1),
+        '',
+        *eq('AttrProbe', 'G_01E0C0 by facing * 4: the probes\' dx1, dy1, dx2, dy2 from the sprite box', pts),
+        f'.{"AttrRowL":<38}; a cell row\'s first cell',
+        '    EQUB LO(AttrMap + (0..24) * 40)',
+        '.AttrRowH',
+        '    EQUB HI(AttrMap + (0..24) * 40)',
+        '    ALIGN 2                             ; (an object\'s pair of cells: the first\'s address even)',
+        *eq('AttrMap', 'a byte a cell: bit 7 a stripe, bits 0-1 the class, 2-6 the type', m),
+        ''])
+
+
 def main(trace_path, out):
     t = json.load(open(trace_path))
     frames = t['frames']
@@ -193,6 +213,7 @@ def main(trace_path, out):
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, 'tables.6502'), 'w').write(tables())
     open(os.path.join(out, 'walls.6502'), 'w').write(walls(t['track'], drone))
+    open(os.path.join(out, 'cells.6502'), 'w').write(cells(t['track']))
     inputs = bytearray()
     for f in frames[FirstFrame:]:
         b = [0, 0, 0]

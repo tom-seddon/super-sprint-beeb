@@ -333,3 +333,8 @@
 - The walls skip a car whose probes are over all-road cells: 11,702 cycles a frame to 6,149 (mean, frames
   361-2024), exact still. A label named like a variable of its scope (`row`) was refused by Baron, as the
   skill warns.
+- **The track's cells** (F_00BEEA, `src/cells.6502`): car 0's stripes, checkpoints, laps and lap times exact
+  over its 1,933 free frames. st-logic had cell types 5 and 7 setting flags &0010/&0020 that nothing
+  reads; the asm sets &1000/&2000, which the steering does read. Corrected.
+- A mutation that changes nothing proves nothing: accepting checkpoints out of order passed (car 0 never
+  crosses one out of order), so the stripe reset was broken instead, and that failed.

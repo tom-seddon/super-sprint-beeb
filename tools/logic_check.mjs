@@ -42,6 +42,9 @@ const PerCar = [
     ["jump", 0x1e384, "RcJump", "u"], ["bits", 0x1e3a4, "RcBits", "w"], ["latch", 0x1e39c, "RcLatch", "w"],
     ["state", 0x1e3d4, "RcState", "u"], ["laps", 0x1e354, "RcLaps", "u"], ["check", 0x1e38c, "RcCheck", "u"],
     ["stripes", 0x1e394, "RcStripes", "w"], ["drone", 0x1e34c, "RcDrone", "u"], ["order", 0x1e2cc, "RcOrder", "u"],
+    ["wrench", 0x1e324, "RcWrench", "u"],
+    // the frame each lap ended: 4 words a car in the ST, car * 4 + lap in the BBC
+    ...[0, 1, 2, 3].map((i) => [`lap${i}`, 0x1e32c + 2 * i, "RcLapTime", "w", 8, (c) => c * 4 + i]),
 ];
 const Race = [["phase", 0x1d178, "RcPhase", "u"], ["frame", 0x1d30e, "RcFrame", "w"], ["push", 0x1e2a0, "RcPush", "u"]];
 
@@ -59,6 +62,9 @@ const wanted = (list) => list.filter(([n]) => !only || only.includes(n));
 const s = await bootDisc("build/logic.ssd");
 const peek = (a) => s.readMemory(a, 1)[0];
 const stWord = (m, a) => (m[a] << 8) | m[a + 1];
+// a variable's 5th and 6th fields, if any: the ST's stride a car (2 if not), the BBC's index for a car
+const stride = (v) => v[4] ?? 2;
+const index = (v, c) => (v[5] ? v[5](c) : c);
 function bbc(name, kind, car) {
     if (kind === "w") return peek(syms[`${name}Lo`] + car) | (peek(syms[`${name}Hi`] + car) << 8);
     const b = peek(syms[name] + car);
@@ -75,8 +81,10 @@ function compare(k) {
         bad++;
         if (shown++ < show) console.log(`frame ${k} ${label}: ST ${st} (&${st.toString(16)}), BBC ${bb} (&${bb.toString(16)})`);
     };
-    for (const [n, a, b, kind] of wanted(PerCar))
-        for (const c of cars) one(`car ${c} ${n}`, stWord(m, a + 2 * c), bbc(b, kind, c));
+    for (const v of wanted(PerCar)) {
+        const [n, a, b, kind] = v;
+        for (const c of cars) one(`car ${c} ${n}`, stWord(m, a + stride(v) * c), bbc(b, kind, index(v, c)));
+    }
     for (const [n, a, b, kind] of wanted(Race)) one(n, stWord(m, a), bbc(b, kind, 0));
     if (bad) {
         wrong++;
@@ -88,14 +96,15 @@ let stopped = null;                     // the frame the BBC never finished (a p
 await runTo(s, syms["test_entry.setup_done"]);
 if (from > 2) {
     const m = frames[from - 1].mem;
-    for (const [, a, b, kind] of [...PerCar, ...Race]) {
-        const n = Race.some(([, ra]) => ra === a) ? 1 : 4;
+    for (const vr of [...PerCar, ...Race]) {
+        const [, a, b, kind] = vr;
+        const n = Race.includes(vr) ? 1 : 4;
         for (let c = 0; c < n; c++) {
-            const v = stWord(m, a + 2 * c);
+            const v = stWord(m, a + stride(vr) * c), i = index(vr, c);
             if (kind === "w") {
-                s.writeMemory(syms[`${b}Lo`] + c, [v & 0xff]);
-                s.writeMemory(syms[`${b}Hi`] + c, [v >> 8]);
-            } else s.writeMemory(syms[b] + c, [v & 0xff]);
+                s.writeMemory(syms[`${b}Lo`] + i, [v & 0xff]);
+                s.writeMemory(syms[`${b}Hi`] + i, [v >> 8]);
+            } else s.writeMemory(syms[b] + i, [v & 0xff]);
         }
     }
     const inputs = syms["Inputs"] + (from - 2) * 3;

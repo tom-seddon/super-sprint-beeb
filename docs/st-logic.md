@@ -167,11 +167,11 @@ Drone-only variables are in section 5.
 |---|---|
 | &0001 | Elevated: on the bridge or ramp level |
 | &0002 | Hit by another car this frame; bits &000C hold that car's number |
-| &0010, &0020 | Set by hazards and cell types 5 and 7, cleared when a spin ends. Nothing reads them |
+| &0010, &0020 | Set by the oil and yellow patches (with their latches), cleared when a spin ends |
 | &0040 | On a "nudge" cell stretch (track 2's ramp approaches). Turns off car-to-car collisions and flips the auto-straighten parity |
 | &0400 | Airborne: in a scripted jump |
 | &0800 | Passed over a safe landing cell during the jump |
-| &1000, &2000 | Read by the steering code but never set |
+| &1000, &2000 | Set by cell types 5 and 7 (&14, &1C), cleared by a ground cell (&08). The steering reads them: &1000 (and airborne) stops the straightening, &2000 makes the delay 1 less (corrected in Phase 4 from F_00BEEA's asm: an earlier reading had these as &0010 and &0020) |
 | &8000 | Set with &0001, never read |
 
 ### Direction vectors
@@ -403,7 +403,7 @@ and (11, 1). Each probe reads the cell under it.
 | &20 | 8, ramp | The same for facing 0 to 7, sequence 8 |
 | &24 | 9, long ramp | If facing exactly 12: airborne and elevated (&0401), sequence 16 |
 | &18 | 6, nudge | Flag &0040; facing 12 becomes 13, facing 4 becomes 3 |
-| &14, &1C | 5, 7 | Set flags &0010, &0020; no effect |
+| &14, &1C | 5, 7 | Set flags &1000, &2000 (latched): the steering reads them (corrected in Phase 4) |
 
 When type 4, 8 or 9 starts a jump, the second probe is not looked at.
 
@@ -418,7 +418,7 @@ When type 4, 8 or 9 starts a jump, the second probe is not looked at.
 | &11 | 4, bonus | Bonus to the car (`G_01EB60`); the cell pair is cleared |
 | &15 to &21 | 5 to 8, cones | Speed 0, cone `type - 5` knocked over (`G_01EBA8`), cell pair cleared, sparks |
 
-Patches act once per visit (latches in both `G_01E39C` and `G_01E3A4`). The patch colours come from a
+Patches act once per visit: oil and the yellow patch latch in both `G_01E39C` and `G_01E3A4` (bits &10, &20 of the low bytes), water in `G_01E39C` only (&08). A finish line makes laps `(laps AND 3) + 1` (F_00BEEA). The patch colours come from a
 screenshot of track 3 in Hatari.
 
 **Class 2, checkpoints** (`v & 3 == 2`, number `n = (v >> 2) & 7`, 1 to 4): if `n` is one more than the last
@@ -851,9 +851,8 @@ counts `G_01D168`, next-track tables `G_01D148` and `G_01D138`.
   until a "ground" cell.
 - **An elevated car on a hazard cell** gets ground wall collisions that frame (`F_00BEEA` only cancels them when no
   other action happened).
-- **Cell types 5 and 7** (&14, &1C) set flags nobody reads.
+- **Cell types 5 and 7** (&14, &1C) set flags &1000 and &2000, which change the steering (an earlier reading of this doc had them unread).
 - **Ramp types 4, 8 and 9** skip the second probe for that frame.
-- **Flags &1000 and &2000** are tested by the steering but never set.
 - **Track 8 attribute data** has a stripe run at cell (34, 30), outside the 25-row map; it ORs &80 into 5 bytes
   after the map (`G_01DF4A`, the HUD strip save), which is overwritten later. One stripe is missing.
 - **Track 8 grid:** car 3's y would be 186 and is clamped to 178, 2 pixels from car 2.

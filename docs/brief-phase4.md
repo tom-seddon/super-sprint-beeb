@@ -10,9 +10,9 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 7.** Walls are exact and the all-road cells skipped (§8). The next session starts
-step 7 (the attribute cells, car-to-car, drones), reading §8, `src/race.6502` and st-logic §3-5; the
-general multiply and divide are the logic's biggest cost after that.
+**Resume point: step 7, car-to-car and drones.** The cells are exact (§8). Next: the draw order and
+car-to-car (F_00EF9E, F_00F038/F_00F092, the shove in F_00E66A), then drones (F_00F23C, F_00FB14,
+F_00FAD8, their set-up), reading §8, `src/race.6502` and st-logic §4-5.
 
 ## 0. The proposal in one paragraph
 
@@ -234,3 +234,18 @@ map inside): all road, no wall can be touched, and the probes are skipped. MEASU
 (car 0 near walls often, the 3 parked drones on road): 11,702 cycles a frame (mean) to 6,149, max 12,990
 to 8,593; still exact on all 1,933 frames of the stretches. Of what's left, about 3,800 is car 0's own
 control and move, the general multiply and divide most of it.
+
+**Step 7, the track's cells.** `src/cells.6502` (in the logic's bank, with the map), F_00BEEA followed
+branch for branch from its hand-written asm: the stripe count, then each probe's class 0 (levels, ramps,
+the long ramp, nudges, the flag cells), class 1 (water, oil, the yellow patch, wrench, bonus, cones: the
+pair's cells cleared), class 2 (checkpoints, laps, the lap's frame), class 3 (bridge edges, the push), and
+an elevated car's mask B cancelled. Jump tables for the classes' types (`ZA_CANJUMP`). The map is built by
+`tools/gen_logic.py` from INIT.DAT's runs; against the ST's RAM it differs only in the 2 cells of a bonus
+the race had placed. MEASURED: car 0's stripes, latches, checkpoints, laps and 4 lap times match with its
+movement on all 1,933 frames of its stretches (3 laps). Its wrench count differs from frame 465: the
+wrench was placed at run time from a random slot (the pickups aren't built). Broken on purpose (the
+stripes not reset at a checkpoint), 2 stretches fail; accepting checkpoints out of order changes nothing
+in this race (car 0 never crosses one out of order), so it proves nothing and isn't counted.
+Two findings from the asm, corrected in st-logic: cell types 5 and 7 set flags &1000 and &2000 (the
+steering reads them), not &0010 and &0020; and a finish line makes laps `(laps AND 3) + 1`.
+Cost: 6,648 cycles a frame (mean, frames 2-75) from 5,307; the cells are read for every car every frame.

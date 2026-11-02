@@ -6,8 +6,8 @@
 \\ compares them with the ST's, frame by frame.
 \\
 \\ Built so far: the set-up of the humans' cars, their control (human.6502), and of F_00E66A the coasting
-\\ phase, the area check, the walls (walls.6502) and the bounce, and the last safe place. Not yet: the
-\\ attribute cells, car-to-car, drones, wrecks, scoring, the race's end, hazards, pickups.
+\\ phase, the area check, the walls (walls.6502), the track's cells (cells.6502) and the bounce, and the last
+\\ safe place. Not yet: car-to-car, drones, wrecks, scoring, the race's end, hazards, pickups placed.
 
 SECTION LogicVars
 .RcX8Lo                                 ; G_01E3FC: x in eighths of a pixel
@@ -117,6 +117,8 @@ SECTION LogicVars
 .RcStripesLo                            ; G_01E394: stripes crossed since it
     SKIP 4
 .RcStripesHi
+    SKIP 4
+.RcWrench                               ; G_01E324: wrenches held
     SKIP 4
 .RcDrone                                ; G_01E34C: 1 a drone drives it
     SKIP 4
@@ -338,13 +340,14 @@ ENDSECTION
     ZA_UNREACHABLE
 .drawn
 
-    \\ a car racing: its walls (F_00C4F6, walls.6502, in the logic's bank) and the track's cells (F_00BEEA,
-    \\ not yet). A car not racing keeps the push the car before it found: the ST's quirk, kept.
+    \\ a car racing: its walls (F_00C4F6, walls.6502) and the track's cells (F_00BEEA, cells.6502), both in
+    \\ the logic's bank. A car not racing keeps the push the car before it found: the ST's quirk, kept.
 
     LDA RcState,X:BNE pushed
     JSR walls
     TAY
     LDA PushDir,Y:STA RcPush
+    JSR cells
 .pushed
 
     \\ a wreck: pushed into a corner (&80), head-on into a wall at top speed, or a crash pending
