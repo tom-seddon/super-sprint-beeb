@@ -28,74 +28,77 @@ RandomMul = 3141592621                  ; TOS's multiplier
 {
     ZA_AUTO1 n                          ; local: n
     ZA_AUTO1 p0, p1, p2, p3             ; local: the product
-    ZA_AUTO1 m0, m1, m2, m3             ; local: the seed, shifted left a bit at a time
-    ZA_AUTO1 k                          ; local: the multiplier's byte, shifted right
     ZA_AUTO2 r                          ; local: the 15 bits divided
 
     STA n
-    LDA RcSeed:STA m0
-    LDA RcSeed+1:STA m1
-    LDA RcSeed+2:STA m2
-    LDA RcSeed+3:STA m3
-    STZ p0:STZ p1:STZ p2:STZ p3
-    \\ seed * the multiplier, its low 32 bits: a shift and add a bit, the multiplier's byte j's bits adding the
-    \\ seed shifted 8 * j on, whose bytes below j are 0 by then: so from byte j only
 
-    LDA #RandomMul AND &FF:STA k
-    LDY #8
-.bit0
-    LSR k
-    BCC shift0
+    \\ seed * the multiplier, its low 32 bits: the seed shifted left in place, 0 to 7 bits, and at each shift s
+    \\ added at each byte j whose multiplier bit 8 * j + s is set (from byte j up only)
+
+    ASSERT RandomMul == &BB40E62D, "random: the adds are the multiplier's bits"
+    LDA RcSeed:STA p0                   ; s = 0: bytes 0 and 3
+    LDA RcSeed+1:STA p1
+    LDA RcSeed+2:STA p2
+    LDA RcSeed+3:CLC:ADC RcSeed:STA p3
+    ASL RcSeed:ROL RcSeed+1:ROL RcSeed+2:ROL RcSeed+3
+    CLC                                 ; s = 1: bytes 1 and 3
+    LDA p1:ADC RcSeed:STA p1
+    LDA p2:ADC RcSeed+1:STA p2
+    LDA p3:ADC RcSeed+2
+    CLC:ADC RcSeed:STA p3
+    ASL RcSeed:ROL RcSeed+1:ROL RcSeed+2:ROL RcSeed+3
+    CLC                                 ; s = 2: bytes 0 and 1
+    LDA p0:ADC RcSeed:STA p0
+    LDA p1:ADC RcSeed+1:STA p1
+    LDA p2:ADC RcSeed+2:STA p2
+    LDA p3:ADC RcSeed+3:STA p3
     CLC
-    LDA p0:ADC m0:STA p0
-    LDA p1:ADC m1:STA p1
-    LDA p2:ADC m2:STA p2
-    LDA p3:ADC m3:STA p3
-.shift0
-    ASL m0:ROL m1:ROL m2:ROL m3
-    DEY
-    BNE bit0
-    LDA #(RandomMul >> 8) AND &FF:STA k
-    LDY #8
-.bit1
-    LSR k
-    BCC shift1
+    LDA p1:ADC RcSeed:STA p1
+    LDA p2:ADC RcSeed+1:STA p2
+    LDA p3:ADC RcSeed+2:STA p3
+    ASL RcSeed:ROL RcSeed+1:ROL RcSeed+2:ROL RcSeed+3
+    CLC                                 ; s = 3: bytes 0 and 3
+    LDA p0:ADC RcSeed:STA p0
+    LDA p1:ADC RcSeed+1:STA p1
+    LDA p2:ADC RcSeed+2:STA p2
+    LDA p3:ADC RcSeed+3
+    CLC:ADC RcSeed:STA p3
+    ASL RcSeed:ROL RcSeed+1:ROL RcSeed+2:ROL RcSeed+3
+    LDA p3:CLC:ADC RcSeed:STA p3        ; s = 4: byte 3
+    ASL RcSeed:ROL RcSeed+1:ROL RcSeed+2:ROL RcSeed+3
+    CLC                                 ; s = 5: bytes 0, 1 and 3
+    LDA p0:ADC RcSeed:STA p0
+    LDA p1:ADC RcSeed+1:STA p1
+    LDA p2:ADC RcSeed+2:STA p2
+    LDA p3:ADC RcSeed+3
+    CLC:ADC RcSeed:STA p3
     CLC
-    LDA p1:ADC m1:STA p1
-    LDA p2:ADC m2:STA p2
-    LDA p3:ADC m3:STA p3
-.shift1
-    ASL m1:ROL m2:ROL m3
-    DEY
-    BNE bit1
-    LDA #(RandomMul >> 16) AND &FF:STA k
-    LDY #8
-.bit2
-    LSR k
-    BCC shift2
+    LDA p1:ADC RcSeed:STA p1
+    LDA p2:ADC RcSeed+1:STA p2
+    LDA p3:ADC RcSeed+2:STA p3
+    ASL RcSeed:ROL RcSeed+1:ROL RcSeed+2 ; (byte 3 read no more)
+    CLC                                 ; s = 6: bytes 2 and 1
+    LDA p2:ADC RcSeed:STA p2
+    LDA p3:ADC RcSeed+1:STA p3
     CLC
-    LDA p2:ADC m2:STA p2
-    LDA p3:ADC m3:STA p3
-.shift2
-    ASL m2:ROL m3
-    DEY
-    BNE bit2
-    LDA #(RandomMul >> 24) AND &FF:STA k
-    LDY #8
-.bit3
-    LSR k
-    BCC shift3
-    LDA p3:CLC:ADC m3:STA p3
-.shift3
-    ASL m3
-    DEY
-    BNE bit3
+    LDA p1:ADC RcSeed:STA p1
+    LDA p2:ADC RcSeed+1:STA p2
+    LDA p3:ADC RcSeed+2:STA p3
+    ASL RcSeed:ROL RcSeed+1:ROL RcSeed+2
+    CLC                                 ; s = 7: bytes 1 and 3
+    LDA p1:ADC RcSeed:STA p1
+    LDA p2:ADC RcSeed+1:STA p2
+    LDA p3:ADC RcSeed+2
+    CLC:ADC RcSeed:STA p3
+
     SEC                                 ; + 1
     LDA p0:ADC #0:STA RcSeed
     LDA p1:ADC #0:STA RcSeed+1:STA r
     LDA p2:ADC #0:STA RcSeed+2:STA r+1
     LDA p3:ADC #0:STA RcSeed+3
     LSR r+1:ROR r                       ; (Random AND &FFFF) >> 1: the seed's bits 9-23
+
+    LDA n:CMP #3:BEQ three
 
     LDA #0                              ; r MOD n (r 15 bits: its top bit's step left out)
     ASL r:ROL r+1
@@ -111,7 +114,20 @@ RandomMul = 3141592621                  ; TOS's multiplier
     DEY
     BNE divide
     RTS
+
+    \\ MOD 3 (the tornado's, often): 256 is 1 MOD 3, so the bytes' sum; 16 is too, so its nibbles'
+
+.three
+    LDA r:CLC:ADC r+1
+    ADC #0                              ; (the carry: 256; at most 127 then)
+    TAX:LSR A:LSR A:LSR A:LSR A:STA n
+    TXA:AND #15:CLC:ADC n
+    TAX:LDA Mod3,X
+    RTS
 }
+
+.Mod3                                   ; n MOD 3, n 0-30
+    EQUB (0..30) MOD 3
 
 \\ F_0167D6: points added to a car's score, digit by digit from the right, a carry along; it stops at the
 \\ first digit whose sum is 0 where the points' digit is a blank (&80), leaving the blanks above.
