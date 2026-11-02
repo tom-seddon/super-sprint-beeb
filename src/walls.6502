@@ -192,6 +192,8 @@ ENDSECTION
     ZA_AUTO 3, lines                    ; in: the lines to test, a byte a cell row
     ZA_AUTO1 col                        ; local: mask B's column
     ZA_AUTO1 bit                        ; local: the pixel's bit in it
+    ZA_AUTO1 pc                         ; local: and its column in its cell, px AND 7
+    ZA_AUTO2 q                          ; local: a cell's columns (MbCols)
     ZA_AUTO1 row                        ; local: a line in the cell row
     ZA_AUTO1 bits                       ; local: a cell row's lines left
 
@@ -200,6 +202,7 @@ ENDSECTION
     LSR A                               ; (C: px's ninth bit)
     LDA BitOf,Y:STA bit                 ; (by px AND 7: the table repeats)
     TYA:ROR A:LSR A:LSR A:STA col       ; px >> 3
+    TYA:AND #7:STA pc
     LDA RcYLo,X:STA row
     LDA lines:BEQ @+
     JSR band
@@ -216,13 +219,25 @@ ENDSECTION
 .hit
     RTS
 
-    \\ a cell row's lines, A (bit n its line n): its cell road, none; a wall, all; mixed, each line's pixel
+    \\ a cell row's lines, A (bit n its line n): its cell road, none; a wall, all; mixed, its column's
+    \\ pixels on them, from MbCols (a byte, bit n line n), or for a cell a gate or barrier can change (MbCols
+    \\ isn't kept up to date), each line's pixel
 .band
     STA bits
     LDA col:LDY row:JSR mask_cell
     ORA #0                              ; (its flags aren't A's for a wall from the map)
     BEQ done                            ; road
     BMI done                            ; wall (A non-zero)
+    LDY mask_cell.r
+    CMP MbDyn,Y:BCS byline
+    CLC                                 ; its columns: at its lines' offset in MbCols
+    LDA mask_cell.p:ADC #LO(MbCols - MbCells):STA q
+    LDA mask_cell.p+1:ADC #HI(MbCols - MbCells):STA q+1
+    LDY pc
+    LDA (q),Y
+    AND bits
+    RTS
+.byline
     LDY #0
 .line
     LSR bits
@@ -284,15 +299,17 @@ ENDSECTION
 \\     Y: a pixel row in it, 0-199
 \\
 \\ Outputs:
-\\     A: 0 all road, &FF all wall, or 1 mixed with p its address (its 8 lines, a byte each); the flags not
-\\         A's (a wall from the row's map returns Z set)
+\\     A: 0 all road, &FF all wall, or n (1-40), the row's nth mixed cell, with p its address (its 8 lines, a
+\\         byte each); the flags not A's (a wall from the row's map returns Z set)
+\\     r: the cell row
 \\     Y: corrupted; X preserved
 
 .mask_cell
 {
     ZA_AUTO2 p                          ; out: a mixed cell's address; also the map's row
+    ZA_AUTO1 r                          ; out: the cell row
     ZA_AUTO1 col                        ; local: the column
-    ZA_AUTO1 r                          ; local: the cell row
+    ZA_AUTO1 n                          ; local: the cell's number
 
     STA col
     TYA:LSR A:LSR A:LSR A:STA r:TAY
@@ -305,6 +322,7 @@ ENDSECTION
     LDA (p),Y                           ; the map's byte: 0 road, &FF wall, else the nth mixed cell
     BEQ done
     CMP #&FF:BEQ done
+    STA n
     LDY r                               ; the cell's address: the row's cells less 8, + n * 8
     CMP #32:BCS far
     ASL A:ASL A:ASL A                   ; (C clear)
@@ -312,7 +330,7 @@ ENDSECTION
     LDA MbCellH,Y
 .high
     ADC #0:STA p+1
-    LDA #1
+    LDA n
     RTS
 .far                                    ; (n 32 to 40: 256 + (n - 32) * 8)
     AND #31:ASL A:ASL A:ASL A           ; (C clear)

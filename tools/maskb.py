@@ -11,7 +11,8 @@ Each 8 x 8 cell is all road, all wall, or mixed. A cell row is stored as:
 - the map, a byte for each cell of the span: 0 all road, &FF all wall, n (1 to 40) the row's nth mixed cell;
 - the row's mixed cells, 8 bytes each, a line a byte.
 A cell a gate or pop-up barrier can cover (tools/logic_maps.py fixed) is kept as mixed even if it isn't, so
-the gates' and barriers' frames can be written into it while the race runs.
+the gates' and barriers' frames can be written into it while the race runs. A row numbers its mixed cells
+that never change first, then those (each kind in column order), so a number tells which it is (dyn_first).
 
 A row's header: span start, span length, left fill, right fill, the map's offset (2 bytes), the cells' (2):
 8 bytes, 200 for the 25 rows.
@@ -39,8 +40,18 @@ def reserved(track):
 
 def encode(track):
     """-> (header, maps, cells): the header 25 x 8 bytes, then the maps and the cells as byte strings."""
+    return encode_dyn(track)[:3]
+
+
+def dyn_first(track):
+    """Each row's first number of a mixed cell a gate or barrier can change (255 if none)."""
+    return encode_dyn(track)[3]
+
+
+def encode_dyn(track):
+    """-> encode()'s, and dyn_first()'s."""
     mb, keep = mask_bytes(track), reserved(track)
-    header, maps, cells = bytearray(), bytearray(), bytearray()
+    header, maps, cells, first = bytearray(), bytearray(), bytearray(), []
     for r in range(25):
         lines = [[mb[r * 8 + l][c] for l in range(8)] for c in range(40)]
         cls = []
@@ -58,15 +69,16 @@ def encode(track):
         n = max(0, hi - lo + 1)
         header += bytes([min(lo, 40), n, left, right]) + len(maps).to_bytes(2, 'little') + \
             len(cells).to_bytes(2, 'little')
-        k = 0
+        mixed = [c for c in range(lo, lo + n) if cls[c] is None]
+        order = [c for c in mixed if (r, c) not in keep] + [c for c in mixed if (r, c) in keep]
+        num = {c: k + 1 for k, c in enumerate(order)}
         for c in range(lo, lo + n):
-            if cls[c] is None:
-                k += 1
-                maps.append(k)
-                cells += bytes(lines[c])
-            else:
-                maps.append(cls[c])
-    return bytes(header), bytes(maps), bytes(cells)
+            maps.append(num[c] if cls[c] is None else cls[c])
+        for c in order:
+            cells += bytes(lines[c])
+        statics = len(mixed) - sum((r, c) in keep for c in mixed)
+        first.append(statics + 1 if statics < len(mixed) else 255)
+    return bytes(header), bytes(maps), bytes(cells), first
 
 
 def read(enc, x, y):
