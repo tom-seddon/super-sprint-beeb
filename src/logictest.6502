@@ -5,7 +5,8 @@
 \\ each test_entry.frame_done and compares its state with the ST's.
 \\
 \\ The logic's code and state go where the game will have them once the renderer is driven by it (brief
-\\ step 8); here everything is in main RAM, the state at &0400.
+\\ step 8). Here the state is at &0400, the code in main RAM but the walls' code and data (mask B), which
+\\ go in the logic's bank, sideways RAM bank 4, copied there from the file at the start and left paged.
 
 INCLUDE "macros.6502"
 INCLUDE "../build/lgen/race.6502"
@@ -13,7 +14,10 @@ INCLUDE "../build/lgen/race.6502"
 ZA_POOL &04..&FB, &FD..&FF
 
 TestOrg = &1100
+SwramOrg = &8000
+SwramEnd = &C000
 LogicVarsOrg = &0400
+LogicBank = 4                           ; the logic's bank: the Master's sideways RAM 4-7 are free in the test
 
 SECTION LogicVars, org = LogicVarsOrg, guard = &0800, virtual = TRUE
 ENDSECTION
@@ -36,6 +40,21 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     SEI
     CLD
     LDX #&FF:TXS
+
+    \\ the logic's bank filled from the file, and left paged in
+
+    LDA #LogicBank:STA &FE30            ; ROMSEL: the logic's bank, ANDY out
+    LDX #HI(bank_end - bank_image + &FF)
+    LDY #0
+.copy
+    LDA bank_image,Y                    ; self-modified: the page's high byte
+    STA SwramOrg,Y                      ; self-modified: the page's high byte
+    INY
+    BNE copy
+    INC copy+2
+    INC copy+5
+    DEX
+    BNE copy
     LDA #0:TAX
 .clear
     FOR page = HI(LogicVarsOrg)..<HI(LogicVarsOrg)+4
@@ -50,10 +69,9 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
         LDA #TraceDrones[c]:STA RcDrone+c
     NEXT
     JSR race_setup
-.setup_done
-
     LDA #LO(Inputs):STA iptr
     LDA #HI(Inputs):STA iptr+1
+.setup_done                             ; (the check may write the state and iptr here)
 .frame
     LDY #0
 .input
@@ -78,6 +96,14 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     INCLUDE "race.6502"
     INCLUDE "human.6502"
     INCLUDE "../build/lgen/tables.6502"
+
+.bank_image
+    SECTION LogicBankCode, org = SwramOrg, guard = SwramEnd, cmos = TRUE
+        INCLUDE "walls.6502"
+        INCLUDE "../build/lgen/walls.6502"
+        PRINT "the logic's bank: ", P% - SwramOrg, " bytes"
+    ENDSECTION
+.bank_end
 
 .Inputs                                 ; each race frame's inputs, cars 0-2 (tools/gen_logic.py)
     INCBIN "../build/lgen/inputs.bin"

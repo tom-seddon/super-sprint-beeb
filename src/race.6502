@@ -6,8 +6,8 @@
 \\ compares them with the ST's, frame by frame.
 \\
 \\ Built so far: the set-up of the humans' cars, their control (human.6502), and of F_00E66A the coasting
-\\ phase, the area check and the last safe place. Not yet: walls, the attribute cells, car-to-car, drones,
-\\ wrecks, scoring, the race's end, hazards, pickups.
+\\ phase, the area check, the walls (walls.6502) and the bounce, and the last safe place. Not yet: the
+\\ attribute cells, car-to-car, drones, wrecks, scoring, the race's end, hazards, pickups.
 
 SECTION LogicVars
 .RcX8Lo                                 ; G_01E3FC: x in eighths of a pixel
@@ -264,7 +264,7 @@ ENDSECTION
 
 \\ F_00E66A: the coasting cycle on; then each car in draw order: the area it must stay in, its walls and the
 \\ track's cells, a bounce or a wreck, its last safe place, and a car-to-car shove. Built: the cycle, the
-\\ area, the safe place; the rest are to come (walls and cells step 6, car-to-car step 7).
+\\ area, the walls and the bounce, the safe place; the rest are to come (the cells and car-to-car, step 7).
 \\
 \\ Inputs:
 \\     the cars' state, moved
@@ -282,6 +282,14 @@ ENDSECTION
     LDX #0
 .@
     STX RcPhase
+
+    \\ F_00F038: last frame's car-to-car flags (&000E) cleared on every car; its tests: not yet (step 7)
+
+    LDX #3
+.clear
+    LDA RcBitsLo,X:AND #LO(NOT(&000E)):STA RcBitsLo,X
+    DEX
+    BPL clear
 
     STZ k
 .next
@@ -324,19 +332,46 @@ ENDSECTION
     LDA #1:STA RcState,X
 .area
     LDA RcState,X:CMP #1:BNE drawn
-    BRK                                 ; a crash: put back and wrecked (F_00BB4E), not yet
+    BRK                                 ; a crash: put back, then wrecked (F_00BB4E): not yet
     EQUB 0
     EQUS "crash", 0
     ZA_UNREACHABLE
 .drawn
 
-    \\ the walls and the track's cells (F_00C4F6, F_00BEEA), for a car racing: not yet, so no push. (A car
-    \\ not racing keeps the push the car before it found: the ST's quirk, kept.)
+    \\ a car racing: its walls (F_00C4F6, walls.6502, in the logic's bank) and the track's cells (F_00BEEA,
+    \\ not yet). A car not racing keeps the push the car before it found: the ST's quirk, kept.
 
-    LDA RcState,X:BNE @+
-    LDA #&FF:STA RcPush
+    LDA RcState,X:BNE pushed
+    JSR walls
+    TAY
+    LDA PushDir,Y:STA RcPush
+.pushed
+
+    \\ a wreck: pushed into a corner (&80), head-on into a wall at top speed, or a crash pending
+
+    LDA RcPush:CMP #&80:BEQ wreck
+    LDA RcDir,X:CLC:ADC #8:AND #15
+    CMP RcPush:BNE @+
+    LDA RcSpeedLo,X:CMP RcTopLo,X:BNE @+
+    LDA RcSpeedHi,X:CMP RcTopHi,X:BEQ wreck
 .@
+    LDA RcState,X:CMP #1:BNE bounce
+.wreck
+    BRK                                 ; F_00BB4E: not yet
+    EQUB 0
+    EQUS "wreck", 0
+    ZA_UNREACHABLE
 
+    \\ a bounce, if pushed and not bouncing already
+
+.bounce
+    LDA RcPush:CMP #&FF:BEQ nopush
+    LDA RcBounce,X:BNE nopush
+    LDA RcState,X:BNE nopush
+    JSR bounce_car
+    BRA immune
+
+.nopush
     \\ no push: the last safe place, if not bouncing, on the ground, off a nudge stretch and racing (a
     \\ drone's always)
 
@@ -360,4 +395,57 @@ ENDSECTION
     DEC RcImmune,X
 .@
     RTS
+}
+
+\\ F_00E66A's bounce off a wall: back where the car was, travelling the push's way at (10 + speed) * 2 (an
+\\ impulse the smoothing fades), speed / 4 + D / 2, no input for 10 frames (5 a drone's).
+\\
+\\ Inputs:
+\\     X: the car
+\\     RcPush: the push direction, 0-15
+\\
+\\ Outputs:
+\\     the car's position, travel, smoothed velocity, speed and bounce timer
+\\     A, Y: corrupted; X preserved
+
+.bounce_car
+{
+    LDA RcPX8Lo,X:STA RcX8Lo,X
+    LDA RcPX8Hi,X:STA RcX8Hi,X
+    LDA RcPY8Lo,X:STA RcY8Lo,X
+    LDA RcPY8Hi,X:STA RcY8Hi,X
+    LDA RcPush:AND #15:STA RcTravel,X
+    JSR impulse
+    LDY RcPush
+    LDA DirX,Y:JSR mul_s16
+    LDA num:STA RcSVXLo,X
+    LDA num+1:STA RcSVXHi,X
+    JSR impulse
+    LDY RcPush
+    LDA DirY,Y:JSR mul_s16
+    LDA num:STA RcSVYLo,X
+    LDA num+1:STA RcSVYHi,X
+    LDA RcSpeedLo,X:STA num
+    LDA RcSpeedHi,X:STA num+1
+    LDA #4:JSR div_s16
+    LDA RcDiv,X:LSR A
+    CLC:ADC num:STA RcSpeedLo,X
+    LDA num+1:ADC #0:STA RcSpeedHi,X
+    LDA #10
+    LDY RcDrone,X:BEQ @+
+    LDA #5
+.@
+    STA RcBounce,X
+    \\ the sparks (F_00BE4A) and the bump's sound: not yet
+    RTS
+
+    \\ (10 + speed) * 2, into num
+
+.impulse
+    CLC
+    LDA RcSpeedLo,X:ADC #10:STA num
+    LDA RcSpeedHi,X:ADC #0:STA num+1
+    ASL num:ROL num+1
+    RTS
+
 }

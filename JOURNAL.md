@@ -323,3 +323,10 @@
   oracle fails from frame 6.
 - F_012276's tables come from its own stores in the disassembly, run by `tools/gen_logic.py`, not from a RAM
   dump that a clean build can't make again. The last word of the jump table is BSS, never stored.
+- **Walls** (step 6): `src/walls.6502` in the logic's bank with mask B. Exact on every stretch of car 0's
+  race the logic can reach (1,933 frames, 23 of 24 bounces), checked with `--from` (the ST's state loaded
+  into the BBC at a chosen frame) and `tools/logic_stretches.py`. `mask_byte` right on all 8,000 bytes
+  (`tools/maskb_check.mjs`). About 2,150 cycles a car as written: too slow.
+- **Mistakes**: the probe line's row loaded into A and then overwritten before the call, so every car
+  wrecked on its first frame (`mask_byte`, checked alone, was right); and the test set its input pointer
+  after the label `--from` writes it at.

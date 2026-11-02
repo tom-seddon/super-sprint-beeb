@@ -10,9 +10,9 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 6.** If this session ends, the next starts at step 6 (§6), walls, reading this
-brief's §8, `src/race.6502` (`collide_car`), `tools/maskb.py` and st-logic §3. Steps 2, 3 and 5 are done,
-and mask B's part of 4 (§8). `make logiccheck LOGICARGS="--until 75 --cars 0"` is the proof so far.
+**Resume point: step 6's speed, then step 7.** Walls are exact (§8) but cost about 2,150 cycles a car; the
+next session makes them fast (an all-road test of the car's cells first), then starts step 7 (the attribute
+cells, car-to-car, drones), reading §8, `src/race.6502` and st-logic §3-5.
 
 ## 0. The proposal in one paragraph
 
@@ -205,3 +205,26 @@ stops at frame 143, a crash the BBC can't do yet. The logic costs 3,824 cycles a
 and nothing else (mean; max 3,939): the general multiply and divide (about 200 and 400 cycles, 7 of them a
 frame) are most of it, and are the first thing to make faster once the logic is whole (D9 allows any
 method that gives the same results; each can be checked against every input it can get).
+
+**Step 6, walls** (correct; not yet fast). `src/walls.6502`, in the logic's bank with mask B: F_00C4F6 over
+F_01519C's buffer, reduced to what the probes read. Per car and facing, `tools/gen_logic.py` writes the
+top and bottom probe lines' opaque columns and, for each side column, the lines it's tested on where the
+frame is opaque there (from the car's own frame: set car + 4 if a drone drives it); `walls` shifts a
+line's columns to x's place and ANDs them with the 3 mask bytes under it, and tests a column's pixel line
+by line. `mask_byte` reads mask B through D13's maps. In `collide_car`: the push from `PushDir`, the
+wreck tests (a trap for now), and the bounce (`bounce_car`). And F_00F038's clearing of the car-to-car
+flags each frame. The test disc now copies the logic's bank image into sideways RAM bank 4.
+
+The walls can't be reached by playing from the start (car 0's first bounce, at frame 143, comes after car
+3's shove at 76), so `logic_check.mjs --from K` loads the ST's state at frame K - 1 into the BBC and checks
+from K, and `tools/logic_stretches.py CAR` runs it on every stretch where the car is free of what isn't
+built (racing, touching no car, not just shoved, no car finished). MEASURED: car 0's 28 movement
+variables match on all 1,933 frames of its 9 stretches, which hold 23 of its 24 wall bounces; the
+stretches stop at frame 2024, when the drone finishes. `tools/maskb_check.mjs`: `mask_byte` gives all
+8,000 of track 1's mask bytes right. Broken on purpose (the side columns a pixel right), 2 stretches fail,
+from frames 204 and 398. Two bugs on the way, both caught: the line's row clobbered in A before the call
+(every frame a wreck), and `--from`'s input pointer written before the test set its own.
+
+Cost: 12,405 cycles a frame (mean) against 3,824 before: every car's walls are probed, about 2,150
+cycles each, the 3 drones' too though they don't move yet. Too slow for 4 cars (D2's budget leaves the
+logic 10,000-12,000); next, the all-road cells skipped.

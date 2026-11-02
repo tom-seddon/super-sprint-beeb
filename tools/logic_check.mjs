@@ -15,6 +15,9 @@
 //   --cars, --vars: only these cars and variables (the names below; default: all); race-wide ones are
 //       compared whatever --cars says
 //   --show N: print up to N differences (default 20)
+//   --from K: start at frame K: after the set-up, the ST's state at frame K - 1 is written into the BBC's
+//       (every variable below, every car) and its inputs pointed at frame K's, so a stretch of the race can
+//       be checked before everything that leads to it is built
 
 import { readFileSync } from "node:fs";
 import { bootDisc, cycles, runTo, symbols } from "./jsbeeb.mjs";
@@ -49,6 +52,7 @@ const until = Math.min(Number(option("--until", frames.length - 1)), frames.leng
 const cars = option("--cars", "0,1,2,3").split(",").map(Number);
 const only = option("--vars", null)?.split(",");
 const show = Number(option("--show", 20));
+const from = Number(option("--from", 2));
 for (const v of only ?? []) if (![...PerCar, ...Race].some(([n]) => n === v)) throw new Error(`no variable ${v}`);
 const wanted = (list) => list.filter(([n]) => !only || only.includes(n));
 
@@ -82,8 +86,22 @@ function compare(k) {
 
 let stopped = null;                     // the frame the BBC never finished (a path not built yet traps)
 await runTo(s, syms["test_entry.setup_done"]);
-compare(1);
-for (let k = 2; k <= until; k++) {
+if (from > 2) {
+    const m = frames[from - 1].mem;
+    for (const [, a, b, kind] of [...PerCar, ...Race]) {
+        const n = Race.some(([, ra]) => ra === a) ? 1 : 4;
+        for (let c = 0; c < n; c++) {
+            const v = stWord(m, a + 2 * c);
+            if (kind === "w") {
+                s.writeMemory(syms[`${b}Lo`] + c, [v & 0xff]);
+                s.writeMemory(syms[`${b}Hi`] + c, [v >> 8]);
+            } else s.writeMemory(syms[b] + c, [v & 0xff]);
+        }
+    }
+    const inputs = syms["Inputs"] + (from - 2) * 3;
+    s.writeMemory(syms["test_entry.iptr"], [inputs & 0xff, inputs >> 8]);
+} else compare(1);
+for (let k = from; k <= until; k++) {
     const t0 = cycles(s);
     try {
         await runTo(s, syms["test_entry.frame_done"], 2000000);
@@ -98,10 +116,11 @@ for (let k = 2; k <= until; k++) {
 
 const sorted = [...work].sort((a, b) => a - b);
 const mean = work.reduce((a, b) => a + b, 0) / Math.max(1, work.length);
-console.log(`frames 1-${until} (the set-up and ${work.length} race frames), cars ${cars.join(",")}, ` +
+console.log(`frames ${from > 2 ? from : 1}-${until} (${from > 2 ? "" : "the set-up and "}${work.length} race frames), cars ${cars.join(",")}, ` +
     `${only ? only.length : PerCar.length + Race.length} variables`);
 console.log(`logic cycles a frame: mean ${mean.toFixed(0)}, max ${sorted[sorted.length - 1] ?? 0} ` +
     `(the test's own loop, about 60, included)`);
-console.log(wrong ? `${wrong} frames wrong, the first frame ${firstWrong}` : `all ${stopped ? stopped - 1 : until} frames match`);
+console.log(wrong ? `${wrong} frames wrong, the first frame ${firstWrong}`
+    : `all ${(stopped ? stopped - 1 : until) - (from > 2 ? from - 1 : 0)} frames match`);
 if (stopped) console.log(`stopped at frame ${stopped}`);
 process.exit(wrong || stopped ? 1 : 0);

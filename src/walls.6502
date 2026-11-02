@@ -1,0 +1,215 @@
+\\ walls.6502 - a car against the track's walls (D9, D13): the ST's F_00C4F6 over the buffer F_01519C fills
+\\ when it draws the car. In the bank with mask B (walls.6502 in build/lgen, tools/gen_logic.py), as the
+\\ renderer keeps each routine beside its data.
+\\
+\\ The ST ANDs the car's opacity, line by line, with mask B under it, then tests two lines whole and one column
+\\ on each side. Only those are needed: the probed lines' and columns' opaque pixels, per car and facing
+\\ (PTop, PBot, PLeft, PRight), tested against mask B at the car's place.
+
+\\ A car's walls.
+\\
+\\ Inputs:
+\\     X: the car, racing
+\\
+\\ Outputs:
+\\     A: the probe code: 1 the top line on a wall, 2 the bottom line, 4 the left column, 8 the right
+\\     Y: corrupted; X preserved
+
+.walls
+{
+    ZA_AUTO1 code                       ; local: the code so far
+    ZA_AUTO1 f                          ; local: car * 16 + facing
+    ZA_AUTO1 d                          ; local: the facing
+    ZA_AUTO2 lines                      ; local: a column's lines to test
+
+    LDA RcBitsHi,X:AND #HI(&400)        ; airborne: the ST's buffer is left 0
+    BEQ ground
+    LDA #0
+    RTS
+.ground
+    STZ code
+    LDA RcDir,X:STA d
+    TXA:ASL A:ASL A:ASL A:ASL A
+    ORA d:STA f
+
+    \\ the top and bottom lines
+
+    LDY f
+    LDA PTop0,Y:STA line_hit.p0
+    LDA PTop1,Y:STA line_hit.p1
+    LDA PTop2,Y:STA line_hit.p2
+    LDY d
+    LDA ProbeTop,Y:CLC:ADC RcYLo,X
+    JSR line_hit
+    BEQ @+
+    LDA #1:STA code
+.@
+    LDY f
+    LDA PBot0,Y:STA line_hit.p0
+    LDA PBot1,Y:STA line_hit.p1
+    LDA PBot2,Y:STA line_hit.p2
+    LDY d
+    LDA ProbeBot,Y:CLC:ADC RcYLo,X
+    JSR line_hit
+    BEQ @+
+    LDA code:ORA #2:STA code
+.@
+
+    \\ the side columns
+
+    LDY f
+    LDA PLeftLo,Y:STA lines
+    LDA PLeftHi,Y:STA lines+1
+    LDY d
+    LDA ProbeLeft,Y
+    JSR column_hit
+    BEQ @+
+    LDA code:ORA #4:STA code
+.@
+    LDY f
+    LDA PRightLo,Y:STA lines
+    LDA PRightHi,Y:STA lines+1
+    LDY d
+    LDA ProbeRight,Y
+    JSR column_hit
+    BEQ done
+    LDA code:ORA #8:STA code
+.done
+    LDA code
+    RTS
+
+\\ Whether a column of the car touches a wall: mask B's pixel at x + the column, on each of its lines.
+\\
+\\ Inputs:
+\\     A: the column, 0-16
+\\     lines: the lines to test, bit n line n
+\\     X: the car
+\\
+\\ Outputs:
+\\     A: non-zero, and Z clear, if any is a wall
+\\     lines, Y: corrupted; X preserved
+
+.column_hit
+    ZA_AUTO1 col                        ; local: mask B's column
+    ZA_AUTO1 bit                        ; local: the pixel's bit in it
+    ZA_AUTO1 row                        ; local: the line's pixel row
+
+    CLC:ADC RcXLo,X:TAY                 ; px = x + the column, at most 317: its low byte
+    LDA RcXHi,X:ADC #0
+    LSR A                               ; (C: px's ninth bit)
+    LDA BitOf,Y:STA bit                 ; (by px AND 7: the table repeats)
+    TYA:ROR A:LSR A:LSR A:STA col       ; px >> 3
+    LDA RcYLo,X:STA row
+.line
+    LSR lines+1:ROR lines
+    BCC next
+    LDA col
+    LDY row
+    JSR mask_byte
+    AND bit
+    BNE hit
+.next
+    INC row
+    LDA lines:ORA lines+1
+    BNE line
+.hit
+    RTS
+}
+
+\\ Whether a line of the car touches a wall: its opaque columns' pixels against mask B's.
+\\
+\\ Inputs:
+\\     A: the line's pixel row
+\\     p0, p1, p2: its opaque columns, bit 7 of p0 column 0
+\\     X: the car
+\\
+\\ Outputs:
+\\     A: non-zero, and Z clear, if any is a wall
+\\     p0-p2, Y: corrupted; X preserved
+
+.line_hit
+{
+    ZA_AUTO1 p0, p1, p2                 ; in, then shifted to x's place in the mask's bytes
+    ZA_AUTO1 row                        ; local: the pixel row
+    ZA_AUTO1 col                        ; local: mask B's column under p0
+    ZA_AUTO1 hit                        ; local: the bits found
+
+    STA row
+    LDA RcXHi,X:LSR A                   ; x >> 3 (x at most 301)
+    LDA RcXLo,X:ROR A:LSR A:LSR A
+    STA col
+    LDA RcXLo,X:AND #7:TAY              ; the columns shifted right by x AND 7 (nothing past bit 23)
+    BEQ shifted
+.shift
+    LSR p0:ROR p1:ROR p2
+    DEY
+    BNE shift
+.shifted
+    STZ hit
+    LDA p0:BEQ @+
+    LDA col:LDY row:JSR mask_byte
+    AND p0:STA hit
+.@
+    LDA p1:BEQ @+
+    LDA col:INC A:LDY row:JSR mask_byte
+    AND p1:TSB hit
+.@
+    LDA p2:BEQ @+
+    LDA col:INC A:INC A:LDY row:JSR mask_byte
+    AND p2:TSB hit
+.@
+    LDA hit
+    RTS
+}
+
+\\ A byte of mask B (D13): a cell row's fill left and right of its span, else its map's byte: road, wall or
+\\ the row's nth mixed cell, whose line it is.
+\\
+\\ Inputs:
+\\     A: the byte's column, 0-39
+\\     Y: its pixel row, 0-199
+\\
+\\ Outputs:
+\\     A: the byte, 8 pixels, bit 7 the leftmost; 1 a wall
+\\     Y: corrupted; X preserved
+
+.mask_byte
+{
+    ZA_AUTO1 col                        ; local: the column
+    ZA_AUTO1 line                       ; local: the pixel row's line in its cell
+    ZA_AUTO1 r                          ; local: the cell row
+    ZA_AUTO2 p                          ; local: the map's row, then the cell
+
+    STA col
+    TYA:AND #7:STA line
+    TYA:LSR A:LSR A:LSR A:STA r:TAY
+    LDA col
+    CMP MbLo,Y:BCC left
+    CMP MbEnd,Y:BCS right
+    LDA MbMapL,Y:STA p
+    LDA MbMapH,Y:STA p+1
+    LDY col
+    LDA (p),Y                           ; the map's byte: 0 road, &FF wall, else the nth mixed cell
+    BEQ done
+    CMP #&FF:BEQ done
+    STZ p+1                             ; the cell's address: the row's cells less 8, + n * 8, + the line
+    ASL A:ROL p+1
+    ASL A:ROL p+1
+    ASL A:ROL p+1
+    LDY r
+    CLC:ADC MbCellL,Y:STA p
+    LDA p+1:ADC MbCellH,Y:STA p+1
+    LDY line
+    LDA (p),Y
+    RTS
+.left
+    LDA MbLeft,Y
+    RTS
+.right
+    LDA MbRight,Y
+.done
+    RTS
+}
+
+.BitOf                                  ; a pixel's bit in its byte, by its x (AND 7: the table repeats)
+    EQUB &80 >> ((0..255) AND 7)
