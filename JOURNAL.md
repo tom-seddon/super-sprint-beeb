@@ -362,3 +362,8 @@
 - **The game drawn from its own logic**: `make check TRACE=logic0`, all 2,197 frames of the race match the
   model made from the ST's draws. The frame builder had to go in the fourth bank (main RAM was 331 bytes
   over); 234 bytes are left there, 973 in main RAM. 25,967 cycles a frame on average, 3 frames over.
+- **Keys** (D12): Z X SHIFT, V B N, , . / proposed: every key in its own matrix column, so none can
+  ghost another (checked on paper over all 511 combinations, the model checked against Paradroid's
+  hardware ghost). All read right in jsbeeb. `make beeb TRACE=play` makes a disc to play track 1 with three
+  players, for a real BBC.
+- **Trap**: a headless check that reads a bank number at boot reads 0: the disc copies its banks first.

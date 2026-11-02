@@ -26,8 +26,10 @@ SECTION GameVars
     SKIP 24
 ENDSECTION
 
-ZA_AUTO2 lfin                           ; the inputs' next run
-ZA_AUTO1 lfleft                         ; its frames left
+IF GenPlay = 0
+    ZA_AUTO2 lfin                       ; the inputs' next run
+    ZA_AUTO1 lfleft                     ; its frames left
+ENDIF
 
 \\ The race's start (the logic's bank paged in): the logic's state cleared, the race as the traced one's (its track, counter, drones, TOS's
 \\ seed, the scores and sparks as they were), and set up.
@@ -51,9 +53,13 @@ ZA_AUTO1 lfleft                         ; its frames left
     BNE clear
     LDA #LgTrack:STA RcTrack
     LDA #LgRace:STA RcRace
-    FOR c = 0..3
-        LDA #LgDrones[c]:STA RcDrone+c
-    NEXT
+    IF GenPlay                          ; the play build: three players, car 3 the drone
+        LDA #1:STA RcDrone+3
+    ELSE
+        FOR c = 0..3
+            LDA #LgDrones[c]:STA RcDrone+c
+        NEXT
+    ENDIF
     FOR i = 0..3
         LDA #(LgSeed >> (8 * i)) AND &FF:STA RcSeed+i
     NEXT
@@ -79,9 +85,11 @@ ZA_AUTO1 lfleft                         ; its frames left
 .@
     STZ LfFrame:STZ LfFrame+1
     STZ LfSlotCount
-    LDA #LO(LogicInputs):STA lfin
-    LDA #HI(LogicInputs):STA lfin+1
-    STZ lfleft
+    IF GenPlay = 0
+        LDA #LO(LogicInputs):STA lfin
+        LDA #HI(LogicInputs):STA lfin+1
+        STZ lfleft
+    ENDIF
     RTS
 }
 
@@ -111,22 +119,30 @@ ZA_AUTO1 lfleft                         ; its frames left
     NEXT
     BRA build
 .race
-    LDA lfleft:BNE same                 ; the next run of inputs
-    LDA (lfin):BEQ same                 ; (none left: the last ones held)
-    STA lfleft
-    LDY #3
-.copy
-    LDA (lfin),Y:STA RcInput-1,Y
-    DEY
-    BNE copy
-    CLC
-    LDA lfin:ADC #4:STA lfin
-    BCC same
-    INC lfin+1
-.same
-    DEC lfleft
+    IF GenPlay
+        JSR read_players                ; the players' keys
+    ELSE
+        LDA lfleft:BNE same             ; the next run of inputs
+        LDA (lfin):BEQ same             ; (none left: the last ones held)
+        STA lfleft
+        LDY #3
+    .copy
+        LDA (lfin),Y:STA RcInput-1,Y
+        DEY
+        BNE copy
+        CLC
+        LDA lfin:ADC #4:STA lfin
+        BCC same
+        INC lfin+1
+    .same
+        DEC lfleft
+    ENDIF
     JSR race_frame
     JSR race_end
+    IF GenPlay
+        LDA RcOver:BEQ build            ; over: the next race (the same, from its start)
+        JSR logic_start
+    ENDIF
 .build
     JSR build_cars
     JSR build_objects

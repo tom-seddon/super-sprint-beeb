@@ -3,6 +3,8 @@ cells and an ST race's car positions, as binaries and Baron source in build/gen.
 
 Usage: gendata.py TRACK TRACE.json OUTDIR [--logic]
 
+--play (with --logic): a build to play, three players on the keys and car 3 the drone: every car's frame set.
+
 --logic (Phase 4, step 8): the race is drawn from the BBC's own logic, not the trace, so every moving object's
 key the logic can draw is made (the explosion's 26 frames, the sparks' 41, the track's banner's 36, the
 helicopter's all as always), and logickeys.6502 gives the 6502 each key's pieces, and the car frame sets;
@@ -490,13 +492,15 @@ def lst(name, vals):
     return f'{name} = {{{", ".join(str(v) for v in vals)}}}\n'
 
 
-def main(track, tracepath, out, logic=False):
+def main(track, tracepath, out, logic=False, play=False):
     os.makedirs(out, exist_ok=True)
     dat = open('orig/st/SUPER.DAT', 'rb').read()
     bg = np.load(f'build/conv/B_t{track}_bg.npy')
     open(f'{out}/bg.bin', 'wb').write(mode1_bytes(bg))
     frames = load_race(tracepath)
     sets = car_sets(frames)
+    if play:                            # three players on the keys, car 3 the drone: every set
+        sets = [(0, False), (1, False), (2, False), (None, True)]
 
     data, fs, fr = cars(dat, sets)
     open(f'{out}/cars.bin', 'wb').write(data)
@@ -758,6 +762,7 @@ def main(track, tracepath, out, logic=False):
         f.write(f'TraceFrames = {nframes}\n')
         f.write(f'TraceTrack = {track}\n')
         f.write(f'GenLogic = {1 if logic else 0}\n')
+        f.write(f'GenPlay = {1 if play else 0}\n')
     with open(f'{out}/font.6502', 'w') as f:
         f.write('\\\\ font.6502 - made by tools/gendata.py from tools/font.py: the HUD\'s glyphs, 8 lines each\n\n')
         f.write(lst('GenFont', [b for g in range(len(Glyphs)) for b in glyph_bytes(g)]))
@@ -769,4 +774,4 @@ def main(track, tracepath, out, logic=False):
 
 
 if __name__ == '__main__':
-    main(int(sys.argv[1]), sys.argv[2], sys.argv[3], '--logic' in sys.argv[4:])
+    main(int(sys.argv[1]), sys.argv[2], sys.argv[3], '--logic' in sys.argv[4:], '--play' in sys.argv[4:])

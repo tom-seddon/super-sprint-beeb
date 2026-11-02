@@ -10,9 +10,9 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 9 (keys), or the frame's speed.** The game drawn from its own logic matches the model
-on every frame of the race (§8; `make check TRACE=logic0`). Its worst frames go over a TV frame (3 of
-2,197). Next: the keys (D12: a layout, its ghosting, the key numbers measured), then sound (D11).
+**Resume point: step 10 (sound), or the joysticks, or the frame's speed.** The keys are in and a disc plays
+(§8; `make beeb TRACE=play`), waiting on a real BBC (D12). Next: sound (D11), the joysticks (measure the
+ADC first), the frame's worst cases (3 of 2,197 frames over a TV frame).
 
 ## 0. The proposal in one paragraph
 
@@ -338,3 +338,14 @@ the HUD's scores, the finish. Broken on purpose (each car drawn a line low), all
 disc (`make check`) is still byte-identical to Phase 3's and matches. Cycles a frame, logic and drawing:
 25,967 mean, 36,414 at 99%, 40,820 at worst; 3 frames over a TV frame (4 drawn frames took 2), so the
 display dropped to 25 fps for a moment 4 times in 44 s.
+
+**Step 9, the keys** (D12, layout Proposed). `src/keyboard.6502`: the kit's keydown, forked (the loader
+already stops the free-running scan), and `read_players`: each player's left, right and accelerate into
+the ST's input bits. Layout: Z X SHIFT, V B N, comma full-stop slash, each key in a column of its own, so no
+combination can ghost another (`tools/keys_ghost.py`: 0 of 511, the model checked against Paradroid's
+hardware ghost). Key numbers from the kit's measured table, comma and full stop measured. In jsbeeb
+(`tools/keys_check.mjs`, on the play build): each key alone and all nine together read as their player's.
+The play build (`make beeb TRACE=play`, `GenPlay`): three players, car 3 the drone, every car's frame set
+(the cars' bank 1,962 bytes free), the race restarting when it's over; `docs/img/jsbeeb-play-t0.png`. Not
+yet: the joysticks; the ST's "TRACK 1" and "DRONE LAP" text, still in the play area's bottom row (Phase 2's
+plan to paint it out with grass hasn't been done).

@@ -147,6 +147,18 @@ keys held together in jsbeeb (which may not model ghosting: the check there is t
 Master's two joysticks as an option for any player. The layout itself is Proposed until Tom has tried it on
 a real BBC. Hardware gate: real keyboard.
 
+Proposed layout (2026-11-02): player 1 Z left, X right, SHIFT accelerate; player 2 V, B, N; player 3 comma,
+full stop, slash. The matrix has no diodes, so held keys can make a key whose row and column they join read
+as held; each of these nine keys is in a column of its own (0 to 8), so no combination of them can ghost
+another of them. `tools/keys_ghost.py` checks all 511 combinations on that model (0 ghost) and the model
+against a ghost seen on hardware (Paradroid's Z, X, K, M, L firing C). Key numbers measured (the kit's
+table; comma 102 and full stop 103 measured with jsbeeb-mcp's key_down on a Master). In jsbeeb, which has
+no ghosting, `tools/keys_check.mjs` holds each alone and all nine together and the game reads each as its
+player's. The disc to try it: `make beeb TRACE=play` (track 1, three players, car 3 the drone, the race
+restarting when it ends). Alternatives if a key is awkward: any other key in the same column keeps the
+property (SLASH's column 8 also holds `:`, `]`, `[`, `^`, `_`, `\`; RETURN, in column 9, is free for any one
+player). Not built yet: the joysticks (the Master's ADC and the fire buttons are to be measured first).
+
 ### D13. Mask B (walls): only the mixed cells: Decided (2026-11-02)
 Proposed for Phase 4's first steps (`docs/brief-phase4.md` §3).
 Mask B is 8,000 bytes a track at 1 bit a pixel, 70% of the fourth bank's 11,361 free. Of its 1,000 8 x 8

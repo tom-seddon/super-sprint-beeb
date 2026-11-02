@@ -1,0 +1,75 @@
+\\ keyboard.6502 - the players' keys (D12), read straight from the keyboard matrix: the beeb-port-kit's
+\\ lib/keydown.6502, forked (keydown_int; the loader has already stopped the keyboard's free-running scan,
+\\ entry.6502, so the latch is left alone). Each player's left, right and accelerate are in a column of
+\\ their own, so no keys of theirs held together can ghost another (tools/keys_ghost.py).
+
+\\ The keys' internal numbers, measured: the kit's docs/hardware-facts.md section 7, and COMMA and PERIOD with
+\\ jsbeeb-mcp 4.3.0's key_down on a Master, 2026-11-02 (all nine confirmed there)
+
+KeyShift = 0
+KeyZ = 97
+KeyX = 66
+KeyV = 99
+KeyB = 100
+KeyN = 85
+KeyComma = 102
+KeyPeriod = 103
+KeySlash = 104
+
+\\ Whether a key is held.
+\\
+\\ Inputs:
+\\     A: its internal number
+\\
+\\ Outputs:
+\\     A: &80 if held, else 0; N by it
+\\     X, Y preserved
+
+.key_down
+{
+    ZA_AUTO1 k                          ; local: the key
+
+    STA k
+    PHP
+    SEI                                 ; (the sound will share port A)
+    LDA #&7F:STA &FE43                  ; system VIA: DDRA, PA0-6 out (the key asked about), PA7 in
+    LDA k:STA &FE4F                     ; system VIA: ORA, no handshake
+    LDA &FE4F                           ; PA7: held
+    PLP
+    AND #&80
+    RTS
+}
+
+\\ The three players' inputs from their keys: 4 left, 8 right, &80 accelerate (the ST's bits).
+\\
+\\ Inputs:
+\\     the keyboard
+\\
+\\ Outputs:
+\\     RcInput: cars 0-2's
+\\     A, X, Y: corrupted
+
+.read_players
+{
+    STZ RcInput:STZ RcInput+1:STZ RcInput+2
+    LDY #8
+.key
+    LDA PlayerKeys,Y
+    JSR key_down
+    BPL up
+    LDX PlayerOf,Y
+    LDA PlayerBit,Y:ORA RcInput,X:STA RcInput,X
+.up
+    DEY
+    BPL key
+    RTS
+}
+
+.PlayerKeys                             ; each player's left, right, accelerate
+    EQUB KeyZ, KeyX, KeyShift
+    EQUB KeyV, KeyB, KeyN
+    EQUB KeyComma, KeyPeriod, KeySlash
+.PlayerOf
+    EQUB 0, 0, 0, 1, 1, 1, 2, 2, 2
+.PlayerBit
+    EQUB 4, 8, &80, 4, 8, &80, 4, 8, &80

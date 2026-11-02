@@ -14,7 +14,8 @@ VENV = .venv/installed
 # forced); its wreck's helicopter comes from below. TRACE=heli1, heli2 or heli3 plays the same race with
 # the helicopter forced to come from above or either side; TRACE=t0 to t7 the same race on track 1 to 8
 # (index 0 to 7; t4 is the default's); TRACE=attract the attract mode's race on track 6; TRACE=logic0 the
-# logic trace's race on track 1, drawn from the BBC's own race logic (Phase 4, step 8).
+# logic trace's race on track 1, drawn from the BBC's own race logic (Phase 4, step 8); TRACE=play the same
+# race to play (make beeb TRACE=play): three players on the keys (Z X SHIFT, V B N, , . /), car 3 a drone.
 TRACE ?= race
 RACE = 17
 FORCE = tornado,cones
@@ -28,6 +29,11 @@ else ifeq ($(TRACE),logic0)
 TRACK = 0
 TRACEFILE = build/trace/race_t0_r0_script.json
 GENFLAGS = --logic
+LOGICDEPS = build/lgen/tables.6502
+else ifeq ($(TRACE),play)
+TRACK = 0
+TRACEFILE = build/trace/race_t0_r0_script.json
+GENFLAGS = --logic --play
 LOGICDEPS = build/lgen/tables.6502
 else ifneq ($(filter heli1 heli2 heli3,$(TRACE)),)
 TRACK = 4

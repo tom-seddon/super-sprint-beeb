@@ -86,6 +86,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             INCLUDE "random.6502"
             INCLUDE "race.6502"
             INCLUDE "human.6502"
+            INCLUDE "keyboard.6502"
             INCLUDE "../build/lgen/tables.6502"
         ENDIF
         PRINT "main RAM's code: ", ObjBufOrg - P%, " bytes free below ObjBuf"

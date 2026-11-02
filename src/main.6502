@@ -48,9 +48,11 @@ ENDSECTION
 
 ErasePer = 16                           ; erase list entries a screen: 4 cars, MaxMovers objects, the end
 ZA_AUTO1 eidx                           ; the erase list's next entry
-ZA_AUTO2 tptr                           ; the trace's next frame
-ZA_AUTO2 eptr                           ; and its next HUD event
-ZA_AUTO1 objend                         ; the frame's object events' end in ObjEvents
+IF GenLogic = 0
+    ZA_AUTO2 tptr                       ; the trace's next frame
+    ZA_AUTO2 eptr                       ; and its next HUD event
+    ZA_AUTO1 objend                     ; the frame's object events' end in ObjEvents
+ENDIF
 ZA_AUTO1 carnum                         ; the car being drawn
 
 \\ The screen's character rows' addresses (in main RAM: both banks' code reads them)

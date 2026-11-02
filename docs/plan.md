@@ -256,7 +256,7 @@ adds the logic.
 | D9 | Exactness of the race logic | Decided (Tom, 2026-11-02): bit-exact, checked frame by frame against Hatari |
 | D10 | First track | Decided (Tom, 2026-11-02): track 1 (index 0) |
 | D11 | Sound | Decided (Tom, 2026-11-02): 50 Hz IRQ; captured streams for effects and tunes; engines live |
-| D12 | Keys | Decided in part (Tom, 2026-11-02): a proposed three-player layout, checked for ghosting; joysticks as an option |
+| D12 | Keys | Decided in part (Tom, 2026-11-02): layout Proposed (Z X SHIFT, V B N, , . /: no ghosting on paper), for a real BBC; joysticks as an option |
 | D13 | Mask B's storage | Decided (Tom, 2026-11-02): the mixed cells only, as the priority mask |
 
 ## Risks
