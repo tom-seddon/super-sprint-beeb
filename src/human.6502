@@ -1,0 +1,361 @@
+\\ human.6502 - a human player's car, each frame: the ST's F_00DC4C, bit for bit (D9). The jump or spin under
+\\ way, the steering, accelerating or coasting, and the move. st-logic §2 explains it; this follows the code.
+
+\\ Inputs:
+\\     X: the car
+\\     RcInput: its input
+\\
+\\ Outputs:
+\\     its state, a frame on
+\\     A, Y: corrupted; X preserved
+
+.human
+{
+    ZA_AUTO1 in                         ; local: the input, 4 left, 8 right, &80 accelerate
+    ZA_AUTO1 parity                     ; local: the facing parity that straightens up, 0 or 1; &80 none
+    ZA_AUTO1 delay                      ; local: the steering delay, n
+
+    LDA RcInput,X:STA in
+    LDA RcBounce,X:BEQ @+               ; bouncing: no input
+    DEC RcBounce,X
+    STZ in
+.@
+    LDA RcBitsHi,X:AND #HI(&400):BEQ ground
+    JMP jump                            ; airborne
+.ground
+
+    \\ a spin: speed 10 or more, no input, and every other frame a step clockwise
+
+    LDA RcSpin,X:BEQ steer
+    DEC RcSpin,X
+    INC RcSpeedLo,X
+    BNE @+
+    INC RcSpeedHi,X
+.@
+    LDA RcSpeedHi,X:BMI ten
+    BNE spun
+    LDA RcSpeedLo,X:CMP #10:BCS spun
+.ten
+    LDA #10:STA RcSpeedLo,X
+    STZ RcSpeedHi,X
+.spun
+    STZ in
+    LDA RcSpin,X:BNE odd
+    LDA RcBitsLo,X:AND #LO(&FFCF):STA RcBitsLo,X
+    BRA steer
+.odd
+    LSR A:BCC steer
+    LDA RcDir,X:INC A:AND #15:STA RcDir,X
+
+    \\ the steering delay: 5 - v / D below the threshold, 3 + v / D from it; 1 less with flag &2000; at
+    \\ least 1. And which facing parity straightens up: none airborne (&1400), 0 on a nudge stretch (&40)
+
+.steer
+    LDA RcBitsHi,X:AND #HI(&1400):BEQ @+
+    LDA #&80
+    BRA par
+.@
+    LDA RcBitsLo,X:AND #&40:BEQ @+
+    LDA #0
+    BRA par
+.@
+    LDA #1
+.par
+    STA parity
+
+    LDA RcSpeedLo,X:STA num
+    LDA RcSpeedHi,X:STA num+1
+    LDA RcDiv,X:JSR div_s16             ; v / D: -1 to 9
+    SEC
+    LDA RcSpeedLo,X:SBC RcThreshLo,X
+    LDA RcSpeedHi,X:SBC RcThreshHi,X
+    BVC @+
+    EOR #&80
+.@
+    BMI below
+    LDA num:CLC:ADC #3
+    BRA got
+.below
+    LDA #5:SEC:SBC num
+.got
+    TAY
+    LDA RcBitsHi,X:AND #HI(&2000):BEQ @+
+    DEY
+.@
+    TYA:BEQ one
+    BPL @+
+.one
+    LDY #1
+.@
+    STY delay
+
+    \\ right: a step clockwise once the timer reaches n (and not reversing), which costs n speed when
+    \\ accelerating; else the timer counts up
+
+    LDA in:AND #8:BEQ left
+    LDA RcSteer,X:CMP delay:BMI countup   ; (both 0-12)
+    LDA RcSpeedHi,X:BMI countup
+    LDA RcDir,X:STA RcTravel,X
+    INC A:AND #15:STA RcDir,X
+    STZ RcSteer,X
+    BRA cost
+.countup
+    INC RcSteer,X
+    JMP speed
+
+    \\ left: a step anticlockwise once the timer reaches 0, the timer to n
+
+.left
+    LDA in:AND #4:BEQ neither
+    LDA RcSteer,X:BEQ @+
+    BPL countdown
+.@
+    LDA RcSpeedHi,X:BMI countdown
+    LDA RcDir,X:STA RcTravel,X
+    DEC A:AND #15:STA RcDir,X
+    LDA delay:STA RcSteer,X
+.cost
+    BIT in:BPL speed
+    SEC
+    LDA RcSpeedLo,X:SBC delay:STA RcSpeedLo,X
+    BCS speed
+    DEC RcSpeedHi,X
+    BRA speed
+.countdown
+    DEC RcSteer,X
+    BRA speed
+
+    \\ neither: straighten up from an odd facing, with no spin, below the level-0 top speed (the cap)
+
+.neither
+    LDA RcSpin,X:BNE speed
+    LDA parity:BMI speed
+    LDA RcDir,X:AND #1:CMP parity:BNE speed
+    SEC
+    LDA RcSpeedLo,X:SBC RcCapLo,X
+    LDA RcSpeedHi,X:SBC RcCapHi,X
+    BVC @+
+    EOR #&80
+.@
+    BPL speed
+    LDA delay:LSR A                     ; n / 2
+    CMP RcSteer,X:BMI up                ; the timer past n / 2: up
+    DEC RcSteer,X
+    BEQ @+
+    BPL speed
+.@
+    LDA delay:STA RcSteer,X
+    LDA RcDir,X:DEC A:AND #15:STA RcDir,X
+    BRA speed
+.up
+    INC RcSteer,X
+    LDA RcSteer,X:CMP delay:BMI speed
+    STZ RcSteer,X
+    LDA RcDir,X:INC A:AND #15:STA RcDir,X
+
+    \\ accelerating: 2 a frame up to the top speed, in the facing direction; coasting: in the travel
+    \\ direction, 1 a frame off but in the turbo's coasting phases, 1 more in the traction's
+
+.speed
+    BIT in:BPL coast
+    SEC
+    LDA RcSpeedLo,X:SBC RcTopLo,X
+    LDA RcSpeedHi,X:SBC RcTopHi,X
+    BVC @+
+    EOR #&80
+.@
+    BMI add2
+    LDA RcTopLo,X:STA RcSpeedLo,X
+    LDA RcTopHi,X:STA RcSpeedHi,X
+    BRA facing
+.add2
+    CLC
+    LDA RcSpeedLo,X:ADC #2:STA RcSpeedLo,X
+    BCC facing
+    INC RcSpeedHi,X
+.facing
+    LDA RcDir,X:STA RcTravel,X
+    BRA target
+.coast
+    LDA RcSpeedHi,X:BMI target
+    ORA RcSpeedLo,X:BEQ target
+    LDA RcTurbo,X:JSR coast_bit
+    BNE @+
+    JSR speed_less1
+.@
+    LDA RcTraction,X:JSR coast_bit
+    BEQ @+
+    JSR speed_less1
+.@
+    LDA RcSpeedHi,X:BPL target
+    STZ RcSpeedLo,X
+    STZ RcSpeedHi,X
+
+    \\ the target velocity: speed times the travel direction's vector (the facing's, accelerating)
+
+.target
+    LDY RcTravel,X
+    LDA RcSpeedLo,X:STA num
+    LDA RcSpeedHi,X:STA num+1
+    LDA DirX,Y:JSR mul_s16
+    LDA num:STA RcTVXLo,X
+    LDA num+1:STA RcTVXHi,X
+    LDY RcTravel,X
+    LDA RcSpeedLo,X:STA num
+    LDA RcSpeedHi,X:STA num+1
+    LDA DirY,Y:JSR mul_s16
+    LDA num:STA RcTVYLo,X
+    LDA num+1:STA RcTVYHi,X
+    JMP move
+}
+
+\\ The coasting table's entry for an upgrade's level and this frame's phase.
+\\
+\\ Inputs:
+\\     A: the level, 0-5
+\\
+\\ Outputs:
+\\     A: Coast[level * 7 + RcPhase], 0 or 1, and Z by it
+\\     Y: corrupted; X preserved
+
+.coast_bit
+{
+    ZA_AUTO1 level                      ; local
+
+    STA level                           ; level * 7 = level * 8 - level
+    ASL A:ASL A:ASL A
+    SEC:SBC level
+    CLC:ADC RcPhase
+    TAY
+    LDA Coast,Y
+    RTS
+}
+
+\\ A car's speed less 1.
+\\
+\\ Inputs:
+\\     X: the car
+\\
+\\ Outputs:
+\\     RcSpeed: 1 less
+\\     A: corrupted; X, Y preserved
+
+.speed_less1
+{
+    LDA RcSpeedLo,X:BNE @+
+    DEC RcSpeedHi,X
+.@
+    DEC RcSpeedLo,X
+    RTS
+}
+
+\\ The move, F_00DC4C's end (F_00F23C's too): the smoothed velocity halfway to the target's, the position
+\\ on by it over D, the pixel position by it over 8; the old position kept.
+\\
+\\ Inputs:
+\\     X: the car
+\\
+\\ Outputs:
+\\     RcPX8, RcPY8, RcSVX, RcSVY, RcX8, RcY8, RcX, RcY
+\\     A, Y: corrupted; X preserved
+
+.move
+{
+    LDA RcX8Lo,X:STA RcPX8Lo,X
+    LDA RcX8Hi,X:STA RcPX8Hi,X
+    LDA RcY8Lo,X:STA RcPY8Lo,X
+    LDA RcY8Hi,X:STA RcPY8Hi,X
+
+    CLC                                 ; svx = (tvx + svx) / 2, the sum 16-bit, rounded towards 0
+    LDA RcTVXLo,X:ADC RcSVXLo,X:STA num
+    LDA RcTVXHi,X:ADC RcSVXHi,X:STA num+1
+    JSR half
+    LDA num:STA RcSVXLo,X
+    LDA num+1:STA RcSVXHi,X
+    LDA RcDiv,X:JSR div_s16             ; x8 += svx / D
+    CLC
+    LDA RcX8Lo,X:ADC num:STA RcX8Lo,X:STA num
+    LDA RcX8Hi,X:ADC num+1:STA RcX8Hi,X:STA num+1
+    LDA #8:JSR div_s16                  ; x = x8 / 8
+    LDA num:STA RcXLo,X
+    LDA num+1:STA RcXHi,X
+
+    CLC                                 ; the same for y
+    LDA RcTVYLo,X:ADC RcSVYLo,X:STA num
+    LDA RcTVYHi,X:ADC RcSVYHi,X:STA num+1
+    JSR half
+    LDA num:STA RcSVYLo,X
+    LDA num+1:STA RcSVYHi,X
+    LDA RcDiv,X:JSR div_s16
+    CLC
+    LDA RcY8Lo,X:ADC num:STA RcY8Lo,X:STA num
+    LDA RcY8Hi,X:ADC num+1:STA RcY8Hi,X:STA num+1
+    LDA #8:JSR div_s16
+    LDA num:STA RcYLo,X
+    LDA num+1:STA RcYHi,X
+    RTS
+
+    \\ num halved, rounded towards 0 (divs.w by 2): a negative number has 1 added first
+
+.half
+    LDA num+1:BPL shift
+    INC num
+    BNE shift
+    INC num+1
+.shift
+    LDA num+1
+    CMP #&80                            ; (C: the sign)
+    ROR num+1
+    ROR num
+    RTS
+}
+
+\\ A jump under way (flag &400), from F_00DC4C: speed 1 a frame on, up to the cap; the facing turned at each
+\\ step's start; accelerate counts only in the first 3 steps, steering not at all. At the sequence's end, a
+\\ landing if it passed over a landing cell (&800), else a crash. Then it steers as on the ground.
+\\
+\\ Inputs, outputs: human's; it goes on to human.steer
+
+.jump
+{
+    INC RcSpeedLo,X
+    BNE @+
+    INC RcSpeedHi,X
+.@
+    SEC
+    LDA RcCapLo,X:SBC RcSpeedLo,X
+    LDA RcCapHi,X:SBC RcSpeedHi,X
+    BVC @+
+    EOR #&80
+.@
+    BPL capped
+    LDA RcCapLo,X:STA RcSpeedLo,X
+    LDA RcCapHi,X:STA RcSpeedHi,X
+.capped
+    LDY RcJump,X
+    LDA RcSpin,X:BNE @+
+    LDA RcDir,X:CLC:ADC JumpTurn,Y
+    AND #15:STA RcDir,X:STA RcTravel,X
+.@
+    TYA:AND #7:CMP #3:BCC @+
+    STZ human.in
+    BRA count
+.@
+    LDA human.in:AND #&80:STA human.in
+.count
+    INC RcSpin,X
+    LDA RcSpin,X:CMP JumpFrames,Y:BNE done
+    STZ RcSpin,X
+    INC RcJump,X
+    INY
+    LDA JumpFrames,Y:BNE done
+    LDA RcBitsHi,X:AND #HI(&800):BNE landed
+    LDA #1:STA RcState,X
+    BRA clear
+.landed
+    \\ the sparks and the bump's sound (F_00BE4A, F_013032): not yet
+.clear
+    LDA RcBitsHi,X:AND #HI(&F3FF):STA RcBitsHi,X
+.done
+    JMP human.steer
+}

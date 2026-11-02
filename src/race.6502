@@ -1,0 +1,363 @@
+\\ race.6502 - the race's logic (Phase 4, D9: the ST's, bit for bit): its state, its set-up (F_00C592's), and a
+\\ frame of it (F_00C592's loop: the cars' control, then F_00E66A's collisions).
+\\
+\\ The state is the ST's per-car words, 4 cars each, named Rc and a word: a 16-bit one as Lo and Hi arrays,
+\\ one that always fits a byte as one array (signed where the ST's can go below 0). tools/logic_check.mjs
+\\ compares them with the ST's, frame by frame.
+\\
+\\ Built so far: the set-up of the humans' cars, their control (human.6502), and of F_00E66A the coasting
+\\ phase, the area check and the last safe place. Not yet: walls, the attribute cells, car-to-car, drones,
+\\ wrecks, scoring, the race's end, hazards, pickups.
+
+SECTION LogicVars
+.RcX8Lo                                 ; G_01E3FC: x in eighths of a pixel
+    SKIP 4
+.RcX8Hi
+    SKIP 4
+.RcY8Lo                                 ; G_01E3F4: y
+    SKIP 4
+.RcY8Hi
+    SKIP 4
+.RcXLo                                  ; G_01E42C: x in pixels, the sprite box's left
+    SKIP 4
+.RcXHi
+    SKIP 4
+.RcYLo                                  ; G_01E424: y, its top
+    SKIP 4
+.RcYHi
+    SKIP 4
+.RcPX8Lo                                ; G_01E3CC: x8 before the move
+    SKIP 4
+.RcPX8Hi
+    SKIP 4
+.RcPY8Lo                                ; G_01E3C4: y8
+    SKIP 4
+.RcPY8Hi
+    SKIP 4
+.RcSafeX8Lo                             ; G_01E3EC: the last safe x8
+    SKIP 4
+.RcSafeX8Hi
+    SKIP 4
+.RcSafeY8Lo                             ; G_01E3E4: y8
+    SKIP 4
+.RcSafeY8Hi
+    SKIP 4
+.RcSafeDir                              ; G_01E3DC: facing
+    SKIP 4
+.RcDir                                  ; G_01E41C: facing, 0-15 (0 up, clockwise)
+    SKIP 4
+.RcTravel                               ; G_01E414: the direction it moves in when coasting
+    SKIP 4
+.RcSpeedLo                              ; G_01E404: speed
+    SKIP 4
+.RcSpeedHi
+    SKIP 4
+.RcTopLo                                ; G_01E374: top speed
+    SKIP 4
+.RcTopHi
+    SKIP 4
+.RcCapLo                                ; G_01E35C: 11 * D / 4, the level-0 top speed: the cap in a jump
+    SKIP 4
+.RcCapHi
+    SKIP 4
+.RcThreshLo                             ; G_01E364: the steering threshold
+    SKIP 4
+.RcThreshHi
+    SKIP 4
+.RcDiv                                  ; G_01E36C: D, the divisor: 40 - 5 * turbo, 40 for a drone
+    SKIP 4
+.RcSteer                                ; G_01E40C: the steering timer, signed
+    SKIP 4
+.RcTVXLo                                ; G_01E2EC: the target velocity's x
+    SKIP 4
+.RcTVXHi
+    SKIP 4
+.RcTVYLo                                ; G_01E2E4: y
+    SKIP 4
+.RcTVYHi
+    SKIP 4
+.RcSVXLo                                ; G_01E2FC: the smoothed velocity's x
+    SKIP 4
+.RcSVXHi
+    SKIP 4
+.RcSVYLo                                ; G_01E2F4: y
+    SKIP 4
+.RcSVYHi
+    SKIP 4
+.RcOffXLo                               ; G_01E30C: a drone's offset from its path, x
+    SKIP 4
+.RcOffXHi
+    SKIP 4
+.RcOffYLo                               ; G_01E304: y
+    SKIP 4
+.RcOffYHi
+    SKIP 4
+.RcBounce                               ; G_01E3B4: the bounce timer, or the wreck's
+    SKIP 4
+.RcImmune                               ; G_01E3AC: the car-to-car immunity timer
+    SKIP 4
+.RcSpin                                 ; G_01E37C: the spin counter, or a jump step's frames
+    SKIP 4
+.RcJump                                 ; G_01E384: the jump sequence's place
+    SKIP 4
+.RcBitsLo                               ; G_01E3A4: the flags (st-logic §2)
+    SKIP 4
+.RcBitsHi
+    SKIP 4
+.RcLatchLo                              ; G_01E39C: the track cells' latches
+    SKIP 4
+.RcLatchHi
+    SKIP 4
+.RcState                                ; G_01E3D4: 0 racing, 1 crash pending, 2 wrecked
+    SKIP 4
+.RcLaps                                 ; G_01E354: laps completed
+    SKIP 4
+.RcCheck                                ; G_01E38C: the last checkpoint passed
+    SKIP 4
+.RcStripesLo                            ; G_01E394: stripes crossed since it
+    SKIP 4
+.RcStripesHi
+    SKIP 4
+.RcDrone                                ; G_01E34C: 1 a drone drives it
+    SKIP 4
+.RcTurbo                                ; G_01E2B0 + car * 8: the upgrades' levels, 0-5: turbo acceleration,
+    SKIP 4
+.RcTopUp                                ; G_01E2AE: higher top speed,
+    SKIP 4
+.RcTraction                             ; G_01E2AC: super traction
+    SKIP 4
+.RcInput                                ; a human's input this frame: 4 left, 8 right, &80 accelerate
+    SKIP 4
+.RcOrder                                ; G_01E2CC: the draw order, the cars by y
+    SKIP 4
+.RcPush                                 ; G_01E2A0: the push direction found, &FF none, &80 a wreck
+    SKIP 1
+.RcPhase                                ; G_01D178: the coasting cycle, 0-6
+    SKIP 1
+.RcFrameLo                              ; G_01D30E: the frame counter
+    SKIP 1
+.RcFrameHi
+    SKIP 1
+.RcTrack                                ; the track, 0-7
+    SKIP 1
+.RcRace                                 ; G_01EBC2: the race counter, 0-50
+    SKIP 1
+ENDSECTION
+
+\\ The race's set-up, F_00C592's for the cars: each on the grid, still, its constants from its upgrades.
+\\
+\\ Inputs:
+\\     RcTrack, RcRace, RcDrone, RcTurbo, RcTopUp, RcTraction: set; the rest of LogicVars 0
+\\
+\\ Outputs:
+\\     the cars' state as the ST's when its race starts; RcFrame 1, the set-up's last flip's
+\\     A, X, Y: corrupted
+
+.race_setup
+{
+    ZA_AUTO2 t                          ; local: a product
+
+    LDX #3
+.car
+    LDY RcTrack
+    LDA GridX,Y:STA RcXLo,X
+    STZ RcXHi,X
+    ASL A:STA RcX8Lo,X                  ; x8 = x * 8
+    LDA #0:ROL A
+    ASL RcX8Lo,X:ROL A
+    ASL RcX8Lo,X:ROL A
+    STA RcX8Hi,X
+
+    LDA GridStep,Y:STA num        ; y = y0 + car * step (at most 168 + 3 * 9)
+    STZ num+1
+    TXA
+    JSR mul_s16
+    LDY RcTrack
+    LDA GridY,Y
+    CLC:ADC num
+    CMP #186:BCC @+                     ; 186 or more: 178
+    LDA #178
+.@
+    STA RcYLo,X
+    STZ RcYHi,X
+    ASL A:STA RcY8Lo,X                  ; y8 = y * 8
+    LDA #0:ROL A
+    ASL RcY8Lo,X:ROL A
+    ASL RcY8Lo,X:ROL A
+    STA RcY8Hi,X
+
+    LDA GridDir,Y:STA RcDir,X
+
+    \\ D = 40 - 5 * turbo; the cap 11 * D / 4; top = the cap + topup * 5 * D / 40; the threshold
+    \\ top * 8 / 11 + traction * 4 * D / 40
+
+    LDA RcTurbo,X
+    ASL A:ASL A:ADC RcTurbo,X           ; (C clear: at most 25)
+    EOR #&FF:SEC:ADC #40
+    STA RcDiv,X
+    STA num:STZ num+1
+    LDA #11:JSR mul_s16
+    LDA #4:JSR div_s16
+    LDA num:STA RcCapLo,X
+    LDA num+1:STA RcCapHi,X
+    LDA RcDiv,X:STA num:STZ num+1
+    LDA RcTopUp,X:ASL A:ASL A:ADC RcTopUp,X
+    JSR mul_s16
+    LDA #40:JSR div_s16
+    CLC
+    LDA num:ADC RcCapLo,X:STA RcTopLo,X:STA num
+    LDA num+1:ADC RcCapHi,X:STA RcTopHi,X:STA num+1
+    LDA #8:JSR mul_s16
+    LDA #11:JSR div_s16
+    LDA num:STA t
+    LDA num+1:STA t+1
+    LDA RcDiv,X:STA num:STZ num+1
+    LDA RcTraction,X:ASL A:ASL A
+    JSR mul_s16
+    LDA #40:JSR div_s16
+    CLC
+    LDA num:ADC t:STA RcThreshLo,X
+    LDA num+1:ADC t+1:STA RcThreshHi,X
+
+    \\ a drone's own constants, and its place on its path: not yet (step 7)
+
+    DEX
+    BMI order
+    JMP car
+.order
+    LDX #3
+.orders
+    TXA:STA RcOrder,X
+    DEX
+    BPL orders
+    LDA #1:STA RcFrameLo                ; (the set-up's flips: frames 0 and 1)
+    STZ RcFrameHi
+    RTS
+}
+
+\\ A race frame: F_00C592's loop's logic, in its order. The track's objects, the lap events, the points
+\\ and the HUD aren't here yet.
+\\
+\\ Inputs:
+\\     RcInput: the human players' inputs
+\\
+\\ Outputs:
+\\     the race's state, a frame on
+\\     A, X, Y: corrupted
+
+.race_frame
+{
+    INC RcFrameLo                       ; (the ST counts it at the flip, before this frame)
+    BNE @+
+    INC RcFrameHi
+.@
+    LDX #0
+.control
+    LDA RcState,X:BNE next              ; a wrecked car: no control
+    LDA RcDrone,X:BNE next              ; a drone: not yet (step 7)
+    JSR human                           ; (X preserved)
+.next
+    INX
+    CPX #4:BNE control
+    JMP collide
+}
+
+\\ F_00E66A: the coasting cycle on; then each car in draw order: the area it must stay in, its walls and the
+\\ track's cells, a bounce or a wreck, its last safe place, and a car-to-car shove. Built: the cycle, the
+\\ area, the safe place; the rest are to come (walls and cells step 6, car-to-car step 7).
+\\
+\\ Inputs:
+\\     the cars' state, moved
+\\
+\\ Outputs:
+\\     the cars' state; RcPush &FF
+\\     A, X, Y: corrupted
+
+.collide
+{
+    ZA_AUTO1 k                          ; local: the place in the draw order
+
+    LDX RcPhase:INX
+    CPX #7:BNE @+
+    LDX #0
+.@
+    STX RcPhase
+
+    STZ k
+.next
+    LDY k
+    LDX RcOrder,Y
+    JSR collide_car
+    INC k
+    LDA k:CMP #4:BNE next
+    LDA #&FF:STA RcPush
+    RTS
+}
+
+\\ F_00E66A's work for one car.
+\\
+\\ Inputs:
+\\     X: the car
+\\     RcPush: the car before's push (kept by a car not racing)
+\\
+\\ Outputs:
+\\     the car's state; RcPush
+\\     A, Y: corrupted; X preserved
+
+.collide_car
+{
+    \\ the area: x 2 to 301, y 2 to 185, or a crash
+
+    LDA RcXHi,X:BMI out
+    BNE xhigh
+    LDA RcXLo,X:CMP #2:BCC out
+    BRA ycheck
+.xhigh
+    CMP #HI(302):BNE out
+    LDA RcXLo,X:CMP #LO(302):BCS out
+.ycheck
+    LDA RcYHi,X:BNE out                 ; (negative, or 256 on)
+    LDA RcYLo,X
+    CMP #2:BCC out
+    CMP #186:BCC area
+.out
+    LDA #1:STA RcState,X
+.area
+    LDA RcState,X:CMP #1:BNE drawn
+    BRK                                 ; a crash: put back and wrecked (F_00BB4E), not yet
+    EQUB 0
+    EQUS "crash", 0
+    ZA_UNREACHABLE
+.drawn
+
+    \\ the walls and the track's cells (F_00C4F6, F_00BEEA), for a car racing: not yet, so no push. (A car
+    \\ not racing keeps the push the car before it found: the ST's quirk, kept.)
+
+    LDA RcState,X:BNE @+
+    LDA #&FF:STA RcPush
+.@
+
+    \\ no push: the last safe place, if not bouncing, on the ground, off a nudge stretch and racing (a
+    \\ drone's always)
+
+    LDA RcBounce,X:BNE drone
+    LDA RcBitsLo,X:AND #&41:BNE drone
+    LDA RcState,X:BNE drone
+.safe
+    LDA RcDir,X:STA RcSafeDir,X
+    LDA RcX8Lo,X:STA RcSafeX8Lo,X
+    LDA RcX8Hi,X:STA RcSafeX8Hi,X
+    LDA RcY8Lo,X:STA RcSafeY8Lo,X
+    LDA RcY8Hi,X:STA RcSafeY8Hi,X
+    BRA immune
+.drone
+    LDA RcDrone,X:BNE safe
+
+    \\ the car-to-car immunity counted down; a shove: not yet
+
+.immune
+    LDA RcImmune,X:BEQ @+
+    DEC RcImmune,X
+.@
+    RTS
+}

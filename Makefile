@@ -35,7 +35,7 @@ GEN = build/gen
 # A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
 .DELETE_ON_ERROR:
 
-.PHONY: all venv disasm tracks convert sheets viewer beeb check clean always logictrace
+.PHONY: all venv disasm tracks convert sheets viewer beeb check clean always logictrace logic logiccheck
 
 all: disasm convert sheets viewer beeb
 
@@ -89,6 +89,17 @@ build/trace/race_t4_r$(RACE)_heli%.json: tools/st_race.py build/trace/obj_t4_r$(
 build/trace/logic_t%_r0.json: tools/st_trace_logic.py tools/hatari.sh tools/logic_scripts/t%.json | $(VENV)
 	$(PY) tools/st_trace_logic.py $* 0 tools/logic_scripts/t$*.json $@
 logictrace: build/trace/logic_t0_r0.json
+
+# The race logic's test (Phase 4): the logic trace's race replayed through the BBC's logic, no display
+# (build/logic.ssd), and its check against the ST's state every frame (tools/logic_check.mjs).
+LOGICTRACE = build/trace/logic_t0_r0.json
+build/lgen/tables.6502: tools/gen_logic.py tools/logic_maps.py build/super.s $(LOGICTRACE) | $(VENV)
+	$(PY) tools/gen_logic.py $(LOGICTRACE) build/lgen
+logic: build/logic.ssd
+build/logic.ssd: $(wildcard src/*.6502) build/lgen/tables.6502
+	baron -v --symbols build/logic.json -o $@ --opt 2 src/logictest.6502 > build/logic.lst
+logiccheck: build/logic.ssd
+	node tools/logic_check.mjs $(LOGICARGS)
 
 # The renderer test's data, and its disc. Baron 0.6 is on the PATH. $(GEN)/tracefile names the trace the
 # data was made from, so playing another (TRACEFILE=...) remakes it, and so does coming back.

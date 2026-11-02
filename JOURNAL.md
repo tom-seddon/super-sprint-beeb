@@ -313,3 +313,13 @@
 - **Mask B encoded** (`tools/maskb.py`): 2,168 bytes on track 1 to 3,427 on track 8, the gates' and
   barriers' cells included, every track decoding to the ST's mask exactly; track 1's mask equals the ST's
   RAM to the pixel.
+- **D13 decided** (Tom: "Yes, D13 as proposed").
+- **The logic's oracle** (`make logiccheck`): a test disc with no display replays the traced race's inputs
+  through the BBC's logic, and `tools/logic_check.mjs` compares 38 of the ST's variables every frame.
+- **The humans' cars** (F_00DC4C): car 0 matches the ST in every movement variable to frame 75, its first
+  car-to-car shove. 3,824 cycles a frame for one car, most of it the general multiply and divide.
+- **Mistake**: the set-up handed `mul_s16`'s result to `div_s16` without a copy (each had its own number):
+  every frame wrong from frame 1. They share `num` now. Broken on purpose (the halving rounded down), the
+  oracle fails from frame 6.
+- F_012276's tables come from its own stores in the disassembly, run by `tools/gen_logic.py`, not from a RAM
+  dump that a clean build can't make again. The last word of the jump table is BSS, never stored.

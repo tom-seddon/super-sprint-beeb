@@ -1,0 +1,86 @@
+\\ logictest.6502 - the race logic's test (Phase 4, D9): the ST's traced race replayed through the BBC's logic,
+\\ with no display. !BOOT, *RUN by SHIFT-BREAK: it takes the machine (interrupts off, the OS never called
+\\ again), sets the race up as the trace's, then runs a race frame for each of the trace's frames with the
+\\ human players' inputs the ST read. tools/logic_check.mjs stops it at test_entry.setup_done and at
+\\ each test_entry.frame_done and compares its state with the ST's.
+\\
+\\ The logic's code and state go where the game will have them once the renderer is driven by it (brief
+\\ step 8); here everything is in main RAM, the state at &0400.
+
+INCLUDE "macros.6502"
+INCLUDE "../build/lgen/race.6502"
+
+ZA_POOL &04..&FB, &FD..&FF
+
+TestOrg = &1100
+LogicVarsOrg = &0400
+
+SECTION LogicVars, org = LogicVarsOrg, guard = &0800, virtual = TRUE
+ENDSECTION
+
+SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec = &FFFF0000+test_entry, guard = &7C00, cmos = TRUE
+
+\\ Take the machine and replay the race.
+\\
+\\ Inputs:
+\\     none
+\\
+\\ Outputs:
+\\     none: it never returns
+
+.test_entry
+{
+    ZA_ENTRY
+    ZA_AUTO2 iptr                       ; local: the next frame's inputs
+
+    SEI
+    CLD
+    LDX #&FF:TXS
+    LDA #0:TAX
+.clear
+    FOR page = HI(LogicVarsOrg)..<HI(LogicVarsOrg)+4
+        STA page * &100,X
+    NEXT
+    INX
+    BNE clear
+
+    LDA #TraceTrack:STA RcTrack
+    LDA #TraceRace:STA RcRace
+    FOR c = 0..3
+        LDA #TraceDrones[c]:STA RcDrone+c
+    NEXT
+    JSR race_setup
+.setup_done
+
+    LDA #LO(Inputs):STA iptr
+    LDA #HI(Inputs):STA iptr+1
+.frame
+    LDY #0
+.input
+    LDA (iptr),Y:STA RcInput,Y
+    INY
+    CPY #3:BNE input
+    JSR race_frame
+.frame_done
+    CLC
+    LDA iptr:ADC #3:STA iptr
+    BCC @+
+    INC iptr+1
+.@
+    LDA iptr:CMP #LO(InputsEnd):BNE frame
+    LDA iptr+1:CMP #HI(InputsEnd):BNE frame
+.finished
+    BRA finished
+    ZA_UNREACHABLE
+}
+
+    INCLUDE "arith.6502"
+    INCLUDE "race.6502"
+    INCLUDE "human.6502"
+    INCLUDE "../build/lgen/tables.6502"
+
+.Inputs                                 ; each race frame's inputs, cars 0-2 (tools/gen_logic.py)
+    INCBIN "../build/lgen/inputs.bin"
+.InputsEnd
+
+ENDSECTION

@@ -1,6 +1,6 @@
 # Brief - Phase 4, one race: the first steps
 
-> **Status: PLAN, agreed 2026-11-02 (Tom: "Yes, D13 as proposed"); steps 1, 2 and mask B's part of 4 built.**
+> **Status: PLAN, agreed 2026-11-02 (Tom: "Yes, D13 as proposed"); steps 1-3, 5 and mask B's part of 4 built.**
 > Branch `phase4-start`, off `02741da` (the commit Tom last saw). Tom's four answers are D9-D12 in
 > `docs/decisions.md`; D13 (mask B's storage) was this brief's proposal, decided by Tom 2026-11-02.
 >
@@ -10,9 +10,9 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 3.** If this session ends, the next starts at step 3 (§6), the oracle, reading this
-brief, `tools/st_trace_logic.py` (what the trace holds), `tools/render_check.mjs` (the harness to follow)
-and `src/memory.6502`. Step 2 is done (§8).
+**Resume point: step 6.** If this session ends, the next starts at step 6 (§6), walls, reading this
+brief's §8, `src/race.6502` (`collide_car`), `tools/maskb.py` and st-logic §3. Steps 2, 3 and 5 are done,
+and mask B's part of 4 (§8). `make logiccheck LOGICARGS="--until 75 --cars 0"` is the proof so far.
 
 ## 0. The proposal in one paragraph
 
@@ -182,3 +182,26 @@ cells: 150), up to track 8's 3,427 (290 cells), against 8,000; every track decod
 of 8,000 bytes wrong, and track 1's mask is the ST's RAM (`attract2600.bin`) to the pixel. Broken on
 purpose, the check fails (a cell byte flipped: 1 wrong; a wall cell mapped as road: 8 more). The reserved
 cells cost 6 to 47 cells a track over the bare count; the header (200 bytes) could shrink to 4 a row.
+
+**Step 3, the oracle.** `make logiccheck` builds `build/logic.ssd` (`src/logictest.6502`: no display,
+interrupts off, the OS never called after the load) and runs `tools/logic_check.mjs`. The test sets the race
+up as the trace's (`race_setup`), then runs `race_frame` once for each traced frame with the human's inputs
+the ST read (`build/lgen/inputs.bin`, from `tools/gen_logic.py`, which also writes the ST's tables: the
+direction vectors from `INIT.DAT`, and the coasting and jump tables from F_012276's own stores, run from the
+disassembly). The harness stops it after the set-up (against the trace's frame 1) and after each race frame
+(frame k against frame k), and compares 35 per-car variables and 3 race-wide ones, the ST's words against
+the BBC's `Rc` arrays; `--cars`, `--vars` and `--until` narrow it. A frame the BBC never finishes (a path not
+built yet traps with a BRK) is reported and fails. It fails when it should: with the set-up's multiply
+not handed to its divide (a real slip on the way) all 75 frames were wrong from frame 1; with the
+velocity's halving rounded down instead of towards 0, 70 of 75, from frame 6.
+
+**Step 5, the humans' cars.** `src/human.6502` (F_00DC4C, the jump and spin paths included), `src/arith.6502`
+(`mul_s16`, `div_s16`: the 68000's `muls.w` low word and `divs.w` rounding, sharing `num` so one feeds the
+next), and of F_00E66A in `src/race.6502` the coasting phase, the area check and the last safe place.
+MEASURED: car 0 matches the ST in all 28 of its movement variables, the phase and the frame counter, on
+every frame from 1 to 75 (`make logiccheck LOGICARGS="--until 75 --cars 0"`). Frame 76 is its first
+car-to-car shove (step 7); its stripes and latches differ from frame 26 (the attribute cells, step 7); it
+stops at frame 143, a crash the BBC can't do yet. The logic costs 3,824 cycles a frame with one human car
+and nothing else (mean; max 3,939): the general multiply and divide (about 200 and 400 cycles, 7 of them a
+frame) are most of it, and are the first thing to make faster once the logic is whole (D9 allows any
+method that gives the same results; each can be checked against every input it can get).

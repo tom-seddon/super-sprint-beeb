@@ -1,0 +1,91 @@
+\\ arith.6502 - the race logic's 16-bit signed arithmetic, as the ST's 68000 does it (D9): a product's low
+\\ word kept (muls.w, then move.w), a quotient rounded towards 0 (divs.w). Both take and give their number in
+\\ num, so one's result is the next's input.
+
+ZA_AUTO2 num                            ; mul_s16's and div_s16's number, in and out
+
+\\ A signed 16-bit number times a small signed one: the product's low 16 bits.
+\\
+\\ Inputs:
+\\     num: the number
+\\     A: the multiplier, -127 to 127
+\\
+\\ Outputs:
+\\     num: the product's low 16 bits
+\\     A, Y: corrupted; X preserved
+
+.mul_s16
+{
+    ZA_AUTO2 acc                        ; local: the sum
+    ZA_AUTO1 m                          ; local: the multiplier's bits left
+    ZA_AUTO1 neg                        ; local: bit 7, the multiplier's sign
+
+    STA neg
+    BPL @+
+    EOR #&FF:INC A                      ; |multiplier|
+.@
+    STA m
+    STZ acc:STZ acc+1
+.bit
+    LSR m
+    BCC shift
+    CLC
+    LDA acc:ADC num:STA acc
+    LDA acc+1:ADC num+1:STA acc+1
+.shift
+    ASL num:ROL num+1
+    LDA m:BNE bit
+
+    BIT neg:BMI negate
+    LDA acc:STA num
+    LDA acc+1:STA num+1
+    RTS
+.negate
+    SEC
+    LDA #0:SBC acc:STA num
+    LDA #0:SBC acc+1:STA num+1
+    RTS
+}
+
+\\ A signed 16-bit number divided by a positive one, the quotient rounded towards 0 (divs.w's). The
+\\ quotient always fits: the divisor is at least 1 and the number at most 32,768 from 0.
+\\
+\\ Inputs:
+\\     num: the number
+\\     A: the divisor, 1 to 127
+\\
+\\ Outputs:
+\\     num: the quotient
+\\     A, Y: corrupted; X preserved
+
+.div_s16
+{
+    ZA_AUTO1 d                          ; local: the divisor
+    ZA_AUTO1 neg                        ; local: bit 7, the number's sign
+
+    STA d
+    LDA num+1:STA neg
+    BPL @+
+    SEC
+    LDA #0:SBC num:STA num
+    LDA #0:SBC num+1:STA num+1
+.@
+    LDA #0                              ; the remainder: under d, so it never carries out
+    LDY #16
+.bit
+    ASL num:ROL num+1
+    ROL A
+    CMP d:BCC @+
+    SBC d                               ; (C set)
+    INC num                             ; (bit 0 clear after the shift)
+.@
+    DEY
+    BNE bit
+
+    BIT neg:BPL @+
+    SEC
+    LDA #0:SBC num:STA num
+    LDA #0:SBC num+1:STA num+1
+.@
+    RTS
+}
