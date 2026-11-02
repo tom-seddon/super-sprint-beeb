@@ -32,6 +32,7 @@ SECTION GameVars
 ENDSECTION
 
 MaxHazInst = 6                          ; the gates and barriers: the 3 barriers, then up to 3 gates
+CueFrames = 28                          ; a wreck's last frames, the car blinking where it comes back (D16)
 GateInst0 = 3
 
 IF GenPlay = 0
@@ -210,53 +211,84 @@ ENDIF
     NEXT
     RTS
 
-    \\ the cars in draw order: each the car, or its explosion (&80 | x's high bit << 6, its piece)
+    \\ the cars in draw order: each the car, or its explosion (&80 | x's high bit << 6, its piece); in its
+    \\ wait's last CueFrames, instead of the helicopter (D16), the car blinking where it will be put back
+    \\ (shown its first 4 frames and last 4, 4 on and 4 off), or nothing
 .build_cars
     ZA_AUTO1 c                          ; local: the car
-    LDX #0
+    ZA_AUTO1 i                          ; local: its place in the draw order
+    ZA_AUTO1 t                          ; local: its x's high byte
+    ZA_AUTO1 f                          ; local: its facing
+    ZA_AUTO1 k                          ; local: its on-top bit (&40)
+    LDX #0                              ; (X: the record)
+    STZ i
 .car
+    LDY i
+    LDA RcOrder,Y:TAY
     JSR record
-    INX
-    CPX #4:BNE car
+    INC i
+    LDA i:CMP #4:BNE car
     STX CarCount
     RTS
 
-    \\ car X in draw order's record
+    \\ car Y's record, at X, X one on (unless nothing's drawn)
 .record
-    LDY RcOrder,X
-    LDA RcExplFrame,Y:CMP #&FF:BNE explosion
-    TYA:STA CarId,X                     ; the car | drone-driven << 2
-    LDA RcDrone,Y:BEQ @+
-    LDA #4:ORA CarId,X:STA CarId,X
-.@
-    LDA RcXLo,Y:STA CarXLo,X
-    LDA RcYLo,Y:STA CarY,X
-    STY c
-    TYA:ASL A:ORA RcDrone,Y:TAY         ; frame: its set * 16 + facing | on top << 6 | x's high bit << 7
-    LDA SetOf,Y
-    LDY c
-    ASL A:ASL A:ASL A:ASL A
-    ORA RcDir,Y
-    STA CarFlags,X
-    LDA RcBitsLo,Y:AND #1:BNE ontop
-    LDA RcBitsHi,Y:AND #HI(&400):BEQ ground
-.ontop
-    LDA CarFlags,X:ORA #&40:STA CarFlags,X
-.ground
-    LDA RcXHi,Y:LSR A:BCC @+
-    LDA CarFlags,X:ORA #&80:STA CarFlags,X
-.@
-    RTS
+    LDA RcExplFrame,Y:CMP #&FF:BEQ racing
+    LDA RcBounce,Y:CMP #CueFrames+1:BCS explosion   ; (the wait left: 1 at its last frame)
+    DEC A:AND #4:BEQ cue
+    RTS                                 ; (off)
 .explosion
+    LDA RcExplFrame,Y:STY c
     TAY:LDA ExplPiece,Y                 ; its frame's piece
     STA CarFlags,X
-    LDY RcOrder,X
+    LDY c
     LDA RcXHi,Y:LSR A:LDA #&80:BCC @+
     ORA #&40
 .@
     STA CarId,X
     LDA RcXLo,Y:AND #&FC:STA CarXLo,X   ; (on a 4-pixel step, D8)
     LDA RcYLo,Y:STA CarY,X
+    INX
+    RTS
+.cue
+    LDA RcSafeX8Hi,Y:STA t              ; the safe place's x and y, x8 / 8 and y8 / 8 (never negative)
+    LDA RcSafeX8Lo,Y
+    LSR t:ROR A:LSR t:ROR A:LSR t:ROR A
+    STA CarXLo,X
+    LDA RcSafeY8Hi,Y:STA t
+    LDA RcSafeY8Lo,Y
+    LSR t:ROR A:LSR t:ROR A:LSR t:ROR A
+    STA CarY,X
+    LDA RcSafeDir,Y:STA f
+    LDA #0:STA k                        ; (on the ground: a safe place is)
+    BRA frame
+.racing
+    LDA RcXLo,Y:STA CarXLo,X
+    LDA RcYLo,Y:STA CarY,X
+    LDA RcXHi,Y:STA t
+    LDA RcDir,Y:STA f
+    LDA RcBitsLo,Y:AND #1:BNE ontop
+    LDA RcBitsHi,Y:AND #HI(&400):BEQ ground
+.ontop
+    LDA #&40
+.ground
+    STA k
+.frame
+    TYA:STA CarId,X                     ; the car | drone-driven << 2
+    LDA RcDrone,Y:BEQ @+
+    LDA #4:ORA CarId,X:STA CarId,X
+.@
+    STY c
+    TYA:ASL A:ORA RcDrone,Y:TAY         ; frame: its set * 16 + facing | on top << 6 | x's high bit << 7
+    LDA SetOf,Y
+    LDY c
+    ASL A:ASL A:ASL A:ASL A
+    ORA f:ORA k
+    LSR t:BCC @+                        ; (t: x's high byte)
+    ORA #&80
+.@
+    STA CarFlags,X
+    INX
     RTS
 
 }
@@ -399,7 +431,7 @@ ENDIF
 }
 
 \\ The moving objects' pieces, in the ST's order: the sparks (not on the set-up's flips), the banner, the
-\\ helicopter (its sideways frames' pieces off the screen's side left out, as gendata.py's trace() does).
+\\ tornado. (Not the helicopter: D16; build_cars draws a cue in its place.)
 \\
 \\ Inputs: the logic's state; logic_frame.setup. Outputs: MovCount, MovVar, MovXLo, MovXHi, MovYLo, MovYHi.
 \\ A, X, Y: corrupted.
@@ -451,19 +483,6 @@ ENDIF
     LDA RcTorYHi:STA yhi
     JSR pieces
 .notornado
-    LDA RcHeliDrawn:BEQ done
-    LDA RcHeliVariant:ASL A             ; ((variant * 2 + car 3) * 4 + frame)
-    LDY RcHeliCar:CPY #3:BNE @+
-    ORA #1
-.@
-    ASL A:ASL A:ORA RcHeliFrame:TAY
-    LDA HeliFirst,Y:STA first
-    LDA HeliCount,Y:STA count
-    LDA RcHeliXLo:AND #&F0:STA xlo      ; (on a 16-pixel step)
-    LDA RcHeliXHi:STA xhi
-    LDA RcHeliYLo:STA ylo
-    LDA RcHeliYHi:STA yhi
-    JMP heli_pieces
 .done
     RTS
 
@@ -481,39 +500,6 @@ ENDIF
     DEC count
     BNE piece
     STX MovCount
-    RTS
-
-    \\ the helicopter's: each piece's columns from x / 4 + its dx; one wholly off the screen's side left out.
-    \\ Its tables are its plotter's, in the bank's first 4K: ANDY out while they're read (D15)
-.heli_pieces
-    LDA banktrace:STA &FE30             ; ROMSEL: the fourth bank, ANDY out (the helicopter's tables)
-    LDX MovCount
-.hpiece
-    LDA first:SEC:SBC #HeliVar0:TAY
-    LDA xhi:CMP #&80:LDA xlo:ROR A      ; x / 4, signed (x -48 to 319: a byte's -12 to 79)
-    CMP #&80:ROR A
-    CLC:ADC helimov.MovDX,Y             ; the piece's first column
-    BMI left
-    CMP #80:BCS off                     ; right of the screen
-    BRA on
-.left
-    CLC:ADC helimov.MovW,Y              ; left of the screen if it ends by column 0
-    BEQ off
-    BMI off
-.on
-    LDA first:STA MovVar,X
-    LDA xlo:STA MovXLo,X
-    LDA xhi:STA MovXHi,X
-    LDA ylo:STA MovYLo,X
-    LDA yhi:STA MovYHi,X
-    INX
-.off
-    INC first
-    DEC count
-    BNE hpiece
-    STX MovCount
-    LDA banktrace:ORA #RomselAndy
-    STA &FE30                           ; ROMSEL: ANDY in again
     RTS
 }
 

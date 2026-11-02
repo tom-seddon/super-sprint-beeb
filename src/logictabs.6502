@@ -11,9 +11,5 @@
     EQUB GenBannerFirst
 .BannerCount
     EQUB GenBannerCount
-.HeliFirst                              ; the helicopter's, by (variant * 2 + car 3) * 4 + frame
-    EQUB GenHeliFirst
-.HeliCount
-    EQUB GenHeliCount
 .SetOf                                  ; a car's frame set, by car * 2 + drone-driven
     EQUB GenSetOf

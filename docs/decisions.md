@@ -221,7 +221,7 @@ A fault found in step 13 (2026-11-02): the premise that the logic never reads th
 with ANDY in it read mask B; track 2's sideways helicopter showed it (track 5's comes from below). It now pages
 ANDY out for those reads.
 
-### D16. The helicopter: not drawn, a cue in its place: Proposed (2026-11-02)
+### D16. The helicopter: not drawn, a cue in its place: Decided (2026-11-02)
 After speed's fourth round the hazard race's slowest frames are its start (the helicopter on screen, about
 7,700 cycles a frame, 4,700 of them its copy loop, with the gates stepping) and its pile-ups (the helicopter
 with cars under a bridge and against walls). Tom, 2026-11-02: "If the helicopter is just inherently going to
@@ -251,3 +251,13 @@ Options:
 Either (b) or (c) also changes the renderer's tests: the model (`tools/render_model.py`) leaves the
 helicopter out of the races drawn from the logic, and the traced races' helicopter checks (`make check`,
 `heli1`-`heli3`) go with it.
+Tom: "Blinking car cue sounds good." Then: "Moving mask B back out of ANDY sounds like it'd be worth trying
+after that, then measuring the result."
+Built 2026-11-02, (c): in the game (the races drawn from the logic) the helicopter isn't drawn; its logic, its
+timing and its sound are the ST's still. `build_cars` (logicframe) draws, in a wreck's last 28 frames
+(`CueFrames`; `RcBounce` is the frames left), the car at its safe place on the ground for 4 frames and not for
+4, shown first and last; the model (`render_model.py --cue`, from the trace: the frame the car is drawn again,
+and its place then) the same. The traced races (Phase 3's renderer tests, `heli1`-`heli3`) keep the ST's
+helicopter. MEASURED (`make check`, every frame matching the model): the hazard race 150 -> 106 frames over a TV
+frame, mean 32,224 -> 31,874; track 1's race mean 23,939 -> 23,534. The fourth bank 1,476 -> 2,608 free on every
+track (play builds), and its first 4K, under ANDY, empty.

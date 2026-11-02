@@ -1,7 +1,11 @@
 """The renderer test's model: each frame of the ST race as the BBC should draw it, from the ST's own data.
 
-Usage: render_model.py TRACK TRACE.json OUT.bin   (OUT: 16,640 bytes a frame, the HUD row and the play area
-in screen order)
+Usage: render_model.py TRACK TRACE.json OUT.bin [--cue]   (OUT: 16,640 bytes a frame, the HUD row and the play
+area in screen order)
+
+--cue: the game's (drawn from the logic, D16): no helicopter; instead, in the CueFrames before a wrecked car is
+put back (the first frame it's drawn again), its explosion replaced by the car where it's put back, as it's
+drawn then, on the ground, shown for 4 frames and hidden for 4, shown in the first 4 and the last 4.
 
 Independent of the BBC's data (gendata.py's trimming, shifts, key colour, priority cells and object
 variants): the clean background in the ST's colours, changed by the frame's background objects as the ST
@@ -17,6 +21,7 @@ columns that differ redrawn, scanning from column 39 down, until a pass over eac
 """
 
 HudPerFrame = 4
+CueFrames = 28                          # (logicframe.6502's)
 
 import json, sys
 import numpy as np
@@ -44,7 +49,32 @@ def hud_row(text):
     return bytes(out)
 
 
-def main(track, tracepath, out):
+def cues(frames):
+    """By frame, each wrecked car's cue: car -> its put-back frame's (x, y, facing, drone), or None (hidden)."""
+    out = [dict() for _ in frames]
+    for car in range(4):
+        wrecked = [any(c[0] == 'explosion' and c[1][0] == car for c in fr['calls']) for fr in frames]
+        n = 0
+        while n < len(frames):
+            if not wrecked[n]:
+                n += 1
+                continue
+            s = n
+            while n < len(frames) and wrecked[n]:
+                n += 1
+            back = n                    # the frame it's drawn again
+            if back == len(frames):     # the trace ends first: its cue can't have begun (a wait is 40 or more)
+                assert back - s <= 10, f"car {car} wrecked from frame {s} to the trace's end: its cue unknown"
+                continue
+            assert any(c[0] == 'car' and c[1][0] == car for c in frames[back]['calls']), 'drawn again as a car'
+            x, y, facing, flags = frames[back]['cars'][car]
+            for f in range(max(s, back - CueFrames), back):
+                left = back - f
+                out[f][car] = (x, y, facing, frames[back]['drone'][car]) if (left - 1) & 4 == 0 else None
+    return out
+
+
+def main(track, tracepath, out, cue=False):
     opt = OPTIONS['B']
     dat = open('orig/st/SUPER.DAT', 'rb').read()
     stbg = np.load(f'build/gfx/bg_t{track}.npy').copy()
@@ -74,8 +104,10 @@ def main(track, tracepath, out):
                 row = opaque[r, c0:c1]
                 lidx[y + r, x + c0:x + c1][row] = sprite[r, c0:c1][row]
 
+    race = list(load_race(tracepath))
+    cue_at = cues(race) if cue else [dict() for _ in race]
     with open(out, 'wb') as fo:
-        for n, fr in enumerate(load_race(tracepath)):
+        for n, fr in enumerate(race):
             now = hud.text(fr['laps'], fr['scores'], track)
             if now != want:
                 want, count = now, 2
@@ -98,21 +130,30 @@ def main(track, tracepath, out):
             shows = maskc == 1
             cars, movers = frame_draws(fr, heli)
             for d in cars:
-                if d[0] == 'explosion':
+                if d[0] == 'explosion' and d[4] in cue_at[n]:
+                    if cue_at[n][d[4]] is None:
+                        continue
+                    c = d[4]
+                    x, y, facing, droned = cue_at[n][c]
+                    flags = 0           # (on the ground: a safe place is)
+                elif d[0] == 'explosion':
                     put(lidx, d[1], d[2], d[3])
                     continue
-                c = d[1]
-                x, y, facing, flags = fr['cars'][c]
-                sprite, opaque = frames[c, bool(fr['drone'][c]), facing]
+                else:
+                    c = d[1]
+                    x, y, facing, flags = fr['cars'][c]
+                    droned = fr['drone'][c]
+                sprite, opaque = frames[c, bool(droned), facing]
                 draw = opaque.copy()
                 if not flags & 0x0401:
                     draw &= shows[y:y + 12, x:x + 17]
                 lidx[y:y + 12, x:x + 17][draw] = sprite[draw]
             for key, x, y in movers:
-                put(lidx, key, x, y)
+                if not (cue and key[0] == 'heli'):
+                    put(lidx, key, x, y)
             fo.write(hud_row(screen))
             fo.write(mode1_bytes(lidx))
 
 
 if __name__ == '__main__':
-    main(int(sys.argv[1]), sys.argv[2], sys.argv[3])
+    main(int(sys.argv[1]), sys.argv[2], sys.argv[3], '--cue' in sys.argv[4:])

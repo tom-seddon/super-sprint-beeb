@@ -42,6 +42,8 @@ const regions = [
     ["plot bands", "cars", L("plot_car.crossing"), L("slowcol")],
     ["main RAM", null, 0, 0x3000],
 ];
+for (let k = regions.length - 1; k >= 0; k--)            // (a region whose labels this build hasn't: the game has no helicopter)
+    if (!Number.isFinite(regions[k][2]) || !Number.isFinite(regions[k][3])) regions.splice(k, 1);
 const regionOf = (pc) => {
     for (const [name, b, lo, hi] of regions) {
         if (pc < lo || pc >= hi) continue;

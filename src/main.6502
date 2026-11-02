@@ -306,8 +306,8 @@ ENDIF
 }
 
 \\ The frame's moving objects, after the cars: each one's bank paged in and its plotter called. The
-\\ helicopter's variants (HeliVar0 on) are the fourth bank's; the tornado's (MovVariants on) and the rest
-\\ are the objects' bank's.
+\\ helicopter's variants (HeliVar0 on) are the fourth bank's (the traced races': the game has none, D16);
+\\ the tornado's (MovVariants on) and the rest are the objects' bank's.
 \\
 \\ Inputs:
 \\     MovCount, MovVar, MovXLo, MovXHi, MovYLo, MovYHi
@@ -323,7 +323,9 @@ ENDIF
     BRA test
 .next
     LDA MovVar,X
-    CMP #HeliVar0:BCS heli
+    IF GenLogic = 0
+        CMP #HeliVar0:BCS heli
+    ENDIF
     LDY bankobj:STY &FE30               ; ROMSEL: the objects' bank
     CMP #MovVariants:BCC plot
     JSR mov_tornado
@@ -336,14 +338,16 @@ ENDIF
     LDA MovYHi,X:STA objmov.mov_plot.y+1
     JSR objmov.mov_plot
     BRA drawn
-.heli
-    SBC #HeliVar0:STA helimov.mov_plot.v ; (C set)
-    LDY bankheli:STY &FE30              ; ROMSEL: the helicopter's bank
-    LDA MovXLo,X:STA helimov.mov_plot.x
-    LDA MovXHi,X:STA helimov.mov_plot.x+1
-    LDA MovYLo,X:STA helimov.mov_plot.y
-    LDA MovYHi,X:STA helimov.mov_plot.y+1
-    JSR helimov.mov_plot
+    IF GenLogic = 0
+    .heli
+        SBC #HeliVar0:STA helimov.mov_plot.v ; (C set)
+        LDY bankheli:STY &FE30          ; ROMSEL: the helicopter's bank
+        LDA MovXLo,X:STA helimov.mov_plot.x
+        LDA MovXHi,X:STA helimov.mov_plot.x+1
+        LDA MovYLo,X:STA helimov.mov_plot.y
+        LDA MovYHi,X:STA helimov.mov_plot.y+1
+        JSR helimov.mov_plot
+    ENDIF
 .drawn
     INC m
 .test

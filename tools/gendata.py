@@ -312,7 +312,7 @@ def variant_of(kind, args, y, used):
 # place among the cars; the others after the cars, in the ST's order.
 
 def frame_draws(fr, heli):
-    """A frame's draws, in order: ('car', car) or ('explosion', key, x, y) among the cars, then the moving
+    """A frame's draws, in order: ('car', car) or ('explosion', key, x, y, car) among the cars, then the moving
     objects as (key, x, y). heli: the helicopter's composed frames, (variant, colour) by buffer frame,
     updated by the frame's composing calls."""
     cars, movers = [], []
@@ -322,7 +322,7 @@ def frame_draws(fr, heli):
             cars.append(('car', w[0]))
         elif n == 'explosion':
             x, y = fr['cars'][w[0]][:2]
-            cars.append(('explosion', ('explosion', w[1]), x & ~3, y))
+            cars.append(('explosion', ('explosion', w[1]), x & ~3, y, w[0]))
         elif n == 'small':
             movers.append((('banner', w[0], w[1] & 3), w[1] & ~3, w[2]))
         elif n == 'tornado':
