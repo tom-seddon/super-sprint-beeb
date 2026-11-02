@@ -36,7 +36,6 @@ ENDSECTION
 
 .drone
 {
-    ZA_AUTO2 q                          ; local: svx / D
     ZA_AUTO1 past                       ; local: bit 7, past the segment's end
 
     LDA RcBounce,X:BEQ path
@@ -101,7 +100,8 @@ ENDSECTION
 
 .steer
     JSR target
-    LDA RcOffXLo,X:STA num
+    LDA RcOffXLo,X:STA num              ; (0, on its line: nothing to add or lose)
+    ORA RcOffXHi,X:BEQ offy
     LDA RcOffXHi,X:STA num+1
     LDA #20:JSR div_s16
     CLC
@@ -110,7 +110,9 @@ ENDSECTION
     SEC
     LDA RcOffXLo,X:SBC num:STA RcOffXLo,X
     LDA RcOffXHi,X:SBC num+1:STA RcOffXHi,X
+.offy
     LDA RcOffYLo,X:STA num
+    ORA RcOffYHi,X:BEQ offdone
     LDA RcOffYHi,X:STA num+1
     LDA #20:JSR div_s16
     CLC
@@ -119,6 +121,7 @@ ENDSECTION
     SEC
     LDA RcOffYLo,X:SBC num:STA RcOffYLo,X
     LDA RcOffYHi,X:SBC num+1:STA RcOffYHi,X
+.offdone
     JSR smooth
 
     \\ the move: on by the smoothed velocity over D, the old position kept after the move (the ST's quirk:
@@ -128,14 +131,12 @@ ENDSECTION
     LDA RcSVXLo,X:STA num
     LDA RcSVXHi,X:STA num+1
     LDA RcDiv,X:JSR div_s16
-    LDA num:STA q
-    LDA num+1:STA q+1
     CLC
-    LDA RcX8Lo,X:ADC q:STA RcX8Lo,X:STA RcPX8Lo,X
-    LDA RcX8Hi,X:ADC q+1:STA RcX8Hi,X:STA RcPX8Hi,X
+    LDA RcX8Lo,X:ADC num:STA RcX8Lo,X:STA RcPX8Lo,X
+    LDA RcX8Hi,X:ADC num+1:STA RcX8Hi,X:STA RcPX8Hi,X
     CLC
-    LDA RcAccXLo,X:ADC q:STA RcAccXLo,X
-    LDA RcAccXHi,X:ADC q+1:STA RcAccXHi,X
+    LDA RcAccXLo,X:ADC num:STA RcAccXLo,X
+    LDA RcAccXHi,X:ADC num+1:STA RcAccXHi,X
     LDA RcSVYLo,X:STA num
     LDA RcSVYHi,X:STA num+1
     LDA RcDiv,X:JSR div_s16
