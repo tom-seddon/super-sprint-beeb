@@ -88,6 +88,9 @@ the average 38,207 -> 34,185 cycles; what's left is spread thin across the logic
   second). Exact on both traces; new unit tests for the wall columns (it caught a fault the races missed)
   and for the arithmetic (`tools/arith_check.mjs`, 158,340 cases). The hazard race's frames taking two TV
   frames 734 -> 329, its mean 38,207 -> 34,357; track 1's 5 -> 1. The suite, 18 checks, passes.
+- **Room** (`docs/brief-room-2026-11-02.md`): every track measured; mask B and the logic's state moved into
+  ANDY after measuring it untouched by the game and by loads (D15); two layout fixes; all eight tracks now
+  assemble, checked by `tools/all_tracks.sh` in the suite (19 checks).
 - **D14** (your "Yes, drop them"): the drones' two accumulators that only dead ST code reads are gone: the
   hazard race's logic 135 cycles a frame less, track 5's fourth bank 10 -> 72 bytes free; its frames taking
   two TV frames 329 -> 315.
@@ -109,12 +112,12 @@ the average 38,207 -> 34,185 cycles; what's left is spread thin across the logic
 
 ## What is open
 
-Resume point: **room** (`docs/brief-room-2026-11-02.md`, a proposal for you). Every track's play build
-assembled for real: four don't build today (the fourth bank 138 and 322 over on tracks 6 and 8; Shared's
-whole-page rule on tracks 4, 6, 7 and 8, which wastes up to 255 bytes; a page-padding layout fault in the
-cars' bank on track 6). Proposed: two fixes, and mask B and the logic's state in ANDY (D15: the fourth bank
-3,536 free on every track, ANDY 237 to 1,496 spare), HAZEL left for Phase 5. Then speed's
-third round, the other 7 tracks, and the joysticks once measured on a real Master.
+Resume point: **the other tracks** (`docs/brief-phase4.md`). Room is done (`docs/brief-room-2026-11-02.md`,
+your "Yes, build it"): mask B and the logic's state in ANDY (D15), Shared copied from `&3000`, the plot's
+loop padded outside its routine. Every track's play build now assembles (`tools/all_tracks.sh`, in the
+suite): the fourth bank 3,536 free on each, ANDY 237 (track 8) to 1,496 spare. The tightest place left is the
+cars' bank on track 6, 1 byte (its frames' page padding is the lever, ~375). Then speed's third round and
+the joysticks once measured on a real Master.
 
 ## Branch ledger
 

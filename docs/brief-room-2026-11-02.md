@@ -1,15 +1,16 @@
 # Brief - room for every track
 
-> **Status: PROPOSAL (2026-11-02, rewritten around ANDY), for Tom.** Branch `phase4-start`, from `d662b37`.
-> Asked for by Tom ("Room proposal") after speed's second round left track 5's fourth bank 72 bytes free;
-> rewritten after Tom asked whether ANDY was used ("If not already used, it should therefore be free for game
-> use without interfering with any filing system stuff") and said "Yes, rewrite it". Nothing here changes the
-> picture or the play; it's where code and data live. Using ANDY revises D7 (D15, Proposed).
+> **Status: DONE (Tom, 2026-11-02: "Yes, build it"), levers 1-3 built and an all-tracks check in the suite.**
+> Branch `phase4-start`, from `c6b3c59`. Asked for by Tom ("Room proposal") after speed's second round left
+> track 5's fourth bank 72 bytes free; rewritten after Tom asked whether ANDY was used ("If not already used,
+> it should therefore be free for game use without interfering with any filing system stuff") and said "Yes,
+> rewrite it". Nothing here changes the picture or the play; it's where code and data live. Using ANDY
+> revises D7 (D15, decided).
 >
 > Figures say **MEASURED** (a build's listing or a tool run, named), **COUNTED** (off the source or a listing)
 > or **PROJECTED** (arithmetic on top).
 
-**Resume point: Tom's answer** (§5). On a yes, the steps in §6 in order, one commit each, the suite after each.
+**Resume point: done** (§7). Every track assembles; the next job is the other tracks themselves (`docs/brief-phase4.md`).
 
 ## 1. The ledger: every track, measured
 
@@ -133,3 +134,47 @@ cycles in the body, after the whole suite (`tools/suite.sh`, 18 checks).
    The suite proves the logic and the drawing unchanged; every track's ledger redone.
 5. A `make` target (or a suite line) that assembles all eight tracks' play builds, so a track that stops
    fitting fails the suite instead of being found later.
+
+## 7. What landed
+
+Every figure MEASURED, jsbeeb 2.18.0 (Master, MOS 3.20, the 1770 DFS), 2026-11-02. After each lever the
+whole suite passed (18 checks, then 19 with `all_tracks`).
+
+1. **ANDY free for this game** (no commit: the measurement, recorded in D15). Seeded with a pattern after the
+   takeover in the hazard race game, 0 of its 4,096 bytes changed after the whole race (2,240 frames); the
+   bank's own `&8000` read separately held the helicopter's code, not the pattern, so the reads were ANDY's.
+   From BASIC with the same disc: before seeding 4,082 bytes differ from the pattern, after it 0; after
+   `*LOAD` of the disc's five files and `*CAT`, 0; after `*KEY 1 HELLO`, 30 (the check sees the MOS's writes).
+2. **Lever 1** (`852be79`): `shared_copy` from `&3000`; the whole-page assert gone, Shared's guard the limit.
+   Bytes none; cycles none.
+3. **Lever 2** (`e78abcf`): `INPAGE_AHEAD` (`src/macros.6502`) pads before `plot_car` by the fast loop's
+   offset in it; an assert keeps the loop in one page. Track 6 assembles; the cars' bank unchanged
+   elsewhere (1,898 on track 1).
+4. **Lever 3** (`1ff9ff7`): mask B and LogicVars in ANDY; the logic pages the fourth bank with ROMSEL's bit 7
+   at `start` and in the frame loop; SPRINT carries ANDY's image and its loader copies it in after its OS
+   calls; the logic test arranged the same (its bank's code from `&9000`). Found on the way:
+   - `logic_start` zeroed LogicVars a page at a time from `HI(LogicVarsOrg)`, so it also cleared whatever
+     shared that page: on track 5's traced game the attribute map's last 8 bytes (bottom-row cells no car
+     reaches, so nothing saw it). It zeroes exactly the state now; under the new layout it would have wiped
+     mask B's end.
+   - `tools/keys_check.mjs` read RcInput with readMemory's `{ bank }`, which reads the bank's own
+     `&8000`-`&8FFF`, and failed 12 of 12: the kit's rule (name ANDY on every read) in practice.
+     `tools/jsbeeb.mjs` gains `andy()`; the mask B tools check ROMSEL's bit 7 before reading.
+   Cycles: the logic test 11,189 (track 1) and 14,052 (hazard race), as before; the hazard race game 34,190
+   a frame (34,185), 306 frames over (305).
+5. **All tracks** (`39e1f9a`): `tools/all_tracks.sh`, in the suite.
+
+| Track (index) | 1 (0) | 2 (1) | 3 (2) | 4 (3) | 5 (4) | 6 (5) | 7 (6) | 8 (7) |
+|---|---|---|---|---|---|---|---|---|
+| The fourth bank (was) | 936 | 640 | 426 | 494 | 122 | -138 | 108 | -322 |
+| **The fourth bank** | **3,536** | **3,536** | **3,536** | **3,536** | **3,536** | **3,536** | **3,536** | **3,536** |
+| ANDY | 1,496 | 1,199 | 985 | 1,054 | 681 | 421 | 668 | 237 |
+| Shared | 506 | 492 | 453 | 128 | 347 | 128 | 240 | 215 |
+| The cars' bank | 1,898 | 1,649 | 1,239 | 818 | 514 | **1** | 833 | 1,321 |
+| The objects' bank | 7,364 | 7,364 | 4,489 | 6,663 | 2,567 | 6,844 | 7,175 | 3,825 |
+| Main RAM's code | 224 | 224 | 224 | 224 | 224 | 224 | 224 | 224 |
+
+**Open:** the cars' bank on track 6 has 1 byte: lever 5 (the frames' page padding, ~375 PROJECTED) before
+anything there grows. ANDY on track 8 has 237 for anything else put there. Not measured: ADFS, MMFS and real
+hardware with ANDY (with D7's loads, Phase 5). **Measured and not built:** lever 4 (the helicopter and tornado
+swap, +1,414; it now conflicts with ANDY's arrangement), lever 6's small ones, HAZEL.

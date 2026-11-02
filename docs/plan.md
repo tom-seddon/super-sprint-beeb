@@ -93,7 +93,7 @@ and a CRT: the checkerboard reads as grey and isn't too busy).
 | `&3F00`-`&7FFF` main | 16,640 | Screen A |
 | `&3000`-`&3EFF` shadow | 3,840 | The shadow screen's: the same layout, ACCCON's X picking the screen being drawn's |
 | `&3F00`-`&7FFF` shadow | 16,640 | Screen B |
-| `&8000`-`&8FFF` ANDY | 4K | The OS's, unless Phase 3 shows the MOS doesn't need it kept (D7) |
+| `&8000`-`&8FFF` ANDY | 4K | Mask B and the logic's state, paged in with the fourth bank while the logic runs (D15) |
 | `&8000`-`&BFFF` banks 4-7 | 64K | Data, and the code that reads it: the renderer, unrolled loops |
 | `&C000`-`&DFFF` HAZEL | 8K | The OS's: the filing systems' workspace (D7) |
 

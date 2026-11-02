@@ -75,7 +75,7 @@ for unrolled loops. It was just in case: nothing measured says the game needs HA
 - **Leave the OS's memory to the OS**: HAZEL, `&0200`-`&03FF` and `&0800`-`&0DFF`. The game writes only the
   vectors it hooks (IRQ1V, BRKV), and puts them back for a load. Zero page `&90`-`&FF` (112 bytes) is the
   game's during a race and swapped with a copy in main RAM around a load. ANDY stays the OS's unless Phase 3
-  shows the MOS doesn't need it kept.
+  shows the MOS doesn't need it kept (revised by D15, 2026-11-02: the game's, for mask B and the logic's state).
 - **The game's unpaged space** is then zero page, `&0400`-`&07FF` (the language's workspace), `&0E00`-`&2FFF`
   and `&3000`-`&3EFF`: about 13.5K for the IRQ, the main loop, the logic and the state. The renderer and other
   big or unrolled code go in the banks, each beside the data it reads; paging is a `STA &F4:STA &FE30`.
@@ -199,7 +199,7 @@ Tom: "Yes, drop them"
 Built 2026-11-02: RcAccX/RcAccY gone from `src/drone.6502` and accx/accy from `tools/logic_check.mjs` (162
 variables compared); the logic's state reserves 16 bytes less, so track 5's fourth bank 10 -> 72 free.
 
-### D15. ANDY for the logic's data: Proposed (2026-11-02)
+### D15. ANDY for the logic's data: Decided (2026-11-02)
 D7 left ANDY to the OS "unless Phase 3 shows the MOS doesn't need it kept". Tom, 2026-11-02: "I don't think the
 OS doesn't use this for anything relevant to the game: it's some OSWRCH bits, and function key definitions.
 If not already used, it should therefore be free for game use without interfering with any filing system
@@ -211,3 +211,8 @@ logic runs (the helicopter, in the bank's first 4K, is drawn only outside it): t
 every track, where tracks 6 and 8 are now 138 and 322 over. First measured for this game: ANDY seeded, then
 the boot, a whole race and an OSFILE with the OS brought back, ANDY unchanged. Not measured: ADFS, MMFS, real
 hardware (with D7's loads, Phase 5).
+Tom: "Yes, build it" (to the proposal). Built 2026-11-02 (`docs/brief-room-2026-11-02.md` §7). Measured first,
+jsbeeb Master (MOS 3.20, 1770 DFS): ANDY seeded after the takeover, 0 of 4,096 bytes changed after the hazard
+race's 2,240 frames; from BASIC, 0 changed after `*LOAD` of the disc's five files and `*CAT`, 30 after
+`*KEY 1 HELLO`. So D7's "ANDY stays the OS's" no longer holds: the game fills it at the takeover; the OS's
+soft keys and user-defined characters there are lost, which the game never uses.

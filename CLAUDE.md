@@ -29,7 +29,8 @@ What the skills look up, for this project:
 - **Target**: BBC Master 128 only (jsbeeb `create_machine` model `Master`), 65C12. Two screens, main and
   shadow RAM at `&3F00`-`&7FFF`; ACCCON `&FE34` D (bit 0) the one shown, X (bit 2) the one the CPU sees at
   `&3000`-`&7FFF`, `&3000`-`&3EFF` included (ScreenVars). Four sideways RAM banks. The game hooks IRQ1V
-  (the System VIA's vsync only) and leaves the OS's memory alone (D7).
+  (the System VIA's vsync only) and leaves the OS's memory alone (D7) but ANDY, which holds mask B and the
+  logic's state (D15).
 - **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes
   `build/sprint.ssd`, the listing `build/sprint.lst` (each bank's free bytes are printed in it) and the
   symbols `build/sprint.json` (Baron's `--symbols`). No `-D` flags.
