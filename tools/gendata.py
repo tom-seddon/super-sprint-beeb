@@ -107,22 +107,36 @@ def cars(dat, sets):
             blocks.append(bytes(pixel_byte(canvas[r, (dx + n) * 4:(dx + n) * 4 + 4])
                                 for n in range(w) for r in range(y0, y0 + h)))
     # each block wholly in a page and at least 7 bytes in: the plotter's operands point up to 7 bytes before
-    # a block (less the band's first line) and keep its page's high byte. First fit, largest first
-    pages, offsets = [], [None] * len(blocks)
-    for i in sorted(range(len(blocks)), key=lambda i: -len(blocks[i])):
-        for p, used in enumerate(pages):
-            if used + len(blocks[i]) <= 256:
-                break
-        else:
-            pages.append(7)
-            p = len(pages) - 1
-        offsets[i] = p * 256 + pages[p]
-        pages[p] += len(blocks[i])
-    data = bytearray(256 * len(pages))
+    # a block (less the band's first line) and keep its page's high byte
+    offsets, size = pack_pages([len(b) for b in blocks], 7)
+    data = bytearray(size)
     for i, b in enumerate(blocks):
         data[offsets[i]:offsets[i] + len(b)] = b
-    data = bytes(data[:256 * (len(pages) - 1) + pages[-1]])
-    return data, [(d, w, o) for (d, w), o in zip(fs, offsets)], fr
+    return bytes(data), [(d, w, o) for (d, w), o in zip(fs, offsets)], fr
+
+
+def pack_pages(sizes, head):
+    """Blocks of these sizes packed into pages, each wholly in one and head bytes or more in: a page at a
+    time, the largest block left first, then the subset of the rest that fills the page most. -> (each
+    block's offset, the bytes to the last page's last block). (First fit, largest first, left 365 bytes
+    at pages' ends in the play build's cars' frames; this 25.)"""
+    left = sorted(range(len(sizes)), key=lambda i: (-sizes[i], i))
+    offsets, page = [None] * len(sizes), 0
+    while left:
+        first, room = left[0], 256 - head - sizes[left[0]]
+        reach = {0: []}                 # a fill of the room -> the blocks that make it
+        for i in left[1:]:
+            for s, items in list(reach.items()):
+                if s + sizes[i] <= room and s + sizes[i] not in reach:
+                    reach[s + sizes[i]] = items + [i]
+        at = page * 256 + head
+        for i in [first] + reach[max(reach)]:
+            offsets[i] = at
+            at += sizes[i]
+        chosen = set([first] + reach[max(reach)])
+        left = [i for i in left if i not in chosen]
+        page += 1
+    return offsets, at
 
 
 def prio(track, reserved=()):
