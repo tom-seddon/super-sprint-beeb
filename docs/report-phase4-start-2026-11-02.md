@@ -119,8 +119,9 @@ the average 38,207 -> 34,185 cycles; what's left is spread thin across the logic
 
 Resume point: **Phase 4's end** (`docs/brief-phase4.md`). Every track's race 17 now runs bit-exact through the
 BBC's logic and is drawn exactly from it (`tools/tracks_check.sh`: 48 checks). What's left of Phase 4: the
-joysticks once measured on a real Master; speed's third round (the hazard race still has 311 frames over);
-the cars' bank on track 6 (1 byte free).
+joysticks once measured on a real Master; speed's third round (the hazard race still has 311 frames over).
+The cars' bank on track 6, down to 1 byte, now has 396 (the frames packed tighter), and the build's stamps no
+longer let a fast build pass for up to date.
 
 ## Branch ledger
 

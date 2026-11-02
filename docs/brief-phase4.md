@@ -12,8 +12,9 @@
 
 **Resume point: Phase 4's end** (§8's last entries). Step 13 is done: every track's race 17 bit-exact through
 the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Left: the joysticks (once
-measured on a real Master), speed's third round (the hazard race has 311 frames over a TV frame), and the
-cars' bank on track 6 (1 byte free).
+measured on a real Master) and speed's third round (the hazard race has 311 frames over a TV frame). The
+cars' bank, which had 1 byte on track 6, has 396 there and 815 or more elsewhere (the frames packed tighter,
+`gendata.py`'s `pack_pages`), for the speed round to spend.
 
 ## 0. The proposal in one paragraph
 

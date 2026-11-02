@@ -174,7 +174,7 @@ whole suite passed (18 checks, then 19 with `all_tracks`).
 | The objects' bank | 7,364 | 7,364 | 4,489 | 6,663 | 2,567 | 6,844 | 7,175 | 3,825 |
 | Main RAM's code | 224 | 224 | 224 | 224 | 224 | 224 | 224 | 224 |
 
-**Open:** the cars' bank on track 6 has 1 byte: lever 5 (the frames' page padding, ~375 PROJECTED) before
-anything there grows. ANDY on track 8 has 237 for anything else put there. Not measured: ADFS, MMFS and real
+**Open:** the cars' bank on track 6 had 1 byte: lever 5 built after (`gendata.py`'s `pack_pages`, the frames
+filled a page at a time: 396 free there, 815 or more on the others, MEASURED). ANDY on track 8 has 237 for anything else put there. Not measured: ADFS, MMFS and real
 hardware with ANDY (with D7's loads, Phase 5). **Measured and not built:** lever 4 (the helicopter and tornado
 swap, +1,414; it now conflicts with ANDY's arrangement), lever 6's small ones, HAZEL.
