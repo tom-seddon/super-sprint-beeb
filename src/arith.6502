@@ -8,7 +8,7 @@ ZA_AUTO2 num                            ; mul_s16's and div_s16's number, in and
 \\
 \\ Inputs:
 \\     num: the number
-\\     A: the multiplier, -127 to 127
+\\     A: the multiplier, -127 to 127, the flags set by it (its sign is read from N)
 \\
 \\ Outputs:
 \\     num: the product's low 16 bits
@@ -76,32 +76,34 @@ ZA_AUTO2 num                            ; mul_s16's and div_s16's number, in and
     LDA num+1:CMP d:BCS long
 
     \\ the high byte under the divisor: the quotient fits a byte, and the high byte is the remainder so far,
-    \\ so 8 steps on the low byte do (the remainder stays under d, at most 127: no carry out)
+    \\ so 8 steps on the low byte do (the remainder stays under d, at most 127: no carry out). Each step's
+    \\ quotient bit is its C, shifted in by the next step's ROL, the last by one more (the C the first shifts
+    \\ in comes out of that one: never in the quotient or the remainder)
 
     FOR i = 1..8
-        ASL num
+        ROL num
         ROL A
         CMP d:BCC @+
-        SBC d                           ; (C set)
-        INC num                         ; (bit 0 clear after the shift)
+        SBC d                           ; (C set: stays set)
     .@
     NEXT
+    ROL num
     STZ num+1
     BRA sign
 
-    \\ else all 16 steps
+    \\ else all 16 steps, the same way
 .long
     LDA #0
     LDY #16
 .bit
-    ASL num:ROL num+1
+    ROL num:ROL num+1
     ROL A
     CMP d:BCC @+
-    SBC d                               ; (C set)
-    INC num                             ; (bit 0 clear after the shift)
+    SBC d                               ; (C set: stays set)
 .@
     DEY
     BNE bit
+    ROL num:ROL num+1
 
 .sign
     BIT neg:BPL @+
@@ -138,7 +140,7 @@ ZA_AUTO2 num                            ; mul_s16's and div_s16's number, in and
 \\
 \\ Inputs:
 \\     num: the number
-\\     A: the step
+\\     A: the step, the flags set by it (its sign is read from N)
 \\
 \\ Outputs:
 \\     num: the product's low 16 bits
