@@ -97,6 +97,7 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     FOR c = 0..3
         LDA #LgDrones[c]:STA RcDrone+c
     NEXT
+.loaded                                 ; (mask B as the track has it, before the gates and barriers are drawn)
     JSR race_setup
     LDX #2                              ; the sound as after the race's start: every channel's engine on
 .engines
@@ -147,8 +148,10 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
         INCLUDE "drone.6502"
         INCLUDE "pickups.6502"
         INCLUDE "effects.6502"
+        INCLUDE "hazards.6502"
         INCLUDE "../build/lgen/walls.6502"
         INCLUDE "../build/lgen/cells.6502"
+        INCLUDE "../build/lgen/hazards.6502"
         INCLUDE "../build/lgen/path.6502"
         INCLUDE "../build/lgen/probes.6502"
         PRINT "the logic's bank: ", P% - SwramOrg, " bytes"

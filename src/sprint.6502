@@ -45,10 +45,12 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
             INCLUDE "drone.6502"
             INCLUDE "pickups.6502"
             INCLUDE "effects.6502"
+            INCLUDE "hazards.6502"
             INCLUDE "logicframe.6502"
             INCLUDE "logictabs.6502"
             INCLUDE "../build/lgen/walls.6502"
             INCLUDE "../build/lgen/cells.6502"
+            INCLUDE "../build/lgen/hazards.6502"
             IF GenPlay = 0
 .LogicInputs
                 INCBIN "../build/lgen/inputs.rle" ; the traced race's inputs, as runs (tools/gen_logic.py)

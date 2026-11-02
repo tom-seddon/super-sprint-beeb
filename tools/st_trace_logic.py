@@ -1,10 +1,12 @@
 """Record a real race's logic on the ST, frame by frame, for the BBC's logic oracle (D9, docs/brief-phase4.md).
 
-Usage: st_trace_logic.py TRACK RACE SCRIPT OUT.json   (`make logictrace`; TRACK 0-7; RACE the race counter G_01EBC2; SCRIPT a
-JSON list of [when, keys]: from the flip at which `when` comes true, the blue car's keyboard holds `keys`,
-any of "L" (A), "R" (D) and "A" (left shift), until the next entry's `when`. `when` is a frame counter
-G_01D30E (a number), or a comparison of car 0's pixel x, pixel y or facing with a number, "x<60", "y>150",
-"f=8": an autopilot, each entry's breakpoint armed by the one before)
+Usage: st_trace_logic.py TRACK RACE SCRIPT OUT.json [FORCE]   (`make logictrace`; TRACK 0-7; RACE the race counter
+G_01EBC2; SCRIPT a JSON list of [when, keys]: from the flip at which `when` comes true, the blue car's keyboard
+holds `keys`, any of "L" (A), "R" (D) and "A" (left shift), until the next entry's `when`. `when` is a frame
+counter G_01D30E (a number), or a comparison of car 0's pixel x, pixel y or facing with a number, "x<60",
+"y>150", "f=8": an autopilot, each entry's breakpoint armed by the one before. SCRIPT "-": accelerate held from
+the attract mode on, as tools/st_trace_objects.py drives a race without one, so the two record the same race.
+FORCE: "tornado", "cones" or both, joined by commas: their coin flips forced, as st_trace_objects.py's)
 
 A one-player game is started from the attract mode as st_trace_objects.py does (the blue car on the keyboard),
 the real race F_00C592's track and race counter poked at its entry. Logged:
@@ -12,7 +14,11 @@ the real race F_00C592's track and race counter poked at its entry. Logged:
   (G_01E2A0-G_01E437), the scores G_01DFA8, the pickups' state G_01EB54-G_01EB6F, the sparks G_01E070-
   G_01E0BF, the helicopter G_01EB28-G_01EB35 and the banner G_01EB88-G_01EB8D;
 - each human car's input, as F_010CF2 returned it to F_00DC4C (at &DC64: d0, and the car at a6 + 8);
-- each XBIOS Random result F_00ADB8 draws (at &ADC4: d0), and F_00ADB8's n (a6 + 8).
+- each XBIOS Random result F_00ADB8 draws (at &ADC4: d0), and F_00ADB8's n (a6 + 8);
+- the track's hazards: G_01EB36-G_01EBC1 whole (the oil-type hazards' places, the pickups, the gates, the banner,
+  the barriers, the tornado, the cones), and each gate's and pop-up barrier's box of mask B (&63A76 on: 6 bytes x
+  16 lines, 2 x 8), which they write as they move;
+- the attribute map (&678F6), which the hazards, cones and pickups change.
 The script's key changes are one-shot breakpoints on the flip, each one's file setting the next (Hatari 2.6.1
 aborts with 16 breakpoints set).
 
@@ -21,14 +27,28 @@ The output: {"track", "race", "script", "frames": [{"frame", "phase", "mem": {ad
 before its flip, so they pair with the state dumped at that flip.
 """
 import json, os, re, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 D = os.path.join(ROOT, 'build', 'trace')
 RaceEntryStack = 0x21780                # a7 at F_00C592's entry in this run (as st_trace_objects.py)
 FlipPc, InputPc, RandomPc = 0x14D9C, 0xDC64, 0xADC4
 Frame = 0x1D30E
-Dumps = [(Frame, 2), (0x1D178, 2), (0x1E2A0, 0x198), (0x1DFA8, 24), (0x1EB54, 0x1C), (0x1E070, 0x50), (0x1EB28, 0xE),
-         (0x1EB88, 6)]
+AttrMap = 0x678F6                       # the attribute map (G_01EB20's), 40 x 25
+Dumps = [(Frame, 2), (0x1D178, 2), (0x1E2A0, 0x198), (0x1DFA8, 24), (0x1EB36, 0x8C), (0x1E070, 0x50), (0x1EB28, 0xE),
+         (AttrMap, 1000)]
+MaskB = 0x63A76                         # mask B (G_01F238 + &1F40): 40 bytes a line
+
+
+def boxes(track):
+    """The track's gates' and barriers' boxes of mask B: [(address, bytes)], a line each."""
+    import logic_maps as M
+    ng, gp = M.words(M.tb(0x1ED88)), M.words(M.tb(0x1ED98), False)
+    bp = M.words(M.tb(0x1EC00), False)
+    out = []
+    for off, w, h in [(gp[track + i], 6, 16) for i in range(ng[track])] + [(bp[track * 3 + i], 2, 8) for i in range(3)]:
+        out += [(MaskB + off // 4 + 40 * r, w) for r in range(h)]
+    return out
 Keys = {'L': 0x1DFF2, 'R': 0x1DFF4, 'A': 0x1DFFE}
 
 
@@ -42,26 +62,33 @@ def condition(when):
     return f'(${Car0[m.group(1)]:X}).w {m.group(2)} ${int(m.group(3)):X}'
 
 
-def record(track, race, script, vbls):
+def record(track, race, script, vbls, force=()):
     ev = lambda k: os.path.join(D, f'lev{k}.ini')
     def arm(k):
         if k >= len(script):
             return ''
         return f'b pc = ${FlipPc:X} && {condition(script[k][0])} :once :file {ev(k)}\n'
+    import st_trace_objects as O
+    force = sorted(force, key=('tornado', 'cones').index)
+    setbp = lambda f: f'b pc = ${O.Force[f][0]:X} :once :file {D}/lf_{f}.ini\n'
     ini = {'l0.ini': f'b VBL = 2000 :once :file {D}/l1.ini\nb pc = $C592 :once :file {D}/l2.ini\n',
            'l1.ini': 'w $1F200 0 0\nw $1DFFE 3\nc\n',
            'l2.ini': (f'w ${RaceEntryStack + 4:X} 0 {track}\nw $1EBC2 0 {race}\n'
-                      + ''.join(f'w ${a:X} 0\n' for a in Keys.values())
+                      + (''.join(f'w ${a:X} 0\n' for a in Keys.values()) if script else '')
+                      + (setbp(force[0]) if force else '')
                       + f'b pc = ${FlipPc:X} :quiet :file {D}/lflip.ini\n'
                       f'b pc = ${InputPc:X} :quiet :file {D}/linput.ini\n'
                       f'b pc = ${RandomPc:X} :quiet :file {D}/lrandom.ini\n'
                       + arm(0) + 'c\n'),
-           'lflip.ini': ''.join(f'm ${a:X} {n}\n' for a, n in Dumps) + 'c\n',
+           'lflip.ini': ''.join(f'm ${a:X} {n}\n' for a, n in Dumps + boxes(track)) + 'c\n',
            'linput.ini': 'r\nm a6 10\nc\n',
            'lrandom.ini': 'r\nm a6 10\nc\n'}
     for k, (frame, keys) in enumerate(script):
         ini[f'lev{k}.ini'] = (''.join(f'w ${a:X} {3 if c in keys else 0}\n' for c, a in Keys.items())
                               + arm(k + 1) + 'c\n')
+    for f, after in zip(force, force[1:] + [None]):
+        a, reg, v = O.Force[f]
+        ini[f'lf_{f}.ini'] = f'r {reg}={v}\n{setbp(after) if after else ""}c\n'
     for name, text in ini.items():
         open(os.path.join(D, name), 'w').write(text)
     log = os.path.join(D, f'hatari_logic_t{track}_r{race}.log')
@@ -145,11 +172,13 @@ def seed(values):
 
 
 if __name__ == '__main__':
-    track, race_no, script, path = int(sys.argv[1]), int(sys.argv[2]), json.load(open(sys.argv[3])), sys.argv[4]
+    track, race_no, path = int(sys.argv[1]), int(sys.argv[2]), sys.argv[4]
+    script = [] if sys.argv[3] == '-' else json.load(open(sys.argv[3]))
+    force = sys.argv[5].split(',') if len(sys.argv) > 5 else []
     os.makedirs(D, exist_ok=True)
-    frames = race(parse(record(track, race_no, script, int(os.environ.get('VBLS', 6000)))))
+    frames = race(parse(record(track, race_no, script, int(os.environ.get('VBLS', 6000)), force)))
     values = [v for f in frames for n, v in f['random']]
-    json.dump({'track': track, 'race': race_no, 'script': script, 'seed': seed(values),
+    json.dump({'track': track, 'race': race_no, 'script': script, 'force': force, 'seed': seed(values),
                'frames': [{'frame': f['frame'], 'phase': f['phase'], 'inputs': f['inputs'], 'random': f['random'],
                            'mem': {str(k): v for k, v in f['mem'].items()}} for f in frames]}, open(path, 'w'))
     print(f'{len(frames)} frames, {frames[0]["frame"]} to {frames[-1]["frame"]};',

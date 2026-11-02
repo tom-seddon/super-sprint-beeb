@@ -12,7 +12,8 @@ const want = execFileSync(".venv/bin/python", ["-c",
     `sys.stdout.buffer.write(bytes(b for row in maskb.mask_bytes(${track}) for b in row))`]);
 const syms = symbols("build/logic.json");
 const s = await bootDisc("build/logic.ssd");
-await runTo(s, syms["test_entry.setup_done"]);       // the logic's bank filled and paged in
+await runTo(s, syms["test_entry.loaded"]);           // the logic's bank filled and paged in, before the race's
+                                                     // set-up draws the gates and barriers into it
 const cpu = s._machine.processor;
 const Stub = 0x7000, Out = 0x7010, mb = syms["mask_byte"];
 s.writeMemory(Stub, [0x20, mb & 0xff, mb >> 8, 0x8d, Out & 0xff, Out >> 8, 0x4c, (Stub + 6) & 0xff, (Stub + 6) >> 8]);

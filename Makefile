@@ -14,7 +14,8 @@ VENV = .venv/installed
 # forced); its wreck's helicopter comes from below. TRACE=heli1, heli2 or heli3 plays the same race with
 # the helicopter forced to come from above or either side; TRACE=t0 to t7 the same race on track 1 to 8
 # (index 0 to 7; t4 is the default's); TRACE=attract the attract mode's race on track 6; TRACE=logic0 the
-# logic trace's race on track 1, drawn from the BBC's own race logic (Phase 4, step 8); TRACE=play the same
+# logic trace's race on track 1, drawn from the BBC's own race logic (Phase 4, step 8); TRACE=logic4 the default
+# race (track 5, race 17, the hazards) drawn from the BBC's logic (step 11); TRACE=play the same
 # race to play (make beeb TRACE=play): three players on the keys (Q W E, V B N, , . /), car 3 a drone.
 TRACE ?= race
 RACE = 17
@@ -30,6 +31,12 @@ TRACK = 0
 TRACEFILE = build/trace/race_t0_r0_script.json
 GENFLAGS = --logic
 LOGICDEPS = build/lgen/tables.6502
+else ifeq ($(TRACE),logic4)
+TRACK = 4
+TRACEFILE = build/trace/race_t4_r17.json
+GENFLAGS = --logic
+LOGICDEPS = build/lgen/tables.6502
+LOGICTRACE = build/trace/logic_t4_r17.json
 else ifeq ($(TRACE),play)
 TRACK = 0
 TRACEFILE = build/trace/race_t0_r0_script.json
@@ -100,20 +107,30 @@ build/trace/race_t4_r$(RACE)_heli%.json: tools/st_race.py build/trace/obj_t4_r$(
 # index N), every per-car variable, input and random number, every frame, race 0. `make logictrace`: track 1.
 build/trace/logic_t%_r0.json: tools/st_trace_logic.py tools/hatari.sh tools/logic_scripts/t%.json | $(VENV)
 	$(PY) tools/st_trace_logic.py $* 0 tools/logic_scripts/t$*.json $@
-logictrace: build/trace/logic_t0_r0.json
+# the default race's logic (step 11): track 5, race 17, accelerate held, the tornado and cones forced
+build/trace/logic_t4_r$(RACE).json: tools/st_trace_logic.py tools/hatari.sh | $(VENV)
+	$(PY) tools/st_trace_logic.py 4 $(RACE) - $@ $(FORCE)
+logictrace: build/trace/logic_t0_r0.json build/trace/logic_t4_r$(RACE).json
 
 # The race logic's test (Phase 4): the logic trace's race replayed through the BBC's logic, no display
-# (build/logic.ssd), and its check against the ST's state every frame (tools/logic_check.mjs).
-LOGICTRACE = build/trace/logic_t0_r0.json
-build/lgen/tables.6502: tools/gen_logic.py tools/logic_maps.py build/super.s $(LOGICTRACE) | $(VENV)
+# (build/logic.ssd), and its check against the ST's state every frame (tools/logic_check.mjs). LOGICTRACE picks
+# the race: build/trace/logic_t4_r17.json for the hazards'. build/lgen/tracefile names the one the data was made
+# from, so another remakes it.
+LOGICTRACE ?= build/trace/logic_t0_r0.json
+build/lgen/tracefile: always
+	@mkdir -p build/lgen
+	@echo '$(LOGICTRACE)' | cmp -s - $@ || echo '$(LOGICTRACE)' > $@
+build/lgen/tables.6502: tools/gen_logic.py tools/logic_maps.py tools/maskb.py build/super.s $(LOGICTRACE) build/lgen/tracefile | $(VENV)
 	$(PY) tools/gen_logic.py $(LOGICTRACE) build/lgen
 logic: build/logic.ssd
 build/logic.ssd: $(wildcard src/*.6502) build/lgen/tables.6502
 	baron -v --symbols build/logic.json -o $@ --opt 2 src/logictest.6502 > build/logic.lst
-logiccheck: build/logic.ssd build/trace/race_t0_r0_script.json
-	node tools/logic_check.mjs $(LOGICARGS)
-	node tools/maskb_check.mjs
-	node tools/logic_draws.mjs
+LOGICTRACK = $(word 1,$(subst _, ,$(subst build/trace/logic_t,,$(LOGICTRACE))))
+LOGICDRAWS = $(if $(filter 0,$(LOGICTRACK)),build/trace/race_t0_r0_script.json,build/trace/race_t$(LOGICTRACK)_r$(RACE).json)
+logiccheck: build/logic.ssd $(LOGICDRAWS)
+	node tools/logic_check.mjs --trace $(LOGICTRACE) $(LOGICARGS)
+	node tools/maskb_check.mjs $(LOGICTRACK)
+	node tools/logic_draws.mjs --race $(LOGICDRAWS)
 
 # The same race's draw calls from the ST (Hatari, about 40 s): the renderer's model for it, and the draw
 # calls the BBC's logic must make (tools/logic_draws.mjs).

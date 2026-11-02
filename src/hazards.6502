@@ -1,0 +1,528 @@
+\\ hazards.6502 - the track's moving hazards (D9): the tornado (F_00B7E6, F_00B852, F_00F1A8), the pop-up
+\\ barriers (F_00B97C, F_00B9A0), the gates (F_00AF7A, F_00B1B2) and the cones' removal (F_00B10C), and what
+\\ the barriers and gates write into mask B as they move (F_014A80's and F_014A04's part the logic reads). In
+\\ the logic's bank, with mask B.
+
+SECTION LogicVars
+.RcGateTimerLo                          ; G_01EB74: each gate's visits to wait (a visit every 6 frames)
+    SKIP 3
+.RcGateTimerHi
+    SKIP 3
+.RcGatePos                              ; G_01EB7A: its position, 0 (shut) to 4 (open)
+    SKIP 3
+.RcGateStep                             ; G_01EB80: its step, 1 opening, -1 shutting, 0 still
+    SKIP 3
+.RcGateCount                            ; G_01EB86: the track's gates
+    SKIP 1
+.RcBarIdx                               ; G_01EB8E: the barrier moving, 0-2
+    SKIP 1
+.RcBarFrame                             ; G_01EB90: its frame, 0 (up) to 3 (down); &80: to draw in the other screen
+    SKIP 1
+.RcBarDir                               ; G_01EB92: its step, -1 or 1
+    SKIP 1
+.RcBarTimer                             ; G_01EB94: frames to its next step
+    SKIP 1
+.RcBarOn                                ; G_01EB96: the barriers are in this race
+    SKIP 1
+.RcTorDY                                ; G_01EB98: the tornado's direction, y: -1, 0 or 1
+    SKIP 1
+.RcTorDX                                ; G_01EB9A: x
+    SKIP 1
+.RcTorFrame                             ; G_01EB9E: its frame, 0-2
+    SKIP 1
+.RcTorYLo                               ; G_01EBA0: its place, y (-15 to 199)
+    SKIP 1
+.RcTorYHi
+    SKIP 1
+.RcTorXLo                               ; G_01EBA2: x (1 to 299)
+    SKIP 1
+.RcTorXHi
+    SKIP 1
+.RcTorTimerLo                           ; G_01EBA4: frames to its next direction
+    SKIP 1
+.RcTorTimerHi
+    SKIP 1
+.RcTornado                              ; G_01EBA6: the tornado is in this race
+    SKIP 1
+.RcHazDrawCount                         ; the gates and barriers drawn this frame (F_014A04's and F_014A80's
+    SKIP 1                              ; calls), for the renderer: how many,
+.RcHazDrawWhat                          ; each one's frame (a gate's position), bit 7 set for a barrier,
+    SKIP MaxHazDraws
+.RcHazDrawIdx                           ; and which gate or barrier
+    SKIP MaxHazDraws
+ENDSECTION
+
+MaxHazDraws = 6                         ; (in a race frame a gate and a barrier twice; at the set-up 3 of each)
+
+\\ A gate's or barrier's draw noted for the renderer.
+\\
+\\ Inputs: A: its frame (bit 7 set: a barrier); X: which. Outputs: the queue. A, Y: corrupted; X preserved.
+
+.haz_note
+{
+    LDY RcHazDrawCount
+    STA RcHazDrawWhat,Y
+    TXA:STA RcHazDrawIdx,Y
+    INC RcHazDrawCount
+    RTS
+}
+
+\\ A box of mask B written as a gate or barrier draws (F_014A04, F_014A80): each byte (byte AND keep) OR set.
+\\ The box's cells are mixed in D13's store, whatever they hold (tools/maskb.py keeps them so).
+\\
+\\ Inputs:
+\\     mb_box.col: the box's first byte's column, 0-39; mb_box.line: its first line
+\\     mb_box.w: its bytes a line; mb_box.h: its lines
+\\     mb_box.keep, mb_box.set: the first line's bytes to keep and to set; mb_box.step: the bytes from one
+\\         line's to the next's (0: every line the same)
+\\
+\\ Outputs:
+\\     mask B; A, X, Y: corrupted
+
+.mb_box
+{
+    ZA_AUTO1 col, line, w, h, step      ; in
+    ZA_AUTO2 keep, set                  ; in
+    ZA_AUTO1 b                          ; local: the byte in the line
+    ZA_AUTO1 kb, sb                     ; local: its keep and set
+
+.line_
+    STZ b
+.byte
+    LDY b
+    LDA (keep),Y:STA kb
+    LDA (set),Y:STA sb
+    TYA:CLC:ADC col
+    LDY line:JSR mask_cell              ; (a box's cells are mixed: p its address)
+    LDA line:AND #7:TAY
+    LDA (mask_cell.p),Y:AND kb:ORA sb:STA (mask_cell.p),Y
+    INC b
+    LDA b:CMP w:BNE byte
+    INC line
+    LDA keep:CLC:ADC step:STA keep
+    BCC @+
+    INC keep+1
+.@
+    LDA set:CLC:ADC step:STA set
+    BCC @+
+    INC set+1
+.@
+    DEC h
+    BNE line_
+    RTS
+}
+
+\\ The race's set-up of the gates (F_00AF7A) and the barriers' and gates' first draws (F_00C592's): each
+\\ gate shut, waiting 16 visits for each place in the order; the barriers, if on, down (frame 3); in mask B.
+\\
+\\ Inputs:
+\\     RcBarOn
+\\
+\\ Outputs:
+\\     the gates' state; mask B
+\\     A, X, Y: corrupted
+
+.hazards_setup
+{
+    ZA_AUTO1 i                          ; local: the gate or barrier
+
+    STZ RcHazDrawCount
+    LDA #TrackGates:STA RcGateCount
+    LDX #0
+.gate
+    CPX #TrackGates:BCS gated
+    STZ RcGateStep,X
+    TXA:INC A:ASL A:ASL A:ASL A:ASL A   ; 16 * (gate + 1)
+    STA RcGateTimerLo,X
+    STZ RcGateTimerHi,X
+    LDA #2:STA RcGateLane,X
+    STZ RcGatePos,X
+    INX
+    BRA gate
+.gated
+
+    LDA RcBarOn:BEQ barred
+    STZ i
+.barrier
+    LDX i
+    LDA BarKind,X:CLC:ADC #3
+    JSR barrier_draw
+    INC i
+    LDA i:CMP #3:BNE barrier
+.barred
+
+    STZ i
+.shut
+    LDX i
+    CPX #TrackGates:BCS done
+    LDA GateCol,X:STA mb_box.col        ; the box cleared, its 16 lines
+    LDA GateY,X:STA mb_box.line
+    LDA #6:STA mb_box.w
+    LDA #16:STA mb_box.h
+    STZ mb_box.step
+    LDA #LO(MbZero):STA mb_box.keep:STA mb_box.set
+    LDA #HI(MbZero):STA mb_box.keep+1:STA mb_box.set+1
+    JSR mb_box
+    LDX i
+    LDA #0:JSR gate_draw                ; shut
+    INC i
+    BRA shut
+.done
+    RTS
+}
+
+\\ F_014A04's mask B: a gate's bar, its lines 6-10 of 16, each the position's 6 bytes (the rest of its box
+\\ is always 0: written at the set-up).
+\\
+\\ Inputs:
+\\     A: the position, 0-4; X: the gate
+\\
+\\ Outputs:
+\\     mask B; A, Y: corrupted; X preserved
+
+.gate_draw
+{
+    PHA:JSR haz_note:PLA
+    STA mb_box.set                      ; (a scratch: the position * 6)
+    ASL A:ADC mb_box.set:ASL A          ; (C clear)
+    CLC:ADC #LO(GateBar):STA mb_box.set
+    LDA #HI(GateBar):ADC #0:STA mb_box.set+1
+    LDA #LO(MbZero):STA mb_box.keep
+    LDA #HI(MbZero):STA mb_box.keep+1
+    LDA GateCol,X:STA mb_box.col
+    LDA GateY,X:CLC:ADC #6:STA mb_box.line
+    LDA #6:STA mb_box.w
+    LDA #5:STA mb_box.h
+    STZ mb_box.step
+    PHX
+    JSR mb_box
+    PLX
+    RTS
+}
+
+\\ F_014A80's mask B: a barrier's 16 x 8, kept where its frame is clear, its studs' walls set.
+\\
+\\ Inputs:
+\\     A: the frame, its kind (0, 4, 8) + 0-3; X: the barrier
+\\
+\\ Outputs:
+\\     mask B; A, Y: corrupted; X preserved
+
+.barrier_draw
+{
+    PHA:ORA #&80:JSR haz_note:PLA
+    ASL A:ASL A:ASL A:ASL A             ; 16 bytes a frame
+    CLC:ADC #LO(BarSet):STA mb_box.set
+    LDA #HI(BarSet):ADC #0:STA mb_box.set+1
+    LDA BarKind,X:ASL A:ASL A           ; the kind * 16: (0, 4, 8) * 4
+    CLC:ADC #LO(BarKeep):STA mb_box.keep
+    LDA #HI(BarKeep):ADC #0:STA mb_box.keep+1
+    LDA BarCol,X:STA mb_box.col
+    LDA BarY,X:STA mb_box.line
+    LDA #2:STA mb_box.w:STA mb_box.step
+    LDA #8:STA mb_box.h
+    PHX
+    JSR mb_box
+    PLX
+    RTS
+}
+
+\\ F_00B97C: the barriers in this race: the first down, about to rise in 30 frames.
+\\
+\\ Inputs: none. Outputs: the barriers' state. A: corrupted.
+
+.barriers_setup
+{
+    LDA #1:STA RcBarOn
+    STZ RcBarIdx
+    LDA #3:STA RcBarFrame
+    LDA #&FF:STA RcBarDir
+    LDA #30:STA RcBarTimer
+    RTS
+}
+
+\\ F_00B9A0, each frame they're on: last frame's draw again (the other screen), then every 8 frames a step:
+\\ rising to frame 0, up 75 frames, falling, and at frame 4 the next barrier, down, 30 frames before it rises;
+\\ the step drawn.
+\\
+\\ Inputs, outputs: the barriers' state, mask B. A, X, Y: corrupted.
+
+.barriers_frame
+{
+    LDA RcBarFrame:BPL @+
+    AND #&7F:STA RcBarFrame
+    LDX RcBarIdx
+    CLC:ADC BarKind,X
+    JSR barrier_draw
+.@
+    DEC RcBarTimer:BNE done
+    LDA #8:STA RcBarTimer
+    LDA RcBarFrame:CLC:ADC RcBarDir:STA RcBarFrame
+    BNE @+
+    LDA #1:STA RcBarDir                 ; up: falling in 75
+    LDA #75:STA RcBarTimer
+    BRA draw
+.@
+    CMP #4:BNE draw
+    LDA #&FF:STA RcBarDir               ; down: the next, in 30
+    LDA #30:STA RcBarTimer
+    LDX RcBarIdx:INX
+    CPX #3:BNE @+
+    LDX #0
+.@
+    STX RcBarIdx
+    LDA #3:STA RcBarFrame
+.draw
+    LDX RcBarIdx
+    LDA RcBarFrame:CLC:ADC BarKind,X
+    JSR barrier_draw
+    LDA RcBarFrame:ORA #&80:STA RcBarFrame
+.done
+    RTS
+}
+
+\\ F_00B1B2, each frame there are gates: the gate (frame MOD 6) >> 1, on two frames in six. Moving: an odd frame at either
+\\ end stops it, waiting 30 * gate + 28 visits; an even frame steps it; both draw it. Still: 5 visits before
+\\ it shuts, its lane 2 (the drones' path, F_00F23C); its wait run out, it moves (1 - position / 2), and if it
+\\ was shut, its lane 3.
+\\
+\\ Inputs, outputs: the gates' state, mask B. A, X, Y: corrupted.
+
+.gates_frame
+{
+    ZA_AUTO1 t                          ; local: a scratch
+
+    \\ the frame MOD 6, from its MOD 3 (256 is 1 MOD 3: the bytes' sum; 16 is too: the nibbles') and MOD 2
+
+    LDA RcFrameLo:CLC:ADC RcFrameHi
+    ADC #0                              ; (the carry: 256)
+    TAX:AND #15:STA t
+    TXA:LSR A:LSR A:LSR A:LSR A
+    CLC:ADC t
+.mod3
+    CMP #3:BCC @+
+    SBC #3
+    BRA mod3
+.@
+    ASL A:STA t
+    LDA RcFrameLo:AND #1:ORA t
+    TAX:LDA GateOfFrame,X:TAX           ; the gate
+    CPX #TrackGates:BCS done
+
+    LDA RcGateStep,X:BEQ still
+    LDA RcFrameLo:LSR A:BCC step        ; (odd: C set)
+    LDA RcGatePos,X:AND #3:BNE draw
+    TXA:ASL A:STA t                     ; the wait: 28 * (gate + 1) + 2 * gate
+    ASL A:ASL A:ASL A:ASL A:SEC:SBC t   ; (30 * gate)
+    CLC:ADC #28:STA RcGateTimerLo,X
+    STZ RcGateTimerHi,X
+    STZ RcGateStep,X
+    BRA draw
+.step
+    LDA RcGatePos,X:CLC:ADC RcGateStep,X:STA RcGatePos,X
+.draw
+    LDA RcGatePos,X
+    JMP gate_draw
+
+.still
+    LDA RcGateTimerHi,X:BNE count
+    LDA RcGateTimerLo,X:CMP #5:BNE count
+    LDA RcGatePos,X:CMP #4:BNE count
+    LDA #2:STA RcGateLane,X
+.count
+    LDA RcGateTimerLo,X:BNE @+
+    DEC RcGateTimerHi,X
+.@
+    DEC RcGateTimerLo,X
+    BNE done
+    LDA RcGateTimerHi,X:BNE done
+    LDA RcGatePos,X:BNE @+
+    LDA #3:STA RcGateLane,X
+.@
+    LDA RcGatePos,X:LSR A               ; 1 - position / 2
+    EOR #&FF:SEC:ADC #1                 ; (negated: C set)
+    STA RcGateStep,X
+.done
+    RTS
+}
+
+.GateOfFrame                            ; the frame MOD 3 * 2 + MOD 2 -> MOD 6 -> the gate, MOD 6 >> 1
+    EQUB 0, 1, 2, 0, 1, 2               ; (0,0) 0, (0,1) 3, (1,0) 4, (1,1) 1, (2,0) 2, (2,1) 5
+
+\\ F_00B10C, each frame there are cones: a knocked cone's place drawn as road for 2 frames (each screen),
+\\ then its map cell (the pair's right) cleared but its stripe bit.
+\\
+\\ Inputs, outputs: the cones' state, the map, the slot sprites drawn. A, X, Y: corrupted.
+
+.cones_frame
+{
+    ZA_AUTO2 p                          ; local: the cone's left cell in the map
+
+    LDX #0
+.cone
+    LDA RcConeHit,X:BEQ next
+    LDA RcConeRow,X:STA slot_draw.row
+    LDY RcConeCol,X
+    LDA #&15:JSR slot_draw              ; road
+    DEC RcConeHit,X:BNE next
+    LDY RcConeRow,X
+    LDA AttrRowL,Y:CLC:ADC RcConeCol,X:STA p
+    LDA AttrRowH,Y:ADC #0:STA p+1
+    LDY #1
+    LDA (p),Y:AND #&80:STA (p),Y
+.next
+    INX
+    CPX RcCones:BNE cone
+    RTS
+}
+
+\\ F_00B7E6: the tornado in this race: at x 20 + random(200), y 20 + random(100), its direction each axis
+\\ random(3) - 1, 300 + random(100) frames to its next.
+\\
+\\ Inputs: RcSeed. Outputs: the tornado's state, RcSeed. A, Y: corrupted; X preserved.
+
+.tornado_setup
+{
+    LDA #1:STA RcTornado
+    LDA #200:JSR random
+    CLC:ADC #20:STA RcTorXLo
+    STZ RcTorXHi
+    LDA #100:JSR random
+    CLC:ADC #20:STA RcTorYLo
+    STZ RcTorYHi
+    STZ RcTorFrame
+    LDA #3:JSR random:DEC A:STA RcTorDX
+    LDA #3:JSR random:DEC A:STA RcTorDY
+    LDA #100:JSR random
+    CLC:ADC #LO(300):STA RcTorTimerLo
+    LDA #HI(300):ADC #0:STA RcTorTimerHi
+    RTS
+}
+
+\\ F_00B852, each frame it's on: its timer run out, a new direction and 150 + random(50) frames; every 4th
+\\ frame its frame on (MOD 3) and a pixel's move (every 8th, a random one instead), not past x 0 or 300,
+\\ y -16 or 200 (its direction turned back there).
+\\
+\\ Inputs, outputs: the tornado's state, RcSeed. A, X, Y: corrupted.
+
+.tornado_frame
+{
+    ZA_AUTO2 nx, ny                     ; local: its new place
+
+    LDA RcTorTimerLo:BNE @+
+    DEC RcTorTimerHi
+.@
+    DEC RcTorTimerLo
+    BNE moved
+    LDA RcTorTimerHi:BNE moved
+    LDA #3:JSR random:DEC A:STA RcTorDX
+    LDA #3:JSR random:DEC A:STA RcTorDY
+    LDA #50:JSR random
+    CLC:ADC #150:STA RcTorTimerLo
+    LDA #0:ADC #0:STA RcTorTimerHi
+.moved
+    LDA RcTorTimerLo:AND #3:BEQ move
+    RTS                                 ; (3 frames in 4: still)
+.move
+    LDX RcTorFrame:INX
+    CPX #3:BNE @+
+    LDX #0
+.@
+    STX RcTorFrame
+    LDA RcTorTimerLo:AND #7:BNE steady
+    LDA #3:JSR random:DEC A:TAX         ; a jitter: x + random(3) - 1, then y
+    JSR add_x
+    LDA #3:JSR random:DEC A:TAX
+    BRA y
+.steady
+    LDX RcTorDX
+    JSR add_x
+    LDX RcTorDY
+.y
+    TXA:CLC:ADC RcTorYLo:STA ny         ; (X: -1, 0 or 1)
+    TXA:BPL @+
+    LDA #&FF
+    EQUB &2C                            ; (BIT abs: skips the LDA #0)
+.@
+    LDA #0
+    ADC RcTorYHi:STA ny+1
+    LDA nx:ORA nx+1:BEQ xout            ; 0 < x < 300: from 1 to 299 unsigned (-1 is &FFFF)
+    LDA nx:CMP #LO(300)
+    LDA nx+1:SBC #HI(300)
+    BCS xout
+    LDA nx:STA RcTorXLo
+    LDA nx+1:STA RcTorXHi
+    BRA ytest
+.xout
+    LDA RcTorDX:EOR #&FF:INC A:STA RcTorDX
+.ytest
+    LDA ny:CLC:ADC #16:STA ny           ; -16 < y < 200: y + 16 from 1 to 215 unsigned
+    LDA ny+1:ADC #0:STA ny+1
+    ORA ny:BEQ yout
+    LDA ny:CMP #216
+    LDA ny+1:SBC #0
+    BCS yout
+    LDA ny:SEC:SBC #16:STA RcTorYLo
+    LDA ny+1:SBC #0:STA RcTorYHi
+    RTS
+.yout
+    LDA RcTorDY:EOR #&FF:INC A:STA RcTorDY
+    RTS
+
+    \\ nx = x + X (-1, 0 or 1)
+.add_x
+    TXA:CLC:ADC RcTorXLo:STA nx
+    TXA:BPL @+
+    LDA #&FF
+    EQUB &2C                            ; (BIT abs: skips the LDA #0)
+.@
+    LDA #0
+    ADC RcTorXHi:STA nx+1
+    RTS
+}
+
+\\ F_00F1A8: each car the tornado catches (within 7 pixels in x and 8 in y of its place 12 lower), on the
+\\ ground (flags &440 clear) and not spinning, spins 28 frames (flag &10), with the tornado's sound (F_00F184).
+\\
+\\ Inputs, outputs: the cars' state. A, X, Y: corrupted.
+
+.tornado_cars
+{
+    ZA_AUTO1 d                          ; local: the difference's low byte
+    ZA_AUTO2 ty                         ; local: the tornado's y + 12
+
+    LDA RcTorYLo:CLC:ADC #12:STA ty
+    LDA RcTorYHi:ADC #0:STA ty+1
+    LDX #0
+.car
+    LDA RcBitsLo,X:AND #&40:BNE next
+    LDA RcBitsHi,X:AND #&04:BNE next
+    SEC                                 ; -7 <= x - the tornado's x <= 7
+    LDA RcXLo,X:SBC RcTorXLo:STA d
+    LDA RcXHi,X:SBC RcTorXHi
+    BEQ xplus
+    CMP #&FF:BNE next
+    LDA d:CMP #LO(-7):BCC next
+    BRA xin
+.xplus
+    LDA d:CMP #8:BCS next
+.xin
+    SEC                                 ; -8 <= y - (its y + 12) <= 8
+    LDA RcYLo,X:SBC ty:STA d
+    LDA RcYHi,X:SBC ty+1
+    BEQ yplus
+    CMP #&FF:BNE next
+    LDA d:CMP #LO(-8):BCC next
+    BRA yin
+.yplus
+    LDA d:CMP #9:BCS next
+.yin
+    LDA RcSpin,X:BNE next
+    LDA #28:STA RcSpin,X
+    LDA RcBitsLo,X:ORA #&10:STA RcBitsLo,X
+    LDA #FxTornado:LDY #3:JSR fx_car    ; F_012E6E (X preserved)
+.next
+    INX
+    CPX #4:BNE car
+    RTS
+}

@@ -57,7 +57,22 @@ const Race = [["phase", 0x1d178, "RcPhase", "u"], ["frame", 0x1d30e, "RcFrame", 
     ["bonustaken", 0x1eb60, "RcBonusTaken", "u"], ["bonuscell", 0x1eb62, "RcBonusCell", "w"],
     ["bonusy", 0x1eb64, "RcBonusY", "u"], ["bonusx", 0x1eb66, "RcBonusX", "u"],
     ["bonussprite", 0x1eb68, "RcBonusSprite", "u"], ["bonusphase", 0x1eb6a, "RcBonusPhase", "u"],
-    ["bonustimer", 0x1eb6c, "RcBonusTimer", "w"], ["gatelane0", 0x1eb6e, "RcGateLane", "u"],
+    ["bonustimer", 0x1eb6c, "RcBonusTimer", "w"],
+    // the hazards (step 11): the oil-type hazards' places, the gates, the barriers, the tornado, the cones
+    ...[0, 1, 2].flatMap((i) => [[`haztype${i}`, 0x1eb36 + 2 * i, "RcHazType", "u", 0, () => i],
+        [`hazrow${i}`, 0x1eb40 + 2 * i, "RcHazRow", "u", 0, () => i], [`hazcol${i}`, 0x1eb4a + 2 * i, "RcHazCol", "u", 0, () => i]]),
+    ...[0, 1, 2].flatMap((i) => [[`gatelane${i}`, 0x1eb6e + 2 * i, "RcGateLane", "u", 0, () => i],
+        [`gatetimer${i}`, 0x1eb74 + 2 * i, "RcGateTimer", "w", 0, () => i],
+        [`gatepos${i}`, 0x1eb7a + 2 * i, "RcGatePos", "u", 0, () => i],
+        [`gatestep${i}`, 0x1eb80 + 2 * i, "RcGateStep", "s", 0, () => i]]),
+    ["gatecount", 0x1eb86, "RcGateCount", "u"],
+    ["baridx", 0x1eb8e, "RcBarIdx", "u"], ["barframe", 0x1eb90, "RcBarFrame", "u"], ["bardir", 0x1eb92, "RcBarDir", "s"],
+    ["bartimer", 0x1eb94, "RcBarTimer", "u"], ["baron", 0x1eb96, "RcBarOn", "u"],
+    ["tordy", 0x1eb98, "RcTorDY", "s"], ["tordx", 0x1eb9a, "RcTorDX", "s"], ["torframe", 0x1eb9e, "RcTorFrame", "u"],
+    ["tory", 0x1eba0, "RcTorY", "w"], ["torx", 0x1eba2, "RcTorX", "w"], ["tortimer", 0x1eba4, "RcTorTimer", "w"],
+    ["tornado", 0x1eba6, "RcTornado", "u"], ["cones", 0x1ebb0, "RcCones", "u"],
+    ...[0, 1, 2, 3].flatMap((i) => [[`conehit${i}`, 0x1eba8 + 2 * i, "RcConeHit", "u", 0, () => i],
+        [`conerow${i}`, 0x1ebb2 + 2 * i, "RcConeRow", "u", 0, () => i], [`conecol${i}`, 0x1ebba + 2 * i, "RcConeCol", "u", 0, () => i]]),
     ["helicar", 0x1eb28, "RcHeliCar", "u"], ["helitimer", 0x1eb2a, "RcHeliTimer", "w"],
     ["helivariant", 0x1eb2c, "RcHeliVariant", "u"], ["helistate", 0x1eb2e, "RcHeliState", "w"],
     ["heliframe", 0x1eb30, "RcHeliFrame", "u"], ["heliy", 0x1eb32, "RcHeliY", "w"], ["helix", 0x1eb34, "RcHeliX", "w"],
@@ -77,7 +92,7 @@ const cars = option("--cars", "0,1,2,3").split(",").map(Number);
 const only = option("--vars", null)?.split(",");
 const show = Number(option("--show", 20));
 const from = Number(option("--from", 2));
-for (const v of only ?? []) if (![...PerCar, ...Race].some(([n]) => n === v)) throw new Error(`no variable ${v}`);
+for (const v of only ?? []) if (!["seed", "maskb", "map"].includes(v) && ![...PerCar, ...Race].some(([n]) => n === v)) throw new Error(`no variable ${v}`);
 const wanted = (list) => list.filter(([n]) => !only || only.includes(n));
 
 // the generator's state at each frame's end: the trace's seed run on once for each number drawn
@@ -103,6 +118,18 @@ function bbc(name, kind, car) {
     return kind === "s" && b >= 0x80 ? b | 0xff00 : b;
 }
 
+// a byte of mask B as D13 stores it (walls.6502's mask_byte): its row's fill outside its span, else its map's
+const MaskB = 0x63a76;                  // the ST's (G_01F238 + &1F40), 40 bytes a line
+const AttrMap = 0x678f6;                // the ST's attribute map (G_01EB20's), 40 x 25
+function mbByte(col, y) {
+    const r = y >> 3;
+    if (col < peek(syms.MbLo + r)) return peek(syms.MbLeft + r);
+    if (col >= peek(syms.MbEnd + r)) return peek(syms.MbRight + r);
+    const n = peek(((peek(syms.MbMapL + r) | (peek(syms.MbMapH + r) << 8)) + col) & 0xffff);
+    if (n === 0 || n === 0xff) return n;
+    return peek((((peek(syms.MbCellL + r) | (peek(syms.MbCellH + r) << 8)) + n * 8) & 0xffff) + (y & 7));
+}
+
 let wrong = 0, shown = 0, firstWrong = null;
 const work = [];
 function compare(k) {
@@ -121,6 +148,18 @@ function compare(k) {
     // TOS's generator: the BBC's seed against the trace's, run on by every number drawn to this frame
     if (!only || only.includes("seed")) one("seed", seeds[k], (peek(syms.RcSeed) | (peek(syms.RcSeed + 1) << 8)
         | (peek(syms.RcSeed + 2) << 16) | (peek(syms.RcSeed + 3) << 24)) >>> 0);
+    // the gates' and barriers' boxes of mask B, every byte the trace has of it, against D13's store
+    if (!only || only.includes("maskb"))
+        for (const key of Object.keys(m)) {
+            const a = Number(key) - MaskB;
+            if (a >= 0 && a < 8000) one(`mask B (${a % 40}, ${Math.floor(a / 40)})`, m[key], mbByte(a % 40, Math.floor(a / 40)));
+        }
+    // the attribute map, every cell (the pickups, hazards and cones change it)
+    if (!only || only.includes("map"))
+        for (let i = 0; i < 1000; i++) {
+            const st = m[AttrMap + i];
+            if (st !== undefined) one(`map (${i % 40}, ${Math.floor(i / 40)})`, st, peek(syms.AttrMap + i));
+        }
     if (bad) {
         wrong++;
         if (firstWrong === null) firstWrong = k;

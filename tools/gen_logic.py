@@ -17,6 +17,7 @@ Writes:
 - OUTDIR/path.6502: the track's drone path (F_00FAD8's: SUPER.DAT's entries x8, y8, length, direction word),
   as tables by entry, with 4 entries more than the track has (the ST reads on into the next track's past a
   fork or skip at the end; none does, but the tables cover it);
+- OUTDIR/hazards.6502: the track's gates' and pop-up barriers' places, and what they write into mask B;
 - OUTDIR/walls.6502: the track's mask B as D13 stores it (tools/maskb.py); OUTDIR/probes.6502: the walls'
   probes: per facing the probed lines and columns (G_01E160), and per car and facing what of its frame's shape
   they test (read-only: the game has them in both screens' &3000 area, with the path).
@@ -245,6 +246,48 @@ def cells(track):
         ''])
 
 
+def hazards(track):
+    """The track's gates' and pop-up barriers' places, and what they write into mask B (F_014A04, F_014A80): a
+    gate's bar (its lines 6-10, the same 6 bytes each, by position; the rest of its box is 0 in every
+    position), and a barrier's 16 x 8, kept where its frame is clear (by kind: the frames of a kind share their
+    shape) and set where its studs are walls (by frame, kind + 0-3)."""
+    import objects as O
+    dat = open(os.path.join(ROOT, 'orig/st/SUPER.DAT'), 'rb').read()
+    ng, gp = L.words(L.tb(0x1ED88))[track], L.words(L.tb(0x1ED98), False)
+    bp, bk = L.words(L.tb(0x1EC00), False), L.tb(0x1EC30)
+    gates = [L.scr(gp[track + i]) for i in range(ng)]
+    bars = [L.scr(bp[track * 3 + i]) for i in range(3)]
+    bar = []
+    for f in range(5):
+        rows = [O.words(dat, O.Objects + 0x180 + f * 0x240 + r * 36, 18)[15:18] for r in range(16)]
+        assert all(not any(rows[r]) for r in list(range(6)) + list(range(11, 16))), 'a gate\'s mask B: lines 6-10'
+        assert all(rows[r] == rows[6] for r in range(6, 11)), 'its bar\'s lines the same'
+        bar += [b for w in rows[6] for b in (w >> 8, w & 255)]
+    keep, sets = [], []
+    for f in range(12):
+        rows = [O.words(dat, O.Objects + 0x1740 + f * 96 + r * 12, 6) for r in range(8)]
+        k = [~(r[0] | r[1] | r[2] | r[3]) & 0xFFFF for r in rows]
+        if f % 4 == 0:
+            keep += [b for w in k for b in (w >> 8, w & 255)]
+        assert k == [keep[(f // 4) * 16 + 2 * i] << 8 | keep[(f // 4) * 16 + 2 * i + 1] for i in range(8)], \
+            'a kind\'s frames share their shape'
+        sets += [b for r in rows for b in (r[5] >> 8, r[5] & 255)]
+    eq = lambda name, comment, v: [f'.{name:<38}; {comment}', '    EQUB ' + (byte_list(v) if v else '0')]
+    return '\n'.join([
+        '\\\\ hazards.6502 - track %d\'s gates and pop-up barriers, and their mask B (tools/gen_logic.py)' % (track + 1),
+        '',
+        *eq('GateCol', 'G_01ED98: each gate\'s box (48 x 16), its first byte\'s column', [x // 8 for x, y in gates]),
+        *eq('GateY', 'its first line', [y for x, y in gates]),
+        *eq('BarCol', 'G_01EC00: each barrier\'s (16 x 8)', [x // 8 for x, y in bars]),
+        *eq('BarY', '', [y for x, y in bars]),
+        *eq('BarKind', 'G_01EC30: its kind, its first frame (0, 4 or 8)', list(bk[track * 3:track * 3 + 3])),
+        *eq('GateBar', 'a gate\'s bar\'s 6 bytes by position, 0 (shut) to 4', bar),
+        *eq('BarKeep', 'a barrier\'s 8 lines of 2 bytes to keep, by kind', keep),
+        *eq('BarSet', 'and to set, by frame', sets),
+        *eq('MbZero', '(a gate\'s bytes to keep, and its box\'s at the set-up: 0)', [0] * 6),
+        ''])
+
+
 def main(trace_path, out):
     t = json.load(open(trace_path))
     frames = t['frames']
@@ -258,6 +301,7 @@ def main(trace_path, out):
     open(os.path.join(out, 'probes.6502'), 'w').write(ptext)
     open(os.path.join(out, 'cells.6502'), 'w').write(cells(t['track']))
     open(os.path.join(out, 'path.6502'), 'w').write(path(t['track']))
+    open(os.path.join(out, 'hazards.6502'), 'w').write(hazards(t['track']))
     inputs = bytearray()
     for f in frames[FirstFrame:]:
         b = [0, 0, 0]
@@ -279,6 +323,10 @@ def main(trace_path, out):
         '',
         'LgTrack = %d' % t['track'],
         'LgRace = %d' % t['race'],
+        'LgForceTornado = %d              ; the trace\'s coin for the tornado forced (after its draw)' % ('tornado' in t.get('force', [])),
+        'LgForceCones = %d                ; and the cones\'' % ('cones' in t.get('force', [])),
+        'LgBannerX = %d                   ; G_01EBE0: the banner\'s place on the track (for tools/logic_draws.mjs)' % L.words(L.tb(0x1EBE0))[t['track']],
+        'LgBannerY = %d                   ; G_01EBF0' % L.words(L.tb(0x1EBF0))[t['track']],
         'LgDrones = {%s}' % ', '.join(map(str, drone)),
         'LgSeed = &%08X                   ; TOS\'s Random\'s state before the race\'s first draw' % t['seed'],
         'LgFrames = %d                    ; the trace\'s frames, the set-up\'s two included' % len(frames),

@@ -280,35 +280,29 @@ ENDSECTION
     DEX
     BPL orders
 
-    \\ the hazards and pickups, as F_00C592 sets them up, the random numbers drawn in its order: the pop-up
-    \\ barriers when (race + 1) MOD 3 is 0, a coin for the tornado from race 4 (both not yet), then
-    \\ pickups.6502's; the gates' lane steps 2 (F_00AF7A)
+    \\ the hazards and pickups, as F_00C592 sets them up, the random numbers drawn in its order: no tornado or
+    \\ barriers; the pop-up barriers when (race + 1) MOD 3 is 0; from race 4, a coin for the tornado; then
+    \\ pickups.6502's; the gates (F_00AF7A) and the barriers' and gates' first draws, in mask B
 
+    STZ RcTornado
+    STZ RcBarOn
     LDA RcRace:INC A
 .mod3
     SEC:SBC #3
-    BEQ barriers
-    BCS mod3
+    BCC coin
+    BNE mod3
+    JSR barriers_setup
+.coin
     LDA RcRace:CMP #4:BCC calm
     LDA #2:JSR random
-    BEQ calm
-    BRK                                 ; F_00B7E6, the tornado: not yet
-    EQUB 0
-    EQUS "tornado", 0
-.barriers
-    BRK                                 ; F_00B97C, the barriers: not yet
-    EQUB 0
-    EQUS "barriers", 0
-    ZA_UNREACHABLE
+    IF LgForceTornado                   ; (the test: the trace's coin was forced, after its draw)
+        LDA #1
+    ENDIF
+    CMP #0:BEQ calm
+    JSR tornado_setup
 .calm
     JSR pickups_setup
-    LDX #TrackGates-1
-    BMI gated
-.lanes
-    LDA #2:STA RcGateLane,X
-    DEX
-    BPL lanes
-.gated
+    JSR hazards_setup
     LDX #7                              ; each car's sparks' x cleared
 .sparks
     STZ RcSparkXLo,X:STZ RcSparkXHi,X
@@ -344,16 +338,20 @@ ENDSECTION
     DEC RcCountdown
 .@
 
-    \\ the track's objects: barriers and gates (not yet: none on this race's track), the bonus, cones (not
-    \\ yet), the wrench
+    \\ the track's objects: the barriers (if on), the gates (if any), the bonus, the cones (if any), the wrench
 
-    LDA RcCones:BEQ @+
-    BRK                                 ; F_00B10C, the cones: not yet
-    EQUB 0
-    EQUS "cones", 0
+    STZ RcHazDrawCount
+    LDA RcBarOn:BEQ @+
+    JSR barriers_frame
+.@
+    LDA RcGateCount:BEQ @+
+    JSR gates_frame
 .@
     STZ RcSlotCount
     JSR bonus_frame
+    LDA RcCones:BEQ @+
+    JSR cones_frame
+.@
     JSR wrench_frame
 
     \\ the cars' control, not once 4 frames have passed since a car finished
@@ -419,11 +417,14 @@ ENDSECTION
 .pointed
     JSR collide
 
-    \\ what the race shows: the sparks, the banner, the helicopter (the drone's lap digit and the tornado:
-    \\ with the renderer)
+    \\ what the race shows: the sparks, the banner, the tornado, the helicopter (the drone's lap digit: with
+    \\ the renderer)
 
     JSR sparks_frame
     JSR banner_frame
+    LDA RcTornado:BEQ @+
+    JSR tornado_frame
+.@
     JMP heli_frame
 }
 
@@ -481,6 +482,9 @@ ENDSECTION
 .@
     STX RcPhase
 
+    LDA RcTornado:BEQ @+
+    JSR tornado_cars                    ; F_00F1A8
+.@
     JSR car_to_car
     JSR draw_order
 

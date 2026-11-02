@@ -16,6 +16,16 @@ SECTION LogicVars
     SKIP 1
 .RcBonusX                               ; G_01EB66: its column
     SKIP 1
+.RcHazType                              ; G_01EB36: each oil-type hazard's type (0 water, 1 oil, 2 the yellow patch),
+    SKIP 3
+.RcHazRow                               ; G_01EB40: its slot's row,
+    SKIP 3
+.RcHazCol                               ; G_01EB4A: its column
+    SKIP 3
+.RcConeRow                              ; G_01EBB2: each cone's slot's row,
+    SKIP 4
+.RcConeCol                              ; G_01EBBA: its column (the cone in the pair's right cell)
+    SKIP 4
 .RcSlotSprite                           ; each one's sprite,
     SKIP MaxSlotDraws
 .RcSlotX                                ; its cell's column,
@@ -114,9 +124,12 @@ MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wren
     SBC #3
     BRA mod3
 .@
+    LDX i:STA RcHazType,X
     ASL A:ASL A:INC A
     STA v
     LDY slot:JSR slot_cell
+    STA RcHazCol,X
+    TYA:STA RcHazRow,X
     LDA (slot_cell.p):ORA v:STA (slot_cell.p)
     LDY #1
     LDA (slot_cell.p),Y:ORA v:STA (slot_cell.p),Y
@@ -148,6 +161,9 @@ MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wren
 
     STZ RcCones
     LDA #20:JSR random
+    IF LgForceCones                     ; (the test: the trace's coin was forced, after its draw)
+        LDA #10
+    ENDIF
     LDX RcRace:CPX #16:BCC coned
     CMP #10:BCC coned
     LDA #4:STA RcCones
@@ -158,6 +174,9 @@ MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wren
 .retry
     LDA #20:JSR random:TAY
     JSR slot_cell
+    LDX i
+    STA RcConeCol,X
+    TYA:STA RcConeRow,X
     LDY #1
     LDA (slot_cell.p),Y:AND #&7F:BNE retry
     LDA i:CLC:ADC #5:ASL A:ASL A:INC A   ; (5 + cone) * 4 + 1
