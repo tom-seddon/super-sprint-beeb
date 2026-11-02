@@ -117,11 +117,12 @@ logictrace: build/trace/logic_t0_r0.json $(foreach t,0 1 2 3 4 5 6 7,build/trace
 # The race logic's test (Phase 4): the logic trace's race replayed through the BBC's logic, no display
 # (build/logic.ssd), and its check against the ST's state every frame (tools/logic_check.mjs). LOGICTRACE picks
 # the race: build/trace/logic_t4_r17.json for the hazards'. build/lgen/tracefile names the one the data was made
-# from, so another remakes it.
+# from, so another remakes it (a second's wait before it's rewritten: make 3.81's file times are whole
+# seconds here, and a stamp written in the second a fast build ended would look no newer than its outputs).
 LOGICTRACE ?= build/trace/logic_t0_r0.json
 build/lgen/tracefile: always
 	@mkdir -p build/lgen
-	@echo '$(LOGICTRACE)' | cmp -s - $@ || echo '$(LOGICTRACE)' > $@
+	@echo '$(LOGICTRACE)' | cmp -s - $@ || { sleep 1; echo '$(LOGICTRACE)' > $@; }
 build/lgen/tables.6502: tools/gen_logic.py tools/logic_maps.py tools/maskb.py build/super.s $(LOGICTRACE) build/lgen/tracefile | $(VENV)
 	$(PY) tools/gen_logic.py $(LOGICTRACE) build/lgen
 logic: build/logic.ssd
@@ -159,7 +160,7 @@ build/trace/race_t0_r0_script.json: tools/st_trace_objects.py tools/st_race.py t
 # data was made from, so playing another (TRACEFILE=...) remakes it, and so does coming back.
 $(GEN)/tracefile: always
 	@mkdir -p $(GEN)
-	@echo '$(TRACEFILE) $(GENFLAGS)' | cmp -s - $@ || echo '$(TRACEFILE) $(GENFLAGS)' > $@
+	@echo '$(TRACEFILE) $(GENFLAGS)' | cmp -s - $@ || { sleep 1; echo '$(TRACEFILE) $(GENFLAGS)' > $@; }
 always:
 
 $(GEN)/cars.6502: tools/gendata.py tools/convert.py tools/st_sprites.py tools/objects.py build/conv/A_t0.bin \
