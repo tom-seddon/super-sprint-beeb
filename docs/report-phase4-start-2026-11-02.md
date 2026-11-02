@@ -1,10 +1,11 @@
 # Report: Phase 4's first steps, 2026-11-02
 
-**Where it ended.** On the branch `phase4-start` (3 commits on `02741da`, not merged, not pushed). The plan
-for Phase 4's first steps is `docs/brief-phase4.md`, and your four answers are D9-D12 in
-`docs/decisions.md`. Two of the brief's steps are done: the Hatari logic tracer (step 2) and mask B's
-storage (part of step 4). No 6502 has been written yet: the disc is the same as Phase 3's. The next step is
-3, the oracle that runs the BBC's logic on the trace's inputs and compares every variable every frame.
+**Where it ended.** On the branch `phase4-start` (not merged, not pushed). The plan is
+`docs/brief-phase4.md`; your answers are D9-D13 in `docs/decisions.md` (D13 decided after the first
+report). Done: the Hatari logic tracer (step 2), the logic's oracle (step 3), mask B's storage (part of
+step 4) and the humans' cars (step 5): car 0 matches the ST bit for bit in every movement variable for the
+race's first 75 frames, up to its first car-to-car shove. To try it: `make logiccheck LOGICARGS="--until 75
+--cars 0"`. The renderer's disc is byte-identical to Phase 3's. Next is step 6, walls.
 
 ## What was built and what proves it
 
@@ -23,10 +24,14 @@ storage (part of step 4). No 6502 has been written yet: the disc is the same as 
   the check fails.
 - `make check` (the renderer, unchanged, re-run after the Makefile change): all 317 frames match the model.
 
+- **The logic's oracle** (`make logiccheck`): a test disc with no display replays the traced inputs
+  through the BBC's logic; `tools/logic_check.mjs` compares 38 of the ST's variables every frame. Broken
+  on purpose (the velocity halved rounding down), 70 of 75 frames fail from frame 6.
+- **The humans' cars** (`src/human.6502`, F_00DC4C): car 0 exact for frames 1-75. 3,824 cycles a frame for
+  one car, mostly the general 16-bit multiply and divide, to be made faster once the logic is whole.
+
 ## Please review
 
-- **D13, mask B as its mixed cells** - Proposed; it's what step 4 will build. The whole mask instead (8,000
-  bytes, reads twice as fast) would leave the fourth bank no room for sound.
 - **D12**: I recorded the layout as Proposed until you've tried it on a real BBC.
 - **D11** replaces the plan's earlier sound idea (a sequencer at 83 Hz): `docs/plan.md` now points to D11.
 - One finding that follows from D9: 7 of the 16 facings' car shapes differ between the car sets, so the
@@ -38,8 +43,10 @@ None yet. The key layout (D12) will need your real BBC once it's built.
 
 ## What is open
 
-Resume point: **step 3**, the oracle (`docs/brief-phase4.md` §6). The tracer doesn't yet record the
-wrench and bonus timers or the attribute map's changes; it will once the steps that need them come.
+Resume point: **step 6**, walls (`docs/brief-phase4.md` §6). Then the attribute cells (car 0's stripes
+differ from frame 26), car-to-car and drones (frame 76), the crash and helicopter (frame 143). The tracer
+doesn't yet record the wrench and bonus timers or the attribute map's changes; it will when a step needs
+them. The logic's state is at `&0400` in the test only; where it goes in the game is step 8's question.
 
 ## Branch ledger
 
