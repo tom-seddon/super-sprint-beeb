@@ -294,13 +294,13 @@ MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wren
     LDA SlotY,Y:STA RcBonusY
     LDA SlotX,Y:STA RcBonusX
     JSR slot_cell
+    LDA slot_cell.p:SEC:SBC #LO(AttrMap):STA RcBonusCellLo   ; (its cell kept even if taken, as the ST)
+    LDA slot_cell.p+1:SBC #HI(AttrMap):STA RcBonusCellHi
     LDY #1
     LDA (slot_cell.p),Y:AND #&7F:BEQ empty
     LDA #1:STA RcBonusTimerLo           ; taken: try again next frame
     RTS
 .empty
-    LDA slot_cell.p:SEC:SBC #LO(AttrMap):STA RcBonusCellLo
-    LDA slot_cell.p+1:SBC #HI(AttrMap):STA RcBonusCellHi
     LDA #4:JSR random
     ASL A:ASL A:ORA #&80:STA RcBonusSprite
     LDA (slot_cell.p):ORA #&11:STA (slot_cell.p)
