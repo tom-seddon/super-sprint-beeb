@@ -367,3 +367,5 @@
   hardware ghost). All read right in jsbeeb. `make beeb TRACE=play` makes a disc to play track 1 with three
   players, for a real BBC.
 - **Trap**: a headless check that reads a bank number at boot reads 0: the disc copies its banks first.
+- **Player 1's keys: Q W E**, not Z X SHIFT (Tom: the two SHIFT keys are one key, at opposite sides). Same
+  columns, so still no ghosting on paper; all read right in jsbeeb.

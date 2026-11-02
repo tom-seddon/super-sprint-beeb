@@ -14,7 +14,7 @@ const syms = symbols();
 const s = await bootDisc();
 const peek = (a) => s.readMemory(a, 1)[0];
 // [jsbeeb's key name, player, bit]
-const Keys = [["KeyZ", 0, 4], ["KeyX", 0, 8], ["ShiftLeft", 0, 0x80], ["KeyV", 1, 4], ["KeyB", 1, 8], ["KeyN", 1, 0x80],
+const Keys = [["KeyQ", 0, 4], ["KeyW", 0, 8], ["KeyE", 0, 0x80], ["KeyV", 1, 4], ["KeyB", 1, 8], ["KeyN", 1, 0x80],
     ["Comma", 2, 4], ["Period", 2, 8], ["Slash", 2, 0x80]];
 await runTo(s, syms["frame_loop.frame_end"]);  // (the disc copies its banks first: the game's running now)
 const bank = peek(syms.banktrace);

@@ -359,3 +359,8 @@ hardware envelope stepped (D11), and converted by a fork of the kit's `py/beeb_p
 built: the capture tool, the effects (isolated: the attract race plays no engines), the player in the IRQ
 sharing each car's channel by the ST's priorities, the live engines (F_012BA2's formulas). The conversion
 is the part the kit says is judged by ear.
+
+**Step 9, player 1's keys changed** to Q (left), W (right), E (accelerate), Tom's suggestion: the BBC's two
+SHIFT keys are one, at either side of the keyboard. The same columns (0-2), so still no ghosting on paper
+(0 of 511), and in jsbeeb each key and all nine read as their player's; `make check TRACE=logic0` still
+matches on all 2,197 frames.

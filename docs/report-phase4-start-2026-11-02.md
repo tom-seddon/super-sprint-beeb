@@ -4,7 +4,7 @@
 from its own logic, bit-exact with the ST: the logic matches the ST's state on every one of the traced
 race's 2,196 frames (118 variables a frame), its draw calls match the ST's on every frame, and the game drawn
 from it matches the renderer's model (made from the ST's own draws) on all 2,197 frames. A disc to play it,
-three players on the keys: `make beeb TRACE=play` (then `build/sprint.ssd`); the keys are Z X SHIFT, V B N
+three players on the keys: `make beeb TRACE=play` (then `build/sprint.ssd`); the keys are Q W E, V B N
 and , . / (D12, Proposed: no combination of them can ghost another on paper; please try it on a real BBC).
 Not yet: sound (step 10; capturing the ST's YM writes from Hatari is shown to work), the joysticks, the
 tornado, barriers, gates and cones (none on this race: they trap), the other tracks. To check it all:
@@ -57,7 +57,7 @@ tornado, barriers, gates and cones (none on this race: they trap), the other tra
 
 ## Please review
 
-- **D12, the keys**: Z X SHIFT, V B N, , . / (Proposed). Please play `make beeb TRACE=play` on a real BBC:
+- **D12, the keys**: Q W E, V B N, , . / (Proposed; player 1 was Z X SHIFT until your suggestion). Please play `make beeb TRACE=play` on a real BBC:
   the paper check says no ghosting, but jsbeeb can't show it, and comfort is yours to judge.
 - **D11** replaces the plan's earlier sound idea (a sequencer at 83 Hz): `docs/plan.md` now points to D11.
 - One finding that follows from D9: 7 of the 16 facings' car shapes differ between the car sets, so the

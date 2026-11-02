@@ -14,11 +14,11 @@ COMMA 102 and PERIOD 103 measured with jsbeeb-mcp 4.3.0's key_down on a Master, 
 """
 import itertools, sys
 
-Keys = {'SHIFT': 0, 'Z': 97, 'X': 66, 'V': 99, 'B': 100, 'N': 85, 'COMMA': 102, 'PERIOD': 103, 'SLASH': 104,
+Keys = {'Q': 16, 'W': 33, 'E': 34, 'SHIFT': 0, 'Z': 97, 'X': 66, 'V': 99, 'B': 100, 'N': 85, 'COMMA': 102, 'PERIOD': 103, 'SLASH': 104,
         'K': 70, 'M': 101, 'L': 86, 'C': 82, 'RETURN': 73}
 
 # the proposed layout: each player's left, right and accelerate
-Layout = [('Z', 'X', 'SHIFT'), ('V', 'B', 'N'), ('COMMA', 'PERIOD', 'SLASH')]
+Layout = [('Q', 'W', 'E'), ('V', 'B', 'N'), ('COMMA', 'PERIOD', 'SLASH')]
 
 
 def reads_held(held, key):

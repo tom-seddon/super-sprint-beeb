@@ -15,7 +15,7 @@ VENV = .venv/installed
 # the helicopter forced to come from above or either side; TRACE=t0 to t7 the same race on track 1 to 8
 # (index 0 to 7; t4 is the default's); TRACE=attract the attract mode's race on track 6; TRACE=logic0 the
 # logic trace's race on track 1, drawn from the BBC's own race logic (Phase 4, step 8); TRACE=play the same
-# race to play (make beeb TRACE=play): three players on the keys (Z X SHIFT, V B N, , . /), car 3 a drone.
+# race to play (make beeb TRACE=play): three players on the keys (Q W E, V B N, , . /), car 3 a drone.
 TRACE ?= race
 RACE = 17
 FORCE = tornado,cones

@@ -4,11 +4,12 @@
 \\ their own, so no keys of theirs held together can ghost another (tools/keys_ghost.py).
 
 \\ The keys' internal numbers, measured: the kit's docs/hardware-facts.md section 7, and COMMA and PERIOD with
-\\ jsbeeb-mcp 4.3.0's key_down on a Master, 2026-11-02 (all nine confirmed there)
+\\ jsbeeb-mcp 4.3.0's key_down on a Master, 2026-11-02 (all confirmed there). Player 1 is Q, W, E rather than
+\\ Z, X, SHIFT (Tom, 2026-11-02): the BBC's two SHIFT keys are one key, at either side of the keyboard.
 
-KeyShift = 0
-KeyZ = 97
-KeyX = 66
+KeyQ = 16
+KeyW = 33
+KeyE = 34
 KeyV = 99
 KeyB = 100
 KeyN = 85
@@ -66,7 +67,7 @@ KeySlash = 104
 }
 
 .PlayerKeys                             ; each player's left, right, accelerate
-    EQUB KeyZ, KeyX, KeyShift
+    EQUB KeyQ, KeyW, KeyE
     EQUB KeyV, KeyB, KeyN
     EQUB KeyComma, KeyPeriod, KeySlash
 .PlayerOf

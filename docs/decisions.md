@@ -147,8 +147,10 @@ keys held together in jsbeeb (which may not model ghosting: the check there is t
 Master's two joysticks as an option for any player. The layout itself is Proposed until Tom has tried it on
 a real BBC. Hardware gate: real keyboard.
 
-Proposed layout (2026-11-02): player 1 Z left, X right, SHIFT accelerate; player 2 V, B, N; player 3 comma,
-full stop, slash. The matrix has no diodes, so held keys can make a key whose row and column they join read
+Proposed layout (2026-11-02): player 1 Q left, W right, E accelerate; player 2 V, B, N; player 3 comma,
+full stop, slash. (First proposed with player 1 on Z, X, SHIFT; Tom: "instead of Z/X/SHIFT, what about
+Q/W/E? The shift key is not ideal, as there are 2 shift keys, both equivalent, on opposite sides of the
+keyboard." Q, W and E are in the same columns, 0-2, so the property below holds.) The matrix has no diodes, so held keys can make a key whose row and column they join read
 as held; each of these nine keys is in a column of its own (0 to 8), so no combination of them can ghost
 another of them. `tools/keys_ghost.py` checks all 511 combinations on that model (0 ghost) and the model
 against a ghost seen on hardware (Paradroid's Z, X, K, M, L firing C). Key numbers measured (the kit's
