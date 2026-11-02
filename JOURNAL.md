@@ -281,3 +281,15 @@
   cycles a frame). The model also didn't depend on `gendata.py`, whose race loading it uses, so after the
   fix it stayed stale. Both fixed: the attract race's draw order becomes car calls, and all 576 frames
   that fit now match.
+
+## 2026-11-02: the beeb-port-kit's tools, one jsbeeb
+
+- Tom added `reference/beeb-port-kit` (Kieran Connell's kit from his ports). Its skills are in
+  `.claude/skills`; `CLAUDE.md` says what they look up here.
+- Its tools work in place: `listing.py` as it is; `harness.mjs` with this build's symbols path, a Master
+  and a longer boot. But only on its pinned jsbeeb-mcp 4.3.0 (jsbeeb 2.18.0): 1.13.1 has no `runFrames`.
+- **Mistake waiting to happen**: `tools/jsbeeb.mjs` took the first jsbeeb in the npx cache. Installing
+  4.3.0 for the kit silently moved every check onto 2.18, where they failed (keys are named since 2.0).
+  Now `.mcp.json` pins 4.3.0 and `tools/jsbeeb.mjs` loads exactly that version, printing it, as the kit's
+  tools do. Every race matches on 2.18, its cycles the same as on 1.13.1 to the cycle, and a screenshot is
+  byte for byte the same.

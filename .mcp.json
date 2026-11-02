@@ -3,7 +3,7 @@
     "jsbeeb": {
       "type": "stdio",
       "command": "npx",
-      "args": ["jsbeeb-mcp"]
+      "args": ["-y", "jsbeeb-mcp@4.3.0"]
     }
   }
 }

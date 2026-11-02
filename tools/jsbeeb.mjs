@@ -1,7 +1,10 @@
 // Headless jsbeeb for the tools: jsbeeb itself, the build's symbols, a Master 128 booted from a disc, and
 // reads of main and shadow RAM. After Teddy Boy's tools/jsbeeb.mjs.
 //
-// jsbeeb comes from jsbeeb-mcp's npm package (npx jsbeeb-mcp fetches it), or JSBEEB=path/to/jsbeeb.
+// jsbeeb is the one the jsbeeb MCP runs: `.mcp.json` pins jsbeeb-mcp's version, and the jsbeeb loaded here
+// is the one in the npx cache holding exactly that version (`npx -y jsbeeb-mcp@VERSION < /dev/null` once
+// fetches it), as the beeb-port-kit's tools/jsbeeb_src.mjs does, so the tools and the kit's harnesses
+// measure on one emulator. Its version goes to stderr. JSBEEB=path/to/jsbeeb overrides it.
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
@@ -9,12 +12,20 @@ import { join } from "node:path";
 
 function jsbeebSrc() {
     if (process.env.JSBEEB) return join(process.env.JSBEEB, "src");
+    const pin = /jsbeeb-mcp@([0-9.]+)/.exec(readFileSync(".mcp.json", "utf8"))?.[1];
+    if (!pin) throw new Error(".mcp.json doesn't pin jsbeeb-mcp@VERSION");
     const npx = join(homedir(), ".npm", "_npx");
     for (const d of existsSync(npx) ? readdirSync(npx) : []) {
-        const src = join(npx, d, "node_modules", "jsbeeb", "src");
-        if (existsSync(join(src, "machine-session.js"))) return src;
+        const mods = join(npx, d, "node_modules");
+        const pkg = join(mods, "jsbeeb-mcp", "package.json");
+        if (existsSync(pkg) && JSON.parse(readFileSync(pkg)).version === pin
+            && existsSync(join(mods, "jsbeeb", "src", "machine-session.js"))) {
+            const v = JSON.parse(readFileSync(join(mods, "jsbeeb", "package.json"))).version;
+            console.error(`[jsbeeb ${v}, jsbeeb-mcp ${pin}]`);
+            return join(mods, "jsbeeb", "src");
+        }
     }
-    throw new Error("jsbeeb not found: run `npx jsbeeb-mcp` once, or set JSBEEB");
+    throw new Error(`no npx cache holds jsbeeb-mcp@${pin}: run \`npx -y jsbeeb-mcp@${pin} < /dev/null\` once, or set JSBEEB`);
 }
 
 const src = jsbeebSrc();
@@ -31,10 +42,7 @@ export function symbols(path = "build/sprint.json") {
 }
 
 // the CPU's cycles since power-on
-export const cycles = (s) => {
-    const cpu = s._machine.processor;
-    return cpu.cycleSeconds * 2000000 + cpu.currentCycles;
-};
+export const cycles = (s) => s.elapsedCycles;
 
 // main RAM (shadow false) or shadow RAM (true) at &3000-&7FFF, as jsbeeb keeps them: shadow is &8000 on
 export function ram(s, addr, length, shadow = false) {
@@ -48,10 +56,10 @@ export async function bootDisc(disc = "build/sprint.ssd", model = "Master") {
     const s = new MachineSession(model);
     await s.initialise();
     s.loadDisc(disc);
-    s.keyDown(16);                      // SHIFT
+    s.keyDown("ShiftLeft");
     s.reset(true);
     await s.runFor(2000000);
-    s.keyUp(16);
+    s.keyUp("ShiftLeft");
     return s;
 }
 

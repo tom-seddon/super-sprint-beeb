@@ -37,8 +37,14 @@ What the skills look up, for this project:
 - **Oracles**: `make check` (`tools/render_check.mjs`: every frame's screen against `tools/render_model.py`'s,
   exit 1 if any is wrong), `tools/render_profile.mjs` (cycles by region, `--list N` the worst frames),
   `tools/screenshot.mjs`; all headless through `tools/jsbeeb.mjs`.
-- **Not here**: the kit template's tools (`harness.mjs`, `listing.py`, `verify_cmds.py`, `run_suite.py`,
-  `shadowaudit.mjs`, ...). Use the equivalents above, or fork one from `reference/beeb-port-kit/template/tools`
-  when a skill needs it.
-- **The jsbeeb MCP** here has `run_for_cycles` but no `run_frames` or `elapsed_cycles`: a frame is 39,936
-  cycles, and timings come from the scripts above (`tools/jsbeeb.mjs`'s `cycles`).
+- **The kit's tools, in place**: run them from `reference/beeb-port-kit/template/tools` (Tom: fine to use
+  in situ). Checked 2026-11-02: `listing.py symbols build/sprint.json NAME`, `stream` and `pages
+  build/sprint.lst` work as they are; `harness.mjs` works given `open({ disc: "build/sprint.ssd", symbols:
+  "build/sprint.json", model: "Master" })` and `boot({ field: h.zp("vsyncs"), settle: 1500 })` (the disc
+  copies 60K into the banks before it starts). `verify_cmds.py` and `run_suite.py` are skeletons a project
+  fills with its own oracle lines: fork them when this project has more oracles than `make check`.
+- **jsbeeb**: `.mcp.json` pins `jsbeeb-mcp@4.3.0` (jsbeeb 2.18.0), the kit's version, and both
+  `tools/jsbeeb.mjs` and the kit's `jsbeeb_src.mjs` load exactly that one from the npx cache, printing its
+  version (`npx -y jsbeeb-mcp@4.3.0 < /dev/null` fetches it). On 1.13.1 (jsbeeb-mcp 2.1.0, before) every
+  race's frames and cycles were the same to the cycle. Since jsbeeb 2.0 keys are named by position
+  (`"ShiftLeft"`), not numbered.
