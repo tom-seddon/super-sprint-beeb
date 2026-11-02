@@ -263,15 +263,15 @@ def hazards(track):
         assert all(not any(rows[r]) for r in list(range(6)) + list(range(11, 16))), 'a gate\'s mask B: lines 6-10'
         assert all(rows[r] == rows[6] for r in range(6, 11)), 'its bar\'s lines the same'
         bar += [b for w in rows[6] for b in (w >> 8, w & 255)]
-    keep, sets = [], []
+    keep, sets, kinds = [], [], []                  # (a column's 8 lines in turn, its left byte's first)
     for f in range(12):
         rows = [O.words(dat, O.Objects + 0x1740 + f * 96 + r * 12, 6) for r in range(8)]
         k = [~(r[0] | r[1] | r[2] | r[3]) & 0xFFFF for r in rows]
         if f % 4 == 0:
-            keep += [b for w in k for b in (w >> 8, w & 255)]
-        assert k == [keep[(f // 4) * 16 + 2 * i] << 8 | keep[(f // 4) * 16 + 2 * i + 1] for i in range(8)], \
-            'a kind\'s frames share their shape'
-        sets += [b for r in rows for b in (r[5] >> 8, r[5] & 255)]
+            kinds.append(k)
+            keep += [w >> 8 for w in k] + [w & 255 for w in k]
+        assert k == kinds[f // 4], 'a kind\'s frames share their shape'
+        sets += [r[5] >> 8 for r in rows] + [r[5] & 255 for r in rows]
     eq = lambda name, comment, v: [f'.{name:<38}; {comment}', '    EQUB ' + (byte_list(v) if v else '0')]
     return '\n'.join([
         '\\\\ hazards.6502 - track %d\'s gates and pop-up barriers, and their mask B (tools/gen_logic.py)' % (track + 1),
@@ -283,7 +283,7 @@ def hazards(track):
         'GateY = InstY + 3',
         *eq('BarKind', 'G_01EC30: its kind, its first frame (0, 4 or 8)', list(bk[track * 3:track * 3 + 3])),
         *eq('GateBar', 'a gate\'s bar\'s 6 bytes by position, 0 (shut) to 4', bar),
-        *eq('BarKeep', 'a barrier\'s 8 lines of 2 bytes to keep, by kind', keep),
+        *eq('BarKeep', 'a barrier\'s 2 columns of 8 lines to keep, by kind', keep),
         *eq('BarSet', 'and to set, by frame', sets),
         *eq('MbZero', '(a gate\'s bytes to keep, and its box\'s at the set-up: 0)', [0] * 6),
         ''])

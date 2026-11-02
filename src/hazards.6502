@@ -67,6 +67,9 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
     RTS
 }
 
+OpNop = &EA                             ; mb_box's patched opcodes: NOP,
+OpInx = &E8                             ; INX
+
 \\ A box of mask B written as a gate or barrier draws (F_014A04, F_014A80): each byte (byte AND keep) OR set.
 \\ The box's cells are mixed in D13's store, whatever they hold (tools/maskb.py keeps them so), and mixed
 \\ cells side by side in a row are stored in turn: so a band of lines in one cell row is one look-up, the
@@ -75,8 +78,8 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
 \\ Inputs:
 \\     mb_box.col: the box's first byte's column, 0-39; mb_box.line: its first line
 \\     mb_box.w: its bytes a line; mb_box.h: its lines (at most 16: 2 or 3 cell rows)
-\\     mb_box.keep, mb_box.set: the first line's bytes to keep and to set; mb_box.step: the bytes from one
-\\         line's to the next's (0: every line the same)
+\\     mb_box.keep, mb_box.set: the first column's bytes to keep and to set; mb_box.step: 1, a column's lines
+\\         in turn (the next column's h on), or 0, every line the same (the next column's 1 on)
 \\
 \\ Outputs:
 \\     mask B; mb_box.line, mb_box.h: corrupted; A, X, Y: corrupted
@@ -86,13 +89,21 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
     ZA_AUTO1 col, line, w, h, step      ; in
     ZA_AUTO2 keep, set                  ; in
     ZA_AUTO1 n                          ; local: the band's lines (in one cell row)
-    ZA_AUTO1 cnt                        ; local: its lines left in a column
-    ZA_AUTO1 b                          ; local: the column
-    ZA_AUTO1 y0                         ; local: the band's first line in its cell
+    ZA_AUTO1 y0                         ; local: its first line in its cell
+    ZA_AUTO1 yend                       ; local: the line after its last
+    ZA_AUTO1 b                          ; local: its columns left
+    ZA_AUTO1 across                     ; local: the data's columns apart
     ZA_AUTO1 d                          ; local: the data's offset at the band's first line
+    ZA_AUTO1 xc                         ; local: and at the column's
 
     LDA keep:STA k+1:LDA keep+1:STA k+2
     LDA set:STA s+1:LDA set+1:STA s+2
+    LDA #OpNop:LDX #1
+    LDY step:BEQ @+
+    LDA #OpInx:LDX h
+.@
+    STA adv
+    STX across
     STZ d
 .band
     LDA line:AND #7:STA y0
@@ -101,12 +112,13 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
     LDA h
 .@
     STA n
+    CLC:ADC y0:STA yend
     LDA col:LDY line:JSR mask_cell      ; its first column's cell
-    STZ b
+    LDA d:STA xc
+    LDA w:STA b
 .column
-    LDA b:CLC:ADC d:TAX
+    LDX xc
     LDY y0
-    LDA n:STA cnt
 .byte
     LDA (mask_cell.p),Y
 .k
@@ -114,20 +126,19 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
 .s
     ORA &FFFF,X                         ; self-modified: set
     STA (mask_cell.p),Y
-    TXA:CLC:ADC step:TAX
+.adv
+    NOP                                 ; self-modified: INX (a column's lines in turn) or NOP
     INY
-    DEC cnt:BNE byte
+    CPY yend:BNE byte
     LDA mask_cell.p:CLC:ADC #8:STA mask_cell.p   ; the next column's cell
     BCC @+
     INC mask_cell.p+1
 .@
-    INC b
-    LDA b:CMP w:BNE column
-    LDX n                               ; the next band: the data n lines on
-.next
-    LDA d:CLC:ADC step:STA d
-    DEX
-    BNE next
+    LDA xc:CLC:ADC across:STA xc
+    DEC b:BNE column
+    LDA step:BEQ @+                     ; the next band: the data n lines on
+    LDA d:CLC:ADC n:STA d
+.@
     LDA line:CLC:ADC n:STA line
     LDA h:SEC:SBC n:STA h
     BNE band
@@ -242,7 +253,8 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
     LDA #HI(BarKeep):ADC #0:STA mb_box.keep+1
     LDA InstCol,X:STA mb_box.col
     LDA InstY,X:STA mb_box.line
-    LDA #2:STA mb_box.w:STA mb_box.step
+    LDA #2:STA mb_box.w
+    LDA #1:STA mb_box.step
     LDA #8:STA mb_box.h
     PHX
     JSR mb_box
