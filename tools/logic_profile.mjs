@@ -25,7 +25,7 @@ const routineOf = (pc) => {
 
 const s = await bootDisc("build/logic.ssd");
 const cpu = s._machine.processor;
-const frames = option("--frames", 2195), worstN = option("--worst", 0);
+const frames = Number(option("--frames", syms.LgFrames - 2)), worstN = Number(option("--worst", 0));   // (every race frame)
 let current = null, last = 0, counts = null;
 cpu.debugInstruction.add((pc) => {
     const now = cycles(s);

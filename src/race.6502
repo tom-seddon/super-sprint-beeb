@@ -181,6 +181,7 @@ ENDSECTION
 
     LDX #3
 .car
+    LDA #&FF:STA RcRoadC0,X             ; (walls.6502's all_road: nothing cached)
     LDY RcTrack
     LDA GridX,Y:STA RcXLo,X
     STZ RcXHi,X

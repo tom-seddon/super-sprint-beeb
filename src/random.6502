@@ -38,22 +38,58 @@ RandomMul = 3141592621                  ; TOS's multiplier
     LDA RcSeed+2:STA m2
     LDA RcSeed+3:STA m3
     STZ p0:STZ p1:STZ p2:STZ p3
-    FOR j = 0..3                        ; seed * the multiplier, its low 32 bits: a shift and add a bit
-        LDA #(RandomMul >> (8 * j)) AND &FF:STA k
-        LDY #8
-    .bit
-        LSR k
-        BCC shift
-        CLC
-        LDA p0:ADC m0:STA p0
-        LDA p1:ADC m1:STA p1
-        LDA p2:ADC m2:STA p2
-        LDA p3:ADC m3:STA p3
-    .shift
-        ASL m0:ROL m1:ROL m2:ROL m3
-        DEY
-        BNE bit
-    NEXT
+    \\ seed * the multiplier, its low 32 bits: a shift and add a bit, the multiplier's byte j's bits adding the
+    \\ seed shifted 8 * j on, whose bytes below j are 0 by then: so from byte j only
+
+    LDA #RandomMul AND &FF:STA k
+    LDY #8
+.bit0
+    LSR k
+    BCC shift0
+    CLC
+    LDA p0:ADC m0:STA p0
+    LDA p1:ADC m1:STA p1
+    LDA p2:ADC m2:STA p2
+    LDA p3:ADC m3:STA p3
+.shift0
+    ASL m0:ROL m1:ROL m2:ROL m3
+    DEY
+    BNE bit0
+    LDA #(RandomMul >> 8) AND &FF:STA k
+    LDY #8
+.bit1
+    LSR k
+    BCC shift1
+    CLC
+    LDA p1:ADC m1:STA p1
+    LDA p2:ADC m2:STA p2
+    LDA p3:ADC m3:STA p3
+.shift1
+    ASL m1:ROL m2:ROL m3
+    DEY
+    BNE bit1
+    LDA #(RandomMul >> 16) AND &FF:STA k
+    LDY #8
+.bit2
+    LSR k
+    BCC shift2
+    CLC
+    LDA p2:ADC m2:STA p2
+    LDA p3:ADC m3:STA p3
+.shift2
+    ASL m2:ROL m3
+    DEY
+    BNE bit2
+    LDA #(RandomMul >> 24) AND &FF:STA k
+    LDY #8
+.bit3
+    LSR k
+    BCC shift3
+    LDA p3:CLC:ADC m3:STA p3
+.shift3
+    ASL m3
+    DEY
+    BNE bit3
     SEC                                 ; + 1
     LDA p0:ADC #0:STA RcSeed
     LDA p1:ADC #0:STA RcSeed+1:STA r
@@ -61,8 +97,9 @@ RandomMul = 3141592621                  ; TOS's multiplier
     LDA p3:ADC #0:STA RcSeed+3
     LSR r+1:ROR r                       ; (Random AND &FFFF) >> 1: the seed's bits 9-23
 
-    LDA #0                              ; r MOD n
-    LDY #16
+    LDA #0                              ; r MOD n (r 15 bits: its top bit's step left out)
+    ASL r:ROL r+1
+    LDY #15
 .divide
     ASL r:ROL r+1
     ROL A

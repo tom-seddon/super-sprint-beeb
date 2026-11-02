@@ -68,47 +68,69 @@ MaxHazDraws = 6                         ; (in a race frame a gate and a barrier 
 }
 
 \\ A box of mask B written as a gate or barrier draws (F_014A04, F_014A80): each byte (byte AND keep) OR set.
-\\ The box's cells are mixed in D13's store, whatever they hold (tools/maskb.py keeps them so).
+\\ The box's cells are mixed in D13's store, whatever they hold (tools/maskb.py keeps them so), and mixed
+\\ cells side by side in a row are stored in turn: so a band of lines in one cell row is one look-up, the
+\\ next column's cell 8 bytes on.
 \\
 \\ Inputs:
 \\     mb_box.col: the box's first byte's column, 0-39; mb_box.line: its first line
-\\     mb_box.w: its bytes a line; mb_box.h: its lines
+\\     mb_box.w: its bytes a line; mb_box.h: its lines (at most 16: 2 or 3 cell rows)
 \\     mb_box.keep, mb_box.set: the first line's bytes to keep and to set; mb_box.step: the bytes from one
 \\         line's to the next's (0: every line the same)
 \\
 \\ Outputs:
-\\     mask B; A, X, Y: corrupted
+\\     mask B; mb_box.line, mb_box.h: corrupted; A, X, Y: corrupted
 
 .mb_box
 {
     ZA_AUTO1 col, line, w, h, step      ; in
     ZA_AUTO2 keep, set                  ; in
-    ZA_AUTO1 b                          ; local: the byte in the line
-    ZA_AUTO1 kb, sb                     ; local: its keep and set
+    ZA_AUTO1 n                          ; local: the band's lines (in one cell row)
+    ZA_AUTO1 cnt                        ; local: its lines left in a column
+    ZA_AUTO1 b                          ; local: the column
+    ZA_AUTO1 y0                         ; local: the band's first line in its cell
+    ZA_AUTO1 d                          ; local: the data's offset at the band's first line
 
-.line_
+    LDA keep:STA k+1:LDA keep+1:STA k+2
+    LDA set:STA s+1:LDA set+1:STA s+2
+    STZ d
+.band
+    LDA line:AND #7:STA y0
+    EOR #7:INC A                        ; the band: 8 - (line AND 7) lines, at most h
+    CMP h:BCC @+
+    LDA h
+.@
+    STA n
+    LDA col:LDY line:JSR mask_cell      ; its first column's cell
     STZ b
+.column
+    LDA b:CLC:ADC d:TAX
+    LDY y0
+    LDA n:STA cnt
 .byte
-    LDY b
-    LDA (keep),Y:STA kb
-    LDA (set),Y:STA sb
-    TYA:CLC:ADC col
-    LDY line:JSR mask_cell              ; (a box's cells are mixed: p its address)
-    LDA line:AND #7:TAY
-    LDA (mask_cell.p),Y:AND kb:ORA sb:STA (mask_cell.p),Y
+    LDA (mask_cell.p),Y
+.k
+    AND &FFFF,X                         ; self-modified: keep
+.s
+    ORA &FFFF,X                         ; self-modified: set
+    STA (mask_cell.p),Y
+    TXA:CLC:ADC step:TAX
+    INY
+    DEC cnt:BNE byte
+    LDA mask_cell.p:CLC:ADC #8:STA mask_cell.p   ; the next column's cell
+    BCC @+
+    INC mask_cell.p+1
+.@
     INC b
-    LDA b:CMP w:BNE byte
-    INC line
-    LDA keep:CLC:ADC step:STA keep
-    BCC @+
-    INC keep+1
-.@
-    LDA set:CLC:ADC step:STA set
-    BCC @+
-    INC set+1
-.@
-    DEC h
-    BNE line_
+    LDA b:CMP w:BNE column
+    LDX n                               ; the next band: the data n lines on
+.next
+    LDA d:CLC:ADC step:STA d
+    DEX
+    BNE next
+    LDA line:CLC:ADC n:STA line
+    LDA h:SEC:SBC n:STA h
+    BNE band
     RTS
 }
 

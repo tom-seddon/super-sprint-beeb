@@ -6,6 +6,17 @@
 \\ on each side. Only those are needed: the probed lines' and columns' opaque pixels, per car and facing
 \\ (PTop, PBot, PLeft, PRight), tested against mask B at the car's place.
 
+SECTION LogicVars
+.RcRoadC0                               ; each car's last all_road: its cells' first column (&FF: none yet),
+    SKIP 4
+.RcRoadR                                ; first row,
+    SKIP 4
+.RcRoadR1                               ; last row,
+    SKIP 4
+.RcRoadRes                              ; and its answer
+    SKIP 4
+ENDSECTION
+
 \\ A car's walls.
 \\
 \\ Inputs:
@@ -20,8 +31,6 @@
     ZA_AUTO1 code                       ; local: the code so far
     ZA_AUTO1 f                          ; local: car * 16 + facing
     ZA_AUTO1 d                          ; local: the facing
-    ZA_AUTO2 lines                      ; local: a column's lines to test
-    ZA_AUTO1 all_road_end               ; local: all_road's row's span's end
 
     LDA RcBitsHi,X:AND #HI(&400)        ; airborne: the ST's buffer is left 0
     BEQ ground
@@ -64,8 +73,8 @@
     \\ the side columns
 
     LDY f
-    LDA PLeftLo,Y:STA lines
-    LDA PLeftHi,Y:STA lines+1
+    LDA PLeftLo,Y:STA column_hit.lines
+    LDA PLeftHi,Y:STA column_hit.lines+1
     LDY d
     LDA ProbeLeft,Y
     JSR column_hit
@@ -73,8 +82,8 @@
     LDA code:ORA #4:STA code
 .@
     LDY f
-    LDA PRightLo,Y:STA lines
-    LDA PRightHi,Y:STA lines+1
+    LDA PRightLo,Y:STA column_hit.lines
+    LDA PRightHi,Y:STA column_hit.lines+1
     LDY d
     LDA ProbeRight,Y
     JSR column_hit
@@ -83,12 +92,15 @@
 .done
     LDA code
     RTS
+}
 
 \\ Whether the cells under the car's probes are all road: the cell rows from the top probe line's to the
-\\ bottom's, the cell columns from x's to x + 16's. Each row's fill outside its span, and its map inside.
+\\ bottom's, the cell columns from x's to x + 16's. Each row's fill outside its span, and its map inside. A
+\\ cell's class never changes (the gates' and barriers' are always stored mixed), so the answer for the same
+\\ cells as the car's last is its last.
 \\
 \\ Inputs:
-\\     d: the facing
+\\     walls.d: the facing
 \\     X: the car
 \\
 \\ Outputs:
@@ -96,21 +108,32 @@
 \\     Y: corrupted; X preserved
 
 .all_road
+{
     ZA_AUTO1 r                          ; local: the cell row
     ZA_AUTO1 r1                         ; local: the last
     ZA_AUTO1 c0                         ; local: the first cell column
     ZA_AUTO1 c1                         ; local: the last
     ZA_AUTO2 map                        ; local: the row's map
+    ZA_AUTO1 all_road_end               ; local: the row's span's end
 
     LDA RcXHi,X:LSR A                   ; c0 = x >> 3 (x at most 301)
     LDA RcXLo,X:ROR A:LSR A:LSR A
     STA c0
     INC A:INC A:STA c1                  ; c1 = (x + 16) >> 3 = c0 + 2
-    LDY d
+    LDY walls.d
     LDA ProbeBot,Y:CLC:ADC RcYLo,X
     LSR A:LSR A:LSR A:STA r1
     LDA ProbeTop,Y:CLC:ADC RcYLo,X
     LSR A:LSR A:LSR A:STA r
+    CMP RcRoadR,X:BNE miss
+    LDA r1:CMP RcRoadR1,X:BNE miss
+    LDA c0:CMP RcRoadC0,X:BNE miss
+    LDA RcRoadRes,X                     ; (Z by it)
+    RTS
+.miss
+    LDA c0:STA RcRoadC0,X
+    LDA r:STA RcRoadR,X
+    LDA r1:STA RcRoadR1,X
 .cellrow
     LDY r
     LDA c0:CMP MbLo,Y:BCS inleft        ; left of the span: its fill
@@ -142,7 +165,9 @@
 .road
     LDA #0
 .wall
+    STA RcRoadRes,X                     ; (Z by A still)
     RTS
+}
 
 \\ Whether a column of the car touches a wall: mask B's pixel at x + the column, on each of its lines.
 \\
@@ -156,6 +181,8 @@
 \\     lines, Y: corrupted; X preserved
 
 .column_hit
+{
+    ZA_AUTO2 lines                      ; in: the lines to test
     ZA_AUTO1 col                        ; local: mask B's column
     ZA_AUTO1 bit                        ; local: the pixel's bit in it
     ZA_AUTO1 row                        ; local: the line's pixel row
