@@ -2,7 +2,9 @@
 \\ objects' bank: code in &3000-&7FFF can't run while ACCCON's X shows the shadow screen there.
 
 \\ Shared (the read-only data at SharedOrg, in main RAM's &3000 area from SPRINT's load) copied into the
-\\ shadow screen's, a page at a time through ObjBuf (below &3000, where ACCCON's X doesn't reach).
+\\ shadow screen's, a page at a time through ObjBuf (below &3000, where ACCCON's X doesn't reach). The
+\\ pages from &3000, so whole pages end with Shared's and it may run to the HUD's row; ScreenVars, below it,
+\\ come too, harmlessly: start sets each screen's.
 \\
 \\ Inputs:
 \\     ROMSEL: this bank
@@ -13,12 +15,13 @@
 
 .shared_copy
 {
-    LDX #HI(SharedEnd - SharedOrg + &FF)
+    ASSERT LO(ScreenVarsOrg) == 0, "shared_copy: from a page"
+    LDX #HI(SharedEnd - ScreenVarsOrg + &FF)
     LDY #0
 .page
     LDA &FE34:AND #&30:STA &FE34        ; ACCCON: main RAM's &3000 area
 .get
-    LDA SharedOrg,Y                     ; self-modified: the page's high byte
+    LDA ScreenVarsOrg,Y                 ; self-modified: the page's high byte
     STA ObjBufOrg,Y
     INY
     BNE get
@@ -26,7 +29,7 @@
     STA &FE34                           ; ACCCON: the shadow screen's
 .put
     LDA ObjBufOrg,Y
-    STA SharedOrg,Y                     ; self-modified: the page's high byte
+    STA ScreenVarsOrg,Y                 ; self-modified: the page's high byte
     INY
     BNE put
     INC get+2

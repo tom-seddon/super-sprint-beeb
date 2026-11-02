@@ -93,8 +93,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
 .SharedEnd
             PRINT "the &3000 area: ", HudAddr - SharedEnd, " bytes free after Shared"
         ENDSECTION
-        ASSERT SharedEnd + &FF <= HudAddr, "Shared's pages below the HUD's row (the loader copies whole pages)"
-    ENDIF
+        ENDIF
 .maincode_image
     SECTION MainCode, org = MainCodeOrg, guard = GameVarsOrg, cmos = TRUE
         INCLUDE "irq.6502"
