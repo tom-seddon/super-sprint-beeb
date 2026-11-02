@@ -10,11 +10,13 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: speed, step 12, its next round** (§8's last entry: what's done, what's left, the options). The hazards are in (step 11, §8): exact against the ST and drawn from the logic on
-track 5's race 17. That race is too slow: logic and drawing average 38,207 cycles a frame, and 734 of its
-2,240 drawn frames take two TV frames (the logic about 17,800 of it). Then room for the other tracks: the
-play build's fourth bank has 998 bytes free on track 1, which on tracks 6 and 8 (larger mask B) comes to
-about 77 and 261 over (PROJECTED); then the other tracks themselves.
+**Resume point: speed, step 12, its third round, or room** (§8's last two entries: what's done, what's
+left, the options). The hazards are in (step 11, §8): exact against the ST and drawn from the logic on
+track 5's race 17. Two rounds of speed (step 12) took that race from 38,207 cycles a frame to 34,357, and its
+drawn frames taking two TV frames from 734 of 2,240 to 329. What's left is levers of 100-300 cycles each,
+D14 (Proposed) and the measured-not-built list. Room is now the binding limit: track 5's fourth bank has 10
+bytes free, and tracks 6 and 8 (larger mask B) would be over (PROJECTED); HAZEL per D7 is Tom's call. Then
+the other tracks themselves.
 
 ## 0. The proposal in one paragraph
 
@@ -512,3 +514,43 @@ the sound interrupt 849, collide_car 848, car-to-car 700, all_road 606, line_hit
 under 460 each (mean a frame). Each further lever is worth a few hundred cycles; clearing most of the slow
 frames needs about 6,000-8,000 off them, from the logic and the renderer both.
 
+
+**Step 12, speed, the second round (by hand, Tom: "Keep going by hand").** Nine exact changes, each checked on
+both traces before its commit, MEASURED with `tools/logic_profile.mjs` (the logic test, mean a frame; in
+brackets the worst 300 frames):
+
+| | Hazard race | Track 1 |
+|---|---|---|
+| Before (`0bddd80`) | 15,711 (19,887) | (not measured) |
+| TOS's multiply unrolled by the multiplier's bits; random(3) by folding | 15,424 (18,874) | 12,355 |
+| a wall line's mask B row found once; n * 8 by byte shifts | 15,081 (18,297) | 12,321 |
+| the draw order by places counted over the six pairs | 14,977 | 12,042 |
+| a drone on its line skips its steer | 14,535 | 11,587 |
+| mask B's boxes a column at a time (barrier tables column-major) | 14,459 | 11,587 |
+| car-to-car's distance test without negating | 14,366 | 11,509 |
+| a cell probe reads through its row; the pair's address only where a cell acts | 14,225 | 11,363 |
+| div_s16's quotient bits shifted in by ROL | 14,191 (about 17,500) | 11,320 |
+
+The game (`make check TRACE=logic4`, all 2,240 frames matching the model): mean 35,934 -> 34,357 cycles a
+frame, drawn frames taking two TV frames 481 -> 329 of 2,240 (734 before step 12). Of the 322 frames over
+39,936 cycles, most are near it (two changes earlier, 136 of 333 were over by under 2,000 and 226 by under
+4,000): each 1,000 cycles off the busy frames saves roughly 50 of them. The slowest (56,000-62,000) are a wreck with the helicopter on screen and
+cars under the priority cells, out of reach. Track 1's traced game: mean 26,314 -> 25,290, 2 -> 1 frame
+over. The suite (`tools/suite.sh`, now 18 checks) passes.
+
+Room: track 5's traced game had its fourth bank 16 bytes over after the wall-line change; the traced
+inputs (test builds only) moved to Shared, and it ends with 10 bytes free. Main RAM's code (play build)
+441 -> 224 free, the fourth bank 988 -> 874 (track 1). New checks: `tools/arith_check.mjs` (the divide and
+both multiplies against the 68000's, 158,340 cases, in the suite; writing it found mul_s16 and mul_dir read
+the multiplier's sign from the flags, now in their headers), and the map's evenness asserted.
+
+Measured and not built:
+- **The drones' moves since the segment's start** (RcAccX/Y, G_01E2DC/G_01E2D4): read only by F_00F92E,
+  which is dead code. Dropping them saves 135 cycles a frame and 46 bytes of the fourth bank (MEASURED); D9 says every per-car variable is compared, so it's
+  Tom's call (D14, Proposed).
+- The probe lines' shifts (by x AND 7, y AND 7: about 530 cycles a frame on the hazard race) unrolled with a
+  computed entry: about 20 cycles a call saved (COUNTED), not worth its bytes in the fourth bank; stored
+  pre-shifted in the objects' bank about 350 a frame (PROJECTED) for about 6K of it.
+- The erase: about 80 cycles of set-up a band, 14 bands and 75 lines a frame; its copy is 9 cycles a byte.
+  At its floor without a different screen layout.
+- The plot's slow path (cars under the priority cells): twice the fast loop's cost a byte by its nature.

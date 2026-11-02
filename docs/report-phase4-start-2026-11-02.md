@@ -10,8 +10,8 @@ each effect in `build/lgen/wav`. A disc to play: `build/play.ssd` (`make beeb TR
 then made room (main RAM 52 -> 416 bytes free, the fourth bank 136 -> 2,398, nothing on the screen or in the
 play changed), and the hazards went in: the tornado, pop-up barriers, gates and cones, bit-exact on track 5's
 race 17 and drawn from the logic, all 2,240 frames matching. That race was too slow: a third of its
-frames took two TV frames. Six exact speed changes so far bring that to 481 of 2,240 (from 734), the
-average 38,207 -> 35,934 cycles; the rest is spread thin across the logic and the renderer (below).
+frames took two TV frames. Fifteen exact speed changes in two rounds bring that to 329 of 2,240 (from 734),
+the average 38,207 -> 34,357 cycles; what's left is spread thin across the logic and the renderer (below).
 
 ## What was built and what proves it
 
@@ -82,8 +82,12 @@ average 38,207 -> 35,934 cycles; the rest is spread thin across the logic and th
 
 - **Speed** (step 12, `docs/brief-phase4.md` §8): mask B's box writes a band at a time, TOS's multiply from
   the byte that matters, a car's road test cached, the wall columns a cell row at a time, spent sparks
-  skipped. Exact on both traces; a new unit test for the wall columns caught a fault the races missed. The
-  hazard race's frames taking two TV frames 734 -> 481; track 1's 5 -> 2.
+  skipped (the first round); then by hand TOS's multiply unrolled, a wall line's row found once, the draw
+  order by counted places, a drone on its line skipping its steer, mask B's boxes a column at a time,
+  car-to-car's distance test, the cell probes through their rows, the divide's quotient bits by ROL (the
+  second). Exact on both traces; new unit tests for the wall columns (it caught a fault the races missed)
+  and for the arithmetic (`tools/arith_check.mjs`, 158,340 cases). The hazard race's frames taking two TV
+  frames 734 -> 329, its mean 38,207 -> 34,357; track 1's 5 -> 1. The suite, 18 checks, passes.
 
 ## Please review
 
@@ -92,6 +96,8 @@ average 38,207 -> 35,934 cycles; the rest is spread thin across the logic and th
 - **D11's details** (Proposed, for your ears): each effect one captured instance; tone and noise together
   play as the noise alone (the kit's 1942 rule); the engine two octaves up, its growl sampled at 50 Hz; the
   start's 1 s pause kept. Each is a small change if it sounds wrong.
+- **D14** (Proposed): drop the drones' two accumulators that only dead ST code reads: 135 cycles a frame
+  and 46 bytes of the fourth bank, nothing in the race changed, but D9 compares every variable.
 - One finding that follows from D9: 7 of the 16 facings' car shapes differ between the car sets, so the
   wall probes have to use each frame's own shape. The cheaper fixed shape per facing would not be bit-exact.
 
@@ -102,11 +108,11 @@ average 38,207 -> 35,934 cycles; the rest is spread thin across the logic and th
 
 ## What is open
 
-Resume point: **speed** (`docs/brief-phase4.md`). With the hazards in, track 5's race averages 38,207
-cycles a frame (logic and drawing) and 734 of its 2,240 drawn frames take two TV frames: the game drops to
-25 fps a third of the time there. Then room for the other tracks (the fourth bank would be about 77 bytes
-over on track 6 and 261 on track 8, PROJECTED), the other 7 tracks, and the joysticks once measured on a real
-Master.
+Resume point: **speed's third round, or room** (`docs/brief-phase4.md`). Track 5's race now averages
+34,357 cycles a frame and 329 of its 2,240 drawn frames take two TV frames (734 before the speed work);
+each further lever is 100-300 cycles. Room binds now: track 5's fourth bank has 10 bytes free, and tracks 6
+and 8 would be over (PROJECTED; HAZEL per D7 is your call). Then the other 7 tracks, and the joysticks once
+measured on a real Master.
 
 ## Branch ledger
 
