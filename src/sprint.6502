@@ -89,6 +89,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             INCLUDE "../build/lgen/path.6502"
             INCLUDE "../build/lgen/probes.6502"
             INCLUDE "../build/lgen/hazards.6502"
+            INCLUDE "sharedtabs.6502"
 .SharedEnd
             PRINT "the &3000 area: ", HudAddr - SharedEnd, " bytes free after Shared"
         ENDSECTION

@@ -155,6 +155,7 @@ def main(out, wav):
     missing = [n for n in Order if n not in fx]
     assert not missing, f'no clean instance of {missing}'
     os.makedirs(out, exist_ok=True)
+    same = {n: next(m for m in Order if pack(fx[m][0]) == pack(fx[n][0])) for n in Order}   # (start0 and start1)
     lines = ['\\\\ sound.6502 - the race\'s effects, from the ST\'s sound (tools/sound_gen.py): 3 bytes a field', '']
     lines += [f'Fx{n.capitalize()} = {i}' for i, n in enumerate(Order)]
     lines += [f'FxCount = {len(Order)}', '']
@@ -164,12 +165,14 @@ def main(out, wav):
               '    EQUB ' + ', '.join(str(fx[n][1] if fx[n][1] is not None else len(fx[n][0])) for n in Order),
               '.FxPrio                                 ; its priority while it plays',
               '    EQUB ' + ', '.join(str(fx[n][2]) for n in Order),
-              '.FxLo                                   ; its fields\' address',
-              '    EQUB ' + ', '.join(f'LO(Fx_{n})' for n in Order),
+              '.FxLo                                   ; its fields\' address (an effect the same as an earlier one: its)',
+              '    EQUB ' + ', '.join(f'LO(Fx_{same[n]})' for n in Order),
               '.FxHi',
-              '    EQUB ' + ', '.join(f'HI(Fx_{n})' for n in Order)]
+              '    EQUB ' + ', '.join(f'HI(Fx_{same[n]})' for n in Order)]
     total = 0
     for n in Order:
+        if same[n] != n:
+            continue
         b = pack(fx[n][0])
         total += len(b)
         lines += [f'.Fx_{n}', '    EQUB ' + ', '.join(f'&{v:02X}' for v in b)]

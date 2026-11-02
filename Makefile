@@ -30,18 +30,18 @@ else ifeq ($(TRACE),logic0)
 TRACK = 0
 TRACEFILE = build/trace/race_t0_r0_script.json
 GENFLAGS = --logic
-LOGICDEPS = build/lgen/tables.6502
+LOGICDEPS = build/lgen/tables.6502 build/lgen/sound.6502
 else ifeq ($(TRACE),logic4)
 TRACK = 4
 TRACEFILE = build/trace/race_t4_r17.json
 GENFLAGS = --logic
-LOGICDEPS = build/lgen/tables.6502
+LOGICDEPS = build/lgen/tables.6502 build/lgen/sound.6502
 LOGICTRACE = build/trace/logic_t4_r17.json
 else ifeq ($(TRACE),play)
 TRACK = 0
 TRACEFILE = build/trace/race_t0_r0_script.json
 GENFLAGS = --logic --play
-LOGICDEPS = build/lgen/tables.6502
+LOGICDEPS = build/lgen/tables.6502 build/lgen/sound.6502
 else ifneq ($(filter heli1 heli2 heli3,$(TRACE)),)
 TRACK = 4
 TRACEFILE = build/trace/race_t4_r$(RACE)_$(TRACE).json
@@ -123,8 +123,23 @@ build/lgen/tracefile: always
 build/lgen/tables.6502: tools/gen_logic.py tools/logic_maps.py tools/maskb.py build/super.s $(LOGICTRACE) build/lgen/tracefile | $(VENV)
 	$(PY) tools/gen_logic.py $(LOGICTRACE) build/lgen
 logic: build/logic.ssd
-build/logic.ssd: $(wildcard src/*.6502) build/lgen/tables.6502
+build/logic.ssd: $(wildcard src/*.6502) build/lgen/tables.6502 build/lgen/sound.6502
 	baron -v --symbols build/logic.json -o $@ --opt 2 src/logictest.6502 > build/logic.lst
+# The race's sound (step 10, D11): the ST's sound captured in Hatari (about 40 s each: the logic race, it with
+# oil poked across the start, the hazard race), and the effects cut from them and converted for the SN76489.
+build/trace/sound_t0_r0.json: tools/st_trace_sound.py tools/hatari.sh tools/logic_scripts/t0.json | $(VENV)
+	$(PY) tools/st_trace_sound.py 0 0 $@ - tools/logic_scripts/t0.json
+build/trace/sound_t0_r0_oil.json: tools/st_trace_sound.py tools/hatari.sh tools/logic_scripts/t0.json | $(VENV)
+	$(PY) tools/st_trace_sound.py 0 0 $@ oil tools/logic_scripts/t0.json
+build/trace/sound_t6_r$(RACE).json: tools/st_trace_sound.py tools/hatari.sh | $(VENV)
+	$(PY) tools/st_trace_sound.py 6 $(RACE) $@ $(FORCE)
+build/trace/sound_t4_r$(RACE)_hz.json: tools/st_trace_sound.py tools/hatari.sh | $(VENV)
+	$(PY) tools/st_trace_sound.py 4 $(RACE) $@ $(FORCE)
+SOUNDCAPS = build/trace/sound_t0_r0.json build/trace/sound_t6_r$(RACE).json build/trace/sound_t0_r0_oil.json
+build/lgen/sound.6502: tools/sound_gen.py tools/ay2sn.py $(SOUNDCAPS) | $(VENV)
+	@mkdir -p build/lgen
+	$(PY) tools/sound_gen.py build/lgen
+
 LOGICTRACK = $(word 1,$(subst _, ,$(subst build/trace/logic_t,,$(LOGICTRACE))))
 LOGICDRAWS = $(if $(filter 0,$(LOGICTRACK)),build/trace/race_t0_r0_script.json,build/trace/race_t$(LOGICTRACK)_r$(RACE).json)
 logiccheck: build/logic.ssd $(LOGICDRAWS)

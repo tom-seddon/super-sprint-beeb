@@ -104,40 +104,6 @@ ENDIF
     RTS
 }
 
-\\ The traced race's scores and sparks as the ST had them from before it (logic_start copies them in).
-
-.LfScores
-    FOR i = 0..23
-        EQUB LgScores[i]
-    NEXT
-.LfSparks                               ; RcSparkTimerLo's 8 bytes to RcSparkYHi's, as they're declared
-    FOR i = 0..7
-        EQUB LO(LgSparkTimer[i])
-    NEXT
-    FOR i = 0..7
-        EQUB HI(LgSparkTimer[i])
-    NEXT
-    FOR i = 0..7
-        EQUB LgSparkEnd[i]
-    NEXT
-    FOR i = 0..7
-        EQUB LgSparkFrame[i]
-    NEXT
-    FOR i = 0..7
-        EQUB LO(LgSparkX[i])
-    NEXT
-    FOR i = 0..7
-        EQUB HI(LgSparkX[i])
-    NEXT
-    FOR i = 0..7
-        EQUB LO(LgSparkY[i])
-    NEXT
-    FOR i = 0..7
-        EQUB HI(LgSparkY[i])
-    NEXT
-ASSERT RcSparkTimerHi == RcSparkTimerLo + 8 AND RcSparkEnd == RcSparkTimerLo + 16 AND RcSparkFrame == RcSparkTimerLo + 24
-ASSERT RcSparkXLo == RcSparkTimerLo + 32 AND RcSparkXHi == RcSparkTimerLo + 40 AND RcSparkYLo == RcSparkTimerLo + 48
-ASSERT RcSparkYHi == RcSparkTimerLo + 56, "the sparks' arrays in LfSparks's order"
 
 \\ A frame of the race (the logic's bank paged in): on the set-up's two flips, its draws (every car, the banner); after them, a race
 \\ frame from the next inputs. Then its records, and the HUD's changes.

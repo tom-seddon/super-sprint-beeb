@@ -1,0 +1,42 @@
+\\ sharedtabs.6502 - the frame builder's read-only tables that live in Shared (both screens' &3000 area), to
+\\ leave room in the logic's bank: read whatever's paged.
+
+\\ The traced race's scores and sparks as the ST had them from before it (logic_start copies them in).
+
+.LfScores
+    FOR i = 0..23
+        EQUB LgScores[i]
+    NEXT
+.LfSparks                               ; RcSparkTimerLo's 8 bytes to RcSparkYHi's, as they're declared
+    FOR i = 0..7
+        EQUB LO(LgSparkTimer[i])
+    NEXT
+    FOR i = 0..7
+        EQUB HI(LgSparkTimer[i])
+    NEXT
+    FOR i = 0..7
+        EQUB LgSparkEnd[i]
+    NEXT
+    FOR i = 0..7
+        EQUB LgSparkFrame[i]
+    NEXT
+    FOR i = 0..7
+        EQUB LO(LgSparkX[i])
+    NEXT
+    FOR i = 0..7
+        EQUB HI(LgSparkX[i])
+    NEXT
+    FOR i = 0..7
+        EQUB LO(LgSparkY[i])
+    NEXT
+    FOR i = 0..7
+        EQUB HI(LgSparkY[i])
+    NEXT
+ASSERT RcSparkTimerHi == RcSparkTimerLo + 8 AND RcSparkEnd == RcSparkTimerLo + 16 AND RcSparkFrame == RcSparkTimerLo + 24
+ASSERT RcSparkXLo == RcSparkTimerLo + 32 AND RcSparkXHi == RcSparkTimerLo + 40 AND RcSparkYLo == RcSparkTimerLo + 48
+ASSERT RcSparkYHi == RcSparkTimerLo + 56, "the sparks' arrays in LfSparks's order"
+
+.TorPiece                               ; the tornado's piece, by frame * 4 + x's shift
+    EQUB GenTorPiece
+.EntCode                                ; a gate's or barrier's entry, by instance * 9 + code (logicframe.6502)
+    EQUB GenEntCode

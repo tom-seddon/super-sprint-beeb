@@ -17,8 +17,3 @@
     EQUB GenHeliCount
 .SetOf                                  ; a car's frame set, by car * 2 + drone-driven
     EQUB GenSetOf
-
-.TorPiece                               ; the tornado's piece, by frame * 4 + x's shift
-    EQUB GenTorPiece
-.EntCode                                ; a gate's or barrier's entry, by instance * 9 + code (logicframe.6502)
-    EQUB GenEntCode
