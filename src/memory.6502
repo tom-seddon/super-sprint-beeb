@@ -17,7 +17,7 @@
 \\   &2E00  the game's variables (GameVars), below &3000 so ACCCON's X never hides them
 \\   &3000  each screen's own variables (ScreenVars): main RAM's and shadow RAM's, ACCCON's X picking the
 \\          screen being drawn's (its erase list, the HUD's text it shows)
-\\   &3100  read-only data, the same in both screens, so readable whatever's paged (Shared, in the game built
+\\   &3070  read-only data, the same in both screens, so readable whatever's paged (Shared, in the game built
 \\          from the logic): the sound's effects, the drone path, the wall probes. SPRINT's load puts them
 \\          in main RAM's, its loader copies them to shadow RAM's
 \\   &3F00  the screen: the HUD's row, then the play area to &7FFF; in main RAM and in shadow RAM
@@ -70,7 +70,7 @@ SECTION GameVars, org = GameVarsOrg, guard = GameVarsEnd, virtual = TRUE
 ENDSECTION
 
 ScreenVarsOrg = &3000                   ; (SPRINT's loader is here until it jumps to start)
-SharedOrg = &3100                       ; the read-only data in both screens' &3000 area (Shared: sprint.6502)
+SharedOrg = &3070                       ; the read-only data in both screens' &3000 area (Shared: sprint.6502)
 SECTION ScreenVars, org = ScreenVarsOrg, guard = SharedOrg, virtual = TRUE
 ENDSECTION
 

@@ -14,7 +14,7 @@ INCLUDE "../build/gen/trace.6502"       ; (GenLogic: the race drawn from the log
 IF GenLogic
     INCLUDE "../build/gen/logickeys.6502"
     INCLUDE "../build/lgen/race.6502"
-    LogicVarsOrg = SwramEnd - &200      ; the logic's state, at the fourth bank's end
+    LogicVarsOrg = SwramEnd - &1C0      ; the logic's state, at the fourth bank's end (416 bytes used)
     SECTION LogicVars, org = LogicVarsOrg, guard = SwramEnd, virtual = TRUE
     ENDSECTION
 ENDIF
@@ -50,7 +50,6 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
             INCLUDE "logictabs.6502"
             INCLUDE "../build/lgen/walls.6502"
             INCLUDE "../build/lgen/cells.6502"
-            INCLUDE "../build/lgen/hazards.6502"
             IF GenPlay = 0
 .LogicInputs
                 INCBIN "../build/lgen/inputs.rle" ; the traced race's inputs, as runs (tools/gen_logic.py)
@@ -89,6 +88,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             INCLUDE "../build/lgen/sound.6502"
             INCLUDE "../build/lgen/path.6502"
             INCLUDE "../build/lgen/probes.6502"
+            INCLUDE "../build/lgen/hazards.6502"
 .SharedEnd
             PRINT "the &3000 area: ", HudAddr - SharedEnd, " bytes free after Shared"
         ENDSECTION
