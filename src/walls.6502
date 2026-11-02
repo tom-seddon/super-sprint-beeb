@@ -270,17 +270,18 @@ ENDSECTION
     DEY
     BNE shift
 .shifted
+    LDY row:JSR mask_row
     STZ hit
     LDA p0:BEQ @+
-    LDA col:LDY row:JSR mask_byte
+    LDA col:JSR row_byte
     AND p0:STA hit
 .@
     LDA p1:BEQ @+
-    LDA col:INC A:LDY row:JSR mask_byte
+    LDA col:INC A:JSR row_byte
     AND p1:TSB hit
 .@
     LDA p2:BEQ @+
-    LDA col:INC A:INC A:LDY row:JSR mask_byte
+    LDA col:INC A:INC A:JSR row_byte
     AND p2:TSB hit
 .@
     LDA hit
@@ -316,15 +317,20 @@ ENDSECTION
     LDA (p),Y                           ; the map's byte: 0 road, &FF wall, else the nth mixed cell
     BEQ done
     CMP #&FF:BEQ done
-    STZ p+1                             ; the cell's address: the row's cells less 8, + n * 8
-    ASL A:ROL p+1
-    ASL A:ROL p+1
-    ASL A:ROL p+1
-    LDY r
-    CLC:ADC MbCellL,Y:STA p
-    LDA p+1:ADC MbCellH,Y:STA p+1
+    LDY r                               ; the cell's address: the row's cells less 8, + n * 8
+    CMP #32:BCS far
+    ASL A:ASL A:ASL A                   ; (C clear)
+    ADC MbCellL,Y:STA p
+    LDA MbCellH,Y
+.high
+    ADC #0:STA p+1
     LDA #1
     RTS
+.far                                    ; (n 32 to 40: 256 + (n - 32) * 8)
+    AND #31:ASL A:ASL A:ASL A           ; (C clear)
+    ADC MbCellL,Y:STA p
+    LDA MbCellH,Y:INC A                 ; (C kept)
+    BRA high
 .left
     LDA MbLeft,Y
     RTS
@@ -334,28 +340,70 @@ ENDSECTION
     RTS
 }
 
-\\ A byte of mask B: its cell's fill, or its line in a mixed cell.
+\\ A row of mask B, for row_byte.
+\\
+\\ Inputs:
+\\     Y: the pixel row, 0-199
+\\
+\\ Outputs:
+\\     r, map, cells: the row, for row_byte
+\\     A, Y: corrupted; X preserved
+
+.mask_row
+{
+    ZA_AUTO1 r                          ; out: the cell row
+    ZA_AUTO2 map                        ; out: its map
+    ZA_AUTO2 cells                      ; out: its cells less 8, + the line in the cell
+
+    STY cells                           ; (the pixel row, a moment)
+    TYA:LSR A:LSR A:LSR A:STA r:TAY
+    LDA MbMapL,Y:STA map
+    LDA MbMapH,Y:STA map+1
+    LDA cells:AND #7
+    CLC:ADC MbCellL,Y:STA cells
+    LDA MbCellH,Y:ADC #0:STA cells+1
+    RTS
+}
+
+\\ A byte of mask B in mask_row's row: its cell's fill, or its line in a mixed cell.
 \\
 \\ Inputs:
 \\     A: the byte's column, 0-39
-\\     Y: its pixel row, 0-199
+\\     mask_row.r, .map, .cells: the row
 \\
 \\ Outputs:
 \\     A: the byte, 8 pixels, bit 7 the leftmost; 1 a wall
 \\     Y: corrupted; X preserved
 
-.mask_byte
+.row_byte
 {
-    ZA_AUTO1 line                       ; local: the row's line in its cell
-    ZA_AUTO1 c                          ; local: the column
+    ZA_AUTO2 q                          ; local: a mixed cell's line's address
 
-    STA c
-    TYA:AND #7:STA line
-    LDA c
-    JSR mask_cell
-    CMP #1:BNE done                     ; road (0) or wall (&FF): the byte
-    LDY line
-    LDA (mask_cell.p),Y
+    LDY mask_row.r
+    CMP MbLo,Y:BCC left
+    CMP MbEnd,Y:BCS right
+    TAY
+    LDA (mask_row.map),Y                ; the map's byte: 0 road, &FF wall, else the nth mixed cell
+    BEQ done
+    CMP #&FF:BEQ done
+    CMP #32:BCS far
+    ASL A:ASL A:ASL A                   ; n * 8 (C clear)
+    ADC mask_row.cells:STA q
+    LDA mask_row.cells+1
+.high
+    ADC #0:STA q+1
+    LDA (q)
+    RTS
+.far                                    ; (n 32 to 40: 256 + (n - 32) * 8)
+    AND #31:ASL A:ASL A:ASL A           ; (C clear)
+    ADC mask_row.cells:STA q
+    LDA mask_row.cells+1:INC A          ; (C kept)
+    BRA high
+.left
+    LDA MbLeft,Y
+    RTS
+.right
+    LDA MbRight,Y
 .done
     RTS
 }

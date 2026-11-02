@@ -118,7 +118,7 @@ function bbc(name, kind, car) {
     return kind === "s" && b >= 0x80 ? b | 0xff00 : b;
 }
 
-// a byte of mask B as D13 stores it (walls.6502's mask_byte): its row's fill outside its span, else its map's
+// a byte of mask B as D13 stores it (walls.6502's row_byte): its row's fill outside its span, else its map's
 const MaskB = 0x63a76;                  // the ST's (G_01F238 + &1F40), 40 bytes a line
 const AttrMap = 0x678f6;                // the ST's attribute map (G_01EB20's), 40 x 25
 function mbByte(col, y) {
