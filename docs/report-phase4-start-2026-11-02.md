@@ -3,9 +3,11 @@
 **Where it ended.** On the branch `phase4-start` (not merged, not pushed). The plan is
 `docs/brief-phase4.md`; your answers are D9-D13 in `docs/decisions.md` (D13 decided after the first
 report). Done: the Hatari logic tracer (step 2), the logic's oracle (step 3), mask B's storage (part of
-step 4) and the humans' cars (step 5): car 0 matches the ST bit for bit in every movement variable for the
-race's first 75 frames, up to its first car-to-car shove. To try it: `make logiccheck LOGICARGS="--until 75
---cars 0"`. The renderer's disc is byte-identical to Phase 3's. Next is step 6, walls.
+step 4), the humans' cars (step 5) and the walls (step 6): car 0 matches the ST bit for bit in every
+movement variable on every stretch of the race the logic can reach so far, 1,933 frames with 23 wall
+bounces. To try it: `.venv/bin/python tools/logic_stretches.py 0`, or `make logiccheck LOGICARGS="--until
+75 --cars 0"`. The renderer's disc is byte-identical to Phase 3's. Next is step 7: the track's cells,
+car-to-car, drones.
 
 ## What was built and what proves it
 
@@ -30,6 +32,11 @@ race's first 75 frames, up to its first car-to-car shove. To try it: `make logic
 - **The humans' cars** (`src/human.6502`, F_00DC4C): car 0 exact for frames 1-75. 3,824 cycles a frame for
   one car, mostly the general 16-bit multiply and divide, to be made faster once the logic is whole.
 
+- **Walls** (`src/walls.6502`, in the logic's bank with mask B): exact on all of car 0's free stretches;
+  `mask_byte` right on all 8,000 bytes (`tools/maskb_check.mjs`). `logic_check.mjs --from K` loads the
+  ST's state at a frame into the BBC, so a part can be proved before what leads to it is built. Cars over
+  all-road cells skip the probes: 6,149 cycles a frame (mean) with one human car, from 11,702.
+
 ## Please review
 
 - **D12**: I recorded the layout as Proposed until you've tried it on a real BBC.
@@ -43,8 +50,8 @@ None yet. The key layout (D12) will need your real BBC once it's built.
 
 ## What is open
 
-Resume point: **step 6**, walls (`docs/brief-phase4.md` §6). Then the attribute cells (car 0's stripes
-differ from frame 26), car-to-car and drones (frame 76), the crash and helicopter (frame 143). The tracer
+Resume point: **step 7** (`docs/brief-phase4.md` §6): the attribute cells (car 0's stripes differ from
+frame 26), car-to-car and drones (frame 76), then wrecks and the helicopter, and the race's end (2031). The tracer
 doesn't yet record the wrench and bonus timers or the attribute map's changes; it will when a step needs
 them. The logic's state is at `&0400` in the test only; where it goes in the game is step 8's question.
 
