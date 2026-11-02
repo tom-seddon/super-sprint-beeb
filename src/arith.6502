@@ -64,13 +64,34 @@ ZA_AUTO2 num                            ; mul_s16's and div_s16's number, in and
     ZA_AUTO1 neg                        ; local: bit 7, the number's sign
 
     STA d
+    LDA num:ORA num+1:BNE some
+    RTS                                 ; 0: 0
+.some
     LDA num+1:STA neg
     BPL @+
     SEC
     LDA #0:SBC num:STA num
     LDA #0:SBC num+1:STA num+1
 .@
-    LDA #0                              ; the remainder: under d, so it never carries out
+    LDA num+1:CMP d:BCS long
+
+    \\ the high byte under the divisor: the quotient fits a byte, and the high byte is the remainder so far,
+    \\ so 8 steps on the low byte do (the remainder stays under d, at most 127: no carry out)
+
+    FOR i = 1..8
+        ASL num
+        ROL A
+        CMP d:BCC @+
+        SBC d                           ; (C set)
+        INC num                         ; (bit 0 clear after the shift)
+    .@
+    NEXT
+    STZ num+1
+    BRA sign
+
+    \\ else all 16 steps
+.long
+    LDA #0
     LDY #16
 .bit
     ASL num:ROL num+1
@@ -82,6 +103,92 @@ ZA_AUTO2 num                            ; mul_s16's and div_s16's number, in and
     DEY
     BNE bit
 
+.sign
+    BIT neg:BPL @+
+    SEC
+    LDA #0:SBC num:STA num
+    LDA #0:SBC num+1:STA num+1
+.@
+    RTS
+}
+
+\\ num divided by 8, rounded towards 0: three shifts when it's positive (a position nearly always is).
+\\
+\\ Inputs:
+\\     num: the number
+\\
+\\ Outputs:
+\\     num: the quotient
+\\     A, Y: corrupted; X preserved
+
+.div8_s16
+{
+    LDA num+1:BMI negative
+    LSR A:ROR num
+    LSR A:ROR num
+    LSR A:ROR num
+    STA num+1
+    RTS
+.negative
+    LDA #8:JMP div_s16
+}
+
+\\ num times a direction vector's step, the product's low 16 bits, as mul_s16 but only for the steps DirX and
+\\ DirY hold (0, 3, 6, 7, 8 and their negatives), by shifts and adds.
+\\
+\\ Inputs:
+\\     num: the number
+\\     A: the step
+\\
+\\ Outputs:
+\\     num: the product's low 16 bits
+\\     A, Y: corrupted; X preserved
+
+.mul_dir
+{
+    ZA_AUTO2 n                          ; local: the number, or twice it
+    ZA_AUTO1 neg                        ; local: bit 7, the step's sign
+
+    STA neg
+    BPL @+
+    EOR #&FF:INC A
+.@
+    TAY
+    LDA num:STA n
+    LDA num+1:STA n+1
+    CPY #8:BEQ x8
+    CPY #7:BEQ x7
+    CPY #6:BEQ x6
+    CPY #3:BEQ x3
+    STZ num:STZ num+1                   ; 0
+    RTS
+.x3                                     ; 2n + n
+    ASL num:ROL num+1
+    BRA addn
+.x6                                     ; 4n + 2n
+    ASL num:ROL num+1
+    LDA num:STA n
+    LDA num+1:STA n+1
+    ASL num:ROL num+1
+    BRA addn
+.x7                                     ; 8n - n
+    ASL num:ROL num+1
+    ASL num:ROL num+1
+    ASL num:ROL num+1
+    SEC
+    LDA num:SBC n:STA num
+    LDA num+1:SBC n+1:STA num+1
+    BRA sign
+.x8
+    ASL num:ROL num+1
+    ASL num:ROL num+1
+    ASL num:ROL num+1
+    BRA sign
+.addn
+    CLC
+    LDA num:ADC n:STA num
+    LDA num+1:ADC n+1:STA num+1
+.sign
     BIT neg:BPL @+
     SEC
     LDA #0:SBC num:STA num

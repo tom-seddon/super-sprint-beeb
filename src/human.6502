@@ -197,13 +197,13 @@
     LDY RcTravel,X
     LDA RcSpeedLo,X:STA num
     LDA RcSpeedHi,X:STA num+1
-    LDA DirX,Y:JSR mul_s16
+    LDA DirX,Y:JSR mul_dir
     LDA num:STA RcTVXLo,X
     LDA num+1:STA RcTVXHi,X
     LDY RcTravel,X
     LDA RcSpeedLo,X:STA num
     LDA RcSpeedHi,X:STA num+1
-    LDA DirY,Y:JSR mul_s16
+    LDA DirY,Y:JSR mul_dir
     LDA num:STA RcTVYLo,X
     LDA num+1:STA RcTVYHi,X
     JMP move
@@ -276,7 +276,7 @@
     CLC
     LDA RcX8Lo,X:ADC num:STA RcX8Lo,X:STA num
     LDA RcX8Hi,X:ADC num+1:STA RcX8Hi,X:STA num+1
-    LDA #8:JSR div_s16                  ; x = x8 / 8
+    JSR div8_s16                        ; x = x8 / 8
     LDA num:STA RcXLo,X
     LDA num+1:STA RcXHi,X
 
@@ -290,7 +290,7 @@
     CLC
     LDA RcY8Lo,X:ADC num:STA RcY8Lo,X:STA num
     LDA RcY8Hi,X:ADC num+1:STA RcY8Hi,X:STA num+1
-    LDA #8:JSR div_s16
+    JSR div8_s16
     LDA num:STA RcYLo,X
     LDA num+1:STA RcYHi,X
     RTS

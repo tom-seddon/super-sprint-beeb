@@ -502,12 +502,12 @@ ENDSECTION
     LDA RcState,X:CMP #1:BNE drawn
     LDA RcPX8Lo,X:STA RcX8Lo,X:STA num  ; a crash: back where it was, then wrecked
     LDA RcPX8Hi,X:STA RcX8Hi,X:STA num+1
-    LDA #8:JSR div_s16
+    JSR div8_s16
     LDA num:STA RcXLo,X
     LDA num+1:STA RcXHi,X
     LDA RcPY8Lo,X:STA RcY8Lo,X:STA num
     LDA RcPY8Hi,X:STA RcY8Hi,X:STA num+1
-    LDA #8:JSR div_s16
+    JSR div8_s16
     LDA num:STA RcYLo,X
     LDA num+1:STA RcYHi,X
     JSR wreck
@@ -962,12 +962,12 @@ ENDSECTION
     LDA RcSafeDir,X:STA RcDir,X
     LDA RcSafeX8Lo,X:STA RcPX8Lo,X:STA RcX8Lo,X:STA num
     LDA RcSafeX8Hi,X:STA RcPX8Hi,X:STA RcX8Hi,X:STA num+1
-    LDA #8:JSR div_s16
+    JSR div8_s16
     LDA num:STA RcXLo,X
     LDA num+1:STA RcXHi,X
     LDA RcSafeY8Lo,X:STA RcPY8Lo,X:STA RcY8Lo,X:STA num
     LDA RcSafeY8Hi,X:STA RcPY8Hi,X:STA RcY8Hi,X:STA num+1
-    LDA #8:JSR div_s16
+    JSR div8_s16
     LDA num:STA RcYLo,X
     LDA num+1:STA RcYHi,X
     STZ RcState,X

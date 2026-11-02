@@ -10,9 +10,10 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 7's speed, then step 8.** The whole traced race is exact (§8). Next: the logic made
-fast enough (19,000 cycles a frame now; the multiply and divide first), then step 8, the renderer driven by
-the logic, reading §8, `src/main.6502` and `docs/renderer.md`.
+**Resume point: step 8.** The whole traced race is exact and the logic averages 11,439 cycles a frame (§8).
+Next: the renderer driven by the logic (the logic's code and state placed in the game's memory, the
+objects' drawing events from the pickups, the helicopter's flight), reading §8, `src/main.6502`,
+`src/memory.6502` and `docs/renderer.md`.
 
 ## 0. The proposal in one paragraph
 
@@ -283,3 +284,20 @@ trace's other content byte-identical), and the oracle compares it, the scores, a
 from the trace's by each number drawn). MEASURED: the whole traced race is exact: all 2,196 frames, 68
 variables per frame (35 per car and the race's) and the seed (`make logiccheck`). Broken on purpose (the
 generator's + 1 dropped), every frame fails from 1.
+
+**The logic's speed.** `tools/logic_profile.mjs` charges every instruction's cycles to its routine over the
+race. Four exact changes, each checked on all 2,196 frames:
+
+| Change | Mean cycles a frame | Worst |
+|---|---|---|
+| Before | 18,940 | 26,737 |
+| `div_s16`: a high byte under the divisor needs 8 steps, unrolled; `div8_s16`: a positive number / 8 in 3 shifts | 12,600 | 19,867 |
+| `div_s16` returns 0 for 0; `mul_dir` for the direction steps (0, 3, 6, 7, 8 and negatives) in shifts | 11,451 | 18,587 |
+| The side columns look each cell up once per cell row (`mask_cell`) | 11,439 | 17,947 |
+
+What's left, a frame on average: the 3 drones' own code 1,937, walls 1,844, cells 1,347, the divide 1,310,
+`collide_car` 854, car-to-car 695, the multiply 610, the draw order 605. In the worst 20 frames (16,532 on
+average) the walls are 3,571: cars against walls run the full probes. The plan's aim was 10,000-12,000; the
+average is there, the worst frames aren't: the renderer leaves 15,045 at worst on track 1 (99% of frames
+20,580), so a frame with both at their worst would drop to 25 fps for a moment (D2). More is possible (the
+lines' shifts, the cells' probes, the drones' 16-bit work) and is left for when the game runs whole.

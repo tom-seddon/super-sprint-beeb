@@ -349,3 +349,6 @@
   lap events and the race's end: the BBC's logic matches the ST on all 2,196 frames of the traced race, every
   car, 68 variables and the random seed. The end of the race had to move out of the frame: the ST resets
   the frame counter after its flip, so the trace never sees it.
+- **The logic's speed**: 18,940 cycles a frame to 11,439 (mean), worst 26,737 to 17,947, all exact: the
+  divide's 8-step path and /8 by shifts, 0 / n at once, the direction multiply in shifts, a cell looked up
+  once per cell row. `tools/logic_profile.mjs` says where the rest is.
