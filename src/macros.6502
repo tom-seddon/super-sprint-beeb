@@ -53,6 +53,16 @@ MACRO INPAGE n
     ENDIF
 ENDMACRO
 
+\\ The same for n bytes off bytes ahead, the padding here: before a routine, so none falls inside it between
+\\ a branch and its target (off a forward reference, constant as long as the code between is).
+
+MACRO INPAGE_AHEAD off, n
+    ASSERT n >= 1 AND n <= &100, "INPAGE_AHEAD: 1 to 256 bytes"
+    IF HI(P% + off) <> HI(P% + off + n - 1)
+        SKIP &100 - LO(P% + off)
+    ENDIF
+ENDMACRO
+
 \\ Check that the branch just assembled stays on its page when taken: across one, it costs a cycle.
 \\ For the hot loops' branches.
 \\

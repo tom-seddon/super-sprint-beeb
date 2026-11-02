@@ -36,6 +36,9 @@ DtHi = 11                               ; the data table's page (ORA abs,X)
 WsLo = 13                               ; the screen's cell, written (STA abs,Y)
 WsHi = 14
 
+\\ (the fast loop in one page, whatever the data before: the padding here, outside the routine)
+    INPAGE_AHEAD plot_car.blocks - plot_car, 5 * FastBlkSize + 5
+
 \\ Draw a car into the screen being drawn.
 \\
 \\ Inputs:
@@ -233,8 +236,7 @@ WsHi = 14
     BRA enter                           ; (Y = line - 1: the INY makes it the line)
     ZA_UNREACHABLE
 
-    INPAGE 5 * FastBlkSize + 5          ; (the loop in one page, whatever the data before it)
-.blocks
+.blocks                                 ; (in one page: INPAGE_AHEAD before the routine)
     FOR n = 4..0
         LDX &FFFF,Y                     ; self-modified: column n's data
         LDA &FFFF,Y                     ; self-modified: its screen cell
@@ -243,6 +245,7 @@ WsHi = 14
         STA &FFFF,Y                     ; self-modified: its screen cell
     NEXT
     ASSERT P% - blocks == 5 * FastBlkSize, "the fast loop's blocks: 15 bytes each"
+    ASSERT HI(blocks) == HI(blocks + 5 * FastBlkSize + 4), "the fast loop in one page"
 .enter
     INY
 .loopend
