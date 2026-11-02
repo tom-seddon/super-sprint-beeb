@@ -57,7 +57,17 @@ const Race = [["phase", 0x1d178, "RcPhase", "u"], ["frame", 0x1d30e, "RcFrame", 
     ["bonustaken", 0x1eb60, "RcBonusTaken", "u"], ["bonuscell", 0x1eb62, "RcBonusCell", "w"],
     ["bonusy", 0x1eb64, "RcBonusY", "u"], ["bonusx", 0x1eb66, "RcBonusX", "u"],
     ["bonussprite", 0x1eb68, "RcBonusSprite", "u"], ["bonusphase", 0x1eb6a, "RcBonusPhase", "u"],
-    ["bonustimer", 0x1eb6c, "RcBonusTimer", "w"], ["gatelane0", 0x1eb6e, "RcGateLane", "u"]];
+    ["bonustimer", 0x1eb6c, "RcBonusTimer", "w"], ["gatelane0", 0x1eb6e, "RcGateLane", "u"],
+    ["helicar", 0x1eb28, "RcHeliCar", "u"], ["helitimer", 0x1eb2a, "RcHeliTimer", "w"],
+    ["helivariant", 0x1eb2c, "RcHeliVariant", "u"], ["helistate", 0x1eb2e, "RcHeliState", "w"],
+    ["heliframe", 0x1eb30, "RcHeliFrame", "u"], ["heliy", 0x1eb32, "RcHeliY", "w"], ["helix", 0x1eb34, "RcHeliX", "w"],
+    ["bannerframe", 0x1eb88, "RcBannerFrame", "u"], ["bannertime", 0x1eb8a, "RcBannerTime", "u"],
+    ["banneron", 0x1eb8c, "RcBannerOn", "u"],
+    // the 8 sparks, each its own entry: [name, address, array, kind, (unused), its index]
+    ...[0, 1, 2, 3, 4, 5, 6, 7].flatMap((i) => [[`spark${i}timer`, 0x1e070 + 2 * i, "RcSparkTimer", "w", 0, () => i],
+        [`spark${i}end`, 0x1e080 + 2 * i, "RcSparkEnd", "u", 0, () => i],
+        [`spark${i}frame`, 0x1e090 + 2 * i, "RcSparkFrame", "u", 0, () => i],
+        [`spark${i}x`, 0x1e0a0 + 4 * i, "RcSparkX", "w", 0, () => i], [`spark${i}y`, 0x1e0a2 + 4 * i, "RcSparkY", "w", 0, () => i]])];
 
 const syms = symbols("build/logic.json");
 const trace = JSON.parse(readFileSync(option("--trace", "build/trace/logic_t0_r0.json")));
@@ -107,7 +117,7 @@ function compare(k) {
         const [n, a, b, kind] = v;
         for (const c of cars) one(`car ${c} ${n}`, stValue(m, a + stride(v) * c, kind), bbc(b, kind, index(v, c)));
     }
-    for (const [n, a, b, kind] of wanted(Race)) one(n, stWord(m, a), bbc(b, kind, 0));
+    for (const v of wanted(Race)) one(v[0], stWord(m, v[1]), bbc(v[2], v[3], index(v, 0)));
     // TOS's generator: the BBC's seed against the trace's, run on by every number drawn to this frame
     if (!only || only.includes("seed")) one("seed", seeds[k], (peek(syms.RcSeed) | (peek(syms.RcSeed + 1) << 8)
         | (peek(syms.RcSeed + 2) << 16) | (peek(syms.RcSeed + 3) << 24)) >>> 0);
@@ -125,7 +135,7 @@ if (from > 2) {
         const [, a, b, kind] = vr;
         const n = Race.includes(vr) ? 1 : 4;
         for (let c = 0; c < n; c++) {
-            const v = stWord(m, a + stride(vr) * c), i = index(vr, c);
+            const v = stWord(m, a + (Race.includes(vr) ? 0 : stride(vr) * c)), i = index(vr, c);
             if (kind === "b") s.writeMemory(syms[b] + i, [m[a + stride(vr) * c]]);
             else if (kind === "w") {
                 s.writeMemory(syms[`${b}Lo`] + i, [v & 0xff]);

@@ -352,3 +352,6 @@
 - **The logic's speed**: 18,940 cycles a frame to 11,439 (mean), worst 26,737 to 17,947, all exact: the
   divide's 8-step path and /8 by shifts, 0 / n at once, the direction multiply in shifts, a cell looked up
   once per cell row. `tools/logic_profile.mjs` says where the rest is.
+- **The effects** (sparks, banner, the helicopter's flight): exact on every frame, 118 variables now.
+  The sparks' state carries over from race to race (the set-up only clears their x), so the test seeds it
+  from the trace's frame 1.

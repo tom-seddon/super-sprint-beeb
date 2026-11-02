@@ -71,6 +71,16 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     FOR i = 0..23
         LDA #TraceScores[i]:STA RcScore+i
     NEXT
+    FOR i = 0..7                        ; the sparks as the ST had them from before the race
+        LDA #LO(TraceSparkTimer[i]):STA RcSparkTimerLo+i
+        LDA #HI(TraceSparkTimer[i]):STA RcSparkTimerHi+i
+        LDA #TraceSparkEnd[i]:STA RcSparkEnd+i
+        LDA #TraceSparkFrame[i]:STA RcSparkFrame+i
+        LDA #LO(TraceSparkX[i]):STA RcSparkXLo+i
+        LDA #HI(TraceSparkX[i]):STA RcSparkXHi+i
+        LDA #LO(TraceSparkY[i]):STA RcSparkYLo+i
+        LDA #HI(TraceSparkY[i]):STA RcSparkYHi+i
+    NEXT
     FOR c = 0..3
         LDA #TraceDrones[c]:STA RcDrone+c
     NEXT
@@ -111,6 +121,7 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
         INCLUDE "cells.6502"
         INCLUDE "drone.6502"
         INCLUDE "pickups.6502"
+        INCLUDE "effects.6502"
         INCLUDE "../build/lgen/walls.6502"
         INCLUDE "../build/lgen/cells.6502"
         INCLUDE "../build/lgen/path.6502"

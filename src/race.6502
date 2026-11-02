@@ -303,6 +303,13 @@ ENDSECTION
     DEX
     BPL lanes
 .gated
+    LDX #7                              ; each car's sparks' x cleared
+.sparks
+    STZ RcSparkXLo,X:STZ RcSparkXHi,X
+    DEX
+    BPL sparks
+    STZ RcHeliStateLo:STZ RcHeliStateHi ; (F_00BB42)
+    LDA #0:JSR banner_start             ; the start's banner
     STZ RcFinished
     STZ RcFinalLap
     LDA #170:STA RcCountdown
@@ -371,7 +378,7 @@ ENDSECTION
     CMP #3:BNE notfinal
     LDA RcFinalLap:BNE nextcar
     INC RcFinalLap
-    \\ (banner 1: with the renderer)
+    LDA #1:JSR banner_start
     BRA evented
 .notfinal
     CMP #4:BNE nextcar
@@ -380,7 +387,8 @@ ENDSECTION
     STX RcWinner
     LDA RcFrameLo:STA RcFinishLo
     LDA RcFrameHi:STA RcFinishHi
-    \\ (banner 2, the engines off: with the renderer and the sound)
+    LDA #2:JSR banner_start
+    \\ (the engines off: with the sound)
     BRA evented
 .nextcar
     INX
@@ -399,7 +407,14 @@ ENDSECTION
     DEX
     BPL points
 .pointed
-    JMP collide
+    JSR collide
+
+    \\ what the race shows: the sparks, the banner, the helicopter (the drone's lap digit and the tornado:
+    \\ with the renderer)
+
+    JSR sparks_frame
+    JSR banner_frame
+    JMP heli_frame
 }
 
 \\ After a race frame and its flip, F_00C592's end: the countdown run out, the race is over, its frame the
@@ -850,7 +865,8 @@ ENDSECTION
     LDA #5
 .@
     STA RcBounce,X
-    \\ the sparks (F_00BE4A) and the bump's sound: not yet
+    LDA RcPush:JSR sparks_start
+    \\ (the bump's sound: with the sound)
     RTS
 
     \\ (10 + speed) * 2, into num
@@ -881,6 +897,8 @@ ENDSECTION
     ZA_AUTO2 h                          ; local: the distance across from the farther side
     ZA_AUTO2 v                          ; local: and down
     ZA_AUTO2 t                          ; local: h / 2
+    ZA_AUTO1 right                      ; local: bit 0, x 160 or more
+    ZA_AUTO1 side                       ; local: the helicopter's side
 
     LDA RcState,X:CMP #2:BNE new
     RTS                                 ; wrecked already
@@ -901,6 +919,10 @@ ENDSECTION
     BVC @+
     EOR #&80
 .@
+    STZ right                           ; (x 160 or more: from the right)
+    BMI @+
+    INC right
+.@
     BPL farh
     SEC
     LDA #LO(320):SBC h:STA h
@@ -920,6 +942,10 @@ ENDSECTION
     BVC @+
     EOR #&80
 .@
+    STZ side                            ; the side: from above if y 100 or more (1), below (0)
+    BMI @+
+    INC side
+.@
     BPL farv
     SEC
     LDA #200:SBC v:STA v
@@ -937,11 +963,14 @@ ENDSECTION
     BMI across
     LDA v:ASL A:STA h
     LDA v+1:ROL A:STA h+1
+    BRA wait
 .across
+    LDA right:AND #1:ORA #2:STA side    ; across: 2 from the left, 3 from the right
+.wait
     LDA h+1:CMP #&80:ROR h+1:ROR h      ; the wait, h >> 2 (asr)
     LDA h+1:CMP #&80:ROR h+1:ROR h
     LDA h:STA RcBounce,X
-    RTS
+    LDA side:JMP heli_start
 }
 
 \\ F_00ED28: a wrecked car put back at its last safe place and facing, still, its flags but &3180 cleared,

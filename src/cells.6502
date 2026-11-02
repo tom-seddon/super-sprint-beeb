@@ -115,6 +115,10 @@ ENDSECTION
     LDA act:BNE @+
     LDA #&FF:STA RcPush
 .@
+    LDA act:CMP #4:BNE @+               ; a cone: sparks behind (the sounds: with the sound)
+    LDA RcDir,X:CLC:ADC #8:AND #15
+    JMP sparks_start
+.@
     RTS
 
     \\ A probe's cell: its byte, and its pair's address in c.

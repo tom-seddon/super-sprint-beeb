@@ -10,10 +10,12 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 8.** The whole traced race is exact and the logic averages 11,439 cycles a frame (§8).
-Next: the renderer driven by the logic (the logic's code and state placed in the game's memory, the
-objects' drawing events from the pickups, the helicopter's flight), reading §8, `src/main.6502`,
-`src/memory.6502` and `docs/renderer.md`.
+**Resume point: step 8.** The whole traced race is exact, effects included, and the logic averages 11,985
+cycles a frame (§8). Next: the renderer driven by the logic: the logic's code (main RAM, about 3,600 bytes
+of the 4,589 free) and data (the fourth bank, about 8,400 bytes of its 11,361 with the state there too)
+placed in the game; the cars' and objects' draw calls made from the logic's state; the ST's draw calls for
+this race traced for the renderer's model. Reading §8, `src/main.6502`, `src/memory.6502` and
+`docs/renderer.md`.
 
 ## 0. The proposal in one paragraph
 
@@ -301,3 +303,12 @@ average) the walls are 3,571: cars against walls run the full probes. The plan's
 average is there, the worst frames aren't: the renderer leaves 15,045 at worst on track 1 (99% of frames
 20,580), so a frame with both at their worst would drop to 25 fps for a moment (D2). More is possible (the
 lines' shifts, the cells' probes, the drones' 16-bit work) and is left for when the game runs whole.
+
+**Step 7, the effects.** `src/effects.6502` (the logic's bank): the sparks (F_00BE4A at a bounce, a landing,
+a cone; F_00B718 each frame), the banner (F_00BA9E at the start, the final lap and the finish; F_00BABC) and
+the helicopter's flight (F_00BB4E's part: its side, place and time; F_00BD4A). They feed only the drawing,
+but they're checked the same way: the tracer dumps G_01E070-G_01E0BF, G_01EB28-G_01EB35 and
+G_01EB88-G_01EB8D too (the trace's other content byte-identical again), and the test starts the sparks as
+the ST had them from before the race (they carry over: the set-up clears only their x). MEASURED: all
+2,196 frames exact in 118 variables. The helicopter's flight 117 frames instead of 116: 1,902 frames fail
+from 295. 11,985 cycles a frame (mean), 18,814 at worst.

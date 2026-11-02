@@ -268,6 +268,9 @@ def main(trace_path, out):
         'TraceFrames = %d                    ; the trace\'s frames, the set-up\'s two included' % len(frames),
         'TraceFirst = %d                     ; the first race frame\'s counter' % FirstFrame,
         'TraceScores = {%s}' % ', '.join(str(m[str(0x1DFA8 + i)]) for i in range(24)),
+        *[f'TraceSpark{name} = {{%s}}' % ', '.join(str(m[str(a + st * i)] << 8 | m[str(a + st * i + 1)]) for i in range(8))
+          for name, a, st in (('Timer', 0x1E070, 2), ('End', 0x1E080, 2), ('Frame', 0x1E090, 2), ('X', 0x1E0A0, 4),
+                              ('Y', 0x1E0A2, 4))],
         '']))
     print(f'{len(frames) - FirstFrame} race frames of inputs; drones {drone}; seed &{t["seed"]:08X}')
 

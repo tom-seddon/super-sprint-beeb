@@ -1,0 +1,354 @@
+\\ effects.6502 - what the race shows besides the cars (D9): the sparks (F_00BE4A, F_00B718), the banner
+\\ (F_00BA9E, F_00BABC) and the helicopter's flight (F_00BB4E's part, F_00BD4A). They change nothing in the
+\\ race; the renderer draws them from this state (step 8). In the logic's bank.
+
+SECTION LogicVars
+.RcSparkTimerLo                         ; G_01E070: each of the 8 sparks' frames on its step (2 a car)
+    SKIP 8
+.RcSparkTimerHi
+    SKIP 8
+.RcSparkEnd                             ; G_01E080: its last step + 1
+    SKIP 8
+.RcSparkFrame                           ; G_01E090: its step, 42 once gone
+    SKIP 8
+.RcSparkXLo                             ; G_01E0A0: its place, x (0: none) and y
+    SKIP 8
+.RcSparkXHi
+    SKIP 8
+.RcSparkYLo
+    SKIP 8
+.RcSparkYHi
+    SKIP 8
+.RcHeliCar                              ; G_01EB28: the car it carries (3 for a drone: car 3's colours)
+    SKIP 1
+.RcHeliTimerLo                          ; G_01EB2A: its flight's frames left
+    SKIP 1
+.RcHeliTimerHi
+    SKIP 1
+.RcHeliVariant                          ; G_01EB2C: from below, above, the right, the left (0-3)
+    SKIP 1
+.RcHeliStateLo                          ; G_01EB2E: 0 none, -1 its rotor starting, 1 flying, &80 gone
+    SKIP 1
+.RcHeliStateHi
+    SKIP 1
+.RcHeliFrame                            ; G_01EB30: its frame, 0-3
+    SKIP 1
+.RcHeliYLo                              ; G_01EB32: its place
+    SKIP 1
+.RcHeliYHi
+    SKIP 1
+.RcHeliXLo                              ; G_01EB34
+    SKIP 1
+.RcHeliXHi
+    SKIP 1
+.RcBannerFrame                          ; G_01EB88: the banner's frame, its number * 12 on
+    SKIP 1
+.RcBannerTime                           ; G_01EB8A: its frames shown
+    SKIP 1
+.RcBannerOn                             ; G_01EB8C: 1 shown, &80 to go
+    SKIP 1
+ENDSECTION
+
+\\ F_00BE4A: two sparks from a car, at its attribute probe points (4 pixels up), their frames from a
+\\ direction: the first's (dir >> 1 + 1 AND 7) * 5, the second's 10 before it (MOD 40), each for 5 steps.
+\\
+\\ Inputs:
+\\     X: the car
+\\     A: the direction, 0-15
+\\
+\\ Outputs:
+\\     sparks car * 2 and car * 2 + 1
+\\     A, Y: corrupted; X preserved
+
+.sparks_start
+{
+    ZA_AUTO1 f                          ; local: the first's frame
+    ZA_AUTO1 dx1, dy1, dx2, dy2         ; local: the probe points
+
+    LSR A:INC A:AND #7
+    STA f:ASL A:ASL A:ADC f:STA f       ; * 5 (C clear)
+    LDA RcDir,X:ASL A:ASL A:TAY
+    LDA AttrProbe,Y:STA dx1
+    LDA AttrProbe+1,Y:STA dy1
+    LDA AttrProbe+2,Y:STA dx2
+    LDA AttrProbe+3,Y:STA dy2
+    TXA:ASL A:TAY                       ; the first spark: car * 2
+    LDA dx1:JSR place_x
+    LDA dy1:JSR place_y
+    LDA f:STA RcSparkFrame,Y
+    CLC:ADC #5:STA RcSparkEnd,Y
+    LDA #0:STA RcSparkTimerLo,Y:STA RcSparkTimerHi,Y
+    INY                                 ; the second
+    LDA dx2:JSR place_x
+    LDA dy2:JSR place_y
+    LDA f:SEC:SBC #10                   ; the first's + 5 - 15, MOD 40
+    BCS @+
+    ADC #40                             ; (C clear)
+.@
+    STA RcSparkFrame,Y
+    CLC:ADC #5:STA RcSparkEnd,Y
+    LDA #0:STA RcSparkTimerLo,Y:STA RcSparkTimerHi,Y
+    RTS
+
+    \\ spark Y's x: the car's + A
+.place_x
+    CLC:ADC RcXLo,X:STA RcSparkXLo,Y
+    LDA RcXHi,X:ADC #0:STA RcSparkXHi,Y
+    RTS
+
+    \\ its y: the car's + A - 4
+.place_y
+    CLC:ADC RcYLo,X:STA RcSparkYLo,Y
+    LDA RcYHi,X:ADC #0:STA RcSparkYHi,Y
+    LDA RcSparkYLo,Y:SEC:SBC #4:STA RcSparkYLo,Y
+    BCS @+
+    LDA RcSparkYHi,Y:DEC A:STA RcSparkYHi,Y
+.@
+    RTS
+}
+
+\\ F_00B718, each frame: each spark's timer on; every 4th frame its step on (up to 40); at its end it goes
+\\ (step 42), and the frame after its x is cleared.
+\\
+\\ Inputs, outputs: the sparks' state. A, X: corrupted.
+
+.sparks_frame
+{
+    LDX #7
+.spark
+    INC RcSparkTimerLo,X
+    BNE @+
+    INC RcSparkTimerHi,X
+.@
+    LDA RcSparkTimerHi,X:BNE stepped
+    LDA RcSparkTimerLo,X:CMP #4:BNE stepped
+    LDA RcSparkFrame,X:CMP #40:BCS stepped
+    INC RcSparkFrame,X
+    STZ RcSparkTimerLo,X
+.stepped
+    LDA RcSparkFrame,X
+    CMP #42:BNE notgone
+    STZ RcSparkXLo,X
+    STZ RcSparkXHi,X
+    BRA next
+.notgone
+    CMP RcSparkEnd,X:BNE next           ; (else drawn: with the renderer)
+    LDA #42:STA RcSparkFrame,X
+.next
+    DEX
+    BPL spark
+    RTS
+}
+
+\\ F_00BA9E: a banner (0 the start, 1 the final lap, 2 the finish) begins: its frames number * 12 on.
+\\
+\\ Inputs: A: the banner. Outputs: the banner's state. A corrupted; X, Y preserved.
+
+.banner_start
+{
+    STA RcBannerFrame                   ; * 12
+    ASL A:ADC RcBannerFrame             ; (C clear)
+    ASL A:ASL A
+    STA RcBannerFrame
+    LDA #1:STA RcBannerOn
+    STZ RcBannerTime
+    RTS
+}
+
+\\ F_00BABC, each frame it's on: its frame on every 3rd frame, round its 12; after 180 frames, gone.
+\\
+\\ Inputs, outputs: the banner's state. A: corrupted; X, Y preserved.
+
+.banner_frame
+{
+    LDA RcBannerOn:BEQ done
+    CMP #&80:BNE shown
+    STZ RcBannerOn
+    RTS
+.shown
+    INC RcBannerTime
+    LDA RcBannerTime
+.mod3
+    SEC:SBC #3
+    BEQ step
+    BCS mod3
+    BRA timed
+.step
+    INC RcBannerFrame
+    LDA RcBannerFrame
+.mod12
+    SEC:SBC #12
+    BEQ wrap
+    BCS mod12
+    BRA timed
+.wrap
+    LDA RcBannerFrame:SEC:SBC #12:STA RcBannerFrame
+.timed
+    LDA RcBannerTime:CMP #180:BNE done  ; (else drawn: with the renderer)
+    LDA #&80:STA RcBannerOn
+.done
+    RTS
+}
+
+\\ F_00BB4E's helicopter, if none is flying: it carries the car (car 3 for a drone), from the side the wreck
+\\ chose; sideways at the wreck's y - 8 (0 to 174) from x 319 or -39, 88 frames; else at its x - 8 (0 to
+\\ 288, a multiple of 16) from y 199 or -35, 116 frames.
+\\
+\\ Inputs:
+\\     X: the car
+\\     A: the side, 0-3 (wreck's)
+\\
+\\ Outputs:
+\\     the helicopter's state
+\\     A, Y: corrupted; X preserved
+
+.heli_start
+{
+    ZA_AUTO1 side                       ; local
+    ZA_AUTO2 v                          ; local: a place from the wreck's
+    ZA_AUTO2 most                       ; local: clamp's limit
+
+    STA side
+    LDA RcHeliStateLo:ORA RcHeliStateHi
+    BNE done
+    TXA
+    LDY RcDrone,X:BEQ @+
+    LDA #3
+.@
+    STA RcHeliCar
+    \\ (the wreck and helicopter's sound: not yet)
+    LDA side:STA RcHeliVariant
+    LDA #&FF:STA RcHeliStateLo:STA RcHeliStateHi
+    STZ RcHeliFrame
+    LDA side:AND #2:BEQ upright
+    LDA RcSafeY8Lo,X:STA v              ; sideways: y = safe y8 >> 3 - 8, 0 to 174
+    LDA RcSafeY8Hi,X:STA v+1
+    JSR less8
+    LDA #174:LDY #0:JSR clamp
+    LDA v:STA RcHeliYLo
+    LDA v+1:STA RcHeliYHi
+    LDA side:AND #1:BNE left
+    LDA #LO(319):STA RcHeliXLo
+    LDA #HI(319):STA RcHeliXHi
+    BRA across
+.left
+    LDA #LO(-39):STA RcHeliXLo
+    LDA #HI(-39):STA RcHeliXHi
+.across
+    LDA #88:STA RcHeliTimerLo
+    STZ RcHeliTimerHi
+.done
+    RTS
+.upright
+    LDA RcSafeX8Lo,X:STA v              ; x = safe x8 >> 3 - 8, 0 to 288, AND &FFF0
+    LDA RcSafeX8Hi,X:STA v+1
+    JSR less8
+    LDA #LO(288):LDY #HI(288):JSR clamp
+    LDA v:AND #&F0:STA RcHeliXLo
+    LDA v+1:STA RcHeliXHi
+    LDA side:BNE above
+    LDA #199:STA RcHeliYLo
+    STZ RcHeliYHi
+    BRA down
+.above
+    LDA #LO(-35):STA RcHeliYLo
+    LDA #HI(-35):STA RcHeliYHi
+.down
+    LDA #116:STA RcHeliTimerLo
+    STZ RcHeliTimerHi
+    RTS
+
+    \\ v = v >> 3 (asr) - 8
+.less8
+    LDY #3
+.shift
+    LDA v+1:CMP #&80:ROR v+1:ROR v
+    DEY
+    BNE shift
+    LDA v:SEC:SBC #8:STA v
+    BCS @+
+    DEC v+1
+.@
+    RTS
+
+    \\ v clamped to 0 .. the most (Y high, A low)
+.clamp
+    STA most
+    STY most+1
+    LDA v+1:BPL @+
+    STZ v:STZ v+1                       ; under 0: 0
+    RTS
+.@
+    LDA most:CMP v                      ; over the most: the most
+    LDA most+1:SBC v+1
+    BCS @+
+    LDA most:STA v
+    LDA most+1:STA v+1
+.@
+    RTS
+}
+
+\\ F_00BD4A, each frame it's on: the rotor starting 4 frames; then flying, 2 pixels a frame up or down (its
+\\ frame on each), or 4 across (its frame from x); its timer run out, gone.
+\\
+\\ Inputs, outputs: the helicopter's state. A, Y: corrupted; X preserved.
+
+.heli_frame
+{
+    ZA_AUTO1 step                       ; local: -2 or 2
+    ZA_AUTO1 left                       ; local: the timer before it's counted down, its bytes ORed
+
+    LDA RcHeliStateLo:ORA RcHeliStateHi
+    BNE on
+    RTS
+.on
+    LDA RcHeliStateHi:BPL started
+    INC RcHeliFrame                     ; the rotor starting (drawn: with the renderer)
+    LDA RcHeliFrame:CMP #4:BEQ @+
+    RTS
+.@
+    LDA #1:STA RcHeliStateLo
+    STZ RcHeliStateHi
+    STZ RcHeliFrame
+    RTS
+.started
+    LDA RcHeliStateLo:CMP #&80:BNE flying
+    STZ RcHeliStateLo
+    RTS
+.flying
+    LDA RcHeliTimerLo:ORA RcHeliTimerHi ; tested before it's counted down
+    STA left
+    LDA RcHeliTimerLo:BNE @+
+    DEC RcHeliTimerHi
+.@
+    DEC RcHeliTimerLo
+    LDA left:BNE move
+    LDA #&80:STA RcHeliStateLo          ; gone (the engines back: with the sound)
+    RTS
+.move
+    LDA RcHeliVariant:AND #1:ASL A:ASL A
+    SEC:SBC #2:STA step                 ; (variant AND 1) * 4 - 2
+    LDA RcHeliVariant:AND #2:BEQ vertical
+    LDA step:ASL A                      ; across: x + step * 2; frame (x >> 2) AND 3
+    CLC:ADC RcHeliXLo:STA RcHeliXLo
+    LDA step:BPL @+
+    LDA #&FF:BRA hi
+.@
+    LDA #0
+.hi
+    ADC RcHeliXHi:STA RcHeliXHi
+    LDA RcHeliXLo:LSR A:LSR A:AND #3:STA RcHeliFrame
+    RTS
+.vertical
+    LDA step                            ; y + step; frame + 1 MOD 4
+    CLC:ADC RcHeliYLo:STA RcHeliYLo
+    LDA step:BPL @+
+    LDA #&FF:BRA hiy
+.@
+    LDA #0
+.hiy
+    ADC RcHeliYHi:STA RcHeliYHi
+    LDA RcHeliFrame:INC A:AND #3:STA RcHeliFrame
+.done
+    RTS
+}

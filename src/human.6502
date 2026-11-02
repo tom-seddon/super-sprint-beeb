@@ -353,7 +353,8 @@
     LDA #1:STA RcState,X
     BRA clear
 .landed
-    \\ the sparks and the bump's sound (F_00BE4A, F_013032): not yet
+    LDA RcDir,X:CLC:ADC #8:AND #15      ; sparks behind it (F_00BE4A); the bump's sound: with the sound
+    JSR sparks_start
 .clear
     LDA RcBitsHi,X:AND #HI(&F3FF):STA RcBitsHi,X
 .done
