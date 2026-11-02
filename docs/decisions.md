@@ -220,3 +220,34 @@ A fault found in step 13 (2026-11-02): the premise that the logic never reads th
 `heli_pieces` (logicframe) reads its plotter's `MovDX` and `MovW` to leave out pieces off the screen's side, and
 with ANDY in it read mask B; track 2's sideways helicopter showed it (track 5's comes from below). It now pages
 ANDY out for those reads.
+
+### D16. The helicopter: not drawn, a cue in its place: Proposed (2026-11-02)
+After speed's fourth round the hazard race's slowest frames are its start (the helicopter on screen, about
+7,700 cycles a frame, 4,700 of them its copy loop, with the gates stepping) and its pile-ups (the helicopter
+with cars under a bridge and against walls). Tom, 2026-11-02: "If the helicopter is just inherently going to
+be too expensive, maybe we should just get rid of it? It's purely cosmetic and could be replaced with some
+alternative effect. This would presumably free up some space that could be spent on optimising something
+else that's relevant to the gameplay."
+In the logic the helicopter is a timer: a wrecked car waits for its flight (40-100 frames, by distance,
+`docs/st-logic.md` "Wrecks and the helicopter") and only one flies at a time. That stays, bit-exact (D9); only
+the drawing goes. MEASURED (a build with the helicopter's pieces left out of the movers, its logic kept,
+2026-11-02, `make check TRACE=logic4`): the hazard race's frames over a TV frame 150 -> 101 of 2,240, the mean
+32,224 -> 31,698 cycles, the 99th percentile 47,350 -> 43,738. The model differs in the 116 frames the
+helicopter is on screen, as it must.
+Room: the helicopter is 5,114 bytes of the fourth bank (its plotter's copy and tables at &8000, its 84
+pieces to &93F9): all 4K under ANDY, usable only with ANDY out (as the helicopter now is), and 1,018 bytes the
+logic can use directly. One use for gameplay: mask B back out of ANDY into that 4K, leaving ANDY for a
+second, transposed copy of mask B's mixed cells, so a wall column's test over a mixed cell is one AND, not a
+loop over its lines (about 300-400 cycles in the wall-scraping frames, PROJECTED; 2,136 bytes on track 8).
+Options:
+- (a) keep it, as now.
+- (b) leave it out: the wreck stays where it is until the car is put back, at the ST's frame.
+- (c) **proposed**: as (b), with a cue where the helicopter would have shown the player where the car comes
+  back: in the wait's last frames, the wreck replaced by the car blinking at its put-back place. It's drawn
+  as the wreck is (one of the four car records, the cars' plotter), so it costs about what the wreck does:
+  PROJECTED the same as (b). The car frames exist already; no new data.
+- The sound (the helicopter's chop, D11) either way: kept as the car's "coming back" sound, or the engine
+  back at the wreck's end. Proposed: kept, for your ears.
+Either (b) or (c) also changes the renderer's tests: the model (`tools/render_model.py`) leaves the
+helicopter out of the races drawn from the logic, and the traced races' helicopter checks (`make check`,
+`heli1`-`heli3`) go with it.
