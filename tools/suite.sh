@@ -35,5 +35,6 @@ run render_logic0 make check TRACE=logic0
 run sn_check node tools/sn_check.mjs
 run play_build make beeb TRACE=play
 run keys_check node tools/keys_check.mjs
+run all_tracks tools/all_tracks.sh
 echo "done $fail" >> "$OUT/verdicts.txt"
 exit $fail
