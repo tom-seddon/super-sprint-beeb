@@ -14,8 +14,8 @@ INCLUDE "../build/gen/trace.6502"       ; (GenLogic: the race drawn from the log
 IF GenLogic
     INCLUDE "../build/gen/logickeys.6502"
     INCLUDE "../build/lgen/race.6502"
-    LogicVarsOrg = SwramEnd - &1B0      ; the logic's state, at the fourth bank's end
-    SECTION LogicVars, org = LogicVarsOrg, guard = SwramEnd, virtual = TRUE
+    LogicVarsOrg = AndyEnd - &1B0       ; the logic's state, at ANDY's end (D15)
+    SECTION LogicVars, org = LogicVarsOrg, guard = AndyEnd, virtual = TRUE
     ENDSECTION
 ENDIF
 
@@ -40,6 +40,7 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
         INCLUDE "heli.6502"
         PRINT "the fourth bank: ", SwramEnd - P%, " bytes after the helicopter (the trace's, in the test)"
         IF GenLogic
+            ASSERT P% >= AndyEnd, "the logic's code above ANDY: the helicopter, which it doesn't read, under it"
             INCLUDE "walls.6502"
             INCLUDE "cells.6502"
             INCLUDE "drone.6502"
@@ -48,10 +49,8 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
             INCLUDE "hazards.6502"
             INCLUDE "logicframe.6502"
             INCLUDE "logictabs.6502"
-            INCLUDE "../build/lgen/walls.6502"
             INCLUDE "../build/lgen/cells.6502"
-            PRINT "the fourth bank: ", LogicVarsOrg - P%, " bytes free below the logic's state"
-            ASSERT P% <= LogicVarsOrg, "the logic's bank: room for its state"
+            PRINT "the fourth bank: ", SwramEnd - P%, " bytes free"
         ELSE
 .TraceData
             INCBIN "../build/gen/trace.bin" ; the race's cars, 12 bytes a frame (tools/gendata.py)
@@ -116,4 +115,12 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
     ENDSECTION
 .maincode_end
     INCLUDE "entry.6502"
+    IF GenLogic                         ; ANDY's image, which the loader copies in
+.andy_image
+        SECTION Andy, org = AndyOrg, guard = LogicVarsOrg
+            INCLUDE "../build/lgen/walls.6502"
+            PRINT "ANDY: ", LogicVarsOrg - P%, " bytes free below the logic's state"
+        ENDSECTION
+.andy_end
+    ENDIF
 ENDSECTION

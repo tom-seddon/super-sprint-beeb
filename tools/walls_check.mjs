@@ -18,6 +18,7 @@ const syms = symbols("build/logic.json");
 const s = await bootDisc("build/logic.ssd");
 await runTo(s, syms["test_entry.loaded"]);
 const cpu = s._machine.processor;
+if (!(cpu.romsel & 0x80)) { console.log("ANDY isn't paged in (ROMSEL's bit 7): mask B isn't where the game has it"); process.exit(1); }
 const Stub = 0x7000, Out = 0x7010, f = syms["column_hit"];
 s.writeMemory(Stub, [0x20, f & 0xff, f >> 8, 0x8d, Out & 0xff, Out >> 8, 0x4c, (Stub + 6) & 0xff, (Stub + 6) >> 8]);
 let bad = 0, n = 0, seed = 1;

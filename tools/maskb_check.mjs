@@ -15,6 +15,7 @@ const s = await bootDisc("build/logic.ssd");
 await runTo(s, syms["test_entry.loaded"]);           // the logic's bank filled and paged in, before the race's
                                                      // set-up draws the gates and barriers into it
 const cpu = s._machine.processor;
+if (!(cpu.romsel & 0x80)) { console.log("ANDY isn't paged in (ROMSEL's bit 7): mask B isn't where the game has it"); process.exit(1); }
 const Stub = 0x7000, Out = 0x7010, mr = syms["mask_row"], rb = syms["row_byte"];
 s.writeMemory(Stub, [0x20, mr & 0xff, mr >> 8, 0xa9, 0, 0x20, rb & 0xff, rb >> 8, 0x8d, Out & 0xff, Out >> 8,
     0x4c, (Stub + 11) & 0xff, (Stub + 11) >> 8]);

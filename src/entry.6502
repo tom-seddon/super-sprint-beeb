@@ -65,6 +65,24 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     IF GenLogic
         LDA bankobj:STA &FE30           ; ROMSEL: the objects' bank, where shared_copy is
         JSR shared_copy
+
+        \\ and ANDY filled from its image, a page at a time (whole pages: the overrun lands in the logic's
+        \\ state, zeroed by logic_start), now the filing system is done with &8000 (D15)
+
+        LDA bankobj:ORA #RomselAndy
+        STA &FE30                       ; ROMSEL: ANDY in
+        ASSERT AndyOrg + (andy_end - andy_image + &FF) DIV &100 * &100 <= AndyEnd, "ANDY's image: whole pages in ANDY"
+        LDX #HI(andy_end - andy_image + &FF)
+        LDY #0
+.andy
+        LDA andy_image,Y                ; self-modified: the page's high byte
+        STA AndyOrg,Y                   ; self-modified: the page's high byte
+        INY
+        BNE andy
+        INC andy+2
+        INC andy+5
+        DEX
+        BNE andy
     ENDIF
 
     \\ the game's variables zeroed (nothing drawn to erase), IRQ1V ours, the tables made

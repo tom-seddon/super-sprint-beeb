@@ -1,13 +1,12 @@
 \\ logicframe.6502 - the game's frame driven by the race logic (Phase 4, step 8): the logic run a frame, then its
 \\ draw calls (tools/logic_draws.mjs checks them against the ST's) turned into the frame loop's records, as
 \\ tools/gendata.py's trace() turns the ST's: the cars in draw order, the slots' sprites as background object
-\\ events, the moving objects' pieces (gendata.py --logic's key tables), and the HUD's changes. In main RAM; it
-\\ pages the logic's bank (the fourth) in.
+\\ events, the moving objects' pieces (gendata.py --logic's key tables), and the HUD's changes.
 \\
 \\ The human players' inputs come from the traced race (build/lgen/inputs.rle) until the keys are read (brief
 \\ step 9).
 \\
-\\ In the logic's bank (the fourth): the caller pages it in.
+\\ In the logic's bank (the fourth): the caller pages it in, with ANDY (mask B and the logic's state, D15).
 
 SECTION GameVars
 .LfFrame                                ; the frames the logic has run, the set-up's two flips first
@@ -40,7 +39,7 @@ IF GenPlay = 0
     ZA_AUTO1 lfleft                     ; its frames left
 ENDIF
 
-\\ The race's start (the logic's bank paged in): the logic's state cleared, the race as the traced one's (its track, counter, drones, TOS's
+\\ The race's start (the logic's bank and ANDY paged in): the logic's state cleared, the race as the traced one's (its track, counter, drones, TOS's
 \\ seed, the scores and sparks as they were), and set up.
 \\
 \\ Inputs:
@@ -48,16 +47,17 @@ ENDIF
 \\
 \\ Outputs:
 \\     the logic's state, LfFrame 0, the inputs at their start
-\\     ROMSEL: the logic's bank; A, X, Y: corrupted
+\\     ROMSEL: the logic's bank, ANDY in; A, X, Y: corrupted
 
 .logic_start
 {
-    LDA banktrace:STA &FE30             ; ROMSEL: the logic's bank
-    LDA #0:TAX
-.clear
-    FOR page = HI(LogicVarsOrg)..<HI(SwramEnd)
-        STA page * &100,X
-    NEXT
+    LDA banktrace:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: the logic's bank, ANDY in (D15)
+    ASSERT AndyEnd - LogicVarsOrg > &100 AND AndyEnd - LogicVarsOrg <= &200, "logic_start: its state 257-512 bytes"
+    LDX #0                              ; the state zeroed, to ANDY's end: two overlapping 256s (not whole
+.clear                                  ; pages: mask B is below it on the first)
+    STZ LogicVarsOrg,X
+    STZ AndyEnd - &100,X
     INX
     BNE clear
     LDX #LogicZpEnd - LogicZpOrg - 1

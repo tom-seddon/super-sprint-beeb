@@ -5,8 +5,9 @@
 \\ each test_entry.frame_done and compares its state with the ST's.
 \\
 \\ The logic's code and state go where the game will have them once the renderer is driven by it (brief
-\\ step 8). Here the state is at &0400, the code in main RAM but the walls' code and data (mask B), which
-\\ go in the logic's bank, sideways RAM bank 4, copied there from the file at the start and left paged.
+\\ step 8). Here the state is at &0400, the code in main RAM but the logic bank's (sideways RAM bank 4, from
+\\ &9000), and mask B in ANDY, as the game has it (D15): both copied there from the file at the start and left
+\\ paged in.
 
 INCLUDE "macros.6502"
 INCLUDE "../build/lgen/race.6502"
@@ -20,6 +21,9 @@ ENDSECTION
 TestOrg = &1100
 SwramOrg = &8000
 SwramEnd = &C000
+AndyOrg = &8000                         ; ANDY: 4K over &8000-&8FFF while ROMSEL's bit 7 is set
+AndyEnd = &9000
+RomselAndy = &80
 LogicVarsOrg = &0400
 LogicBank = 4                           ; the logic's bank: the Master's sideways RAM 4-7 are free in the test
 
@@ -49,20 +53,31 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     CLD
     LDX #&FF:TXS
 
-    \\ the logic's bank filled from the file, and left paged in
+    \\ the logic's bank and ANDY filled from the file, and left paged in
 
-    LDA #LogicBank:STA &FE30            ; ROMSEL: the logic's bank, ANDY out
+    LDA #LogicBank OR RomselAndy:STA &FE30  ; ROMSEL: the logic's bank, ANDY in
     LDX #HI(bank_end - bank_image + &FF)
     LDY #0
 .copy
     LDA bank_image,Y                    ; self-modified: the page's high byte
-    STA SwramOrg,Y                      ; self-modified: the page's high byte
+    STA AndyEnd,Y                       ; self-modified: the page's high byte
     INY
     BNE copy
     INC copy+2
     INC copy+5
     DEX
     BNE copy
+    ASSERT AndyOrg + (andy_end - andy_image + &FF) DIV &100 * &100 <= AndyEnd, "ANDY's image: whole pages in ANDY"
+    LDX #HI(andy_end - andy_image + &FF)
+.andy
+    LDA andy_image,Y                    ; self-modified: the page's high byte
+    STA AndyOrg,Y                       ; self-modified: the page's high byte
+    INY
+    BNE andy
+    INC andy+2
+    INC andy+5
+    DEX
+    BNE andy
     LDA #0:TAX
 .clear
     FOR page = HI(LogicVarsOrg)..<HI(LogicVarsOrg)+4
@@ -142,21 +157,26 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     INCLUDE "../build/lgen/tables.6502"
 
 .bank_image
-    SECTION LogicBankCode, org = SwramOrg, guard = SwramEnd, cmos = TRUE
+    SECTION LogicBankCode, org = AndyEnd, guard = SwramEnd, cmos = TRUE
         INCLUDE "walls.6502"
         INCLUDE "cells.6502"
         INCLUDE "drone.6502"
         INCLUDE "pickups.6502"
         INCLUDE "effects.6502"
         INCLUDE "hazards.6502"
-        INCLUDE "../build/lgen/walls.6502"
         INCLUDE "../build/lgen/cells.6502"
         INCLUDE "../build/lgen/hazards.6502"
         INCLUDE "../build/lgen/path.6502"
         INCLUDE "../build/lgen/probes.6502"
-        PRINT "the logic's bank: ", P% - SwramOrg, " bytes"
+        PRINT "the logic's bank: ", P% - AndyEnd, " bytes from ANDY's end"
     ENDSECTION
 .bank_end
+
+.andy_image
+    SECTION Andy, org = AndyOrg, guard = AndyEnd
+        INCLUDE "../build/lgen/walls.6502"
+    ENDSECTION
+.andy_end
 
 .Inputs                                 ; each race frame's inputs, cars 0-2 (tools/gen_logic.py)
     INCBIN "../build/lgen/inputs.bin"

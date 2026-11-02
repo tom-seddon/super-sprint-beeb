@@ -1,6 +1,6 @@
 // The players' keys in jsbeeb (D12, brief step 9): the play build (make beeb TRACE=play, build/sprint.ssd)
 // booted, each of the layout's 9 keys held alone, then all 9 together, and the inputs the game read for the
-// three players (RcInput, in the fourth bank) checked. jsbeeb's keyboard has no ghosting, so this proves the
+// three players (RcInput, in ANDY: D15) checked. jsbeeb's keyboard has no ghosting, so this proves the
 // key numbers and the reading, not the matrix: tools/keys_ghost.py does that on paper, and a real BBC is the
 // test of it.
 //
@@ -8,19 +8,17 @@
 //
 // Usage (from the repo root, after make beeb TRACE=play): node tools/keys_check.mjs
 
-import { bootDisc, runTo, symbols } from "./jsbeeb.mjs";
+import { andy, bootDisc, runTo, symbols } from "./jsbeeb.mjs";
 
 const syms = symbols();
 const s = await bootDisc();
-const peek = (a) => s.readMemory(a, 1)[0];
 // [jsbeeb's key name, player, bit]
 const Keys = [["KeyQ", 0, 4], ["KeyW", 0, 8], ["KeyE", 0, 0x80], ["KeyV", 1, 4], ["KeyB", 1, 8], ["KeyN", 1, 0x80],
     ["Comma", 2, 4], ["Period", 2, 8], ["Slash", 2, 0x80]];
 await runTo(s, syms["frame_loop.frame_end"]);  // (the disc copies its banks first: the game's running now)
-const bank = peek(syms.banktrace);
 async function inputs() {
     for (let i = 0; i < 3; i++) await runTo(s, syms["frame_loop.frame_end"]);
-    return [0, 1, 2].map((p) => s.readMemory(syms.RcInput + p, 1, { bank })[0]);
+    return [...andy(s, syms.RcInput, 3)];
 }
 
 let wrong = 0;

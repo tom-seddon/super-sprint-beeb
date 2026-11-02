@@ -70,6 +70,19 @@ export function settle(s) {
     cpu.targetCycles = cpu.currentCycles;
 }
 
+// ANDY's bytes: a Master's 4K over &8000-&8FFF while ROMSEL's bit 7 is set (D15: mask B and the logic's
+// state), whatever the CPU has paged now; readMemory's { bank } reads the bank's own &8000-&8FFF instead
+export function andy(s, addr, length = 1) {
+    if (addr < 0x8000 || addr + length > 0x9000) throw new Error(`&${addr.toString(16)}: not in ANDY`);
+    const cpu = s._machine.processor, romsel = cpu.romsel;
+    try {
+        cpu.romSelect(romsel | 0x80);
+        return s.readMemory(addr, length);
+    } finally {
+        cpu.romSelect(romsel);
+    }
+}
+
 // run until the CPU reaches addr (an execute breakpoint, removed after), or throw after limit cycles
 export async function runTo(s, addr, limit = 40000000) {
     const id = s.addBreakpoint("execute", addr);

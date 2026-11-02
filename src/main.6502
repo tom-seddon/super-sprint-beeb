@@ -83,7 +83,8 @@ ZA_AUTO1 carnum                         ; the car being drawn
     JSR hud_start
     IF GenLogic
         JSR sound_init
-        LDA banktrace:STA &FE30         ; ROMSEL: the logic's bank (the fourth)
+        LDA banktrace:ORA #RomselAndy
+        STA &FE30                       ; ROMSEL: the logic's bank (the fourth), ANDY in (D15)
         JSR logic_start
     ENDIF
     LDA #8:STA &FE00                    ; CRTC: R8
@@ -194,7 +195,8 @@ ENDIF
 .erased
 
     IF GenLogic
-        LDA banktrace:STA &FE30         ; ROMSEL: the logic's bank (the fourth)
+        LDA banktrace:ORA #RomselAndy
+        STA &FE30                       ; ROMSEL: the logic's bank (the fourth), ANDY in (D15)
         JSR logic_frame                 ; the race's next frame, from the logic (logicframe.6502)
     ELSE
     \\ the race's next frame: the cars drawn (their count, then 4 bytes each), then the background object

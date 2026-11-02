@@ -21,6 +21,8 @@
 \\          from the logic): the sound's effects, the drone path, the wall probes. SPRINT's load puts them
 \\          in main RAM's, its loader copies them to shadow RAM's
 \\   &3F00  the screen: the HUD's row, then the play area to &7FFF; in main RAM and in shadow RAM
+\\   &8000  ANDY, over &8000-&8FFF while ROMSEL's bit 7 is set (D15): mask B and the logic's state, paged in
+\\          with the fourth bank while the logic runs (its first 4K, the helicopter, isn't read then)
 \\   &8000  sideways RAM. The background's bank: the clean play area and the erase that reads it.
 \\          The cars' bank: their frames, the priority cells and the plotter that reads them. The
 \\          trace's bank: the helicopter, then the ST race's cars and objects. The objects' bank: the background objects'
@@ -50,6 +52,9 @@ GameVarsEnd = &3000
 LoadAddr = &3000                        ; where SPRINT and the banks' files load
 SwramOrg = &8000
 SwramEnd = &C000
+AndyOrg = &8000                         ; ANDY: 4K over &8000-&8FFF (D15)
+AndyEnd = &9000
+RomselAndy = &80                        ; ROMSEL's bit 7: ANDY in
 MoreTablesOrg = &2C00                   ; more tables, made by the loader (MoreTables)
 ObjBufOrg = &2A00                       ; a background object's bytes, copied from the objects' bank (ObjBuf)
 

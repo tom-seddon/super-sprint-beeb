@@ -118,10 +118,12 @@ function bbc(name, kind, car) {
     return kind === "s" && b >= 0x80 ? b | 0xff00 : b;
 }
 
-// a byte of mask B as D13 stores it (walls.6502's row_byte): its row's fill outside its span, else its map's
+// a byte of mask B as D13 stores it (walls.6502's row_byte): its row's fill outside its span, else its map's.
+// Mask B is in ANDY (D15), which a read of &8000-&8FFF gets only while ROMSEL's bit 7 is set: checked
 const MaskB = 0x63a76;                  // the ST's (G_01F238 + &1F40), 40 bytes a line
 const AttrMap = 0x678f6;                // the ST's attribute map (G_01EB20's), 40 x 25
 function mbByte(col, y) {
+    if (!(s._machine.processor.romsel & 0x80)) throw new Error("mask B read with ANDY out (ROMSEL's bit 7 clear)");
     const r = y >> 3;
     if (col < peek(syms.MbLo + r)) return peek(syms.MbLeft + r);
     if (col >= peek(syms.MbEnd + r)) return peek(syms.MbRight + r);
