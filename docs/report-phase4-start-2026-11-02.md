@@ -7,7 +7,8 @@ sound: the ST's effects captured from its own YM and converted for the SN76489, 
 sound's starters match the ST's call for call, and every effect the ST started is found at the BBC's chip
 field for field; how it sounds is yours to judge: `build/sound/race_bbc.wav` against `race_st.wav`, and
 each effect in `build/lgen/wav`. A disc to play: `build/play.ssd` (`make beeb TRACE=play`). Then a RAM
-hunt made room for the rest of Phase 4: main RAM 52 -> 416 bytes free, the fourth bank 136 -> 2,398, the
+hunt made room for the hazards, and the hazards went in (below); the room figures that follow are from
+before them. The RAM hunt: main RAM 52 -> 416 bytes free, the fourth bank 136 -> 2,398, the
 objects' bank 10,124 -> 11,687, with nothing on the screen or in the play changed (every oracle passes, the
 default disc byte-identical) and the race a little faster. Next: the hazards (tornado, barriers, gates,
 cones) and the other tracks.
@@ -72,6 +73,13 @@ cones) and the other tracks.
   (track 8 the tightest), with more levers costed if not. `tools/sn_check.mjs` was fixed on the way: it
   lined the chip's writes up by an assumption the new boot broke (the chip was right).
 
+- **The hazards** (step 11): the tornado, the pop-up barriers, the gates and the cones, bit-exact with the ST
+  on track 5's race 17 (the renderer's own default race, which has all four) and drawn from the BBC's own
+  logic, every one of its 2,240 frames matching the model. On the way, a Phase 3 tracer bug: the model had
+  never drawn cars 2's and 3's sparks, nor had the trace-driven renderer, so every check had agreed; fixed,
+  and every trace still matches. The sound's starters match the ST's (112 calls); at the chip 91 of 96
+  effects are found, the 5 others because this race's frames are slow (below).
+
 ## Please review
 
 - **D12, the keys**: Q W E, V B N, , . / (Proposed; player 1 was Z X SHIFT until your suggestion). Please play `make beeb TRACE=play` on a real BBC:
@@ -89,10 +97,11 @@ cones) and the other tracks.
 
 ## What is open
 
-Resume point: **the hazards** (`docs/brief-phase4.md`). The room for them, per track, is in
-`docs/brief-ram-2026-11-02.md` §5: the fourth bank has 2,398 bytes free on track 1 and about 1,139 on track 8
-(PROJECTED); the cars' bank has only 48 on track 6 with three players. Then: the frame's worst cases (4 of
-2,197 drawn frames take two TV frames), the other 7 tracks, and the joysticks once measured on a real Master.
+Resume point: **speed** (`docs/brief-phase4.md`). With the hazards in, track 5's race averages 38,207
+cycles a frame (logic and drawing) and 734 of its 2,240 drawn frames take two TV frames: the game drops to
+25 fps a third of the time there. Then room for the other tracks (the fourth bank would be about 77 bytes
+over on track 6 and 261 on track 8, PROJECTED), the other 7 tracks, and the joysticks once measured on a real
+Master.
 
 ## Branch ledger
 

@@ -7,14 +7,16 @@
 //
 // Exit status: 1 if any effect isn't found, else 0.
 //
-// Usage (from the repo root, after make beeb TRACE=logic0): node tools/sn_check.mjs [--fields OUT.json]
+// Usage (from the repo root, after make beeb TRACE=logic0): node tools/sn_check.mjs [--fields OUT.json] [--capture C.json]
+//     --capture: the ST's capture of the race built (default build/trace/sound_t0_r0.json; the hazard race,
+//         TRACE=logic4: build/trace/sound_t4_r17_hz.json)
 //     --fields: each field's chip state, for tools/sound_wav.py to render (what the BBC plays, to listen to)
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { bootDisc, cycles, runTo, symbols } from "./jsbeeb.mjs";
 
 const syms = symbols();
-const capture = JSON.parse(readFileSync("build/trace/sound_t0_r0.json"));
+const capture = JSON.parse(readFileSync(process.argv.includes("--capture") ? process.argv[process.argv.indexOf("--capture") + 1] : "build/trace/sound_t0_r0.json"));
 const Names = ["start0", "start1", "start2", "bounce", "bump", "slow", "skid", "wrench", "bonus", "tornado", "wreck"];
 const Threshold = { bounce: 1, bump: 2, slow: 1, skid: 1, wrench: 4, bonus: 4, tornado: 3 };
 
@@ -94,7 +96,9 @@ for (const x of capture.starts) {
         ok = want.every((e, i) => {
             const g = fields[f0 + i];
             if (!g) return false;
-            if (e.noise !== null) return g.noise === e.noise && g.natt === e.natt && g.att[ch] === 15;
+            // a noise field: the SN has one noise channel, the loudest effect's (D11), so where two overlap the
+            // quieter's is played by the louder's: its own, or one louder
+            if (e.noise !== null) return g.att[ch] === 15 && ((g.noise === e.noise && g.natt === e.natt) || g.natt < e.natt);
             return g.att[ch] === e.att && (e.att === 15 || g.n[ch] === e.n);
         });
     }

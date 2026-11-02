@@ -384,4 +384,12 @@
   first came in the third, so it found nothing while the chip was right. It goes by the writes' own cycles
   now (they're the CPU's). Another: a `git stash` to test the old build left the old generator's files in
   `build/lgen` with a newer timestamp, and the next build failed on duplicate symbols.
+- **The hazards** (step 11): the tornado, barriers, gates and cones exact on track 5's race 17 (every frame,
+  mask B's boxes and the attribute map compared too), and drawn from the logic (all 2,240 frames match).
+  First full run of the oracle passed, so each piece was broken on purpose; two breaks can't fail and the
+  reason is written down. A Phase 3 bug surfaced: the objects tracer dropped sparks 4-7's places, and the
+  model and the trace-driven renderer agreed on drawing none of them. Mistakes: a Python text replacement
+  that silently did nothing (the tornado's frame call missing until the oracle showed it), `STX abs,X`
+  again (it doesn't exist), and branches out of range twice. The race is slow: 734 of 2,240 frames take two
+  TV frames. Room: track 8 would be about 260 bytes over in the fourth bank.
 

@@ -10,10 +10,11 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: the hazards, step 11** (its plan in §6). Sound is in (§8), and a RAM hunt made room (`docs/brief-ram-2026-11-02.md`):
-the play build now has 416 bytes of main RAM free and 2,398 in the fourth bank, about 1,139 on track 8 once
-its larger mask B is in (PROJECTED). Then the hazards (tornado, barriers, gates, cones: they trap), the
-frame's worst cases (4 of 2,197 drawn frames take two TV frames), the other tracks.
+**Resume point: speed.** The hazards are in (step 11, §8): exact against the ST and drawn from the logic on
+track 5's race 17. That race is too slow: logic and drawing average 38,207 cycles a frame, and 734 of its
+2,240 drawn frames take two TV frames (the logic about 17,800 of it). Then room for the other tracks: the
+play build's fourth bank has 998 bytes free on track 1, which on tracks 6 and 8 (larger mask B) comes to
+about 77 and 261 over (PROJECTED); then the other tracks themselves.
 
 ## 0. The proposal in one paragraph
 
@@ -433,3 +434,43 @@ default renderer disc differs from Phase 3's in that one byte (&0B for &03), its
 matching. `make check TRACE=logic0`: all 2,197 frames still match; 27,012 cycles a frame (mean), 5 frames
 over a TV frame (3 before: the IRQ's sound, about 700 cycles a vsync). To listen: `build/sound/race_bbc.wav`
 and `race_st.wav` (`tools/sound_wav.py`), and each effect in `build/lgen/wav` (`sound_gen.py --wav`).
+
+**Step 11, the hazards** (`src/hazards.6502`, in the logic's bank). The trace is the renderer's own default race,
+track 5 race 17, accelerate held, the tornado's and cones' coins forced (`make logictrace` makes it as
+`build/trace/logic_t4_r17.json`; `LOGICTRACE=` picks it for the logic builds): its cars equal the renderer
+trace's on all 2,240 frames, and two runs give the same file. It has all four hazards: the tornado (14 cars
+caught), the barriers, 3 gates, 4 cones (2 hit), one water patch. The tracer now also dumps G_01EB36-
+G_01EBC1, each gate's and barrier's box of mask B, and the attribute map, every frame (track 1's re-recorded
+trace keeps its old content byte for byte). The test builds force the coins the ST's were forced on, after
+their draws (`LgForceTornado`, `LgForceCones`).
+- The logic: F_00B7E6/F_00B852 and F_00F1A8 (the tornado and its spins), F_00B97C/F_00B9A0 (barriers),
+  F_00AF7A/F_00B1B2 (gates, the drones' lanes), F_00B10C (the cones' road). What a gate (F_014A04) and a
+  barrier (F_014A80) write into mask B, from SUPER.DAT: a gate's bar is its box's lines 6-10, the same 6
+  bytes each, by position (the rest is 0 in every position); a barrier's frame keeps by kind and sets by
+  frame. MEASURED: all 2,239 frames exact, 164 variables, the seed, every byte of the boxes and of the map.
+  Broken on purpose, each caught: a gate's bar a line low (frame 1), a barrier a frame on (31), a gate's wait
+  a visit longer (73), the tornado's reach 6 (2011), its jitter as a step (4). Two that can't fail, and why:
+  a barrier's kept bytes (it stands on road) and F_00B10C's clearing of a cone's cell (the cell code clears it
+  at the hit, in the ST as here).
+- The drawing: the frame builder makes the set-up's slot sprites (hazards, cones), the gates' and barriers'
+  events (gendata.py --logic makes every frame, every step and first draw as an entry, by instance and code;
+  the ST's again-calls marked), and the tornado as a moving object (every frame and shift). MEASURED:
+  `make check TRACE=logic4`, all 2,240 frames match the model; `logic_draws` all 2,238 frames' calls.
+- A Phase 3 tracer bug, found by it: `st_trace_objects.py` filed only the first line of a spark call's state
+  with the call, so sparks 4-7's places went to the frame's memory and neither the model nor the trace-driven
+  renderer drew them (car 2's and 3's sparks); every check had passed because both lacked them. Re-parsed
+  from the Hatari logs, only the sparks' logged state changed, and every renderer trace (race, t0-t7,
+  heli1-3) matches its model with them.
+- Sound: a new capture of this race (`build/trace/sound_t4_r17_hz.json`, `st_trace_sound.py 4 17 ... tornado,cones`):
+  all 112 starter calls match. At the chip (`sn_check.mjs --capture`) 91 of 96 effects are found. Two rules
+  learned: the SN has one noise channel, the loudest effect's, so where two noise effects overlap the quieter
+  one's noise is the louder's (the check now allows that); and the 5 left follow from this race's slow
+  frames: the BBC's effects run in vsyncs, its starters test the priority at its frames, so with frames
+  taking two vsyncs an effect ends sooner in frames than on the ST (the bonus's before frame 1534 here, so
+  the BBC starts a wrench the ST didn't, which then holds off a bounce). Track 1's race: 29 of 29.
+- Room: the hazards' code 1,122 bytes and the frame builder's part ~280 in the fourth bank, their data 285
+  in Shared; two levers taken for it (Shared from &3070, not &3100; the state area &1C0, not &200) and the
+  hazards' data moved there (`f8e4fa8`). The play build: the fourth bank 998 free, main RAM 402, Shared 486,
+  the objects' bank 7,364 (the tornado's 12 compiled frame-shifts and every gate and barrier frame).
+- Cycles: track 1's race 27,220 a frame (mean), 5 over a TV frame; the hazard race 38,207, 734 of 2,240 over.
+
