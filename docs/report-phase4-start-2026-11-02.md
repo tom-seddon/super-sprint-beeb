@@ -109,11 +109,12 @@ the average 38,207 -> 34,185 cycles; what's left is spread thin across the logic
 
 ## What is open
 
-Resume point: **speed's third round, or room** (`docs/brief-phase4.md`). Track 5's race now averages
-34,185 cycles a frame and 315 of its 2,240 drawn frames take two TV frames (734 before the speed work);
-each further lever is 100-300 cycles. Room binds now: track 5's fourth bank has 72 bytes free, and tracks 6
-and 8 would be over (PROJECTED; HAZEL per D7 is your call). Then the other 7 tracks, and the joysticks once
-measured on a real Master.
+Resume point: **room** (`docs/brief-room-2026-11-02.md`, a proposal for you). Every track's play build
+assembled for real: four don't build today (the fourth bank 138 and 322 over on tracks 6 and 8; Shared's
+whole-page rule on tracks 4, 6, 7 and 8, which wastes up to 255 bytes; a page-padding layout fault in the
+cars' bank on track 6). Proposed: two fixes, and the helicopter and the tornado swapping banks (+1,414 in the
+fourth bank on every track, about 400 less in the objects' bank), HAZEL left for Phase 5. Then speed's
+third round, the other 7 tracks, and the joysticks once measured on a real Master.
 
 ## Branch ledger
 

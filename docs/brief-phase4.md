@@ -14,9 +14,10 @@
 left, the options). The hazards are in (step 11, §8): exact against the ST and drawn from the logic on
 track 5's race 17. Two rounds of speed (step 12) took that race from 38,207 cycles a frame to 34,185 (with D14), and its
 drawn frames taking two TV frames from 734 of 2,240 to 315. What's left is levers of 100-300 cycles each,
-and the measured-not-built list. Room is now the binding limit: track 5's fourth bank has 72
-bytes free (after D14), and tracks 6 and 8 (larger mask B) would be over (PROJECTED); HAZEL per D7 is Tom's call. Then
-the other tracks themselves.
+and the measured-not-built list. Room is now the binding limit: measured on every track, four don't build
+(the fourth bank on tracks 6 and 8, Shared's page rule on 4, 6, 7, 8, a layout fault in the cars' bank on 6):
+`docs/brief-room-2026-11-02.md`, a proposal awaiting Tom (the helicopter and the tornado swapping banks, two
+fixes; HAZEL left for Phase 5). Then the other tracks themselves.
 
 ## 0. The proposal in one paragraph
 
