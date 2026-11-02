@@ -1,0 +1,390 @@
+\\ logicframe.6502 - the game's frame driven by the race logic (Phase 4, step 8): the logic run a frame, then its
+\\ draw calls (tools/logic_draws.mjs checks them against the ST's) turned into the frame loop's records, as
+\\ tools/gendata.py's trace() turns the ST's: the cars in draw order, the slots' sprites as background object
+\\ events, the moving objects' pieces (gendata.py --logic's key tables), and the HUD's changes. In main RAM; it
+\\ pages the logic's bank (the fourth) in.
+\\
+\\ The human players' inputs come from the traced race (build/lgen/inputs.rle) until the keys are read (brief
+\\ step 9).
+\\
+\\ In the logic's bank (the fourth): the caller pages it in.
+
+SECTION GameVars
+.LfFrame                                ; the frames the logic has run, the set-up's two flips first
+    SKIP 2
+.LfSlotCount                            ; last frame's slot calls: the ST calls each again the frame after, for
+    SKIP 1                              ; its other screen
+.LfSlotSprite
+    SKIP MaxSlotDraws
+.LfSlotX
+    SKIP MaxSlotDraws
+.LfSlotY
+    SKIP MaxSlotDraws
+.LfLaps                                 ; each car's laps and score the HUD has been given
+    SKIP 4
+.LfScore
+    SKIP 24
+ENDSECTION
+
+ZA_AUTO2 lfin                           ; the inputs' next run
+ZA_AUTO1 lfleft                         ; its frames left
+
+\\ The race's start (the logic's bank paged in): the logic's state cleared, the race as the traced one's (its track, counter, drones, TOS's
+\\ seed, the scores and sparks as they were), and set up.
+\\
+\\ Inputs:
+\\     none
+\\
+\\ Outputs:
+\\     the logic's state, LfFrame 0, the inputs at their start
+\\     ROMSEL: the logic's bank; A, X, Y: corrupted
+
+.logic_start
+{
+    LDA banktrace:STA &FE30             ; ROMSEL: the logic's bank
+    LDA #0:TAX
+.clear
+    FOR page = HI(LogicVarsOrg)..<HI(SwramEnd)
+        STA page * &100,X
+    NEXT
+    INX
+    BNE clear
+    LDA #LgTrack:STA RcTrack
+    LDA #LgRace:STA RcRace
+    FOR c = 0..3
+        LDA #LgDrones[c]:STA RcDrone+c
+    NEXT
+    FOR i = 0..3
+        LDA #(LgSeed >> (8 * i)) AND &FF:STA RcSeed+i
+    NEXT
+    FOR i = 0..23
+        LDA #LgScores[i]:STA RcScore+i
+    NEXT
+    FOR i = 0..7
+        LDA #LO(LgSparkTimer[i]):STA RcSparkTimerLo+i
+        LDA #HI(LgSparkTimer[i]):STA RcSparkTimerHi+i
+        LDA #LgSparkEnd[i]:STA RcSparkEnd+i
+        LDA #LgSparkFrame[i]:STA RcSparkFrame+i
+        LDA #LO(LgSparkX[i]):STA RcSparkXLo+i
+        LDA #HI(LgSparkX[i]):STA RcSparkXHi+i
+        LDA #LO(LgSparkY[i]):STA RcSparkYLo+i
+        LDA #HI(LgSparkY[i]):STA RcSparkYHi+i
+    NEXT
+    JSR race_setup
+    LDA RcHazards:ORA RcCones
+    BEQ @+
+    BRK                                 ; the hazards' and cones' set-up draws: not yet
+    EQUB 0
+    EQUS "hazards", 0
+.@
+    STZ LfFrame:STZ LfFrame+1
+    STZ LfSlotCount
+    LDA #LO(LogicInputs):STA lfin
+    LDA #HI(LogicInputs):STA lfin+1
+    STZ lfleft
+    RTS
+}
+
+\\ A frame of the race (the logic's bank paged in): on the set-up's two flips, its draws (every car, the banner); after them, a race
+\\ frame from the next inputs. Then its records, and the HUD's changes.
+\\
+\\ Inputs:
+\\     the logic's state
+\\
+\\ Outputs:
+\\     CarCount, CarId, CarXLo, CarY, CarFlags, ObjCount, ObjEvents, MovCount, MovVar, MovXLo, MovXHi,
+\\     MovYLo, MovYHi; the HUD's text wanted
+\\     A, X, Y: corrupted
+
+.logic_frame
+{
+    ZA_AUTO1 setup                      ; local: non-zero on the set-up's flips
+
+    STZ setup
+    LDA LfFrame+1:BNE race
+    LDA LfFrame:CMP #2:BCS race
+    INC setup                           ; the set-up's flips: every car drawn, no slots, the banner
+    STZ RcSlotCount
+    LDA #&FF
+    FOR c = 0..3
+        STA RcExplFrame+c
+    NEXT
+    BRA build
+.race
+    LDA lfleft:BNE same                 ; the next run of inputs
+    LDA (lfin):BEQ same                 ; (none left: the last ones held)
+    STA lfleft
+    LDY #3
+.copy
+    LDA (lfin),Y:STA RcInput-1,Y
+    DEY
+    BNE copy
+    CLC
+    LDA lfin:ADC #4:STA lfin
+    BCC same
+    INC lfin+1
+.same
+    DEC lfleft
+    JSR race_frame
+    JSR race_end
+.build
+    JSR build_cars
+    JSR build_objects
+    JSR build_movers
+    JSR build_hud
+    INC LfFrame
+    BNE @+
+    INC LfFrame+1
+.@
+    RTS
+
+    \\ the cars in draw order: each the car, or its explosion (&80 | x's high bit << 6, its piece)
+.build_cars
+    ZA_AUTO1 c                          ; local: the car
+    LDX #0
+.car
+    JSR record
+    INX
+    CPX #4:BNE car
+    STX CarCount
+    RTS
+
+    \\ car X in draw order's record
+.record
+    LDY RcOrder,X
+    LDA RcExplFrame,Y:CMP #&FF:BNE explosion
+    TYA:STA CarId,X                     ; the car | drone-driven << 2
+    LDA RcDrone,Y:BEQ @+
+    LDA #4:ORA CarId,X:STA CarId,X
+.@
+    LDA RcXLo,Y:STA CarXLo,X
+    LDA RcYLo,Y:STA CarY,X
+    STY c
+    TYA:ASL A:ORA RcDrone,Y:TAY         ; frame: its set * 16 + facing | on top << 6 | x's high bit << 7
+    LDA SetOf,Y
+    LDY c
+    ASL A:ASL A:ASL A:ASL A
+    ORA RcDir,Y
+    STA CarFlags,X
+    LDA RcBitsLo,Y:AND #1:BNE ontop
+    LDA RcBitsHi,Y:AND #HI(&400):BEQ ground
+.ontop
+    LDA CarFlags,X:ORA #&40:STA CarFlags,X
+.ground
+    LDA RcXHi,Y:LSR A:BCC @+
+    LDA CarFlags,X:ORA #&80:STA CarFlags,X
+.@
+    RTS
+.explosion
+    TAY:LDA ExplPiece,Y                 ; its frame's piece
+    STA CarFlags,X
+    LDY RcOrder,X
+    LDA RcXHi,Y:LSR A:LDA #&80:BCC @+
+    ORA #&40
+.@
+    STA CarId,X
+    LDA RcXLo,Y:AND #&FC:STA CarXLo,X   ; (on a 4-pixel step, D8)
+    LDA RcYLo,Y:STA CarY,X
+    RTS
+
+}
+
+\\ The frame's slot sprites as background object events: kind 1 | again << 6 | x's high bit << 7, the sprite,
+\\ x's low byte, y, x and y the cell's pixels; again where last frame drew the same, the ST's second call for
+\\ its other screen. Then this frame's kept for the next.
+\\
+\\ Inputs: RcSlotCount, RcSlotSprite, RcSlotX, RcSlotY. Outputs: ObjCount, ObjEvents, LfSlot*. A, X, Y:
+\\ corrupted.
+
+.build_objects
+{
+    ZA_AUTO1 e                          ; local: the event's offset
+    ZA_AUTO1 again                      ; local: its again bit
+
+    STZ e
+    LDX #0
+    BRA test
+.slot
+    STZ again
+    LDY LfSlotCount
+    BRA found
+.match
+    LDA LfSlotSprite,Y:CMP RcSlotSprite,X:BNE found
+    LDA LfSlotX,Y:CMP RcSlotX,X:BNE found
+    LDA LfSlotY,Y:CMP RcSlotY,X:BNE found
+    LDA #&40:STA again
+    BRA matched
+.found
+    DEY
+    BPL match
+.matched
+    LDY e
+    LDA RcSlotX,X:CMP #32               ; (C: x 256 on)
+    LDA #0:ROR A
+    ORA again:ORA #1
+    STA ObjEvents,Y
+    LDA RcSlotSprite,X:STA ObjEvents+1,Y
+    LDA RcSlotX,X:ASL A:ASL A:ASL A:STA ObjEvents+2,Y
+    LDA RcSlotY,X:ASL A:ASL A:ASL A:STA ObjEvents+3,Y
+    TYA:CLC:ADC #4:STA e
+    INX
+.test
+    CPX RcSlotCount:BNE slot
+    STX ObjCount
+.keep
+    DEX
+    BMI kept
+    LDA RcSlotSprite,X:STA LfSlotSprite,X
+    LDA RcSlotX,X:STA LfSlotX,X
+    LDA RcSlotY,X:STA LfSlotY,X
+    BRA keep
+.kept
+    LDA RcSlotCount:STA LfSlotCount
+    RTS
+}
+
+\\ The moving objects' pieces, in the ST's order: the sparks (not on the set-up's flips), the banner, the
+\\ helicopter (its sideways frames' pieces off the screen's side left out, as gendata.py's trace() does).
+\\
+\\ Inputs: the logic's state; logic_frame.setup. Outputs: MovCount, MovVar, MovXLo, MovXHi, MovYLo, MovYHi.
+\\ A, X, Y: corrupted.
+
+.build_movers
+{
+    ZA_AUTO1 first, count               ; local: a key's pieces
+    ZA_AUTO1 xlo, xhi, ylo, yhi         ; local: its place
+    ZA_AUTO1 s                          ; local: the spark
+
+    STZ MovCount
+    LDA logic_frame.setup:BNE banner
+    LDX #0
+.spark
+    LDA RcSparkFrame,X:CMP #42:BEQ nospark
+    LDA RcSparkXLo,X:ORA RcSparkXHi,X:BEQ nospark
+    LDY RcSparkFrame,X
+    LDA SparkFirst,Y:STA first
+    LDA SparkCount,Y:STA count
+    LDA RcSparkXLo,X:AND #&F8:STA xlo   ; (on an 8-pixel step)
+    LDA RcSparkXHi,X:STA xhi
+    LDA RcSparkYLo,X:STA ylo
+    LDA RcSparkYHi,X:STA yhi
+    STX s
+    JSR pieces
+    LDX s
+.nospark
+    INX
+    CPX #8:BNE spark
+.banner
+    LDA RcBannerOn:CMP #1:BNE nobanner
+    LDY RcBannerFrame
+    LDA BannerFirst,Y:STA first
+    LDA BannerCount,Y:STA count
+    LDA #LO(GenBannerX):STA xlo
+    LDA #HI(GenBannerX):STA xhi
+    LDA #GenBannerY:STA ylo
+    STZ yhi
+    JSR pieces
+.nobanner
+    LDA RcHeliDrawn:BEQ done
+    LDA RcHeliVariant:ASL A             ; ((variant * 2 + car 3) * 4 + frame)
+    LDY RcHeliCar:CPY #3:BNE @+
+    ORA #1
+.@
+    ASL A:ASL A:ORA RcHeliFrame:TAY
+    LDA HeliFirst,Y:STA first
+    LDA HeliCount,Y:STA count
+    LDA RcHeliXLo:AND #&F0:STA xlo      ; (on a 16-pixel step)
+    LDA RcHeliXHi:STA xhi
+    LDA RcHeliYLo:STA ylo
+    LDA RcHeliYHi:STA yhi
+    JMP heli_pieces
+.done
+    RTS
+
+    \\ count pieces from first, at the place
+.pieces
+    LDX MovCount
+.piece
+    LDA first:STA MovVar,X
+    LDA xlo:STA MovXLo,X
+    LDA xhi:STA MovXHi,X
+    LDA ylo:STA MovYLo,X
+    LDA yhi:STA MovYHi,X
+    INX
+    INC first
+    DEC count
+    BNE piece
+    STX MovCount
+    RTS
+
+    \\ the helicopter's: each piece's columns from x / 4 + its dx; one wholly off the screen's side left out
+.heli_pieces
+    LDX MovCount
+.hpiece
+    LDA first:SEC:SBC #HeliVar0:TAY
+    LDA xhi:CMP #&80:LDA xlo:ROR A      ; x / 4, signed (x -48 to 319: a byte's -12 to 79)
+    CMP #&80:ROR A
+    CLC:ADC helimov.MovDX,Y             ; the piece's first column
+    BMI left
+    CMP #80:BCS off                     ; right of the screen
+    BRA on
+.left
+    CLC:ADC helimov.MovW,Y              ; left of the screen if it ends by column 0
+    BEQ off
+    BMI off
+.on
+    LDA first:STA MovVar,X
+    LDA xlo:STA MovXLo,X
+    LDA xhi:STA MovXHi,X
+    LDA ylo:STA MovYLo,X
+    LDA yhi:STA MovYHi,X
+    INX
+.off
+    INC first
+    DEC count
+    BNE hpiece
+    STX MovCount
+    RTS
+}
+
+\\ The HUD: each car whose laps or score changed (every car's on the first frame) given to it.
+\\
+\\ Inputs: RcLaps, RcScore, LfLaps, LfScore. Outputs: the HUD's text wanted (hud_set), LfLaps, LfScore. A, X,
+\\ Y: corrupted.
+
+.build_hud
+{
+    ZA_AUTO1 c                          ; local: the car
+    ZA_AUTO1 o                          ; local: its score's offset
+
+    STZ c
+.car
+    LDA c:ASL A:ADC c:ASL A:STA o       ; car * 6 (C clear)
+    LDA LfFrame:ORA LfFrame+1:BEQ changed
+    LDX c
+    LDA RcLaps,X:CMP LfLaps,X:BNE changed
+    LDX o
+    LDY #6
+.digit
+    LDA RcScore,X:CMP LfScore,X:BNE changed
+    INX
+    DEY
+    BNE digit
+    BRA next
+.changed
+    LDX c
+    STX HudEvent
+    LDA RcLaps,X:STA LfLaps,X:STA HudEvent+1
+    LDX o
+    LDY #0
+.copy
+    LDA RcScore,X:STA LfScore,X:STA HudEvent+2,Y
+    INX
+    INY
+    CPY #6:BNE copy
+    JSR hud_set
+.next
+    INC c
+    LDA c:CMP #4:BNE car
+    RTS
+}

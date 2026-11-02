@@ -359,3 +359,6 @@
   order, sparks, banner, helicopter), checked against the ST's own on all 2,195 frames
   (`tools/logic_draws.mjs`). Mistake found by it: a car wrecked by a wall is drawn as a car that frame
   (the ST draws before the probe), so what's drawn is noted at the draw, not read from the state after.
+- **The game drawn from its own logic**: `make check TRACE=logic0`, all 2,197 frames of the race match the
+  model made from the ST's draws. The frame builder had to go in the fourth bank (main RAM was 331 bytes
+  over); 234 bytes are left there, 973 in main RAM. 25,967 cycles a frame on average, 3 frames over.

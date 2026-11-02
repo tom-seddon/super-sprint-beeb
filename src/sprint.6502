@@ -9,6 +9,15 @@
 INCLUDE "constants.6502"
 INCLUDE "memory.6502"
 INCLUDE "macros.6502"
+INCLUDE "../build/gen/trace.6502"       ; (GenLogic: the race drawn from the logic, Phase 4 step 8)
+
+IF GenLogic
+    INCLUDE "../build/gen/logickeys.6502"
+    INCLUDE "../build/lgen/race.6502"
+    LogicVarsOrg = SwramEnd - &200      ; the logic's state, at the fourth bank's end
+    SECTION LogicVars, org = LogicVarsOrg, guard = SwramEnd, virtual = TRUE
+    ENDSECTION
+ENDIF
 
 SECTION BgFile, filename = "SPRINTA", load = &FFFF0000+LoadAddr
     SECTION BgBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
@@ -30,12 +39,28 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
     SECTION TraceBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
         INCLUDE "heli.6502"
         PRINT "the fourth bank: ", SwramEnd - P%, " bytes after the helicopter (the trace's, in the test)"
-        INCLUDE "../build/gen/trace.6502"
+        IF GenLogic
+            INCLUDE "walls.6502"
+            INCLUDE "cells.6502"
+            INCLUDE "drone.6502"
+            INCLUDE "pickups.6502"
+            INCLUDE "effects.6502"
+            INCLUDE "logicframe.6502"
+            INCLUDE "logictabs.6502"
+            INCLUDE "../build/lgen/walls.6502"
+            INCLUDE "../build/lgen/cells.6502"
+            INCLUDE "../build/lgen/path.6502"
+.LogicInputs
+            INCBIN "../build/lgen/inputs.rle" ; the traced race's inputs, as runs (tools/gen_logic.py)
+            PRINT "the fourth bank: ", LogicVarsOrg - P%, " bytes free below the logic's state"
+            ASSERT P% <= LogicVarsOrg, "the logic's bank: room for its state"
+        ELSE
 .TraceData
-        INCBIN "../build/gen/trace.bin" ; the race's cars, 12 bytes a frame (tools/gendata.py)
+            INCBIN "../build/gen/trace.bin" ; the race's cars, 12 bytes a frame (tools/gendata.py)
 .TraceEnd
 .HudEvents
-        INCBIN "../build/gen/hudevents.bin" ; the HUD's changes, 10 bytes each (tools/gendata.py)
+            INCBIN "../build/gen/hudevents.bin" ; the HUD's changes, 10 bytes each (tools/gendata.py)
+        ENDIF
     ENDSECTION
 ENDSECTION
 
@@ -47,13 +72,24 @@ SECTION ObjFile, filename = "SPRINTD", load = &FFFF0000+LoadAddr
     ENDSECTION
 ENDSECTION
 
-SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entry, filename = "SPRINT", guard = HudAddr, cmos = TRUE
+\\ SPRINT loads at &3000, below the OS's MODE 7 screen; its loader (entry.6502) runs from its end and copies
+\\ main RAM's code down before anything is drawn at &3F00, so the file may pass it.
+SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entry, filename = "SPRINT", guard = &7C00, cmos = TRUE
 .maincode_image
     SECTION MainCode, org = MainCodeOrg, guard = GameVarsOrg, cmos = TRUE
         INCLUDE "irq.6502"
         INCLUDE "main.6502"
         INCLUDE "hud.6502"
         INCLUDE "objects.6502"
+        IF GenLogic
+            INCLUDE "arith.6502"
+            INCLUDE "random.6502"
+            INCLUDE "race.6502"
+            INCLUDE "human.6502"
+            INCLUDE "../build/lgen/tables.6502"
+        ENDIF
+        PRINT "main RAM's code: ", ObjBufOrg - P%, " bytes free below ObjBuf"
+        ASSERT P% <= ObjBufOrg, "main RAM's code: below ObjBuf"
     ENDSECTION
 .maincode_end
     INCLUDE "entry.6502"

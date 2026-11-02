@@ -13,7 +13,8 @@ VENV = .venv/installed
 # (the counter 17), with gates, barriers, pickups, a wreck, and the tornado and cones (their coin flips
 # forced); its wreck's helicopter comes from below. TRACE=heli1, heli2 or heli3 plays the same race with
 # the helicopter forced to come from above or either side; TRACE=t0 to t7 the same race on track 1 to 8
-# (index 0 to 7; t4 is the default's); TRACE=attract the attract mode's race on track 6.
+# (index 0 to 7; t4 is the default's); TRACE=attract the attract mode's race on track 6; TRACE=logic0 the
+# logic trace's race on track 1, drawn from the BBC's own race logic (Phase 4, step 8).
 TRACE ?= race
 RACE = 17
 FORCE = tornado,cones
@@ -23,6 +24,11 @@ TRACEFILE = build/trace/cars_t5.json
 else ifneq ($(filter t0 t1 t2 t3 t4 t5 t6 t7,$(TRACE)),)
 TRACK = $(subst t,,$(TRACE))
 TRACEFILE = build/trace/race_t$(TRACK)_r$(RACE).json
+else ifeq ($(TRACE),logic0)
+TRACK = 0
+TRACEFILE = build/trace/race_t0_r0_script.json
+GENFLAGS = --logic
+LOGICDEPS = build/lgen/tables.6502
 else ifneq ($(filter heli1 heli2 heli3,$(TRACE)),)
 TRACK = 4
 TRACEFILE = build/trace/race_t4_r$(RACE)_$(TRACE).json
@@ -113,15 +119,15 @@ build/trace/race_t0_r0_script.json: tools/st_trace_objects.py tools/st_race.py t
 # data was made from, so playing another (TRACEFILE=...) remakes it, and so does coming back.
 $(GEN)/tracefile: always
 	@mkdir -p $(GEN)
-	@echo '$(TRACEFILE)' | cmp -s - $@ || echo '$(TRACEFILE)' > $@
+	@echo '$(TRACEFILE) $(GENFLAGS)' | cmp -s - $@ || echo '$(TRACEFILE) $(GENFLAGS)' > $@
 always:
 
 $(GEN)/cars.6502: tools/gendata.py tools/convert.py tools/st_sprites.py tools/objects.py build/conv/A_t0.bin \
 		$(TRACEFILE) $(GEN)/tracefile | $(VENV)
-	$(PY) tools/gendata.py $(TRACK) $(TRACEFILE) $(GEN)
+	$(PY) tools/gendata.py $(TRACK) $(TRACEFILE) $(GEN) $(GENFLAGS)
 
 beeb: build/sprint.ssd
-build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502
+build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(LOGICDEPS)
 	baron -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
 
 # The model each frame's play area is checked against, and the check.

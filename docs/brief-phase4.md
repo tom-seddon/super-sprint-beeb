@@ -10,11 +10,9 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 8, the game build.** The logic and its draw calls are exact (§8). Next: a build of the
-game (`make check TRACE=logic0`) with the logic in it, its code in main RAM after the renderer's, its bank
-code, data and state in the fourth bank after the helicopter, and a frame builder turning its draw calls
-into the frame loop's records (`gendata.py --logic`'s key tables), checked by `make check` against the
-model on all 2,197 frames. Reading §8, `src/main.6502`, `src/sprint.6502` and `src/memory.6502`.
+**Resume point: step 9 (keys), or the frame's speed.** The game drawn from its own logic matches the model
+on every frame of the race (§8; `make check TRACE=logic0`). Its worst frames go over a TV frame (3 of
+2,197). Next: the keys (D12: a layout, its ghosting, the key numbers measured), then sound (D11).
 
 ## 0. The proposal in one paragraph
 
@@ -325,3 +323,18 @@ because the state was read at the frame's end; the ST had already drawn it. Brok
 second-screen draw left out): 21 frames differ, from 252. `gendata.py --logic` makes every moving object's
 key and the tables from key to pieces (about 1,400 bytes more), and `gen_logic.py` packs the inputs as
 runs (248 bytes, from 6,585).
+
+**Step 8, the game drawn from its logic** (`make check TRACE=logic0`). `src/logicframe.6502` (in the fourth
+bank) runs the logic each frame (the set-up's two flips first) and builds the frame loop's records from its
+draw calls: the cars in draw order (each the car or its explosion's piece), the slot sprites as background
+object events (again, as the ST's second call, where last frame drew the same), the moving objects' pieces
+(the sideways helicopter's off the screen left out), and the HUD's changes. The inputs come from the
+traced race, as runs. Memory, MEASURED from the listing: the logic's main RAM code leaves 973 bytes below
+ObjBuf; the fourth bank (the helicopter, the logic's code and data, the frame builder, the inputs, the
+logic's state in its last &200 bytes) has 234 free. The SPRINT file now runs past &3F00 at load (its loader
+copies main RAM's code down before anything is drawn there). MEASURED: all 2,197 frames match the model
+(made from the ST's own draws), the race whole: driving, walls, the wreck and helicopter, pickups, laps,
+the HUD's scores, the finish. Broken on purpose (each car drawn a line low), all 2,197 fail. The default
+disc (`make check`) is still byte-identical to Phase 3's and matches. Cycles a frame, logic and drawing:
+25,967 mean, 36,414 at 99%, 40,820 at worst; 3 frames over a TV frame (4 drawn frames took 2), so the
+display dropped to 25 fps for a moment 4 times in 44 s.

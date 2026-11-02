@@ -79,6 +79,10 @@ ZA_AUTO1 carnum                         ; the car being drawn
     LDA acccon
     STA &FE34                           ; ACCCON: the main screen written again
     JSR hud_start
+    IF GenLogic
+        LDA banktrace:STA &FE30         ; ROMSEL: the logic's bank (the fourth)
+        JSR logic_start
+    ENDIF
     LDA #8:STA &FE00                    ; CRTC: R8
     LDA #&C0:STA &FE01                  ; display on, cursor off
     JMP frame_loop
@@ -147,6 +151,7 @@ ZA_AUTO1 carnum                         ; the car being drawn
 \\ Outputs:
 \\     tptr, eptr, TraceFrame: the start's
 
+IF GenLogic = 0
 .trace_start
 {
     LDA #LO(TraceData):STA tptr
@@ -157,6 +162,7 @@ ZA_AUTO1 carnum                         ; the car being drawn
     STZ TraceFrame+1
     RTS
 }
+ENDIF
 
 \\ The frame loop: wait until the last frame's shown, draw the next into the other screen, ask for it.
 \\
@@ -168,8 +174,9 @@ ZA_AUTO1 carnum                         ; the car being drawn
 
 .frame_loop
 {
-
-    JSR trace_start
+    IF GenLogic = 0
+        JSR trace_start
+    ENDIF
 
 .wait
     LDA swapreq:BNE wait
@@ -183,6 +190,10 @@ ZA_AUTO1 carnum                         ; the car being drawn
     JSR erase_cars
 .erased
 
+    IF GenLogic
+        LDA banktrace:STA &FE30         ; ROMSEL: the logic's bank (the fourth)
+        JSR logic_frame                 ; the race's next frame, from the logic (logicframe.6502)
+    ELSE
     \\ the race's next frame: the cars drawn (their count, then 4 bytes each), then the background object
     \\ events (their count, then 4 bytes each)
 
@@ -253,6 +264,8 @@ ZA_AUTO1 carnum                         ; the car being drawn
     BNE @+
     JSR trace_start
 .@
+
+    ENDIF
 
     \\ the background objects, then the cars
 
