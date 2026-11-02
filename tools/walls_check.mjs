@@ -26,7 +26,8 @@ const rnd = (m) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return see
 for (let k = 0; k < 3000; k++) {
     const x = rnd(300), y = rnd(186), c = rnd(17), lines = rnd(4096);
     s.writeMemory(syms.RcXLo, [x & 255]); s.writeMemory(syms.RcXHi, [x >> 8]); s.writeMemory(syms.RcYLo, [y]);
-    s.writeMemory(syms["column_hit.lines"], [lines & 255, lines >> 8]);
+    const sh = lines << (y & 7);                    // (the lines as the walls' tables have them: to y's place in its cell)
+    s.writeMemory(syms["column_hit.lines"], [sh & 255, (sh >> 8) & 255, sh >> 16]);
     cpu.pc = Stub; cpu.a = c; cpu.x = 0; cpu.s = 0xff;
     await runTo(s, Stub + 6, 100000);
     const got = s.readMemory(Out, 1)[0] !== 0;

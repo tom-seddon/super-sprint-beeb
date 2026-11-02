@@ -29,8 +29,9 @@ ENDSECTION
 .walls
 {
     ZA_AUTO1 code                       ; local: the code so far
-    ZA_AUTO1 f                          ; local: car * 16 + facing
     ZA_AUTO1 d                          ; local: the facing
+    ZA_AUTO1 sx                         ; local: the probes' set * 8 + x AND 7, for the lines
+    ZA_AUTO1 sy                         ; local: and + y AND 7, for the columns
 
     LDA RcBitsHi,X:AND #HI(&400)        ; airborne: the ST's buffer is left 0
     BEQ ground
@@ -45,11 +46,13 @@ ENDSECTION
 .probe
     STZ code
     TXA:ASL A:ASL A:ASL A:ASL A
-    ORA d:STA f
+    ORA d:TAY                           ; car * 16 + facing
+    LDA RcXLo,X:AND #7:ORA PSet,Y:STA sx
+    LDA RcYLo,X:AND #7:ORA PSet,Y:STA sy
 
     \\ the top and bottom lines
 
-    LDY f
+    LDY sx
     LDA PTop0,Y:STA line_hit.p0
     LDA PTop1,Y:STA line_hit.p1
     LDA PTop2,Y:STA line_hit.p2
@@ -59,7 +62,7 @@ ENDSECTION
     BEQ @+
     LDA #1:STA code
 .@
-    LDY f
+    LDY sx
     LDA PBot0,Y:STA line_hit.p0
     LDA PBot1,Y:STA line_hit.p1
     LDA PBot2,Y:STA line_hit.p2
@@ -72,18 +75,20 @@ ENDSECTION
 
     \\ the side columns
 
-    LDY f
-    LDA PLeftLo,Y:STA column_hit.lines
-    LDA PLeftHi,Y:STA column_hit.lines+1
+    LDY sy
+    LDA PLeft0,Y:STA column_hit.lines
+    LDA PLeft1,Y:STA column_hit.lines+1
+    LDA PLeft2,Y:STA column_hit.lines+2
     LDY d
     LDA ProbeLeft,Y
     JSR column_hit
     BEQ @+
     LDA code:ORA #4:STA code
 .@
-    LDY f
-    LDA PRightLo,Y:STA column_hit.lines
-    LDA PRightHi,Y:STA column_hit.lines+1
+    LDY sy
+    LDA PRight0,Y:STA column_hit.lines
+    LDA PRight1,Y:STA column_hit.lines+1
+    LDA PRight2,Y:STA column_hit.lines+2
     LDY d
     LDA ProbeRight,Y
     JSR column_hit
@@ -170,25 +175,24 @@ ENDSECTION
 }
 
 \\ Whether a column of the car touches a wall: mask B's pixel at x + the column, on each of its lines. The
-\\ lines are taken a cell row at a time: shifted to the top line's place in its cell, a byte a cell row, so a
-\\ cell row with none, or all road, is one test.
+\\ lines are taken a cell row at a time, a byte each (shifted to the top line's place in its cell), so a cell
+\\ row with none, or all road, is one test.
 \\
 \\ Inputs:
 \\     A: the column, 0-16
-\\     lines: the lines to test, bit n line n
+\\     lines: the lines to test, bit n + y AND 7 line n (3 bytes)
 \\     X: the car
 \\
 \\ Outputs:
 \\     A: non-zero, and Z clear, if any is a wall
-\\     lines, Y: corrupted; X preserved
+\\     Y: corrupted; X preserved
 
 .column_hit
 {
-    ZA_AUTO2 lines                      ; in: the lines to test
+    ZA_AUTO 3, lines                    ; in: the lines to test, a byte a cell row
     ZA_AUTO1 col                        ; local: mask B's column
     ZA_AUTO1 bit                        ; local: the pixel's bit in it
     ZA_AUTO1 row                        ; local: a line in the cell row
-    ZA_AUTO1 b2                         ; local: the lines' third cell row's (lines, lines+1: the first two)
     ZA_AUTO1 bits                       ; local: a cell row's lines left
 
     CLC:ADC RcXLo,X:TAY                 ; px = x + the column, at most 317: its low byte
@@ -196,15 +200,7 @@ ENDSECTION
     LSR A                               ; (C: px's ninth bit)
     LDA BitOf,Y:STA bit                 ; (by px AND 7: the table repeats)
     TYA:ROR A:LSR A:LSR A:STA col       ; px >> 3
-    STZ b2
     LDA RcYLo,X:STA row
-    AND #7:BEQ aligned                  ; the lines to the top line's place in its cell
-    TAY
-.shift
-    ASL lines:ROL lines+1:ROL b2
-    DEY
-    BNE shift
-.aligned
     LDA lines:BEQ @+
     JSR band
     BNE hit
@@ -215,7 +211,7 @@ ENDSECTION
     BNE hit
 .@
     LDA row:CLC:ADC #8:STA row
-    LDA b2:BEQ hit                      ; (A 0: no wall)
+    LDA lines+2:BEQ hit                 ; (A 0: no wall)
     JMP band
 .hit
     RTS
@@ -245,32 +241,24 @@ ENDSECTION
 \\
 \\ Inputs:
 \\     A: the line's pixel row
-\\     p0, p1, p2: its opaque columns, bit 7 of p0 column 0
+\\     p0, p1, p2: its opaque columns shifted right by x AND 7, bit 7 of p0 column 0's place
 \\     X: the car
 \\
 \\ Outputs:
 \\     A: non-zero, and Z clear, if any is a wall
-\\     p0-p2, Y: corrupted; X preserved
+\\     Y: corrupted; X preserved
 
 .line_hit
 {
-    ZA_AUTO1 p0, p1, p2                 ; in, then shifted to x's place in the mask's bytes
-    ZA_AUTO1 row                        ; local: the pixel row
+    ZA_AUTO1 p0, p1, p2                 ; in: the columns at x's place in the mask's bytes
     ZA_AUTO1 col                        ; local: mask B's column under p0
     ZA_AUTO1 hit                        ; local: the bits found
 
-    STA row
+    TAY
     LDA RcXHi,X:LSR A                   ; x >> 3 (x at most 301)
     LDA RcXLo,X:ROR A:LSR A:LSR A
     STA col
-    LDA RcXLo,X:AND #7:TAY              ; the columns shifted right by x AND 7 (nothing past bit 23)
-    BEQ shifted
-.shift
-    LSR p0:ROR p1:ROR p2
-    DEY
-    BNE shift
-.shifted
-    LDY row:JSR mask_row
+    JSR mask_row
     STZ hit
     LDA p0:BEQ @+
     LDA col:JSR row_byte

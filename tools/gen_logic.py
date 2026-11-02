@@ -19,15 +19,19 @@ Writes:
   fork or skip at the end; none does, but the tables cover it);
 - OUTDIR/hazards.6502: the track's gates' and pop-up barriers' places, and what they write into mask B;
 - OUTDIR/walls.6502: the track's mask B as D13 stores it (tools/maskb.py); OUTDIR/probes.6502: the walls'
-  probes: per facing the probed lines and columns (G_01E160), and per car and facing what of its frame's shape
-  they test (read-only: the game has them in both screens' &3000 area, with the path).
+  probes per facing, the probed lines and columns (G_01E160) (read-only: the game has them in both screens'
+  &3000 area, with the path); OUTDIR/pshift.6502: what of a car's frame they test, by its set of shapes and
+  shifted to its place in mask B's bytes (in the walls' bank).
 
 The probes. F_01519C ANDs each of a car's 12 lines of opacity (its frame's pixels that aren't colour 8,
 the frame car * 16 + facing, + 64 if a drone drives it) with mask B, the opacity's column j over the
 pixel x + j; F_00C4F6 tests the top probe line and the bottom one whole, and one column on each side over
 the lines from the top probe to the one above the bottom. So per car and facing: the top and bottom
 lines' opaque columns as 3 bytes (bit 7 of the first column 0; no frame is opaque past column 16), and for
-each side column, the lines it's tested on where the frame is opaque there (bit n line n).
+each side column, the lines it's tested on where the frame is opaque there (bit n line n). Every car sprite
+set's 16 facings have 17 sets of these between them, each stored 8 times: the lines' columns shifted right
+by x AND 7 (to x's place in mask B's bytes), the columns' lines left by y AND 7 (to the top line's place in
+its cell).
 """
 import json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -152,16 +156,22 @@ def walls(track, drones):
             side.append(31 - m.bit_length() + 1)
     push = [v & 0xFF for v in L.words(L.tb(0x1E140))[:16]]
     dat = open(os.path.join(ROOT, 'orig/st/SUPER.DAT'), 'rb').read()
-    pt, pb, pl, pr = [], [], [], []
-    for car in range(4):
+    def probe_set(sprite, d):            # a frame's four probes' patterns
+        o = st_sprites.car_frame(dat, sprite * 16 + d) != 8
+        assert not o[:, 17:].any(), 'no frame is opaque past column 16'
+        pattern = lambda l: sum(int(o[l, j]) << (23 - j) for j in range(17))
+        return (pattern(top[d]), pattern(bot[d]),
+                sum(int(o[l, left[d]]) << l for l in range(top[d], bot[d])),
+                sum(int(o[l, right[d]]) << l for l in range(top[d], bot[d])))
+    sets = []                           # every sprite set's (the 4 cars', human and drone): 17
+    for sprite in range(8):
         for d in range(16):
-            o = st_sprites.car_frame(dat, (car + 4 * drones[car]) * 16 + d) != 8
-            assert not o[:, 17:].any(), 'no frame is opaque past column 16'
-            pattern = lambda l: sum(int(o[l, j]) << (23 - j) for j in range(17))
-            pt.append(pattern(top[d]))
-            pb.append(pattern(bot[d]))
-            pl.append(sum(int(o[l, left[d]]) << l for l in range(top[d], bot[d])))
-            pr.append(sum(int(o[l, right[d]]) << l for l in range(top[d], bot[d])))
+            if probe_set(sprite, d) not in sets:
+                sets.append(probe_set(sprite, d))
+    assert len(sets) * 8 <= 256, 'the shifted probes indexed by set * 8 + shift'
+    pset = [sets.index(probe_set(car + 4 * drones[car], d)) * 8 for car in range(4) for d in range(16)]
+    shifted = [(t >> s, b >> s, l << s, r << s) for t, b, l, r in sets for s in range(8)]
+    assert all(l < 1 << 24 and r < 1 << 24 for t, b, l, r in shifted), 'the shifted lines in 3 bytes'
     rowlist = lambda v: '{' + ', '.join(map(str, v)) + '}'
     eq = lambda name, comment, v: [f'.{name:<38}; {comment}', '    EQUB ' + byte_list(v)]
     return '\n'.join([
@@ -189,16 +199,24 @@ def walls(track, drones):
         *eq('ProbeLeft', 'the left column,', left),
         *eq('ProbeRight', 'the right one', right),
         *eq('PushDir', 'G_01E140: a probe code\'s push direction, &FF none, &80 a wreck', push),
-        *eq('PTop0', 'by car * 16 + facing: the top line\'s opaque columns, 0-7,', [v >> 16 for v in pt]),
-        *eq('PTop1', '8-15,', [v >> 8 for v in pt]),
-        *eq('PTop2', '16-23', pt),
-        *eq('PBot0', 'the bottom line\'s', [v >> 16 for v in pb]),
-        *eq('PBot1', '', [v >> 8 for v in pb]),
-        *eq('PBot2', '', pb),
-        *eq('PLeftLo', 'the lines the left column is opaque on, tested: 0-7,', pl),
-        *eq('PLeftHi', '8-15', [v >> 8 for v in pl]),
-        *eq('PRightLo', 'the right column\'s', pr),
-        *eq('PRightHi', '', [v >> 8 for v in pr]),
+        '']), '\n'.join([
+        '\\\\ pshift.6502 - the cars\' wall probes\' shapes, shifted (tools/gen_logic.py): read only by walls.6502, in its bank',
+        '',
+        *eq('PSet', 'by car * 16 + facing: its probes\' set (of %d, every sprite set\'s) * 8' % len(sets), pset),
+        f'\\\\ by set * 8 + x AND 7: the top line\'s opaque columns (bit 7 of PTop0 column 0) shifted right by x AND 7,',
+        *eq('PTop0', '0-7,', [t >> 16 & 255 for t, b, l, r in shifted]),
+        *eq('PTop1', '8-15,', [t >> 8 & 255 for t, b, l, r in shifted]),
+        *eq('PTop2', '16-23', [t & 255 for t, b, l, r in shifted]),
+        *eq('PBot0', 'the bottom line\'s', [b >> 16 & 255 for t, b, l, r in shifted]),
+        *eq('PBot1', '', [b >> 8 & 255 for t, b, l, r in shifted]),
+        *eq('PBot2', '', [b & 255 for t, b, l, r in shifted]),
+        '\\\\ by set * 8 + y AND 7: the lines the left column is opaque on, tested (bit n line n), shifted left by y AND 7,',
+        *eq('PLeft0', '0-7,', [l & 255 for t, b, l, r in shifted]),
+        *eq('PLeft1', '8-15,', [l >> 8 & 255 for t, b, l, r in shifted]),
+        *eq('PLeft2', '16-23', [l >> 16 for t, b, l, r in shifted]),
+        *eq('PRight0', 'the right column\'s', [r & 255 for t, b, l, r in shifted]),
+        *eq('PRight1', '', [r >> 8 & 255 for t, b, l, r in shifted]),
+        *eq('PRight2', '', [r >> 16 for t, b, l, r in shifted]),
         ''])
 
 
@@ -298,9 +316,10 @@ def main(trace_path, out):
     drone = [m[str(0x1E34C + 2 * c)] << 8 | m[str(0x1E34C + 2 * c + 1)] for c in range(4)]
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, 'tables.6502'), 'w').write(tables())
-    wtext, ptext = walls(t['track'], drone)
+    wtext, ptext, stext = walls(t['track'], drone)
     open(os.path.join(out, 'walls.6502'), 'w').write(wtext)
     open(os.path.join(out, 'probes.6502'), 'w').write(ptext)
+    open(os.path.join(out, 'pshift.6502'), 'w').write(stext)
     open(os.path.join(out, 'cells.6502'), 'w').write(cells(t['track']))
     open(os.path.join(out, 'path.6502'), 'w').write(path(t['track']))
     open(os.path.join(out, 'hazards.6502'), 'w').write(hazards(t['track']))
