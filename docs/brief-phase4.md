@@ -10,7 +10,7 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: the hazards.** Sound is in (§8), and a RAM hunt made room (`docs/brief-ram-2026-11-02.md`):
+**Resume point: the hazards, step 11** (its plan in §6). Sound is in (§8), and a RAM hunt made room (`docs/brief-ram-2026-11-02.md`):
 the play build now has 416 bytes of main RAM free and 2,398 in the fourth bank, about 1,139 on track 8 once
 its larger mask B is in (PROJECTED). Then the hazards (tornado, barriers, gates, cones: they trap), the
 frame's worst cases (4 of 2,197 drawn frames take two TV frames), the other tracks.
@@ -152,6 +152,27 @@ touches the build.
 9. **Keys** (D12): the layout on paper with the ghosting worked through, the internal key numbers
    measured (`beeb-key-numbers`), all 9 keys held in jsbeeb; joysticks through the ADC.
 10. **Sound** (D11).
+
+11. **The hazards** (planned 2026-11-02, after the RAM hunt): the tornado (F_00B7E6, F_00B852, and F_00F1A8's
+   spin), the pop-up barriers (F_00B97C, F_00B9A0), the gates (F_00AF7A, F_00B1B2, the drones' lanes) and the
+   cones (F_00B10C), with their set-up draws, their draw calls for the renderer, and mask B's changes: a
+   gate (F_014A04) writes its whole 48 x 16 box of mask B, a barrier (F_014A80) its studs' pixels, so a closed
+   gate is a wall. Mask C and A only matter to the drawing, which the renderer already does its own way.
+   - **The trace**: the Phase 3 renderer's own race, track 5 (index 4), race 17, accelerate held, the tornado
+     and cones forced (`build/trace/race_t4_r17.json`): it has all four hazards, 3 gates among them, and its
+     model already exists, so `make check` can be driven by the logic. The logic tracer gains the forcing
+     (`st_trace_objects.py`'s breakpoints), dumps G_01EB54-G_01EBC1 whole (the gates, banner, barriers,
+     tornado and cones), and each gate's and barrier's box of mask B (&63A76 on), every frame. Proved by:
+     its cars equal the renderer trace's on every frame.
+   - **The BBC's forcing**: the ST's coin flips were forced after the draw; the test builds force them the
+     same way (a constant from the trace), the play build never.
+   - **Mask B's changes**: per gate position and barrier frame, the bytes of the reserved cells (D13) they
+     write, made by `gen_logic.py` from SUPER.DAT (a gate's 5 positions differ in 15 of its 48 words, a
+     barrier's frames only inside its studs), and copied into mask B's cells at each step.
+   - **Proved by**: the logic oracle (every variable, the hazards' state, the boxes of mask B, every frame),
+     `logic_draws` with the gates', barriers', cones' and tornado's calls, and `make check TRACE=logic4`, the
+     renderer's model of that race drawn from the BBC's logic. Each broken on purpose once.
+   - **Room**: in the fourth bank, which has about 1,583 for them on track 5 (`docs/brief-ram-2026-11-02.md`).
 
 Then the other tracks.
 
