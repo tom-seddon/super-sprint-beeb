@@ -65,6 +65,12 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
 
     LDA #TraceTrack:STA RcTrack
     LDA #TraceRace:STA RcRace
+    FOR i = 0..3
+        LDA #(TraceSeed >> (8 * i)) AND &FF:STA RcSeed+i
+    NEXT
+    FOR i = 0..23
+        LDA #TraceScores[i]:STA RcScore+i
+    NEXT
     FOR c = 0..3
         LDA #TraceDrones[c]:STA RcDrone+c
     NEXT
@@ -80,6 +86,7 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
     CPY #3:BNE input
     JSR race_frame
 .frame_done
+    JSR race_end
     CLC
     LDA iptr:ADC #3:STA iptr
     BCC @+
@@ -93,6 +100,7 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
 }
 
     INCLUDE "arith.6502"
+    INCLUDE "random.6502"
     INCLUDE "race.6502"
     INCLUDE "human.6502"
     INCLUDE "../build/lgen/tables.6502"
@@ -102,6 +110,7 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
         INCLUDE "walls.6502"
         INCLUDE "cells.6502"
         INCLUDE "drone.6502"
+        INCLUDE "pickups.6502"
         INCLUDE "../build/lgen/walls.6502"
         INCLUDE "../build/lgen/cells.6502"
         INCLUDE "../build/lgen/path.6502"

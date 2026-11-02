@@ -1,0 +1,119 @@
+\\ random.6502 - the race's random numbers and scores (D9). TOS's XBIOS Random, seed = seed * 3141592621 + 1
+\\ (measured: the traced race's numbers are one run of it), as F_00ADB8 uses it; and F_0167D6, which adds
+\\ points to a score of 6 decimal digits.
+
+SECTION LogicVars
+.RcSeed                                 ; TOS's generator's state, 32 bits, low byte first
+    SKIP 4
+.RcScore                                ; G_01DFA8: each car's score, 6 digits from the left, &80 a leading blank
+    SKIP 24
+ENDSECTION
+
+RandomMul = 3141592621                  ; TOS's multiplier
+
+\\ F_00ADB8: a random number below n, ((Random AND &FFFF) >> 1) MOD n, where Random is the new seed's bits 8-31.
+\\
+\\ Inputs:
+\\     A: n, 1-255
+\\
+\\ Outputs:
+\\     A: the number, 0 to n - 1
+\\     RcSeed: on one
+\\     Y: corrupted; X preserved
+
+.random
+{
+    ZA_AUTO1 n                          ; local: n
+    ZA_AUTO1 p0, p1, p2, p3             ; local: the product
+    ZA_AUTO1 m0, m1, m2, m3             ; local: the seed, shifted left a bit at a time
+    ZA_AUTO1 k                          ; local: the multiplier's byte, shifted right
+    ZA_AUTO2 r                          ; local: the 15 bits divided
+
+    STA n
+    LDA RcSeed:STA m0
+    LDA RcSeed+1:STA m1
+    LDA RcSeed+2:STA m2
+    LDA RcSeed+3:STA m3
+    STZ p0:STZ p1:STZ p2:STZ p3
+    FOR j = 0..3                        ; seed * the multiplier, its low 32 bits: a shift and add a bit
+        LDA #(RandomMul >> (8 * j)) AND &FF:STA k
+        LDY #8
+    .bit
+        LSR k
+        BCC shift
+        CLC
+        LDA p0:ADC m0:STA p0
+        LDA p1:ADC m1:STA p1
+        LDA p2:ADC m2:STA p2
+        LDA p3:ADC m3:STA p3
+    .shift
+        ASL m0:ROL m1:ROL m2:ROL m3
+        DEY
+        BNE bit
+    NEXT
+    SEC                                 ; + 1
+    LDA p0:ADC #0:STA RcSeed
+    LDA p1:ADC #0:STA RcSeed+1:STA r
+    LDA p2:ADC #0:STA RcSeed+2:STA r+1
+    LDA p3:ADC #0:STA RcSeed+3
+    LSR r+1:ROR r                       ; (Random AND &FFFF) >> 1: the seed's bits 9-23
+
+    LDA #0                              ; r MOD n
+    LDY #16
+.divide
+    ASL r:ROL r+1
+    ROL A
+    BCS sub                             ; (9 bits: more than n)
+    CMP n:BCC @+
+.sub
+    SBC n                               ; (C set)
+.@
+    DEY
+    BNE divide
+    RTS
+}
+
+\\ F_0167D6: points added to a car's score, digit by digit from the right, a carry along; it stops at the
+\\ first digit whose sum is 0 where the points' digit is a blank (&80), leaving the blanks above.
+\\
+\\ Inputs:
+\\     X: the car
+\\     add: the points, 6 digits as a score's
+\\
+\\ Outputs:
+\\     RcScore: the car's
+\\     A, Y: corrupted; X preserved
+
+.score_add
+{
+    ZA_AUTO2 add                        ; in: the points
+    ZA_AUTO1 base                       ; local: the score's offset, car * 6
+    ZA_AUTO1 carry                      ; local: the carry, then a digit's sum
+    ZA_AUTO1 i                          ; local: the digit, 5 to 0
+    ZA_AUTO1 d                          ; local: the points' digit
+
+    TXA:ASL A:STA base:ASL A:ADC base:STA base   ; car * 6 (C clear: the car at most 3)
+    STZ carry
+    LDA #5:STA i
+.digit
+    LDY i
+    LDA (add),Y:STA d
+    AND #&7F:CLC:ADC carry:STA carry    ; the points' digit + the carry,
+    LDA base:CLC:ADC i:TAY
+    LDA RcScore,Y:AND #&7F              ; + the score's
+    CLC:ADC carry
+    BNE some
+    LDA d:CMP #&80:BEQ done             ; 0 against a blank: stop
+    LDA #0
+.some
+    STZ carry                           ; the digit, MOD 10 (at most 19), and the carry
+    CMP #10:BCC @+
+    SBC #10                             ; (C set)
+    INC carry
+.@
+    STA RcScore,Y
+    DEC i
+    BPL digit
+.done
+    RTS
+}

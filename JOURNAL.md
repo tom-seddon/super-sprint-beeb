@@ -345,3 +345,7 @@
 - **Wrecks**: the crash, its wait and the put-back exact; all four cars match on every frame to 2030 but the
   wrench count. The label-shadowing mistake twice now (`.drone`, `.wreck`): name branch targets for what
   happens there, never after a routine.
+- **The whole race exact.** Pickups (the bonus and wrench state machines), TOS's generator, the scores, the
+  lap events and the race's end: the BBC's logic matches the ST on all 2,196 frames of the traced race, every
+  car, 68 variables and the random seed. The end of the race had to move out of the frame: the ST resets
+  the frame counter after its flip, so the trace never sees it.

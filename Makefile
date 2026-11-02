@@ -100,6 +100,7 @@ build/logic.ssd: $(wildcard src/*.6502) build/lgen/tables.6502
 	baron -v --symbols build/logic.json -o $@ --opt 2 src/logictest.6502 > build/logic.lst
 logiccheck: build/logic.ssd
 	node tools/logic_check.mjs $(LOGICARGS)
+	node tools/maskb_check.mjs
 
 # The renderer test's data, and its disc. Baron 0.6 is on the PATH. $(GEN)/tracefile names the trace the
 # data was made from, so playing another (TRACEFILE=...) remakes it, and so does coming back.

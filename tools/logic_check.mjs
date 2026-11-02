@@ -45,10 +45,19 @@ const PerCar = [
     ["wrench", 0x1e324, "RcWrench", "u"],
     ["pathidx", 0x1e3bc, "RcPathIdx", "u"], ["endx8", 0x1e31c, "RcEndX8", "w"], ["endy8", 0x1e314, "RcEndY8", "w"],
     ["accx", 0x1e2dc, "RcAccX", "w"], ["accy", 0x1e2d4, "RcAccY", "w"],
+    // the scores: 6 bytes a car in both
+    ...[0, 1, 2, 3, 4, 5].map((i) => [`score${i}`, 0x1dfa8 + i, "RcScore", "b", 6, (c) => c * 6 + i]),
     // the frame each lap ended: 4 words a car in the ST, car * 4 + lap in the BBC
     ...[0, 1, 2, 3].map((i) => [`lap${i}`, 0x1e32c + 2 * i, "RcLapTime", "w", 8, (c) => c * 4 + i]),
 ];
-const Race = [["phase", 0x1d178, "RcPhase", "u"], ["frame", 0x1d30e, "RcFrame", "w"], ["push", 0x1e2a0, "RcPush", "u"]];
+const Race = [["phase", 0x1d178, "RcPhase", "u"], ["frame", 0x1d30e, "RcFrame", "w"], ["push", 0x1e2a0, "RcPush", "u"],
+    ["hazards", 0x1eb54, "RcHazards", "u"], ["wrenchtaken", 0x1eb56, "RcWrenchTaken", "u"],
+    ["wrenchy", 0x1eb58, "RcWrenchY", "u"], ["wrenchx", 0x1eb5a, "RcWrenchX", "u"],
+    ["wrenchphase", 0x1eb5c, "RcWrenchPhase", "u"], ["wrenchtimer", 0x1eb5e, "RcWrenchTimer", "w"],
+    ["bonustaken", 0x1eb60, "RcBonusTaken", "u"], ["bonuscell", 0x1eb62, "RcBonusCell", "w"],
+    ["bonusy", 0x1eb64, "RcBonusY", "u"], ["bonusx", 0x1eb66, "RcBonusX", "u"],
+    ["bonussprite", 0x1eb68, "RcBonusSprite", "u"], ["bonusphase", 0x1eb6a, "RcBonusPhase", "u"],
+    ["bonustimer", 0x1eb6c, "RcBonusTimer", "w"], ["gatelane0", 0x1eb6e, "RcGateLane", "u"]];
 
 const syms = symbols("build/logic.json");
 const trace = JSON.parse(readFileSync(option("--trace", "build/trace/logic_t0_r0.json")));
@@ -61,9 +70,20 @@ const from = Number(option("--from", 2));
 for (const v of only ?? []) if (![...PerCar, ...Race].some(([n]) => n === v)) throw new Error(`no variable ${v}`);
 const wanted = (list) => list.filter(([n]) => !only || only.includes(n));
 
+// the generator's state at each frame's end: the trace's seed run on once for each number drawn
+const seeds = [];
+{
+    let seed = BigInt(trace.seed);
+    for (const f of frames) {
+        for (let i = 0; i < f.random.length; i++) seed = (seed * 3141592621n + 1n) & 0xffffffffn;
+        seeds.push(Number(seed));
+    }
+}
+
 const s = await bootDisc("build/logic.ssd");
 const peek = (a) => s.readMemory(a, 1)[0];
 const stWord = (m, a) => (m[a] << 8) | m[a + 1];
+const stValue = (m, a, kind) => (kind === "b" ? m[a] : stWord(m, a));
 // a variable's 5th and 6th fields, if any: the ST's stride a car (2 if not), the BBC's index for a car
 const stride = (v) => v[4] ?? 2;
 const index = (v, c) => (v[5] ? v[5](c) : c);
@@ -85,9 +105,12 @@ function compare(k) {
     };
     for (const v of wanted(PerCar)) {
         const [n, a, b, kind] = v;
-        for (const c of cars) one(`car ${c} ${n}`, stWord(m, a + stride(v) * c), bbc(b, kind, index(v, c)));
+        for (const c of cars) one(`car ${c} ${n}`, stValue(m, a + stride(v) * c, kind), bbc(b, kind, index(v, c)));
     }
     for (const [n, a, b, kind] of wanted(Race)) one(n, stWord(m, a), bbc(b, kind, 0));
+    // TOS's generator: the BBC's seed against the trace's, run on by every number drawn to this frame
+    if (!only || only.includes("seed")) one("seed", seeds[k], (peek(syms.RcSeed) | (peek(syms.RcSeed + 1) << 8)
+        | (peek(syms.RcSeed + 2) << 16) | (peek(syms.RcSeed + 3) << 24)) >>> 0);
     if (bad) {
         wrong++;
         if (firstWrong === null) firstWrong = k;
@@ -103,12 +126,15 @@ if (from > 2) {
         const n = Race.includes(vr) ? 1 : 4;
         for (let c = 0; c < n; c++) {
             const v = stWord(m, a + stride(vr) * c), i = index(vr, c);
-            if (kind === "w") {
+            if (kind === "b") s.writeMemory(syms[b] + i, [m[a + stride(vr) * c]]);
+            else if (kind === "w") {
                 s.writeMemory(syms[`${b}Lo`] + i, [v & 0xff]);
                 s.writeMemory(syms[`${b}Hi`] + i, [v >> 8]);
             } else s.writeMemory(syms[b] + i, [v & 0xff]);
         }
     }
+    const sd = seeds[from - 1];
+    s.writeMemory(syms.RcSeed, [sd & 0xff, (sd >> 8) & 0xff, (sd >> 16) & 0xff, (sd >>> 24) & 0xff]);
     const inputs = syms["Inputs"] + (from - 2) * 3;
     s.writeMemory(syms["test_entry.iptr"], [inputs & 0xff, inputs >> 8]);
 } else compare(1);

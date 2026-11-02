@@ -144,6 +144,20 @@ SECTION LogicVars
     SKIP 1
 .RcRace                                 ; G_01EBC2: the race counter, 0-50
     SKIP 1
+.RcFinalLap                             ; F_00C592's lD: the final lap's banner shown
+    SKIP 1
+.RcFinished                             ; its l4: a car has finished
+    SKIP 1
+.RcCountdown                            ; its l6: frames left once a car has finished, from 170
+    SKIP 1
+.RcFinishLo                             ; its l8: the frame the winner finished
+    SKIP 1
+.RcFinishHi
+    SKIP 1
+.RcWinner                               ; its lA: the winner
+    SKIP 1
+.RcOver                                 ; the race over: the countdown run out
+    SKIP 1
 ENDSECTION
 
 \\ The race's set-up, F_00C592's for the cars: each on the grid, still, its constants from its upgrades.
@@ -259,11 +273,39 @@ ENDSECTION
     TXA:STA RcOrder,X
     DEX
     BPL orders
-    LDX #3
+
+    \\ the hazards and pickups, as F_00C592 sets them up, the random numbers drawn in its order: the pop-up
+    \\ barriers when (race + 1) MOD 3 is 0, a coin for the tornado from race 4 (both not yet), then
+    \\ pickups.6502's; the gates' lane steps 2 (F_00AF7A)
+
+    LDA RcRace:INC A
+.mod3
+    SEC:SBC #3
+    BEQ barriers
+    BCS mod3
+    LDA RcRace:CMP #4:BCC calm
+    LDA #2:JSR random
+    BEQ calm
+    BRK                                 ; F_00B7E6, the tornado: not yet
+    EQUB 0
+    EQUS "tornado", 0
+.barriers
+    BRK                                 ; F_00B97C, the barriers: not yet
+    EQUB 0
+    EQUS "barriers", 0
+    ZA_UNREACHABLE
+.calm
+    JSR pickups_setup
+    LDX #TrackGates-1
+    BMI gated
 .lanes
-    LDA #2:STA RcGateLane,X             ; the gates' lane steps (F_00AF7A's): 2, as when open
+    LDA #2:STA RcGateLane,X
     DEX
     BPL lanes
+.gated
+    STZ RcFinished
+    STZ RcFinalLap
+    LDA #170:STA RcCountdown
     LDA #1:STA RcFrameLo                ; (the set-up's flips: frames 0 and 1)
     STZ RcFrameHi
     RTS
@@ -285,6 +327,26 @@ ENDSECTION
     BNE @+
     INC RcFrameHi
 .@
+    LDA RcFinished:BEQ @+
+    DEC RcCountdown
+.@
+
+    \\ the track's objects: barriers and gates (not yet: none on this race's track), the bonus, cones (not
+    \\ yet), the wrench
+
+    LDA RcCones:BEQ @+
+    BRK                                 ; F_00B10C, the cones: not yet
+    EQUB 0
+    EQUS "cones", 0
+.@
+    JSR bonus_frame
+    JSR wrench_frame
+
+    \\ the cars' control, not once 4 frames have passed since a car finished
+
+    LDA RcFinished:BEQ racing
+    LDA RcCountdown:CMP #166:BCC events
+.racing
     LDX #0
 .control
     LDA RcState,X:BNE next              ; a wrecked car: no control
@@ -296,7 +358,81 @@ ENDSECTION
 .next
     INX
     CPX #4:BNE control
+
+    \\ the lap events, the first in car order: a car's first frame on lap 3 shows the final lap's banner (once);
+    \\ on lap 4 (and none yet), it has won: the banner, the engines off, the countdown (the ST tests each
+    \\ against the HUD's shown lap, G_01DFC0, which is always behind at this point: the HUD runs later in
+    \\ the frame than the laps change)
+
+.events
+    LDX #0
+.event
+    LDA RcLaps,X
+    CMP #3:BNE notfinal
+    LDA RcFinalLap:BNE nextcar
+    INC RcFinalLap
+    \\ (banner 1: with the renderer)
+    BRA evented
+.notfinal
+    CMP #4:BNE nextcar
+    LDA RcFinished:BNE nextcar
+    INC RcFinished
+    STX RcWinner
+    LDA RcFrameLo:STA RcFinishLo
+    LDA RcFrameHi:STA RcFinishHi
+    \\ (banner 2, the engines off: with the renderer and the sound)
+    BRA evented
+.nextcar
+    INX
+    CPX #4:BNE event
+.evented
+
+    \\ every 64 frames while no car has finished, 10 points to every car
+
+    LDA RcFinished:BNE pointed
+    LDA RcFrameLo:AND #63:BNE pointed
+    LDX #3
+.points
+    LDA #LO(Ten):STA score_add.add
+    LDA #HI(Ten):STA score_add.add+1
+    JSR score_add
+    DEX
+    BPL points
+.pointed
     JMP collide
+}
+
+\\ After a race frame and its flip, F_00C592's end: the countdown run out, the race is over, its frame the
+\\ winner's finish, and any other car that finished in the 4 frames put back to lap 3, checkpoint 5, 99
+\\ stripes.
+\\
+\\ Inputs:
+\\     the race's state
+\\
+\\ Outputs:
+\\     RcOver non-zero if the race is over, and the state as the ST leaves it
+\\     A, X: corrupted
+
+.race_end
+{
+    LDA RcFinished:BEQ done
+    LDA RcCountdown:BNE done
+    INC RcOver
+    LDA RcFinishLo:STA RcFrameLo
+    LDA RcFinishHi:STA RcFrameHi
+    LDX #3
+.back
+    CPX RcWinner:BEQ @+
+    LDA RcLaps,X:CMP #4:BNE @+
+    LDA #3:STA RcLaps,X
+    LDA #5:STA RcCheck,X
+    LDA #99:STA RcStripesLo,X
+    STZ RcStripesHi,X
+.@
+    DEX
+    BPL back
+.done
+    RTS
 }
 
 \\ F_00E66A: the coasting cycle on; then each car in draw order: the area it must stay in, its walls and the

@@ -10,10 +10,9 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 7, the race's end, points and pickups.** Every car is exact to frame 2030 but its
-wrench count (§8). Next: the lap events and the race's end (F_00C592's loop), the 64-frame points
-(F_0167D6, the scores), the wrench and bonus (F_00B560, F_00B326) and TOS's generator, reading §8 and
-st-logic §1, §3, §6.
+**Resume point: step 7's speed, then step 8.** The whole traced race is exact (§8). Next: the logic made
+fast enough (19,000 cycles a frame now; the multiply and divide first), then step 8, the renderer driven by
+the logic, reading §8, `src/main.6502` and `docs/renderer.md`.
 
 ## 0. The proposal in one paragraph
 
@@ -272,3 +271,15 @@ MEASURED: all 4 cars match the ST in 47 variables on every frame from 1 to 2030,
 (`make logiccheck LOGICARGS="--vars ..."` without `wrench`): the crash at 295, its 66-frame wait and the
 put-back. From 2031 the race's end differs (not built); car 0's wrench count from 465 (the pickups). The
 same mistake again on the way: a local `.wreck` label shadowing the routine, the BBC hanging at once.
+
+**Step 7, the race's end, points and pickups.** `src/random.6502`: TOS's generator (a 32-bit shift-and-add
+multiply, rare: a few draws a race) and F_00ADB8, and F_0167D6 (`score_add`). `src/pickups.6502` (in the
+logic's bank): F_00AE16 (oil-type hazards), F_00ADDC, F_00AFF2 (cones) at the set-up, in the ST's order of
+draws, and F_00B326 (the bonus) and F_00B560 (the wrench) each frame. In `src/race.6502`: the lap events,
+the 64-frame points, the countdown and control's stop 4 frames after the finish, and `race_end` (after the
+frame, as the ST does it after its flip). The tornado, barriers, gates and cones' per-frame parts trap
+(none in this race). The tracer now dumps the pickups' state too (G_01EB54-G_01EB6F; the re-recorded
+trace's other content byte-identical), and the oracle compares it, the scores, and TOS's seed (run on
+from the trace's by each number drawn). MEASURED: the whole traced race is exact: all 2,196 frames, 68
+variables per frame (35 per car and the race's) and the seed (`make logiccheck`). Broken on purpose (the
+generator's + 1 dropped), every frame fails from 1.

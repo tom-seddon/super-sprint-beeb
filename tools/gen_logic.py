@@ -96,6 +96,9 @@ def tables():
     jframes = dump_words(0x1D1FC, 24)
     jturn = dump_words(0x1D1CE, 23)
     grid = L.words(L.tb(0x1EDA8))[:32]
+    tens = list(L.tb(0x1DF8A))
+    bonus = list(L.tb(0x1DF72))
+    assert tens == [0x80, 0x80, 0x80, 0x80, 1, 0] and len(bonus) == 24
     assert coast[:7] == [0] * 7 and coast[35:42] == [1, 0, 1, 1, 1, 0, 1], 'the coasting table, as st-logic §2'
     assert all(-128 <= v < 128 for v in dx + dy + jturn) and all(0 <= v < 256 for v in coast + jframes + grid)
     return '\n'.join([
@@ -119,6 +122,10 @@ def tables():
         '    EQUB ' + byte_list(grid[2::4]),
         '.GridDir                                ; and the facing',
         '    EQUB ' + byte_list(grid[3::4]),
+        '.Ten                                    ; G_01DF8A: 10 points, as a score\'s 6 digits (&80 a blank)',
+        '    EQUB ' + byte_list(tens),
+        '.BonusPts                               ; G_01DF72: the bonus\'s values, 100, 150, 200, 250',
+        '    EQUB ' + byte_list(bonus),
         ''])
 
 
@@ -212,13 +219,18 @@ def path(track):
 
 def cells(track):
     m, _ = L.attr_map(track)
+    slots = list(L.tb(0x1EC48)[track * 40:track * 40 + 40])
+    gates = L.words(L.tb(0x1ED88))[track]
     pts = L.words(L.tb(0x1E0C0))[:64]
     assert all(0 <= v < 128 for v in pts), 'the probe points are small and positive'
     eq = lambda name, comment, v: [f'.{name:<38}; {comment}', '    EQUB ' + byte_list(v)]
     return '\n'.join([
         '\\\\ cells.6502 - track %d\'s attribute map and its probe points (tools/gen_logic.py)' % (track + 1),
         '',
+        'TrackGates = %d                         ; G_01ED88: the track\'s gates' % gates,
         *eq('AttrProbe', 'G_01E0C0 by facing * 4: the probes\' dx1, dy1, dx2, dy2 from the sprite box', pts),
+        *eq('SlotX', 'G_01EC48: the track\'s 20 pickup and hazard slots, the left cell\'s column,', slots[0::2]),
+        *eq('SlotY', 'and row', slots[1::2]),
         f'.{"AttrRowL":<38}; a cell row\'s first cell',
         '    EQUB LO(AttrMap + (0..24) * 40)',
         '.AttrRowH',
@@ -255,6 +267,7 @@ def main(trace_path, out):
         'TraceSeed = &%08X                   ; TOS\'s Random\'s state before the race\'s first draw' % t['seed'],
         'TraceFrames = %d                    ; the trace\'s frames, the set-up\'s two included' % len(frames),
         'TraceFirst = %d                     ; the first race frame\'s counter' % FirstFrame,
+        'TraceScores = {%s}' % ', '.join(str(m[str(0x1DFA8 + i)]) for i in range(24)),
         '']))
     print(f'{len(frames) - FirstFrame} race frames of inputs; drones {drone}; seed &{t["seed"]:08X}')
 

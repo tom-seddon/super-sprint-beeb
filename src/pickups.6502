@@ -1,0 +1,319 @@
+\\ pickups.6502 - the hazards, cones, bonus and wrench in the track's 20 slots (D9): the ST's F_00AE16, F_00ADDC
+\\ and F_00AFF2 at the race's set-up, F_00B326 (the bonus) and F_00B560 (the wrench) each frame. Each puts its
+\\ object in the attribute map, where the cars find it (cells.6502), and draws it (the drawing: with the
+\\ renderer, step 8). In the logic's bank, with the map and the slots.
+
+SECTION LogicVars
+.RcHazards                              ; G_01EB54: the oil-type hazards placed, 0-3
+    SKIP 1
+.RcWrenchY                              ; G_01EB58: the wrench's slot's row,
+    SKIP 1
+.RcWrenchX                              ; G_01EB5A: its column
+    SKIP 1
+.RcWrenchPhase                          ; G_01EB5C: 1 just taken, 2 waiting, 3 placing, 4 drawn once, 5 there
+    SKIP 1
+.RcWrenchTimerLo                        ; G_01EB5E: the wait (and, the frame it's taken, the taker)
+    SKIP 1
+.RcWrenchTimerHi
+    SKIP 1
+.RcBonusCellLo                          ; G_01EB62: the bonus's cell, row * 40 + column
+    SKIP 1
+.RcBonusCellHi
+    SKIP 1
+.RcBonusY                               ; G_01EB64: its row,
+    SKIP 1
+.RcBonusX                               ; G_01EB66: its column
+    SKIP 1
+.RcBonusSprite                          ; G_01EB68: its sprite, value * 4 + size; bit 7: to draw in the other
+    SKIP 1                              ; screen too
+.RcBonusPhase                           ; G_01EB6A: 0 placing, 1 growing, 2 there and then shrinking
+    SKIP 1
+.RcBonusTimerLo                         ; G_01EB6C: the wait
+    SKIP 1
+.RcBonusTimerHi
+    SKIP 1
+.RcCones                                ; G_01EBB0: the cones placed, 0 or 4
+    SKIP 1
+ENDSECTION
+
+\\ The pickups' set-up, F_00C592's: the oil-type hazards (F_00AE16), the bonus's and wrench's timers
+\\ (F_00ADDC), the cones (F_00AFF2), in that order, as the random numbers are drawn.
+\\
+\\ Inputs:
+\\     RcRace, RcSeed
+\\
+\\ Outputs:
+\\     the map's hazards and cones, the pickups' state, RcSeed
+\\     A, X, Y: corrupted
+
+.pickups_setup
+{
+    ZA_AUTO1 type0                      ; local: the first hazard's type
+    ZA_AUTO1 slot                       ; local: the slot
+    ZA_AUTO1 i                          ; local: the hazard or cone
+    ZA_AUTO1 v                          ; local: the cell's value
+
+    \\ F_00AE16: random(race / 6 + 1) hazards, at most 3; the first's type random(3), the next types in turn;
+    \\ the first slot random(20), then 3 + random(4) on
+
+    LDA RcRace:LDX #&FF
+.sixes
+    INX
+    SEC:SBC #6
+    BCS sixes
+    TXA:INC A
+    JSR random
+    CMP #4:BCC @+
+    LDA #3
+.@
+    STA RcHazards
+    LDA #3:JSR random:STA type0
+    LDA #20:JSR random:STA slot
+    STZ i
+.hazard
+    LDA i:CMP RcHazards:BCS hazarded
+    CLC:ADC type0                       ; type (type0 + i) MOD 3: 1 + type * 4 in both cells
+.mod3
+    CMP #3:BCC @+
+    SBC #3
+    BRA mod3
+.@
+    ASL A:ASL A:INC A
+    STA v
+    LDY slot:JSR slot_cell
+    LDA (slot_cell.p):ORA v:STA (slot_cell.p)
+    LDY #1
+    LDA (slot_cell.p),Y:ORA v:STA (slot_cell.p),Y
+    LDA #4:JSR random
+    CLC:ADC #3:ADC slot                 ; slot = (slot + random(4) + 3) MOD 20
+.mod20
+    CMP #20:BCC @+
+    SBC #20
+    BRA mod20
+.@
+    STA slot
+    INC i
+    BRA hazard
+.hazarded
+
+    \\ F_00ADDC: the bonus first in 250 frames; the wrench in 275 + random(250)
+
+    STZ RcBonusTaken
+    STZ RcBonusPhase
+    STZ RcBonusSprite
+    LDA #250:STA RcBonusTimerLo
+    STZ RcBonusTimerHi
+    JSR wrench_wait
+    LDA #2:STA RcWrenchPhase
+    STZ RcWrenchTaken
+
+    \\ F_00AFF2: a coin, random(20); from race 16, 10 or more: 4 cones, each in a random empty slot's right
+    \\ cell
+
+    STZ RcCones
+    LDA #20:JSR random
+    LDX RcRace:CPX #16:BCC coned
+    CMP #10:BCC coned
+    LDA #4:STA RcCones
+    STZ i
+.cone
+    LDX i
+    STZ RcConeHit,X
+.retry
+    LDA #20:JSR random:TAY
+    JSR slot_cell
+    LDY #1
+    LDA (slot_cell.p),Y:AND #&7F:BNE retry
+    LDA i:CLC:ADC #5:ASL A:ASL A:INC A   ; (5 + cone) * 4 + 1
+    ORA (slot_cell.p),Y:STA (slot_cell.p),Y
+    INC i
+    LDA i:CMP #4:BNE cone
+.coned
+    RTS
+}
+
+\\ The wrench's wait: 275 + random(250) frames.
+\\
+\\ Inputs: none. Outputs: RcWrenchTimer. A, Y: corrupted; X preserved.
+
+.wrench_wait
+{
+    LDA #250:JSR random
+    CLC:ADC #LO(275):STA RcWrenchTimerLo
+    LDA #HI(275):ADC #0:STA RcWrenchTimerHi
+    RTS
+}
+
+\\ A slot's left cell in the map.
+\\
+\\ Inputs:
+\\     Y: the slot, 0-19
+\\
+\\ Outputs:
+\\     p: the cell's address; A: its column, Y its row
+\\     X preserved
+
+.slot_cell
+{
+    ZA_AUTO2 p                          ; out: the cell's address
+    ZA_AUTO1 col                        ; local
+
+    LDA SlotX,Y:STA col
+    LDA SlotY,Y:TAY
+    LDA AttrRowL,Y:CLC:ADC col:STA p
+    LDA AttrRowH,Y:ADC #0:STA p+1
+    LDA col
+    RTS
+}
+
+\\ F_00B326, each frame: the bonus. Taken: its points to the taker, and it goes. Otherwise every 12 frames a
+\\ step: placing (a random slot of the first 15, if empty; else try again next frame), growing a size a step
+\\ to 3, there 500 frames, shrinking a size a step, then gone for 250.
+\\
+\\ Inputs:
+\\     the bonus's state; RcBonusTaken (cells.6502)
+\\
+\\ Outputs:
+\\     the bonus's state, the map, the taker's score
+\\     A, X, Y: corrupted
+
+.bonus_frame
+{
+    ZA_AUTO1 gone                       ; local: non-zero, the bonus goes this frame
+
+    STZ gone
+    LDA RcBonusTaken:BEQ nottaken
+    DEC A:TAX                           ; the taker's points: the value (sprite AND &7F) >> 2
+    LDA RcBonusSprite:AND #&7F:LSR A:LSR A
+    STA score_add.add                   ; (a scratch: value * 6)
+    ASL A:ADC score_add.add:ASL A       ; (C clear)
+    CLC:ADC #LO(BonusPts):STA score_add.add
+    LDA #HI(BonusPts):ADC #0:STA score_add.add+1
+    JSR score_add
+    \\ the bonus's sound: not yet
+    INC gone
+    STZ RcBonusTaken
+    BRA timer
+.nottaken
+    LDA RcBonusSprite:BPL timer         ; drawn in the other screen too: with the renderer
+    AND #&7F:STA RcBonusSprite
+.timer
+    LDA RcBonusTimerLo:BNE @+
+    DEC RcBonusTimerHi
+.@
+    DEC RcBonusTimerLo
+    LDA RcBonusTimerLo:ORA RcBonusTimerHi
+    BNE goes
+    JSR step
+.goes
+    LDA gone:BEQ done
+    LDA #&95:STA RcBonusSprite          ; gone: the road drawn over it, its cells cleared, 250 frames
+    LDA RcBonusCellLo:CLC:ADC #LO(AttrMap):STA slot_cell.p
+    LDA RcBonusCellHi:ADC #HI(AttrMap):STA slot_cell.p+1
+    LDA (slot_cell.p):AND #&80:STA (slot_cell.p)
+    LDY #1
+    LDA (slot_cell.p),Y:AND #&80:STA (slot_cell.p),Y
+    STZ RcBonusPhase
+    LDA #250:STA RcBonusTimerLo
+    STZ RcBonusTimerHi
+.done
+    RTS
+
+    \\ every 12 frames, a step by the phase
+.step
+    LDA #12:STA RcBonusTimerLo
+    STZ RcBonusTimerHi
+    LDA RcBonusPhase:BNE notplacing
+
+    LDA #15:JSR random:TAY              ; placing: a slot of the first 15, if empty (its right cell)
+    LDA SlotY,Y:STA RcBonusY
+    LDA SlotX,Y:STA RcBonusX
+    JSR slot_cell
+    LDY #1
+    LDA (slot_cell.p),Y:AND #&7F:BEQ empty
+    LDA #1:STA RcBonusTimerLo           ; taken: try again next frame
+    RTS
+.empty
+    LDA slot_cell.p:SEC:SBC #LO(AttrMap):STA RcBonusCellLo
+    LDA slot_cell.p+1:SBC #HI(AttrMap):STA RcBonusCellHi
+    LDA #4:JSR random
+    ASL A:ASL A:ORA #&80:STA RcBonusSprite
+    LDA (slot_cell.p):ORA #&11:STA (slot_cell.p)
+    LDY #1
+    LDA (slot_cell.p),Y:ORA #&11:STA (slot_cell.p),Y
+    INC RcBonusPhase
+    RTS
+.notplacing
+    CMP #1:BNE shrinking
+    LDA RcBonusSprite:AND #3:CMP #3:BNE grow
+    INC RcBonusPhase                    ; grown: there 500 frames
+    LDA #LO(500):STA RcBonusTimerLo
+    LDA #HI(500):STA RcBonusTimerHi
+    RTS
+.grow
+    LDA RcBonusSprite:CLC:ADC #&81:STA RcBonusSprite
+    RTS
+.shrinking
+    CMP #2:BNE stepped
+    LDA RcBonusSprite:AND #3:BNE shrink
+    INC gone
+    RTS
+.shrink
+    LDA RcBonusSprite:CLC:ADC #&7F:STA RcBonusSprite
+.stepped
+    \\ (a sprite over &7F is drawn: with the renderer)
+    RTS
+}
+
+\\ F_00B560, each frame: the wrench. Taken: gone, and the taker kept a frame in the timer (the ST's); then
+\\ a wait of 275 + random(250); then placed in a random slot of 20 if its right cell is empty (else tried
+\\ again next frame); drawn in each screen; there until taken.
+\\
+\\ Inputs:
+\\     the wrench's state; RcWrenchTaken (cells.6502)
+\\
+\\ Outputs:
+\\     the wrench's state, the map
+\\     A, X, Y: corrupted
+
+.wrench_frame
+{
+    LDA RcWrenchTaken:BEQ nottaken
+    DEC A:STA RcWrenchTimerLo           ; (the taker: the HUD's wrench count redrawn, with the renderer)
+    STZ RcWrenchTimerHi
+    STZ RcWrenchTaken
+    LDA #1:STA RcWrenchPhase
+    RTS
+.nottaken
+    LDA RcWrenchPhase
+    CMP #1:BNE notgone
+    INC RcWrenchPhase                   ; gone: the wait
+    JMP wrench_wait
+.notgone
+    CMP #2:BNE notwaiting
+    LDA RcWrenchTimerLo:BNE @+
+    DEC RcWrenchTimerHi
+.@
+    DEC RcWrenchTimerLo
+    LDA RcWrenchTimerLo:ORA RcWrenchTimerHi
+    BNE done
+    INC RcWrenchPhase
+    RTS
+.notwaiting
+    CMP #3:BNE notplacing
+    LDA #20:JSR random:TAY              ; placing
+    LDA SlotY,Y:STA RcWrenchY
+    LDA SlotX,Y:STA RcWrenchX
+    JSR slot_cell
+    LDY #1
+    LDA (slot_cell.p),Y:AND #&7F:BNE done
+    INC RcWrenchPhase
+    LDA (slot_cell.p):ORA #&0D:STA (slot_cell.p)
+    LDA (slot_cell.p),Y:ORA #&0D:STA (slot_cell.p),Y
+    RTS
+.notplacing
+    CMP #4:BNE done
+    INC RcWrenchPhase                   ; drawn in the other screen: with the renderer
+.done
+    RTS
+}

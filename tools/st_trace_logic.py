@@ -9,7 +9,7 @@ G_01D30E (a number), or a comparison of car 0's pixel x, pixel y or facing with 
 A one-player game is started from the attract mode as st_trace_objects.py does (the blue car on the keyboard),
 the real race F_00C592's track and race counter poked at its entry. Logged:
 - at each flip (&14D9C): the frame counter, the coasting phase G_01D178, every per-car variable
-  (G_01E2A0-G_01E437) and the scores G_01DFA8;
+  (G_01E2A0-G_01E437), the scores G_01DFA8, and the pickups' state G_01EB54-G_01EB6F;
 - each human car's input, as F_010CF2 returned it to F_00DC4C (at &DC64: d0, and the car at a6 + 8);
 - each XBIOS Random result F_00ADB8 draws (at &ADC4: d0), and F_00ADB8's n (a6 + 8).
 The script's key changes are one-shot breakpoints on the flip, each one's file setting the next (Hatari 2.6.1
@@ -26,7 +26,7 @@ D = os.path.join(ROOT, 'build', 'trace')
 RaceEntryStack = 0x21780                # a7 at F_00C592's entry in this run (as st_trace_objects.py)
 FlipPc, InputPc, RandomPc = 0x14D9C, 0xDC64, 0xADC4
 Frame = 0x1D30E
-Dumps = [(Frame, 2), (0x1D178, 2), (0x1E2A0, 0x198), (0x1DFA8, 24)]
+Dumps = [(Frame, 2), (0x1D178, 2), (0x1E2A0, 0x198), (0x1DFA8, 24), (0x1EB54, 0x1C)]
 Keys = {'L': 0x1DFF2, 'R': 0x1DFF4, 'A': 0x1DFFE}
 
 
