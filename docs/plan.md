@@ -205,6 +205,9 @@ adds the logic.
 ### Phase 4: one race
 - Physics, collisions, drones, laps, scoring, HUD, input for 3 players, sound. One track, played start to
   finish, checked against Hatari traces.
+- **Started 2026-11-02** (`docs/brief-phase4.md`): bit-exact with the ST (D9), on track 1 first (D10), sound as
+  captured register streams (D11, which replaces the sequencer plan under "Input and sound"), keys proposed
+  and checked for ghosting (D12), mask B as its mixed cells (D13). The tracer and the oracle come first.
 - **The logic's cycles**, what the renderer leaves of a TV frame (39,936), measured over the first ~320
   frames of race 17 on each track with every hazard (`render_check.mjs --json`; the race's set-up and the
   test's own trace reading, about 600 a frame, left out):
@@ -250,6 +253,11 @@ adds the logic.
 | D6 | HUD | Decided (Tom, 2026-11-01): one row of 8-pixel text above the play area |
 | D8 | Object sprites | Decided (Tom, 2026-11-01): the explosion and helicopter snapped to 4-pixel steps |
 | D7 | Bringing the OS back for a load | Decided (Tom, 2026-11-01): leave the OS's memory alone; HAZEL through a bank only if needed |
+| D9 | Exactness of the race logic | Decided (Tom, 2026-11-02): bit-exact, checked frame by frame against Hatari |
+| D10 | First track | Decided (Tom, 2026-11-02): track 1 (index 0) |
+| D11 | Sound | Decided (Tom, 2026-11-02): 50 Hz IRQ; captured streams for effects and tunes; engines live |
+| D12 | Keys | Decided in part (Tom, 2026-11-02): a proposed three-player layout, checked for ghosting; joysticks as an option |
+| D13 | Mask B's storage | Proposed (2026-11-02): the mixed cells only, as the priority mask |
 
 ## Risks
 

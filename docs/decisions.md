@@ -114,3 +114,48 @@ one shift anyway; the background objects (gates, barriers, pickups) are 16-pixel
 its 4 shifts (about 1K).
 Tom: "Yes, snap them. The snapping can be reconsidered later if it looks too ugly."
 
+
+### D9. How exact the race logic is: Decided (2026-11-02)
+Asked at the start of Phase 4. Tom: "the race logic is bit-exact with the ST - same arithmetic, tables and
+random number generator - checked frame by frame against Hatari traces with the same inputs."
+So: every routine of the race is the ST's, transliterated, its 16-bit signed arithmetic and its rounding
+kept; the tables are the ST's; the random numbers come from TOS's own generator (XBIOS Random) started from
+the same seed. The check is a Hatari trace of a race (inputs, every per-car variable, every random number,
+frame by frame) replayed on the BBC and compared variable by variable (`docs/brief-phase4.md`). What this
+rules out: st-logic §12's cheaper forms that change results, a fixed car shape per facing for the wall
+probes (7 of the 16 facings' shapes differ between the car sets, `tools/maskb_stats.py`), reciprocal tables
+that round differently from the ST's division.
+
+### D10. The first track: Decided (2026-11-02)
+Tom: "track 1 (index 0). Get physics, drones, laps, scoring and sound right there, then the others."
+
+### D11. Sound: Decided (2026-11-02)
+Tom: "50 Hz from the vsync IRQ. Jingles and effects captured from the ST in Hatari and converted offline to
+SN76489 register streams (the beeb-port-kit's ay2sn.py approach, with the YM's hardware envelope stepped
+first); engine tones computed live from each car's speed."
+So: no sequencer on the BBC and no 83 Hz timer. Each tune and effect is the YM's registers captured from the
+running ST, its hardware envelope stepped into volumes, converted to SN76489 writes a frame (`ay2sn.py`), and
+played by the vsync IRQ. The engines (one tone per human car) are worked out each frame from the car's speed
+by `F_012BA2`'s formulas. Effects take a car's channel by the ST's priorities (st-logic §8).
+
+### D12. Keys: Decided in part (2026-11-02)
+Tom: "propose a three-player keyboard layout, check it for ghosting on paper and in jsbeeb, joysticks as an
+option alongside; I'll test it on a real BBC later."
+So: a layout for three players on the keyboard (left, right, accelerate each), its internal key numbers
+measured, every combination of held keys worked through against the matrix for ghosts on paper and the
+keys held together in jsbeeb (which may not model ghosting: the check there is that each is read); the
+Master's two joysticks as an option for any player. The layout itself is Proposed until Tom has tried it on
+a real BBC. Hardware gate: real keyboard.
+
+### D13. Mask B (walls): only the mixed cells: Proposed (2026-11-02)
+Taken provisionally for Phase 4's first steps (`docs/brief-phase4.md` §3), for Tom to review.
+Mask B is 8,000 bytes a track at 1 bit a pixel, 70% of the fourth bank's 11,361 free. Of its 1,000 8 x 8
+cells, 144 to 267 a track are neither all road nor all wall (track 1: 144, 1,152 bytes; track 8: 267,
+2,136; `tools/maskb_stats.py`). Options:
+- (a) the whole mask: 8,000 bytes, a read about 15 cycles; no room left in the bank for sound or the
+  logic's data;
+- (b) rebuilt per race from the wall vectors: saves disc, not RAM;
+- (c) **proposed**: as the priority mask (`docs/renderer.md`): 8 bytes for each mixed cell, a map of each
+  row's span (a byte a cell: road, wall or its number in the row), about 3K at most; a read about 30
+  cycles (projected), and none at all for a car whose cells are all road. The gates' and barriers' cells
+  reserved as mixed and written from precomputed runs.
