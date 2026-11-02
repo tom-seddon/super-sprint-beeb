@@ -9,8 +9,9 @@ field for field; how it sounds is yours to judge: `build/sound/race_bbc.wav` aga
 each effect in `build/lgen/wav`. A disc to play: `build/play.ssd` (`make beeb TRACE=play`). A RAM hunt
 then made room (main RAM 52 -> 416 bytes free, the fourth bank 136 -> 2,398, nothing on the screen or in the
 play changed), and the hazards went in: the tornado, pop-up barriers, gates and cones, bit-exact on track 5's
-race 17 and drawn from the logic, all 2,240 frames matching. That race is too slow, though: a third of its
-frames take two TV frames. Speed is next, then room for the other tracks.
+race 17 and drawn from the logic, all 2,240 frames matching. That race was too slow: a third of its
+frames took two TV frames. Six exact speed changes so far bring that to 481 of 2,240 (from 734), the
+average 38,207 -> 35,934 cycles; the rest is spread thin across the logic and the renderer (below).
 
 ## What was built and what proves it
 
@@ -78,6 +79,11 @@ frames take two TV frames. Speed is next, then room for the other tracks.
   never drawn cars 2's and 3's sparks, nor had the trace-driven renderer, so every check had agreed; fixed,
   and every trace still matches. The sound's starters match the ST's (112 calls); at the chip 91 of 96
   effects are found, the 5 others because this race's frames are slow (below).
+
+- **Speed** (step 12, `docs/brief-phase4.md` §8): mask B's box writes a band at a time, TOS's multiply from
+  the byte that matters, a car's road test cached, the wall columns a cell row at a time, spent sparks
+  skipped. Exact on both traces; a new unit test for the wall columns caught a fault the races missed. The
+  hazard race's frames taking two TV frames 734 -> 481; track 1's 5 -> 2.
 
 ## Please review
 
