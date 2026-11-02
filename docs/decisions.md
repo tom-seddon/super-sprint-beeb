@@ -198,3 +198,16 @@ zeroes them on a new segment. Only F_00F92E reads them, and nothing calls F_00F9
 Tom: "Yes, drop them"
 Built 2026-11-02: RcAccX/RcAccY gone from `src/drone.6502` and accx/accy from `tools/logic_check.mjs` (162
 variables compared); the logic's state reserves 16 bytes less, so track 5's fourth bank 10 -> 72 free.
+
+### D15. ANDY for the logic's data: Proposed (2026-11-02)
+D7 left ANDY to the OS "unless Phase 3 shows the MOS doesn't need it kept". Tom, 2026-11-02: "I don't think the
+OS doesn't use this for anything relevant to the game: it's some OSWRCH bits, and function key definitions.
+If not already used, it should therefore be free for game use without interfering with any filing system
+stuff." It isn't used (no ROMSEL write sets bit 7), and the kit measured the MOS writing it only on `*KEY`, a
+mode change or soft BREAK, and `VDU 23`, and not in 26 OSFILE loads (`reference/beeb-port-kit/docs/
+hardware-facts.md`, ANDY; jsbeeb, MOS 3.20, 1770 DFS). Proposed (`docs/brief-room-2026-11-02.md`): mask B
+and the logic's state in ANDY, filled by the loader at the takeover, paged in with the fourth bank while the
+logic runs (the helicopter, in the bank's first 4K, is drawn only outside it): the fourth bank 3,536 free on
+every track, where tracks 6 and 8 are now 138 and 322 over. First measured for this game: ANDY seeded, then
+the boot, a whole race and an OSFILE with the OS brought back, ANDY unchanged. Not measured: ADFS, MMFS, real
+hardware (with D7's loads, Phase 5).

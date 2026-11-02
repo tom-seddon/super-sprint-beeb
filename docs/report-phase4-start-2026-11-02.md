@@ -112,8 +112,8 @@ the average 38,207 -> 34,185 cycles; what's left is spread thin across the logic
 Resume point: **room** (`docs/brief-room-2026-11-02.md`, a proposal for you). Every track's play build
 assembled for real: four don't build today (the fourth bank 138 and 322 over on tracks 6 and 8; Shared's
 whole-page rule on tracks 4, 6, 7 and 8, which wastes up to 255 bytes; a page-padding layout fault in the
-cars' bank on track 6). Proposed: two fixes, and the helicopter and the tornado swapping banks (+1,414 in the
-fourth bank on every track, about 400 less in the objects' bank), HAZEL left for Phase 5. Then speed's
+cars' bank on track 6). Proposed: two fixes, and mask B and the logic's state in ANDY (D15: the fourth bank
+3,536 free on every track, ANDY 237 to 1,496 spare), HAZEL left for Phase 5. Then speed's
 third round, the other 7 tracks, and the joysticks once measured on a real Master.
 
 ## Branch ledger

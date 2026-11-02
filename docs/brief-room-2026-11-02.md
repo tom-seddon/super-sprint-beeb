@@ -1,13 +1,15 @@
 # Brief - room for every track
 
-> **Status: PROPOSAL (2026-11-02), for Tom.** Branch `phase4-start`, from `39cd325`. Asked for by Tom ("Room
-> proposal") after speed's second round left track 5's fourth bank 72 bytes free. Nothing here changes the
-> picture or the play; it's where code and data live. HAZEL (D7) is weighed and not proposed (§3).
+> **Status: PROPOSAL (2026-11-02, rewritten around ANDY), for Tom.** Branch `phase4-start`, from `d662b37`.
+> Asked for by Tom ("Room proposal") after speed's second round left track 5's fourth bank 72 bytes free;
+> rewritten after Tom asked whether ANDY was used ("If not already used, it should therefore be free for game
+> use without interfering with any filing system stuff") and said "Yes, rewrite it". Nothing here changes the
+> picture or the play; it's where code and data live. Using ANDY revises D7 (D15, Proposed).
 >
 > Figures say **MEASURED** (a build's listing or a tool run, named), **COUNTED** (off the source or a listing)
 > or **PROJECTED** (arithmetic on top).
 
-**Resume point: Tom's answer** (§4). On a yes, the steps in §5 in order, one commit each, the suite after each.
+**Resume point: Tom's answer** (§5). On a yes, the steps in §6 in order, one commit each, the suite after each.
 
 ## 1. The ledger: every track, measured
 
@@ -21,17 +23,20 @@ of the source with the room asserts off gives the figure (MEASURED, 2026-11-02, 
 | Track (index) | 1 (0) | 2 (1) | 3 (2) | 4 (3) | 5 (4) | 6 (5) | 7 (6) | 8 (7) |
 |---|---|---|---|---|---|---|---|---|
 | The fourth bank | 936 | 640 | 426 | 494 | 122 | **-138** | 108 | **-322** |
+| Mask B (in it; `tools/maskb.py`) | 2,168 | 2,465 | 2,679 | 2,610 | 2,983 | 3,243 | 2,996 | 3,427 |
 | Shared, bytes after it | 506 | 492 | 453 | 128 | 347 | 128 | 240 | 215 |
 | Shared's whole-page rule | ok | ok | ok | **fails** | ok | **fails** | **fails** | **fails** |
 | The cars' bank | 1,898 | 1,649 | 1,239 | 818 | 514 | **5** | 833 | 1,321 |
 | The objects' bank | 7,364 | 7,364 | 4,489 | 6,663 | 2,567 | 6,844 | 7,175 | 3,825 |
 | Main RAM's code | 224 | 224 | 224 | 224 | 224 | 224 | 224 | 224 |
+| ANDY (`&8000`-`&8FFF`) | 4,096 | 4,096 | 4,096 | 4,096 | 4,096 | 4,096 | 4,096 | 4,096 |
 
 So four tracks don't build today, for three different reasons:
 
-- **The fourth bank**: tracks 6 and 8 over by 138 and 322 (mask B is 3,243 and 3,427 bytes there against
-  track 1's 2,168). Tracks 5 and 7 have 122 and 108: any further logic, or a speed change that costs bytes,
-  doesn't fit.
+- **The fourth bank**: tracks 6 and 8 over by 138 and 322. Mask B is the only part of it that differs
+  between tracks (fourth bank + mask B is 3,104 or 3,105 on every track), and tracks 6 and 8 have the
+  largest. Tracks 5 and 7 have 122 and 108: any further logic, or a speed change that costs bytes, doesn't
+  fit.
 - **Shared**: tracks 4, 6, 7 and 8 have 128-240 bytes free, but fail the assert that Shared's pages end below
   the HUD's row (`SharedEnd + &FF <= HudAddr`). The loader copies whole pages *from SharedOrg* (`&3070`), so
   the last page runs `&70` past Shared's end, and the assert keeps up to 255 bytes back for it. Their drone
@@ -41,65 +46,90 @@ So four tracks don't build today, for three different reasons:
   padding falls between `BEQ drawn` / `BRA enter` and their targets (out of range by 140 and 130). A layout
   fault any track's data can trigger, not a shortage.
 
-The objects' bank and main RAM are fine everywhere; main RAM's 224 are for Phase 5 (D7: the loader, the
-front end).
+**ANDY is unused.** Every ROMSEL write in the game is a bank number with bit 7 clear (COUNTED, `src/`); D7 and
+`docs/plan.md` left it to the OS until it was shown the MOS doesn't need it.
 
-## 2. The levers, costed
+## 2. ANDY: what the MOS does with it, and what the game can
+
+From the kit (`reference/beeb-port-kit/docs/hardware-facts.md`, ANDY; MEASURED 2026-09-04 and 09-11, jsbeeb
+Master 128, MOS 3.20, the 1770 DFS):
+- ANDY is 4K at `&8000`-`&8FFF`, selected by ROMSEL bit 7, overlaying only that 4K: `&9000`-`&BFFF` stays
+  the paged bank's.
+- The MOS writes three of its sixteen pages, each on one event: `&80` on `*KEY`; `&8800`-`&882F` on a mode
+  change or a soft BREAK; `&8F` on `VDU 23`. 26 OSFILE loads, `*CAT`, the MOS's sound, PRINT and idling wrote
+  none of it. So all 4K is the game's if it fills ANDY after its last mode change, never calls `*KEY` or
+  `VDU 23` afterwards, and reloads after a BREAK. This game sets its screen up on the CRTC and the ULA itself
+  and makes no VDU calls; D7's loads use OSFILE only. Tom's reading agrees.
+- The loader can't write ANDY while the filing system is running (its ROM is at `&8000` during a call): ANDY
+  is filled after the last load of the boot, at the takeover.
+- Not measured: ADFS, MMFS, real hardware. The game's own boot and a race have to be shown to leave it alone
+  too (§6, step 1): a map of what the OS leaves isn't a map of what's free (the kit's gotcha, 1942's BUGS
+  #24).
+
+**Where it fits this game.** Code that reads ANDY must run outside `&8000`-`&8FFF`: in main RAM or in
+`&9000`-`&BFFF` of the paged bank. The fourth bank's first 5,023 bytes (`&8000`-`&939F`) are the helicopter
+(its plotter and pieces), drawn only in the moving objects' step; the logic's code starts at `&939F`. Only
+`logic_start` and `logic_frame` touch the logic's data (LogicVars, mask B, the map), nothing they call pages
+another bank, and the vsync interrupt never writes ROMSEL (its sound state is GameVars, its data Shared) (COUNTED, `src/main.6502`, `src/logicframe.6502`, `src/irq.6502`). So the
+logic can run with the fourth bank paged *and ANDY in*: ANDY stands in for the helicopter's first 4K, which
+the logic never reads, and the logic gets 4K more on every track.
+
+## 3. The levers, costed
 
 | # | Lever | Bytes | Cycles | Status |
 |---|---|---|---|---|
 | 1 | **Shared copied from `&3000`**, a page boundary: whole pages then end with Shared's, so the assert becomes `SharedEnd <= HudAddr`. The shadow's ScreenVars (`&3000`-`&306F`) are written by `start` afterwards, so copying main RAM's over them first is harmless | Shared's 128-240 usable on tracks 4, 6, 7, 8 (MEASURED above) | 0 (load only: 112 bytes more copied) | **proposed, a fix** |
 | 2 | **The fast loop placed so its page padding isn't inside `plot_car`**: the loop's alignment taken before the routine, or the padding filled with the plotter's small tables (`PlotBack`, `KillOff`, `SlowBit`: 16 bytes) | 0 or less; must not grow, track 6's bank has 5 | 0 | **proposed, a fix** |
-| 3 | **The helicopter and the tornado swap banks.** The helicopter is in the fourth bank only for room in Phase 3: its pieces (3,462) and its own copy of the movers' plotter (`helimov`, 1,561 with its tables). Its pieces move to the objects' bank, drawn by the plotter already there (`objmov`, its variants appended); the tornado's self-contained compiled plotter (`mov_tornado` 509, its frames 3,100: no data but its own and `TorJunk` in main RAM) moves to the fourth bank. `mov_all` pages the fourth bank for the tornado and the objects' bank for the rest | fourth bank **+1,414 on every track** (COUNTED, listing extents: 5,023 out, 3,609 in); objects' bank about -400 (PROJECTED: 3,609 out, 3,462 and the helicopter's ~550 bytes of variant tables in) | 0: the same plotters and paging, the bank numbers swapped | **proposed** |
-| 4 | Part of the logic's state (LogicVars, 416) in GameVars (`&2E00`, 168 free) | up to 168, fourth bank | 0 (absolute either way) | not needed with 3 |
-| 5 | Mask B's header: MbLeft and MbRight (0 or &FF) as one table of flags | 25 | a few a look-up outside a row's span (often) | not needed |
-| 6 | The logic's read-only tables (`logictabs`, 252) into Shared | 252 where Shared has it (not tracks 4 and 6) | 0 | not needed with 3 |
-| 7 | The cars' frames packed tighter (659 bytes of page padding, the RAM hunt's lever 7) | ~375 PROJECTED, the cars' bank | 0 | **for the cars' bank, when anything there grows** |
-| 8 | HAZEL (D7): 8K at `&C000`-`&DFFF`, readable whatever bank is in | ~8K, less what each filing system keeps there | ACCCON's Y set during the race | **not proposed now** (§3) |
+| 3 | **Mask B and the logic's state in ANDY.** The logic pages the fourth bank with ROMSEL bit 7 set (`LDA banktrace:ORA #&80:STA &FE30` at its two entries); `build/lgen/walls.6502` (mask B: header, maps, cells) assembles at `&8000` in an ANDY section, LogicVars (432 reserved) at its end; SPRINT carries ANDY's image (its file ends at `&5964` now: 8.8K to `&7C00`) and the loader copies it in after its OS calls | **fourth bank +2,600 to +3,859: 3,536 free on every track**; ANDY 237 (track 8) to 1,496 (track 1) spare (PROJECTED from the measured ledger: fourth bank + mask B + 432) | 0: the same absolute reads and writes, at their new addresses; 2 bytes at each of the two entries | **proposed** |
+| 4 | The helicopter and the tornado swap banks (the earlier proposal): the helicopter's pieces into the objects' bank, drawn by `objmov`; the tornado's compiled plotter (3,609) into the fourth bank | fourth bank +1,414 on every track (COUNTED), objects' bank about -400 (PROJECTED) | 0 | **not needed with 3**; kept for later. It doesn't combine with 3 as it stands: lever 3 needs the fourth bank's first 4K to be something the logic never reads, which the helicopter is |
+| 5 | The cars' frames packed tighter (659 bytes of page padding, the RAM hunt's lever 7) | ~375 PROJECTED, the cars' bank | 0 | **for the cars' bank, when anything there grows** |
+| 6 | Part of the logic's state in GameVars (168 free); mask B's header flags; `logictabs` (252) into Shared | 25-250 each | 0 to a few | not needed with 3 |
+| 7 | HAZEL (D7): 8K at `&C000`-`&DFFF` | ~8K, less what each filing system keeps there | ACCCON's Y set in play | **not proposed**: the filing system's workspace there has to survive each race (no free 8K to keep it in, or reselecting the filing system before each load, unmeasured on DFS, ADFS, MMFS and Econet); the MOS ROM under it hidden; a load-path change, so a hardware gate. Left for Phase 5 if the front end and loader need it |
 
 After levers 1-3 (PROJECTED from the measured ledger):
 
 | Track (index) | 1 (0) | 2 (1) | 3 (2) | 4 (3) | 5 (4) | 6 (5) | 7 (6) | 8 (7) |
 |---|---|---|---|---|---|---|---|---|
-| The fourth bank | 2,350 | 2,054 | 1,840 | 1,908 | 1,536 | 1,276 | 1,522 | **1,092** |
+| The fourth bank | 3,536 | 3,537 | 3,537 | 3,536 | 3,537 | 3,537 | 3,536 | 3,537 |
+| ANDY | 1,496 | 1,199 | 985 | 1,054 | 681 | 421 | 668 | **237** |
 | Shared | 506 | 492 | 453 | 128 | 347 | **128** | 240 | 215 |
 | The cars' bank | 1,898 | 1,649 | 1,239 | 818 | 514 | **5** | 833 | 1,321 |
-| The objects' bank | ~6,950 | ~6,950 | ~4,100 | ~6,250 | **~2,150** | ~6,450 | ~6,750 | ~3,400 |
+| The objects' bank | 7,364 | 7,364 | 4,489 | 6,663 | **2,567** | 6,844 | 7,175 | 3,825 |
 
-Every track builds, with at least 1,092 bytes left in the fourth bank for the rest of Phase 4 and for
-speed changes that cost bytes. The cars' bank on track 6 stays the tightest region in the game: lever 7
-when anything there grows.
+Every track builds, with 3,536 bytes in the fourth bank for the rest of Phase 4 and for speed changes that
+cost bytes (the wall probes' shifts stored pre-shifted, say). Mask B now varies in ANDY instead, and track 8
+leaves it 237: anything else put in ANDY has to fit there on every track. The cars' bank on track 6 stays the
+tightest region in the game: lever 5 when anything there grows.
 
-## 3. Why not HAZEL now
+## 4. What it changes in the tools
 
-D7 says HAZEL is the first thing to consider if the game needs room. It would give ~8K, but:
-- the game has the machine during a race, and the filing system's HAZEL workspace has to survive to the next
-  load: either kept somewhere (8K, or however much each filing system claims; there's no free 8K) or
-  rebuilt by reselecting the filing system before each load, which has to be measured on DFS, ADFS, MMFS and
-  Econet first;
-- with ACCCON's Y set, the MOS ROM at `&C000`-`&DFFF` is hidden: the MOS's IRQ entry (the game's IRQ1V is
-  reached through it) must be shown to lie outside it on MOS 3.20, and nothing may call the OS;
-- it's a load-path change, so a hardware gate (D7's loads, Phase 5).
+The kit's rule: a read of `&8000`-`&8FFF` returns whatever the CPU has paged at that instant, so every tool
+that reads mask B or the logic's state names ANDY. `logic_check.mjs`, `maskb_check.mjs`, `walls_check.mjs`
+and `logic_draws.mjs` read at points where the logic has ANDY in, so they read it already, but each says so
+and checks ROMSEL's bit 7 before it trusts a read. The logic test (`src/logictest.6502`) copies ANDY's image
+the way the game's loader does and pages it as the game does, so the oracle tests the game's arrangement.
+The profilers attribute by ROMSEL AND 15, unaffected (ANDY holds no code).
 
-Lever 3 gets every track building with room to spare and none of that. HAZEL stays the reserve for Phase 5,
-measured then (the filing systems' claims by a write-watch harness, the IRQ entry's address) if the front end
-and the loader need it.
+## 5. For Tom
 
-## 4. For Tom
-
-Proposed: levers 1 and 2 (fixes), and lever 3 (the swap). Lever 7 when the cars' bank needs it; HAZEL left
+Proposed: levers 1 and 2 (fixes), and lever 3 (mask B and the logic's state in ANDY), revising D7's "ANDY
+stays the OS's" (D15). Lever 4 (the swap) kept for later; lever 5 when the cars' bank needs it; HAZEL left
 for Phase 5.
 
-## 5. The steps (on a yes)
+## 6. The steps (on a yes)
 
 Each its own commit, its bytes per region on all eight tracks (the ledger's method, §1) and the hazard race's
 cycles in the body, after the whole suite (`tools/suite.sh`, 18 checks).
 
-1. Lever 1: `shared_copy` from `&3000`; the assert `SharedEnd <= HudAddr`. Tracks 4, 6, 7, 8 pass Shared.
-2. Lever 2: the fast loop's alignment outside `plot_car`'s branches, the cars' bank no bigger. Track 6
+1. **ANDY measured free for this game**, the kit's way (`beeb-bss-bugs`'s seeded fill): ANDY filled with a
+   pattern after the takeover, then the play build's boot and a whole traced race (and, for D7's loads, an
+   OSFILE with the OS brought back as D7 has it), and ANDY compared. The readback recorded in D15.
+2. Lever 1: `shared_copy` from `&3000`; the assert `SharedEnd <= HudAddr`. Tracks 4, 6, 7, 8 pass Shared.
+3. Lever 2: the fast loop's alignment outside `plot_car`'s branches, the cars' bank no bigger. Track 6
    assembles.
-3. Lever 3: the helicopter's pieces into the objects' variants (`tools/gendata.py`), `helimov` gone, the
-   tornado's plotter into the fourth bank, `mov_all`'s paging swapped. The renderer checks (`make check` for
-   race, heli1-3, t0-t7, logic0, logic4) prove it draws the same; every track's ledger redone.
-4. A `make` target (or a suite line) that assembles all eight tracks' play builds, so a track that stops
+4. Lever 3: the ANDY section (mask B, then LogicVars), its image in SPRINT and the loader's copy, the logic's
+   two entries paging ANDY in, the logic test arranged the same; an assert that the fourth bank's code
+   starts at `&9000` or above (the helicopter at least 4K) and one that ANDY's section fits. The tools as §4.
+   The suite proves the logic and the drawing unchanged; every track's ledger redone.
+5. A `make` target (or a suite line) that assembles all eight tracks' play builds, so a track that stops
    fitting fails the suite instead of being found later.
