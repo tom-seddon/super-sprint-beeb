@@ -38,10 +38,9 @@ SECTION GameVars
     SKIP MaxMovers
 .Frames                                 ; frames drawn, for the tests
     SKIP 2
-.Junk                                   ; where the plotter's fast loop draws a column that's hidden
-    SKIP 8
-.TorJunk                                ; where the tornado draws a line outside the play area (Y up to 24)
-    SKIP 32
+.TorJunk                                ; where the tornado draws a line outside the play area (Y up to 24),
+    SKIP 32                             ; and the plotter's fast loop a column that's hidden (Y up to 18)
+Junk = TorJunk
 .TraceFrame                             ; the trace's frame, from 0, for its HUD events
     SKIP 2
 ENDSECTION
