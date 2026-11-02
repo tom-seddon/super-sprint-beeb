@@ -12,10 +12,10 @@
 
 **Resume point: speed, step 12, its third round, or room** (§8's last two entries: what's done, what's
 left, the options). The hazards are in (step 11, §8): exact against the ST and drawn from the logic on
-track 5's race 17. Two rounds of speed (step 12) took that race from 38,207 cycles a frame to 34,357, and its
-drawn frames taking two TV frames from 734 of 2,240 to 329. What's left is levers of 100-300 cycles each,
-D14 (Proposed) and the measured-not-built list. Room is now the binding limit: track 5's fourth bank has 10
-bytes free, and tracks 6 and 8 (larger mask B) would be over (PROJECTED); HAZEL per D7 is Tom's call. Then
+track 5's race 17. Two rounds of speed (step 12) took that race from 38,207 cycles a frame to 34,185 (with D14), and its
+drawn frames taking two TV frames from 734 of 2,240 to 315. What's left is levers of 100-300 cycles each,
+and the measured-not-built list. Room is now the binding limit: track 5's fourth bank has 72
+bytes free (after D14), and tracks 6 and 8 (larger mask B) would be over (PROJECTED); HAZEL per D7 is Tom's call. Then
 the other tracks themselves.
 
 ## 0. The proposal in one paragraph
@@ -546,8 +546,11 @@ the multiplier's sign from the flags, now in their headers), and the map's evenn
 
 Measured and not built:
 - **The drones' moves since the segment's start** (RcAccX/Y, G_01E2DC/G_01E2D4): read only by F_00F92E,
-  which is dead code. Dropping them saves 135 cycles a frame and 46 bytes of the fourth bank (MEASURED); D9 says every per-car variable is compared, so it's
-  Tom's call (D14, Proposed).
+  which is dead code. D14, decided by Tom ("Yes, drop them") and built: the hazard race's logic 14,191 ->
+  14,056 cycles a frame, track 1's 11,320 -> 11,192, every frame of both still matching in the 162
+  variables left; the logic's state 16 bytes smaller, track 5's fourth bank 10 -> 72 bytes free. The game
+  (`make check TRACE=logic4`): mean 34,357 -> 34,185, frames taking two TV frames 329 -> 315; the suite
+  passes.
 - The probe lines' shifts (by x AND 7, y AND 7: about 530 cycles a frame on the hazard race) unrolled with a
   computed entry: about 20 cycles a call saved (COUNTED), not worth its bytes in the fourth bank; stored
   pre-shifted in the objects' bank about 350 a frame (PROJECTED) for about 6K of it.

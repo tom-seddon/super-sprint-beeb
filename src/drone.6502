@@ -15,14 +15,6 @@ SECTION LogicVars
     SKIP 4
 .RcEndY8Hi
     SKIP 4
-.RcAccXLo                               ; G_01E2DC: its moves since the segment's start, x8 (kept, never read:
-    SKIP 4                              ; F_00F92E, which did, is dead)
-.RcAccXHi
-    SKIP 4
-.RcAccYLo                               ; G_01E2D4: y8
-    SKIP 4
-.RcAccYHi
-    SKIP 4
 .RcGateLane                             ; G_01EB6E: each gate's lane step, 2, or 3 while it's shut
     SKIP 4
 ENDSECTION
@@ -125,7 +117,8 @@ ENDSECTION
     JSR smooth
 
     \\ the move: on by the smoothed velocity over D, the old position kept after the move (the ST's quirk:
-    \\ a drone isn't put back on a bounce), and the moves summed
+    \\ a drone isn't put back on a bounce). (The ST also sums the moves since the segment's start, for dead
+    \\ code only: not kept, D14)
 
 .moved
     LDA RcSVXLo,X:STA num
@@ -134,18 +127,12 @@ ENDSECTION
     CLC
     LDA RcX8Lo,X:ADC num:STA RcX8Lo,X:STA RcPX8Lo,X
     LDA RcX8Hi,X:ADC num+1:STA RcX8Hi,X:STA RcPX8Hi,X
-    CLC
-    LDA RcAccXLo,X:ADC num:STA RcAccXLo,X
-    LDA RcAccXHi,X:ADC num+1:STA RcAccXHi,X
     LDA RcSVYLo,X:STA num
     LDA RcSVYHi,X:STA num+1
     LDA RcDiv,X:JSR div_s16
     CLC
     LDA RcY8Lo,X:ADC num:STA RcY8Lo,X:STA RcPY8Lo,X
     LDA RcY8Hi,X:ADC num+1:STA RcY8Hi,X:STA RcPY8Hi,X
-    CLC
-    LDA RcAccYLo,X:ADC num:STA RcAccYLo,X
-    LDA RcAccYHi,X:ADC num+1:STA RcAccYHi,X
     LDA RcX8Lo,X:STA num
     LDA RcX8Hi,X:STA num+1
     JSR div8_s16
@@ -283,13 +270,13 @@ ENDSECTION
     \\ (falls into onto)
 }
 
-\\ F_00FB14: onto a path entry: its start, its direction, no offset, its end worked out, the sums cleared.
+\\ F_00FB14: onto a path entry: its start, its direction, no offset, its end worked out.
 \\
 \\ Inputs:
 \\     X: the car; RcPathIdx its entry
 \\
 \\ Outputs:
-\\     RcX8, RcY8, RcTravel, RcOffX, RcOffY, RcEndX8, RcEndY8, RcAccX, RcAccY
+\\     RcX8, RcY8, RcTravel, RcOffX, RcOffY, RcEndX8, RcEndY8
 \\     A, Y: corrupted; X preserved
 
 .onto
@@ -302,8 +289,6 @@ ENDSECTION
     LDA PathDirLo,Y:AND #15:STA RcTravel,X
     STZ RcOffXLo,X:STZ RcOffXHi,X
     STZ RcOffYLo,X:STZ RcOffYHi,X
-    STZ RcAccXLo,X:STZ RcAccXHi,X
-    STZ RcAccYLo,X:STZ RcAccYHi,X
     LDA PathLen,Y:STA num               ; the end: start + length * the vector
     STZ num+1
     LDY RcTravel,X

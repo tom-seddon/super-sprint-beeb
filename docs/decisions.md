@@ -186,7 +186,7 @@ cells, 144 to 267 a track are neither all road nor all wall (track 1: 144, 1,152
   most (track 8), decoding to the ST's mask with 0 bytes wrong on every track.
 Tom: "Yes, D13 as proposed"
 
-### D14. The drones' dead accumulators (G_01E2DC, G_01E2D4): Proposed (2026-11-02)
+### D14. The drones' dead accumulators (G_01E2DC, G_01E2D4): Decided (2026-11-02)
 Each frame a drone adds its move to G_01E2DC/G_01E2D4 (its moves since its segment's start, x8 and y8), and
 zeroes them on a new segment. Only F_00F92E reads them, and nothing calls F_00F92E (`docs/st-logic.md`
 "Dead code"). The BBC keeps them as RcAccX/RcAccY because D9 compares every per-car variable. Options:
@@ -195,3 +195,6 @@ zeroes them on a new segment. Only F_00F92E reads them, and nothing calls F_00F9
   reason. Nothing the race does changes. MEASURED (a build without them, 2026-11-02): the hazard race's
   logic 14,191 -> 14,056 cycles a frame (mean), the fourth bank 46 bytes more (track 5's traced game 10 ->
   56 free), and 16 bytes of the logic's state.
+Tom: "Yes, drop them"
+Built 2026-11-02: RcAccX/RcAccY gone from `src/drone.6502` and accx/accy from `tools/logic_check.mjs` (162
+variables compared); the logic's state reserves 16 bytes less, so track 5's fourth bank 10 -> 72 free.
