@@ -34,7 +34,40 @@ SECTION LogicVars
     SKIP 1
 .RcCones                                ; G_01EBB0: the cones placed, 0 or 4
     SKIP 1
+.RcSlotCount                            ; this frame's slot sprites drawn (F_0149B4's calls), for the renderer:
+    SKIP 1                              ; how many,
+.RcSlotSprite                           ; each one's sprite,
+    SKIP MaxSlotDraws
+.RcSlotX                                ; its cell's column,
+    SKIP MaxSlotDraws
+.RcSlotY                                ; and row
+    SKIP MaxSlotDraws
 ENDSECTION
+
+MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wrench 1; the hazards' and cones' set-up 7)
+
+\\ F_0149B4's call: a slot sprite drawn, noted for the renderer.
+\\
+\\ Inputs:
+\\     A: the sprite
+\\     Y: the cell's column; slot_draw.row its row
+\\
+\\ Outputs:
+\\     RcSlotCount, RcSlotSprite, RcSlotX, RcSlotY
+\\     X, Y preserved; A corrupted
+
+.slot_draw
+{
+    ZA_AUTO1 row                        ; in: the cell's row
+    PHX
+    LDX RcSlotCount
+    STA RcSlotSprite,X
+    TYA:STA RcSlotX,X
+    LDA row:STA RcSlotY,X
+    INC RcSlotCount
+    PLX
+    RTS
+}
 
 \\ The pickups' set-up, F_00C592's: the oil-type hazards (F_00AE16), the bonus's and wrench's timers
 \\ (F_00ADDC), the cones (F_00AFF2), in that order, as the random numbers are drawn.
@@ -195,8 +228,9 @@ ENDSECTION
     STZ RcBonusTaken
     BRA timer
 .nottaken
-    LDA RcBonusSprite:BPL timer         ; drawn in the other screen too: with the renderer
+    LDA RcBonusSprite:BPL timer         ; drawn in the other screen too
     AND #&7F:STA RcBonusSprite
+    JSR bonus_draw
 .timer
     LDA RcBonusTimerLo:BNE @+
     DEC RcBonusTimerHi
@@ -205,9 +239,12 @@ ENDSECTION
     LDA RcBonusTimerLo:ORA RcBonusTimerHi
     BNE goes
     JSR step
+    LDA RcBonusSprite:BPL goes          ; a sprite over &7F: drawn
+    AND #&7F:JSR bonus_draw
 .goes
     LDA gone:BEQ done
-    LDA #&95:STA RcBonusSprite          ; gone: the road drawn over it, its cells cleared, 250 frames
+    LDA #&15:JSR bonus_draw             ; gone: the road drawn over it, its cells cleared, 250 frames
+    LDA #&95:STA RcBonusSprite
     LDA RcBonusCellLo:CLC:ADC #LO(AttrMap):STA slot_cell.p
     LDA RcBonusCellHi:ADC #HI(AttrMap):STA slot_cell.p+1
     LDA (slot_cell.p):AND #&80:STA (slot_cell.p)
@@ -218,6 +255,12 @@ ENDSECTION
     STZ RcBonusTimerHi
 .done
     RTS
+
+    \\ a sprite (A) at the bonus's slot
+.bonus_draw
+    LDY RcBonusY:STY slot_draw.row
+    LDY RcBonusX
+    JMP slot_draw
 
     \\ every 12 frames, a step by the phase
 .step
@@ -261,7 +304,6 @@ ENDSECTION
 .shrink
     LDA RcBonusSprite:CLC:ADC #&7F:STA RcBonusSprite
 .stepped
-    \\ (a sprite over &7F is drawn: with the renderer)
     RTS
 }
 
@@ -281,13 +323,15 @@ ENDSECTION
     LDA RcWrenchTaken:BEQ nottaken
     DEC A:STA RcWrenchTimerLo           ; (the taker: the HUD's wrench count redrawn, with the renderer)
     STZ RcWrenchTimerHi
+    LDA #&15:JSR wrench_draw            ; the road over it
     STZ RcWrenchTaken
     LDA #1:STA RcWrenchPhase
     RTS
 .nottaken
     LDA RcWrenchPhase
     CMP #1:BNE notgone
-    INC RcWrenchPhase                   ; gone: the wait
+    LDA #&15:JSR wrench_draw            ; gone: the road in the other screen, then the wait
+    INC RcWrenchPhase
     JMP wrench_wait
 .notgone
     CMP #2:BNE notwaiting
@@ -310,10 +354,17 @@ ENDSECTION
     INC RcWrenchPhase
     LDA (slot_cell.p):ORA #&0D:STA (slot_cell.p)
     LDA (slot_cell.p),Y:ORA #&0D:STA (slot_cell.p),Y
-    RTS
+    LDA #&13:JMP wrench_draw
 .notplacing
     CMP #4:BNE done
-    INC RcWrenchPhase                   ; drawn in the other screen: with the renderer
+    INC RcWrenchPhase                   ; drawn in the other screen
+    LDA #&13:JMP wrench_draw
 .done
     RTS
+
+    \\ a sprite (A) at the wrench's slot
+.wrench_draw
+    LDY RcWrenchY:STY slot_draw.row
+    LDY RcWrenchX
+    JMP slot_draw
 }

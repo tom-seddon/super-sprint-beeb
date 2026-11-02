@@ -98,9 +98,16 @@ build/lgen/tables.6502: tools/gen_logic.py tools/logic_maps.py build/super.s $(L
 logic: build/logic.ssd
 build/logic.ssd: $(wildcard src/*.6502) build/lgen/tables.6502
 	baron -v --symbols build/logic.json -o $@ --opt 2 src/logictest.6502 > build/logic.lst
-logiccheck: build/logic.ssd
+logiccheck: build/logic.ssd build/trace/race_t0_r0_script.json
 	node tools/logic_check.mjs $(LOGICARGS)
 	node tools/maskb_check.mjs
+	node tools/logic_draws.mjs
+
+# The same race's draw calls from the ST (Hatari, about 40 s): the renderer's model for it, and the draw
+# calls the BBC's logic must make (tools/logic_draws.mjs).
+build/trace/race_t0_r0_script.json: tools/st_trace_objects.py tools/st_race.py tools/hatari.sh tools/logic_scripts/t0.json | $(VENV)
+	$(PY) tools/st_trace_objects.py 0 0 build/trace/obj_t0_r0_script.json - tools/logic_scripts/t0.json
+	$(PY) tools/st_race.py build/trace/obj_t0_r0_script.json $@
 
 # The renderer test's data, and its disc. Baron 0.6 is on the PATH. $(GEN)/tracefile names the trace the
 # data was made from, so playing another (TRACEFILE=...) remakes it, and so does coming back.

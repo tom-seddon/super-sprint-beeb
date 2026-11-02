@@ -10,12 +10,11 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 8.** The whole traced race is exact, effects included, and the logic averages 11,985
-cycles a frame (§8). Next: the renderer driven by the logic: the logic's code (main RAM, about 3,600 bytes
-of the 4,589 free) and data (the fourth bank, about 8,400 bytes of its 11,361 with the state there too)
-placed in the game; the cars' and objects' draw calls made from the logic's state; the ST's draw calls for
-this race traced for the renderer's model. Reading §8, `src/main.6502`, `src/memory.6502` and
-`docs/renderer.md`.
+**Resume point: step 8, the game build.** The logic and its draw calls are exact (§8). Next: a build of the
+game (`make check TRACE=logic0`) with the logic in it, its code in main RAM after the renderer's, its bank
+code, data and state in the fourth bank after the helicopter, and a frame builder turning its draw calls
+into the frame loop's records (`gendata.py --logic`'s key tables), checked by `make check` against the
+model on all 2,197 frames. Reading §8, `src/main.6502`, `src/sprint.6502` and `src/memory.6502`.
 
 ## 0. The proposal in one paragraph
 
@@ -312,3 +311,17 @@ G_01EB88-G_01EB8D too (the trace's other content byte-identical again), and the 
 the ST had them from before the race (they carry over: the set-up clears only their x). MEASURED: all
 2,196 frames exact in 118 variables. The helicopter's flight 117 frames instead of 116: 1,902 frames fail
 from 295. 11,985 cycles a frame (mean), 18,814 at worst.
+
+**Step 8, the draw calls.** For the renderer, the logic now notes what it draws where the ST calls its
+drawing routines: the slot sprites (`slot_draw`, the bonus's and wrench's, with the ST's second call for
+the other screen), what F_01510A drew of each car (the car, or its explosion's frame: at that point, as a
+wall can wreck a car after it's drawn), and whether the helicopter was drawn; the sparks and banner are
+read from their state. `tools/st_trace_objects.py` takes the autopilot too, so the same race's draw calls
+come from the ST (`build/trace/race_t0_r0_script.json`; its car positions equal the logic trace's on all
+2,197 frames), and the renderer test plays its first 438 frames from them, every one matching the model.
+`tools/logic_draws.mjs` compares the BBC logic's calls with the ST's: MEASURED, all 2,195 race frames'
+calls match. The first run found one wrong: car 0 drawn as an explosion on the frame a wall wrecked it,
+because the state was read at the frame's end; the ST had already drawn it. Broken on purpose (the bonus's
+second-screen draw left out): 21 frames differ, from 252. `gendata.py --logic` makes every moving object's
+key and the tables from key to pieces (about 1,400 bytes more), and `gen_logic.py` packs the inputs as
+runs (248 bytes, from 6,585).

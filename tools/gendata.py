@@ -1,7 +1,12 @@
 """The BBC's data for the renderer test (Phase 3): one track's background, the cars' frames, the priority
 cells and an ST race's car positions, as binaries and Baron source in build/gen.
 
-Usage: gendata.py TRACK TRACE.json OUTDIR
+Usage: gendata.py TRACK TRACE.json OUTDIR [--logic]
+
+--logic (Phase 4, step 8): the race is drawn from the BBC's own logic, not the trace, so every moving object's
+key the logic can draw is made (the explosion's 26 frames, the sparks' 41, the track's banner's 36, the
+helicopter's all as always), and logickeys.6502 gives the 6502 each key's pieces, and the car frame sets;
+the trace is still read for the sets and the HUD (its frames are the check's model's), but no trace.bin.
 
 - bg.bin: the play area, 16,000 bytes of MODE 1 in the screen's cell order (option B, convert.py's).
 - cars.bin: each car frame (car * 16 + facing, 0-63) at each of 4 pixel shifts, trimmed to the bytes and rows
@@ -28,8 +33,11 @@ from st_sprites import car_frame
 from convert import OPTIONS, car_table, logical_map, apply_map, mode1_bytes
 from font import Glyphs, glyph_bytes
 import objects
+import logic_maps
 
 Opt = OPTIONS['B']
+# each track's banner's place (G_01EBE0, G_01EBF0): the ST draws it there with F_0148BE
+BannerPlace = list(zip(logic_maps.words(logic_maps.tb(0x1EBE0))[:8], logic_maps.words(logic_maps.tb(0x1EBF0))[:8]))
 Key = 2
 
 
@@ -482,7 +490,7 @@ def lst(name, vals):
     return f'{name} = {{{", ".join(str(v) for v in vals)}}}\n'
 
 
-def main(track, tracepath, out):
+def main(track, tracepath, out, logic=False):
     os.makedirs(out, exist_ok=True)
     dat = open('orig/st/SUPER.DAT', 'rb').read()
     bg = np.load(f'build/conv/B_t{track}_bg.npy')
@@ -603,6 +611,12 @@ def main(track, tracepath, out):
         for k in [d[1] for d in cars_ if d[0] == 'explosion'] + [m[0] for m in movers]:
             if k not in movkeys:
                 movkeys.append(k)
+    if logic:                           # every key the logic can draw
+        bx, by = BannerPlace[track]
+        for k in ([('explosion', f) for f in range(26)] + [('spark', f) for f in range(41)]
+                  + [('banner', f, bx & 3) for f in range(36)]):
+            if k not in movkeys:
+                movkeys.append(k)
     movers_, movpieces = [], {}
     torkeys = [k for k in movkeys if k[0] == 'tornado']
     for k in movkeys:
@@ -715,14 +729,35 @@ def main(track, tracepath, out):
     piecedx = {i: (m[0], m[2]) for i, m in enumerate(mt)}
     piecedx.update({heli0 + i: (m[0], m[2]) for i, m in enumerate(hpieces)})
     piecedx.update({len(mt) + i: (dx, w) for i, (s, dx, w) in enumerate(torcode)})
-    tdata, nframes, events = trace(frames, sets, movpieces, insts,
-                                   16384 - len(hbin) - HeliCode - 9 * len(hpieces), piecedx, objframes, ent_per_frame)
+    if logic:
+        bx, by = BannerPlace[track]
+        with open(f'{out}/logickeys.6502', 'w') as f:
+            f.write('\\\\ logickeys.6502 - made by tools/gendata.py --logic: each moving object\'s key\'s pieces, and the car sets\n\n')
+            first = lambda k: movpieces[k][0] if movpieces[k] else 0
+            assert all(len(movpieces[('explosion', i)]) == 1 for i in range(26)), "an explosion in one piece"
+            f.write(lst('GenExplPiece', [movpieces[('explosion', i)][0] for i in range(26)]))
+            for name, keys in (('Spark', [('spark', i) for i in range(41)]), ('Banner', [('banner', i, bx & 3) for i in range(36)])):
+                assert all(movpieces[k] == list(range(first(k), first(k) + len(movpieces[k]))) for k in keys), "a key's pieces in turn"
+                f.write(lst(f'Gen{name}First', [first(k) for k in keys]))
+                f.write(lst(f'Gen{name}Count', [len(movpieces[k]) for k in keys]))
+            hk = [hkey[v, c, fr_] for v in range(4) for c in (0, 3) for fr_ in range(4)]
+            assert all(k == list(range(k[0], k[0] + len(k))) for k in hk if k), "a helicopter frame's pieces in turn"
+            f.write(lst('GenHeliFirst', [k[0] if k else 0 for k in hk]))
+            f.write(lst('GenHeliCount', [len(k) for k in hk]))
+            f.write(lst('GenSetOf', [sets.index((None, True) if d else (c, False)) if ((None, True) if d else (c, False)) in sets
+                                     else 255 for c in range(4) for d in (0, 1)]))
+            f.write(f'GenBannerX = {bx & ~3}\nGenBannerY = {by}\n')
+        tdata, nframes, events = b'', len(frames), b''
+    else:
+        tdata, nframes, events = trace(frames, sets, movpieces, insts,
+                                       16384 - len(hbin) - HeliCode - 9 * len(hpieces), piecedx, objframes, ent_per_frame)
     open(f'{out}/trace.bin', 'wb').write(tdata)
     open(f'{out}/hudevents.bin', 'wb').write(events)
     with open(f'{out}/trace.6502', 'w') as f:
         f.write('\\\\ trace.6502 - made by tools/gendata.py\n\n')
         f.write(f'TraceFrames = {nframes}\n')
         f.write(f'TraceTrack = {track}\n')
+        f.write(f'GenLogic = {1 if logic else 0}\n')
     with open(f'{out}/font.6502', 'w') as f:
         f.write('\\\\ font.6502 - made by tools/gendata.py from tools/font.py: the HUD\'s glyphs, 8 lines each\n\n')
         f.write(lst('GenFont', [b for g in range(len(Glyphs)) for b in glyph_bytes(g)]))
@@ -734,4 +769,4 @@ def main(track, tracepath, out):
 
 
 if __name__ == '__main__':
-    main(int(sys.argv[1]), sys.argv[2], sys.argv[3])
+    main(int(sys.argv[1]), sys.argv[2], sys.argv[3], '--logic' in sys.argv[4:])

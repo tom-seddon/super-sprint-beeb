@@ -10,7 +10,8 @@ Writes:
 - OUTDIR/race.6502: the traced race's constants: its track, race counter, the drone flags, TOS's generator's
   seed before the race's first draw, and how many frames the trace has;
 - OUTDIR/inputs.bin: from the race's first frame (the trace's frame 2) on, 3 bytes a frame: cars 0-2's inputs
-  as F_010CF2 returned them (0 where a car read none: a drone, or a wrecked car);
+  as F_010CF2 returned them (0 where a car read none: a drone, or a wrecked car); and inputs.rle, the same
+  as runs, 4 bytes each: the frames (1-255), then the 3 inputs; a run of 0 ends them;
 - OUTDIR/cells.6502: the track's attribute map (F_015CA2's, from INIT.DAT's runs: 40 x 25 bytes, one a cell),
   its rows' addresses, and the two attribute probe points per facing (G_01E0C0);
 - OUTDIR/path.6502: the track's drone path (F_00FAD8's: SUPER.DAT's entries x8, y8, length, direction word),
@@ -258,17 +259,26 @@ def main(trace_path, out):
             b[car] = bits
         inputs += bytes(b)
     open(os.path.join(out, 'inputs.bin'), 'wb').write(inputs)
+    rle, i = bytearray(), 0
+    while i < len(inputs):
+        j = i
+        while j + 3 < len(inputs) and inputs[j + 3:j + 6] == inputs[i:i + 3] and (j - i) // 3 < 254:
+            j += 3
+        rle += bytes([(j - i) // 3 + 1]) + inputs[i:i + 3]
+        i = j + 3
+    rle += bytes(4)
+    open(os.path.join(out, 'inputs.rle'), 'wb').write(rle)
     open(os.path.join(out, 'race.6502'), 'w').write('\n'.join([
         '\\\\ race.6502 - the traced race the logic test plays (tools/gen_logic.py, from %s)' % os.path.basename(trace_path),
         '',
-        'TraceTrack = %d' % t['track'],
-        'TraceRace = %d' % t['race'],
-        'TraceDrones = {%s}' % ', '.join(map(str, drone)),
-        'TraceSeed = &%08X                   ; TOS\'s Random\'s state before the race\'s first draw' % t['seed'],
-        'TraceFrames = %d                    ; the trace\'s frames, the set-up\'s two included' % len(frames),
-        'TraceFirst = %d                     ; the first race frame\'s counter' % FirstFrame,
-        'TraceScores = {%s}' % ', '.join(str(m[str(0x1DFA8 + i)]) for i in range(24)),
-        *[f'TraceSpark{name} = {{%s}}' % ', '.join(str(m[str(a + st * i)] << 8 | m[str(a + st * i + 1)]) for i in range(8))
+        'LgTrack = %d' % t['track'],
+        'LgRace = %d' % t['race'],
+        'LgDrones = {%s}' % ', '.join(map(str, drone)),
+        'LgSeed = &%08X                   ; TOS\'s Random\'s state before the race\'s first draw' % t['seed'],
+        'LgFrames = %d                    ; the trace\'s frames, the set-up\'s two included' % len(frames),
+        'LgFirst = %d                     ; the first race frame\'s counter' % FirstFrame,
+        'LgScores = {%s}' % ', '.join(str(m[str(0x1DFA8 + i)]) for i in range(24)),
+        *[f'LgSpark{name} = {{%s}}' % ', '.join(str(m[str(a + st * i)] << 8 | m[str(a + st * i + 1)]) for i in range(8))
           for name, a, st in (('Timer', 0x1E070, 2), ('End', 0x1E080, 2), ('Frame', 0x1E090, 2), ('X', 0x1E0A0, 4),
                               ('Y', 0x1E0A2, 4))],
         '']))

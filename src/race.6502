@@ -120,6 +120,9 @@ SECTION LogicVars
     SKIP 4
 .RcWrench                               ; G_01E324: wrenches held
     SKIP 4
+.RcExplFrame                            ; what F_01510A drew of the car this frame, for the renderer: &FF the car,
+                                        ; else its explosion's frame (spin / 4)
+    SKIP 4
 .RcDrone                                ; G_01E34C: 1 a drone drives it
     SKIP 4
 .RcTurbo                                ; G_01E2B0 + car * 8: the upgrades' levels, 0-5: turbo acceleration,
@@ -346,6 +349,7 @@ ENDSECTION
     EQUB 0
     EQUS "cones", 0
 .@
+    STZ RcSlotCount
     JSR bonus_frame
     JSR wrench_frame
 
@@ -531,8 +535,11 @@ ENDSECTION
     \\ F_01510A's logic: a wrecked car's timer down, its explosion counted to 103, and at 0 it's put back
     \\ (F_00ED28)
 
+    LDA #&FF:STA RcExplFrame,X          ; (drawn as the car, unless it's still wrecked)
     LDA RcState,X:BEQ racing
     DEC RcBounce,X:BEQ putback
+    LDA RcSpin,X:LSR A:LSR A            ; the explosion's frame (F_0152E0), for the renderer
+    STA RcExplFrame,X
     LDA RcSpin,X:CMP #103:BCS racing
     INC RcSpin,X
     BRA racing

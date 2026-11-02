@@ -355,3 +355,7 @@
 - **The effects** (sparks, banner, the helicopter's flight): exact on every frame, 118 variables now.
   The sparks' state carries over from race to race (the set-up only clears their x), so the test seeds it
   from the trace's frame 1.
+- **The draw calls**: the BBC's logic now makes the ST's draw calls (slot sprites, cars and explosions in
+  order, sparks, banner, helicopter), checked against the ST's own on all 2,195 frames
+  (`tools/logic_draws.mjs`). Mistake found by it: a car wrecked by a wall is drawn as a car that frame
+  (the ST draws before the probe), so what's drawn is noted at the draw, not read from the state after.

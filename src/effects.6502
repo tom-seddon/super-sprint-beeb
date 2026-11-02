@@ -47,6 +47,8 @@ SECTION LogicVars
     SKIP 1
 .RcBannerOn                             ; G_01EB8C: 1 shown, &80 to go
     SKIP 1
+.RcHeliDrawn                            ; the helicopter drawn this frame (F_01440E, F_0144AA), for the renderer
+    SKIP 1
 ENDSECTION
 
 \\ F_00BE4A: two sparks from a car, at its attribute probe points (4 pixels up), their frames from a
@@ -298,6 +300,7 @@ ENDSECTION
     ZA_AUTO1 step                       ; local: -2 or 2
     ZA_AUTO1 left                       ; local: the timer before it's counted down, its bytes ORed
 
+    STZ RcHeliDrawn
     LDA RcHeliStateLo:ORA RcHeliStateHi
     BNE on
     RTS
@@ -326,6 +329,7 @@ ENDSECTION
     LDA #&80:STA RcHeliStateLo          ; gone (the engines back: with the sound)
     RTS
 .move
+    INC RcHeliDrawn
     LDA RcHeliVariant:AND #1:ASL A:ASL A
     SEC:SBC #2:STA step                 ; (variant AND 1) * 4 - 2
     LDA RcHeliVariant:AND #2:BEQ vertical

@@ -1,12 +1,14 @@
 """Record a real race on the ST with its objects: each frame's cars (as st_trace_cars.py) and every call of the
 object drawing routines, with their arguments, for the renderer's objects.
 
-Usage: st_trace_objects.py TRACK RACE OUT.json [FORCE]   (TRACK 0-7; RACE the race counter G_01EBC2, which
+Usage: st_trace_objects.py TRACK RACE OUT.json [FORCE] [SCRIPT]   (TRACK 0-7; RACE the race counter G_01EBC2, which
 decides the hazards: barriers when (RACE + 1) % 3 == 0, oil-type hazards from race 6, the tornado from race 4
 half the time, cones from race 16 half the time; FORCE, "tornado", "cones" or both joined by a comma, makes
 those coin flips come up, by setting the register each is tested in after its call of F_00ADB8; "heliN"
 makes every wreck's helicopter variant N (0 from below, 1 from above, 2 and 3 from the sides), written
-into G_01EB2C just after F_00BB4E has chosen it, so the flight that follows is the ST's own for it)
+into G_01EB2C just after F_00BB4E has chosen it, so the flight that follows is the ST's own for it; "-" for
+none; SCRIPT a tools/logic_scripts autopilot (as tools/st_trace_logic.py's) to drive the blue car with,
+instead of accelerate held)
 
 A one-player game is started from the attract mode (the pokes in docs/st-logic.md section 0: the blue car on
 the keyboard, accelerate held, no steering), the real race F_00C592's track argument and the race counter
@@ -15,6 +17,8 @@ dumps 2 bytes at the routine's address (a marker) and the stack: the return addr
 words. The sparks' state is dumped with their calls.
 """
 import json, os, re, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import st_trace_logic as L
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 D = os.path.join(ROOT, 'build', 'trace')
@@ -28,10 +32,14 @@ Force = {'tornado': (0xCA4A, 'd0', 1),  # F_00C592: random(2) != 0 for a tornado
          'cones': (0xB00E, 'd1', 10)}   # F_00AFF2: random(20) >= 10 for cones (race >= 16)
 
 
-def record(track, race, vbls, force=()):
+def record(track, race, vbls, force=(), script=None):
     # the forced flips' breakpoints, each set by the one before (they come in this order), as Hatari 2.6.1
     # crashes with 16 set at once; the helicopter's stays, for every wreck
     force = sorted(force, key=lambda f: ('tornado', 'cones').index(f) if f in Force else 2)
+    def arm(k):
+        if k >= len(script):
+            return ''
+        return f'b pc = ${L.FlipPc:X} && {L.condition(script[k][0])} :once :file {D}/oev{k}.ini\n'
     def setbp(f):
         if f.startswith('heli'):
             return f'b pc = $BC76 :quiet :file {D}/f_{f}.ini\n'
@@ -39,7 +47,8 @@ def record(track, race, vbls, force=()):
     ini = {'o0.ini': f'b VBL = 2000 :once :file {D}/o1.ini\nb pc = $C592 :once :file {D}/o2.ini\n',
            'o1.ini': 'w $1F200 0 0\nw $1DFFE 3\nc\n',
            'o2.ini': (f'w ${RaceEntryStack + 4:X} 0 {track}\nw $1EBC2 0 {race}\n'
-                      f'b pc = $14D9C :quiet :file {D}/oflip.ini\n'
+                      + (''.join(f'w ${a:X} 0\n' for a in L.Keys.values()) + arm(0) if script else '')
+                      + f'b pc = $14D9C :quiet :file {D}/oflip.ini\n'
                       + ''.join(f'b pc = ${a:X} :quiet :file {D}/o_{n}.ini\n' for a, n in Routines.items())
                       + (setbp(force[0]) if force else '')
                       + 'c\n'),
@@ -54,9 +63,12 @@ def record(track, race, vbls, force=()):
             continue
         a, reg, v = Force[f]
         ini[f'f_{f}.ini'] = f'r {reg}={v}\n{then}c\n'
+    for k, (frame, keys) in enumerate(script or []):
+        ini[f'oev{k}.ini'] = (''.join(f'w ${a:X} {3 if c in keys else 0}\n' for c, a in L.Keys.items())
+                              + arm(k + 1) + 'c\n')
     for name, text in ini.items():
         open(os.path.join(D, name), 'w').write(text)
-    log = os.path.join(D, f'hatari_obj_t{track}_r{race}{"_" + "_".join(force) if force else ""}.log')
+    log = os.path.join(D, f'hatari_obj_t{track}_r{race}{"_" + "_".join(force) if force else ""}{"_script" if script else ""}.log')
     with open(log, 'w') as f:
         subprocess.run([os.path.join(ROOT, 'tools', 'hatari.sh'), '600', '--parse', f'{D}/o0.ini',
                         '--run-vbls', str(vbls)], cwd=ROOT, stdout=f, stderr=subprocess.STDOUT, check=True)
@@ -91,9 +103,10 @@ def parse(log):
 
 if __name__ == '__main__':
     track, race, path = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
-    force = sys.argv[4].split(',') if len(sys.argv) > 4 else []
+    force = sys.argv[4].split(',') if len(sys.argv) > 4 and sys.argv[4] != '-' else []
+    script = json.load(open(sys.argv[5])) if len(sys.argv) > 5 else None
     os.makedirs(D, exist_ok=True)
-    frames = parse(record(track, race, 7000, force))
+    frames = parse(record(track, race, 7000, force, script))
     json.dump([{'mem': {str(k): v for k, v in f['mem'].items()},
                 'calls': [[n, w, {str(k): v for k, v in e.items()}] for n, w, e in f['calls']]} for f in frames],
               open(path, 'w'))
