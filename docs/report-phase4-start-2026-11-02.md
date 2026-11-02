@@ -1,13 +1,14 @@
 # Report: Phase 4's first steps, 2026-11-02
 
-**Where it ended.** On the branch `phase4-start` (not merged, not pushed). The race logic is done for
-track 1 and exact: the BBC's logic replays the traced ST race (one human driven by an autopilot, three
-drones) and matches the ST's state on every one of its 2,196 frames, 118 variables a frame (every car's
-movement, walls, cells, laps, scores, wrecks, pickups, the random numbers, and the sparks, banner and
-helicopter that the renderer will draw). It costs 11,985 cycles a frame on average, 18,814 at worst. To
-see it: `make logiccheck` (a test disc with no display; about a minute). Not yet: the renderer driven by
-the logic (step 8), keys (step 9), sound (step 10); the tornado, barriers, gates and cones (none in this
-race: they trap). The renderer's disc is byte-identical to Phase 3's.
+**Where it ended.** On the branch `phase4-start` (not merged, not pushed). Track 1's race runs on the BBC
+from its own logic, bit-exact with the ST: the logic matches the ST's state on every one of the traced
+race's 2,196 frames (118 variables a frame), its draw calls match the ST's on every frame, and the game drawn
+from it matches the renderer's model (made from the ST's own draws) on all 2,197 frames. A disc to play it,
+three players on the keys: `make beeb TRACE=play` (then `build/sprint.ssd`); the keys are Z X SHIFT, V B N
+and , . / (D12, Proposed: no combination of them can ghost another on paper; please try it on a real BBC).
+Not yet: sound (step 10; capturing the ST's YM writes from Hatari is shown to work), the joysticks, the
+tornado, barriers, gates and cones (none on this race: they trap), the other tracks. To check it all:
+`make logiccheck` and `make check TRACE=logic0` (and `make check` for Phase 3's, unchanged, byte-identical).
 
 ## What was built and what proves it
 
@@ -47,24 +48,32 @@ race: they trap). The renderer's disc is byte-identical to Phase 3's.
 - **Two corrections to st-logic** from the asm: cell types 5 and 7 set flags &1000 and &2000 (the steering
   reads them); a finish line makes laps `(laps AND 3) + 1`.
 
+- **The game drawn from its logic** (step 8): `src/logicframe.6502` builds each frame's draw records from
+  the logic's draw calls; `make check TRACE=logic0` matches the model on all 2,197 frames. Logic and
+  drawing average 25,967 cycles a frame; 3 frames go over a TV frame (worst 40,820), so the display drops to
+  25 fps for a moment 4 times in the 44 s race. Main RAM has 890 bytes left, the fourth bank 236.
+- **Keys** (step 9): `src/keyboard.6502`; `tools/keys_ghost.py` (ghosting on paper), `tools/keys_check.mjs`
+  (each key and all nine read right in jsbeeb), and the play build.
+
 ## Please review
 
-- **D12**: I recorded the layout as Proposed until you've tried it on a real BBC.
+- **D12, the keys**: Z X SHIFT, V B N, , . / (Proposed). Please play `make beeb TRACE=play` on a real BBC:
+  the paper check says no ghosting, but jsbeeb can't show it, and comfort is yours to judge.
 - **D11** replaces the plan's earlier sound idea (a sequencer at 83 Hz): `docs/plan.md` now points to D11.
 - One finding that follows from D9: 7 of the 16 facings' car shapes differ between the car sets, so the
   wall probes have to use each frame's own shape. The cheaper fixed shape per facing would not be bit-exact.
 
 ## Hardware gates
 
-None yet. The key layout (D12) will need your real BBC once it's built.
+- **The keys** (D12): the play disc on a real BBC, three players holding keys together.
+- Nothing else in this job touches timing a real machine sees differently (no new mid-frame tricks).
 
 ## What is open
 
-Resume point: **step 8** (`docs/brief-phase4.md`): the renderer driven by the logic. The logic fits the
-game's memory as planned (about 3,600 bytes of main RAM's 4,589 free; about 8,400 of the fourth bank's
-11,361, its state included), but the traced inputs (6,585 bytes) don't fit beside it and will need packing. The tracer
-doesn't yet record the wrench and bonus timers or the attribute map's changes; it will when a step needs
-them. The logic's state is at `&0400` in the test only; where it goes in the game is step 8's question.
+Resume point: **step 10, sound** (`docs/brief-phase4.md`), or the joysticks (measure the ADC first), or the
+worst frames' speed. Also open: the ST's "TRACK 1" and "DRONE LAP" text still drawn in the play area's
+bottom row (Phase 2 planned to paint it out); the tornado, barriers, gates and cones' logic (they trap);
+the other 7 tracks.
 
 ## Branch ledger
 

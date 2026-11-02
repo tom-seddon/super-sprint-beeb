@@ -11,8 +11,9 @@
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
 **Resume point: step 10 (sound), or the joysticks, or the frame's speed.** The keys are in and a disc plays
-(§8; `make beeb TRACE=play`), waiting on a real BBC (D12). Next: sound (D11), the joysticks (measure the
-ADC first), the frame's worst cases (3 of 2,197 frames over a TV frame).
+(§8; `make beeb TRACE=play`), waiting on a real BBC (D12). Next: sound (D11; the capture's feasibility is
+measured, §8), the joysticks (measure the Master's ADC and fire buttons first), the frame's worst cases (3
+of 2,197 frames over a TV frame), the ST's HUD text in the bottom row painted out.
 
 ## 0. The proposal in one paragraph
 
@@ -349,3 +350,12 @@ The play build (`make beeb TRACE=play`, `GenPlay`): three players, car 3 the dro
 (the cars' bank 1,962 bytes free), the race restarting when it's over; `docs/img/jsbeeb-play-t0.png`. Not
 yet: the joysticks; the ST's "TRACK 1" and "DRONE LAP" text, still in the play area's bottom row (Phase 2's
 plan to paint it out with grass hasn't been done).
+
+**Step 10, sound: the capture, measured.** Hatari 2.6.1's `--trace psg_write` logs every YM write as
+`ym write data reg=R val=V` with its video cycle and pc: 113,804 writes in 1,400 VBLs of a race (the game's
+749 Hz timer writing tones and volumes; register 14, the floppy select, among them). Frames can be marked
+by a flip breakpoint's dumps, as the tracers do, so each field's register state can be rebuilt, its
+hardware envelope stepped (D11), and converted by a fork of the kit's `py/beeb_port_kit/ay2sn.py`. Not
+built: the capture tool, the effects (isolated: the attract race plays no engines), the player in the IRQ
+sharing each car's channel by the ST's priorities, the live engines (F_012BA2's formulas). The conversion
+is the part the kit says is judged by ear.
