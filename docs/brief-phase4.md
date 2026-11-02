@@ -10,8 +10,9 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 2.** If this session ends, the next starts at step 2 (§6), reading this brief, then
-`tools/st_trace_objects.py` (the tracer to fork) and `docs/st-logic.md` §0 (driving Hatari).
+**Resume point: step 3.** If this session ends, the next starts at step 3 (§6), the oracle, reading this
+brief, `tools/st_trace_logic.py` (what the trace holds), `tools/render_check.mjs` (the harness to follow)
+and `src/memory.6502`. Step 2 is done (§8).
 
 ## 0. The proposal in one paragraph
 
@@ -126,13 +127,11 @@ touches the build.
 
 1. **This brief and D9-D13** - no code.
 2. **The logic tracer** (`tools/st_trace_logic.py`, forked from `st_trace_objects.py`): track 1, race 0,
-   one human (the blue car), the other three drones; the inputs scripted (accelerate with a fixed
-   pattern of left and right, so the car steers, hits walls and crosses the checkpoints), the
-   copy-protection poke. Per frame at the top of the car loop (`pc = $CF2A`): the frame counter, each
-   human car's input bits as `F_010CF2` returned them, the per-car block `G_01E2A0`-`G_01E4A0`, the
-   scores, the race's flags; at the start, TOS's Random seed; every `F_00ADB8` call's argument and
-   result. Proved by: two runs give the same file; the positions agree with Phase 3's tracer where both
-   record the same race.
+   one human (the blue car), the other three drones; the inputs scripted, the copy-protection poke. Per
+   frame at the flip: the frame counter, the coasting phase, the per-car block `G_01E2A0`-`G_01E437`, the
+   scores; each human car's input bits as `F_010CF2` returned them; every `F_00ADB8` call's n and Random
+   result; the generator's seed. Proved by: two runs give the same file; every random number one run of
+   TOS's generator from the seed. (Done, §8.)
 3. **The oracle** (`tools/logic_check.mjs`, on `tools/jsbeeb.mjs` and the symbols): a build that reads its
    inputs and seed from the trace (in the trace's bank, as the renderer's tests do) instead of the keys;
    after each frame's logic, every traced variable read from the BBC and compared; exit 1 and the first
@@ -161,3 +160,17 @@ Then the other tracks.
 - Mask B rebuilt from vectors at set-up (b): saves the disc, not the RAM.
 - A fixed car shape per facing for the wall probes (st-logic §12): 7 of 16 facings differ between the
   sets, so it wouldn't be bit-exact (D9).
+
+## 8. What landed, 2026-11-02
+
+**Step 2, the logic tracer.** `make logictrace` (about 30 s of Hatari) writes
+`build/trace/logic_t0_r0.json`: 2,197 frames of track 1, race 0 (MEASURED). The blue car is driven by an
+autopilot (`tools/logic_scripts/t0.json`): each entry a condition on car 0's x, y or facing (or a frame
+number) and the keys to hold from then, each a one-shot conditional breakpoint on the flip arming the next,
+so one breakpoint slot drives the whole race. Over the race the car steers, bounces off walls, is wrecked
+once (frame ~320, the helicopter brings it back), crosses every checkpoint and completes 3 laps; the
+drone in car 3 wins at frame ~2040, which ends the race. 1,964 inputs and 14 random numbers. Two runs give
+byte-identical files. The random numbers fit TOS's XBIOS Random, `seed = seed * 3141592621 + 1`, result
+`(seed >> 8) & &FFFFFF`: all 14 are one run of it, so nothing else draws from it during a race and the BBC
+can start from the trace's seed. Hatari's "CPU=$pc" header sometimes heads another breakpoint's dumps; the
+parser tells the reports apart by their "Next PC" line instead.

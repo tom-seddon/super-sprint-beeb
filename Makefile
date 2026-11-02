@@ -35,7 +35,7 @@ GEN = build/gen
 # A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
 .DELETE_ON_ERROR:
 
-.PHONY: all venv disasm tracks convert sheets viewer beeb check clean always
+.PHONY: all venv disasm tracks convert sheets viewer beeb check clean always logictrace
 
 all: disasm convert sheets viewer beeb
 
@@ -83,6 +83,12 @@ build/trace/obj_t4_r$(RACE)_heli%.json: tools/st_trace_objects.py tools/hatari.s
 	$(PY) tools/st_trace_objects.py 4 $(RACE) $@ $(FORCE),heli$*
 build/trace/race_t4_r$(RACE)_heli%.json: tools/st_race.py build/trace/obj_t4_r$(RACE)_heli%.json | $(VENV)
 	$(PY) tools/st_race.py build/trace/obj_t4_r$(RACE)_heli$*.json $@
+
+# A race's logic (Phase 4, D9; Hatari, about 30 s): the blue car driven by tools/logic_scripts/tN.json (track
+# index N), every per-car variable, input and random number, every frame, race 0. `make logictrace`: track 1.
+build/trace/logic_t%_r0.json: tools/st_trace_logic.py tools/hatari.sh tools/logic_scripts/t%.json | $(VENV)
+	$(PY) tools/st_trace_logic.py $* 0 tools/logic_scripts/t$*.json $@
+logictrace: build/trace/logic_t0_r0.json
 
 # The renderer test's data, and its disc. Baron 0.6 is on the PATH. $(GEN)/tracefile names the trace the
 # data was made from, so playing another (TRACEFILE=...) remakes it, and so does coming back.

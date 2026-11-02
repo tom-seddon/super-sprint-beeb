@@ -293,3 +293,20 @@
   Now `.mcp.json` pins 4.3.0 and `tools/jsbeeb.mjs` loads exactly that version, printing it, as the kit's
   tools do. Every race matches on 2.18, its cycles the same as on 1.13.1 to the cycle, and a screenshot is
   byte for byte the same.
+
+## 2026-11-02: Phase 4 begins
+
+- Tom's answers to the Phase 4 questions are D9-D12: the race logic bit-exact with the ST, checked frame by
+  frame against Hatari; track 1 first; sound as captured YM streams converted to the SN76489, engines
+  live; a three-player keyboard layout proposed and checked for ghosting. The first steps are in
+  `docs/brief-phase4.md`, on the branch `phase4-start`.
+- **Mask B (walls)**, D13 Proposed: only the 8 x 8 cells that are neither all road nor all wall, as the
+  priority mask. 144 to 267 a track (1,152 to 2,136 bytes) against 8,000 (`tools/maskb_stats.py`).
+- **The cars' shapes differ**: 7 of the 16 facings' opacities differ between the 8 car sets, so the wall
+  probes need each frame's own shape, not one per facing.
+- **The logic tracer** (`make logictrace`): an autopilot of chained conditional breakpoints drives the blue
+  car round track 1 for 3 laps, with bounces and a wreck; every per-car variable, input and random number
+  every frame. Deterministic (two runs the same), and the race's random numbers are one run of TOS's
+  generator (`seed * 3141592621 + 1`), so the BBC can start from the traced seed.
+- **Trap**: Hatari's "CPU=$pc" header can head another breakpoint's output; tell the reports apart by
+  their own lines ("Next PC").
