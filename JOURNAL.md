@@ -310,3 +310,6 @@
   generator (`seed * 3141592621 + 1`), so the BBC can start from the traced seed.
 - **Trap**: Hatari's "CPU=$pc" header can head another breakpoint's output; tell the reports apart by
   their own lines ("Next PC").
+- **Mask B encoded** (`tools/maskb.py`): 2,168 bytes on track 1 to 3,427 on track 8, the gates' and
+  barriers' cells included, every track decoding to the ST's mask exactly; track 1's mask equals the ST's
+  RAM to the pixel.

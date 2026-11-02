@@ -156,6 +156,7 @@ cells, 144 to 267 a track are neither all road nor all wall (track 1: 144, 1,152
   logic's data;
 - (b) rebuilt per race from the wall vectors: saves disc, not RAM;
 - (c) **proposed**: as the priority mask (`docs/renderer.md`): 8 bytes for each mixed cell, a map of each
-  row's span (a byte a cell: road, wall or its number in the row), about 3K at most; a read about 30
-  cycles (projected), and none at all for a car whose cells are all road. The gates' and barriers' cells
-  reserved as mixed and written from precomputed runs.
+  row's span (a byte a cell: road, wall or its number in the row); a read about 30 cycles (projected),
+  and none at all for a car whose cells are all road. The gates' and barriers' cells reserved as mixed and
+  written from precomputed runs. Measured with them (`tools/maskb.py`): 2,168 bytes on track 1, 3,427 at
+  most (track 8), decoding to the ST's mask with 0 bytes wrong on every track.

@@ -60,7 +60,7 @@ From `docs/plan.md` Phase 4 (measured at the end of Phase 3; the build on this b
 | Main RAM `&1813`-`&29FF` | 4,589 | the logic's code, about 3-4K (PROJECTED) | ~1K |
 | `&2E00`-`&2FFF` | ~300 | per-car state: 4 cars x ~45 bytes (COUNTED from §2's table) | ~120 |
 | `&3000`-`&3EFF`, both copies | ~3,700 | the attribute map 1,000, the direction vectors and small tables ~200 | ~2,500 |
-| Fourth bank | 11,361 | mask B 1,152 cells + ~660 map (track 8: 2,136 + ~810); probe shapes ~1K; drone path ~700; the wall code beside them | ~7K (track 8: ~6K) |
+| Fourth bank | 11,361 | mask B 2,168 (track 8: 3,427; MEASURED, `tools/maskb.py`, gates' and barriers' cells included); probe shapes ~1K; drone path ~700; the wall code beside them | ~7K (track 8: ~6K) |
 | Objects' bank | 2,933 (track 5) to 8,424 | gates' and barriers' mask B runs (tracks 3, 5, 8 by number), later | |
 | The frame (cycles) | 24,180 mean, 15,045 worst on track index 0 | the logic: aim 10,000-12,000 | |
 
@@ -174,3 +174,11 @@ byte-identical files. The random numbers fit TOS's XBIOS Random, `seed = seed * 
 `(seed >> 8) & &FFFFFF`: all 14 are one run of it, so nothing else draws from it during a race and the BBC
 can start from the trace's seed. Hatari's "CPU=$pc" header sometimes heads another breakpoint's dumps; the
 parser tells the reports apart by their "Next PC" line instead.
+
+**Step 4, mask B's part** (D13). `tools/maskb.py` encodes mask B as §3 (c) - a header of 8 bytes a cell row,
+the rows' span maps, the mixed cells, plus every cell a gate or pop-up barrier can cover kept as mixed -
+and decodes it the way the 6502 will read it. MEASURED: track 1 2,168 bytes (200 header, 768 maps, 1,200
+cells: 150), up to track 8's 3,427 (290 cells), against 8,000; every track decodes to the ST's mask with 0
+of 8,000 bytes wrong, and track 1's mask is the ST's RAM (`attract2600.bin`) to the pixel. Broken on
+purpose, the check fails (a cell byte flipped: 1 wrong; a wall cell mapped as road: 8 more). The reserved
+cells cost 6 to 47 cells a track over the bare count; the header (200 bytes) could shrink to 4 a row.
