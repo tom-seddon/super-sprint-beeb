@@ -342,3 +342,6 @@
   crash). Mistake: a local label `.drone` in `race_frame` shadowed the routine `drone`, so `JSR drone`
   called itself and the BBC hung; the skill warns of exactly this. The logic now costs about 19,800 cycles
   a frame: the multiply and divide have to get much faster.
+- **Wrecks**: the crash, its wait and the put-back exact; all four cars match on every frame to 2030 but the
+  wrench count. The label-shadowing mistake twice now (`.drone`, `.wreck`): name branch targets for what
+  happens there, never after a routine.

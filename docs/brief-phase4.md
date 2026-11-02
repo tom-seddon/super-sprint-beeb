@@ -10,9 +10,10 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: step 7, wrecks.** Every car is exact to frame 294 (§8). Next: the crash and wreck
-(F_00BB4E, the wreck timer in F_01510A, F_00ED28 putting the car back; the helicopter's timing), then the
-race's end, the points and the pickups (the random numbers), reading §8 and st-logic §3, §6.
+**Resume point: step 7, the race's end, points and pickups.** Every car is exact to frame 2030 but its
+wrench count (§8). Next: the lap events and the race's end (F_00C592's loop), the 64-frame points
+(F_0167D6, the scores), the wrench and bonus (F_00B560, F_00B326) and TOS's generator, reading §8 and
+st-logic §1, §3, §6.
 
 ## 0. The proposal in one paragraph
 
@@ -263,3 +264,11 @@ scratch byte shared between two uses. Broken on purpose (the shove 10 * D, not 1
 turns every other frame until it faces its path.
 Cost: 19,846 cycles a frame (mean, frames 2-294), 26,455 at most: each drone about 3,800, like the human,
 mostly the general multiply and divide. Speed is the next job after the logic is whole.
+
+**Step 7, wrecks.** In `src/race.6502`: F_00BB4E's logic (`wreck`: state 2, the explosion's counter, the
+wait for the helicopter from the farther side), F_01510A's (the wait counted down, the explosion counted to
+103) and F_00ED28 (`put_back`). The helicopter's own flight only drives the drawing and waits for step 8.
+MEASURED: all 4 cars match the ST in 47 variables on every frame from 1 to 2030, the whole race to its end
+(`make logiccheck LOGICARGS="--vars ..."` without `wrench`): the crash at 295, its 66-frame wait and the
+put-back. From 2031 the race's end differs (not built); car 0's wrench count from 465 (the pickups). The
+same mistake again on the way: a local `.wreck` label shadowing the routine, the BBC hanging at once.

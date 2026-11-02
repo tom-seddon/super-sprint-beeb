@@ -364,11 +364,30 @@ ENDSECTION
     LDA #1:STA RcState,X
 .area
     LDA RcState,X:CMP #1:BNE drawn
-    BRK                                 ; a crash: put back, then wrecked (F_00BB4E): not yet
-    EQUB 0
-    EQUS "crash", 0
-    ZA_UNREACHABLE
+    LDA RcPX8Lo,X:STA RcX8Lo,X:STA num  ; a crash: back where it was, then wrecked
+    LDA RcPX8Hi,X:STA RcX8Hi,X:STA num+1
+    LDA #8:JSR div_s16
+    LDA num:STA RcXLo,X
+    LDA num+1:STA RcXHi,X
+    LDA RcPY8Lo,X:STA RcY8Lo,X:STA num
+    LDA RcPY8Hi,X:STA RcY8Hi,X:STA num+1
+    LDA #8:JSR div_s16
+    LDA num:STA RcYLo,X
+    LDA num+1:STA RcYHi,X
+    JSR wreck
 .drawn
+
+    \\ F_01510A's logic: a wrecked car's timer down, its explosion counted to 103, and at 0 it's put back
+    \\ (F_00ED28)
+
+    LDA RcState,X:BEQ racing
+    DEC RcBounce,X:BEQ putback
+    LDA RcSpin,X:CMP #103:BCS racing
+    INC RcSpin,X
+    BRA racing
+.putback
+    JSR put_back
+.racing
 
     \\ a car racing: its walls (F_00C4F6, walls.6502) and the track's cells (F_00BEEA, cells.6502), both in
     \\ the logic's bank. A car not racing keeps the push the car before it found: the ST's quirk, kept.
@@ -382,18 +401,16 @@ ENDSECTION
 
     \\ a wreck: pushed into a corner (&80), head-on into a wall at top speed, or a crash pending
 
-    LDA RcPush:CMP #&80:BEQ wreck
+    LDA RcPush:CMP #&80:BEQ smash
     LDA RcDir,X:CLC:ADC #8:AND #15
     CMP RcPush:BNE @+
     LDA RcSpeedLo,X:CMP RcTopLo,X:BNE @+
-    LDA RcSpeedHi,X:CMP RcTopHi,X:BEQ wreck
+    LDA RcSpeedHi,X:CMP RcTopHi,X:BEQ smash
 .@
     LDA RcState,X:CMP #1:BNE bounce
-.wreck
-    BRK                                 ; F_00BB4E: not yet
-    EQUB 0
-    EQUS "wreck", 0
-    ZA_UNREACHABLE
+.smash
+    JSR wreck
+    BRA immune
 
     \\ a bounce, if pushed and not bouncing already
 
@@ -709,4 +726,122 @@ ENDSECTION
     ASL num:ROL num+1
     RTS
 
+}
+
+\\ F_00BB4E's logic: wrecked (once), the explosion's counter from 0, and the wait for the helicopter: it comes
+\\ from the farther side, across (4 pixels a frame) if that's more than twice the way down, else down (2 a
+\\ frame), the wait its distance over 4 or over 2, from the last safe place. (The helicopter's own state,
+\\ G_01EB2A-G_01EB34, only drives the drawing: with the renderer, step 8.)
+\\
+\\ Inputs:
+\\     X: the car
+\\
+\\ Outputs:
+\\     RcState 2, RcSpin 0, RcBounce the wait
+\\     A, Y: corrupted; X preserved
+
+.wreck
+{
+    ZA_AUTO2 h                          ; local: the distance across from the farther side
+    ZA_AUTO2 v                          ; local: and down
+    ZA_AUTO2 t                          ; local: h / 2
+
+    LDA RcState,X:CMP #2:BNE new
+    RTS                                 ; wrecked already
+.new
+    LDA #2:STA RcState,X
+    STZ RcSpin,X
+
+    LDA RcSafeX8Lo,X:STA h              ; h = safe x8 >> 3 (asr); under 160, 320 - h
+    LDA RcSafeX8Hi,X:STA h+1
+    LDY #3
+.shifth
+    LDA h+1:CMP #&80:ROR h+1:ROR h
+    DEY
+    BNE shifth
+    SEC
+    LDA h:SBC #LO(160)
+    LDA h+1:SBC #HI(160)
+    BVC @+
+    EOR #&80
+.@
+    BPL farh
+    SEC
+    LDA #LO(320):SBC h:STA h
+    LDA #HI(320):SBC h+1:STA h+1
+.farh
+
+    LDA RcSafeY8Lo,X:STA v              ; v = safe y8 >> 3; under 100, 200 - v
+    LDA RcSafeY8Hi,X:STA v+1
+    LDY #3
+.shiftv
+    LDA v+1:CMP #&80:ROR v+1:ROR v
+    DEY
+    BNE shiftv
+    SEC
+    LDA v:SBC #100
+    LDA v+1:SBC #0
+    BVC @+
+    EOR #&80
+.@
+    BPL farv
+    SEC
+    LDA #200:SBC v:STA v
+    LDA #0:SBC v+1:STA v+1
+.farv
+
+    LDA h+1:CMP #&80:ROR A:STA t+1      ; across if h / 2 > v, else down: h = v * 2
+    LDA h:ROR A:STA t
+    SEC
+    LDA v:SBC t
+    LDA v+1:SBC t+1
+    BVC @+
+    EOR #&80
+.@
+    BMI across
+    LDA v:ASL A:STA h
+    LDA v+1:ROL A:STA h+1
+.across
+    LDA h+1:CMP #&80:ROR h+1:ROR h      ; the wait, h >> 2 (asr)
+    LDA h+1:CMP #&80:ROR h+1:ROR h
+    LDA h:STA RcBounce,X
+    RTS
+}
+
+\\ F_00ED28: a wrecked car put back at its last safe place and facing, still, its flags but &3180 cleared,
+\\ racing again.
+\\
+\\ Inputs:
+\\     X: the car
+\\
+\\ Outputs:
+\\     its state
+\\     A, Y: corrupted; X preserved
+
+.put_back
+{
+    STZ RcSpeedLo,X:STZ RcSpeedHi,X
+    LDA RcBitsLo,X:AND #LO(&3180):STA RcBitsLo,X
+    LDA RcBitsHi,X:AND #HI(&3180):STA RcBitsHi,X
+    LDA RcSafeDir,X:STA RcDir,X
+    LDA RcSafeX8Lo,X:STA RcPX8Lo,X:STA RcX8Lo,X:STA num
+    LDA RcSafeX8Hi,X:STA RcPX8Hi,X:STA RcX8Hi,X:STA num+1
+    LDA #8:JSR div_s16
+    LDA num:STA RcXLo,X
+    LDA num+1:STA RcXHi,X
+    LDA RcSafeY8Lo,X:STA RcPY8Lo,X:STA RcY8Lo,X:STA num
+    LDA RcSafeY8Hi,X:STA RcPY8Hi,X:STA RcY8Hi,X:STA num+1
+    LDA #8:JSR div_s16
+    LDA num:STA RcYLo,X
+    LDA num+1:STA RcYHi,X
+    STZ RcState,X
+    STZ RcImmune,X
+    STZ RcBounce,X
+    STZ RcSpin,X
+    STZ RcJump,X
+    STZ RcTVXLo,X:STZ RcTVXHi,X
+    STZ RcTVYLo,X:STZ RcTVYHi,X
+    STZ RcSVXLo,X:STZ RcSVXHi,X
+    STZ RcSVYLo,X:STZ RcSVYHi,X
+    RTS
 }
