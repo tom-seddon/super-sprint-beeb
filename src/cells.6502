@@ -37,7 +37,8 @@ ENDSECTION
 .cells
 {
     ZA_AUTO1 v1, v2                     ; local: the probes' cells' bytes
-    ZA_AUTO2 c1, c2                     ; local: their cells' addresses, the pair's first (even)
+    ZA_AUTO2 c1, c2                     ; local: their cells' rows' first cells
+    ZA_AUTO1 k1, k2                     ; local: and their columns
     ZA_AUTO1 v                          ; local: the cell acting
     ZA_AUTO2 c                          ; local: its pair's address
     ZA_AUTO1 second                     ; local: 0 the first probe, 1 the second
@@ -51,10 +52,12 @@ ENDSECTION
 
     LDA RcDir,X:ASL A:ASL A:TAY
     JSR probe:STA v1
+    STY k1
     LDA c:STA c1
     LDA c+1:STA c1+1
-    INY:INY
+    LDY o:INY:INY
     JSR probe:STA v2
+    STY k2
     LDA c:STA c2
     LDA c+1:STA c2+1
     STZ act
@@ -84,8 +87,9 @@ ENDSECTION
 
     STZ second
     LDA v1:STA v
-    LDA c1:STA c
-    LDA c1+1:STA c+1
+    LDA k1:AND #&FE                     ; the pair's first cell (the map's even, its rows 40 apart)
+    CLC:ADC c1:STA c
+    LDA c1+1:ADC #0:STA c+1
 .each
     LDA v:BEQ next
     AND #3:BEQ class0
@@ -106,8 +110,9 @@ ENDSECTION
     LDA second:BNE finish
     INC second
     LDA v2:STA v
-    LDA c2:STA c
-    LDA c2+1:STA c+1
+    LDA k2:AND #&FE
+    CLC:ADC c2:STA c
+    LDA c2+1:ADC #0:STA c+1
     BRA each
 
     \\ an elevated car ignores mask B but where a cell acted (the ST's quirk: a hazard cell's included);
@@ -132,8 +137,8 @@ ENDSECTION
 .skid
     LDA #FxSkid:LDY #1:JMP fx_car
 
-    \\ A probe's cell: its byte, and its pair's address in c.
-    \\ Inputs: Y: the probe's offset in AttrProbe. Outputs: A: the byte. Y preserved.
+    \\ A probe's cell: its byte, its column, and its row's first cell in c.
+    \\ Inputs: Y: the probe's offset in AttrProbe. Outputs: A: the byte; Y: the column; o: the offset.
 
 .probe
     STY o
@@ -148,13 +153,8 @@ ENDSECTION
     LDA RcXHi,X:ADC #0
     LSR A
     LDA t:ROR A:LSR A:LSR A
-    CLC:ADC c:STA c
-    BCC @+
-    INC c+1
-.@
-    LDA (c):STA t                       ; the cell's byte
-    LDA c:AND #&FE:STA c                ; its pair's first (the map's address even)
-    LDA t
+    TAY
+    LDA (c),Y                           ; the cell's byte
     RTS
 
     \\ class 0, type in A: levels, ramps, a nudge, the flag cells. Out: C set to stop (a jump started:

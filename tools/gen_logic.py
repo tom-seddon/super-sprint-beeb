@@ -243,6 +243,7 @@ def cells(track):
         '    EQUB HI(AttrMap + (0..24) * 40)',
         '    ALIGN 2                             ; (an object\'s pair of cells: the first\'s address even)',
         *eq('AttrMap', 'a byte a cell: bit 7 a stripe, bits 0-1 the class, 2-6 the type', m),
+        'ASSERT (AttrMap AND 1) == 0, "the map even: a pair (two cells, from an even column) from an even address"',
         ''])
 
 
