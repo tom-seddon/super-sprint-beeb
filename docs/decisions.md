@@ -252,6 +252,10 @@ Options:
   PROJECTED the same as (b). The car frames exist already; no new data.
 - The sound (the helicopter's chop, D11) either way: kept as the car's "coming back" sound, or the engine
   back at the wreck's end. Proposed: kept, for your ears.
+  Tom, 2026-11-03: "D16: let's leave the helicopter sound in for now, but I'm not 100% sure about it, and perhaps it'd be better to replace it with another sound." So kept for now, open. Its cost, MEASURED in the play
+  build's listing: the wreck effect (`Fx_wreck`, `&34A0`-`&3631`, in Shared, both screens' `&3070`-`&3EFF`) is
+  134 fields, 402 bytes: the crash 22 fields (66 bytes), then the chop 112 (336 bytes), looped until the car
+  is back. The loop is only the chop's: `FxLoop` (11 bytes) and its four instructions in `sound.6502`.
 Either (b) or (c) also changes the renderer's tests: the model (`tools/render_model.py`) leaves the
 helicopter out of the races drawn from the logic, and the traced races' helicopter checks (`make check`,
 `heli1`-`heli3`) go with it.
