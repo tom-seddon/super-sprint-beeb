@@ -15,8 +15,8 @@ the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). 
 the helicopter replaced by a cue (D16), and frames are shown in the blank after the display, not at the
 vsync (D17): the fields repeating a frame on the nine races drawn from the logic 332 -> 42 (the hazard race
 105 -> 5), every frame exact. D17 seen on a real Master (no tearing). The fourth bank has 2,608 free and its first 4K
-(under ANDY) empty. Left open (Tom, 2026-11-03, D5): the joysticks, not urgent; three on the keys waits on a playtest. Optional: run-ahead logic (simulated 42 ->
-about 9 more for about 15 ms of latency) if Tom wants it.
+(under ANDY) empty. Left open (Tom, 2026-11-03, D5): the joysticks, not urgent; three on the keys waits on a playtest. Run-ahead logic (simulated 42 -> about 9,
+for about 15 ms more latency) closed, not built (Tom, 2026-11-03: the current setup is fine, lower latency better).
 
 ## 0. The proposal in one paragraph
 
@@ -208,6 +208,8 @@ touches the build.
 - Mask B rebuilt from vectors at set-up (b): saves the disc, not the RAM.
 - A fixed car shape per facing for the wall probes (st-logic §12): 7 of 16 facings differ between the
   sets, so it wouldn't be bit-exact (D9).
+- The logic run a frame ahead (D17): repeated fields over the nine races 42 -> about 9 (SIMULATED), for
+  about 15 ms more latency. Tom, 2026-11-03: "Run-ahead logic: let's close this, on the basis it's ended up unnecessary. The current setup is fine, and lower latency is better."
 
 ## 8. What landed, 2026-11-02
 

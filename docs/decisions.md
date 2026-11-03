@@ -305,3 +305,5 @@ the blank (208-311). Fields repeating a frame (`render_check`, now counting irq.
 races drawn from the logic: 332 -> 42 (tracks 1 and 1's race 0: 0; 2: 14 -> 2; 3: 71 -> 12; 4: 17 -> 1; 5:
 105 -> 5; 6: 70 -> 12; 7: 32 -> 8; 8: 25 -> 2), every frame still matching the model. Seen on a real Master, Tom, 2026-11-03:
 "D17: looks good. No noticeable tearing running on real Master 128 with CUB."
+The logic run a frame ahead (simulated above: 42 -> about 9 repeated fields, for about 15 ms more latency)
+closed, not built, Tom, 2026-11-03: "Run-ahead logic: let's close this, on the basis it's ended up unnecessary. The current setup is fine, and lower latency is better."

@@ -157,7 +157,7 @@ BBC's logic and is drawn exactly from it (`tools/tracks_check.sh`: 48 checks). N
 building is left: D17 has been seen on your Master, and the joysticks are left open, not urgent (D5,
 2026-11-03); three players on the keys waits on a three-person playtest. 42 fields still repeat a frame over the nine
 races (a gate stepping, cars under a bridge and against walls, together); running the logic a frame ahead
-would take that to about 9 (simulated) for about 15 ms more latency, your call. The fourth bank has 1,828 bytes free (play build) and the 4K under
+(about 9, simulated, for about 15 ms more latency) is closed, not built: "Run-ahead logic: let's close this, on the basis it's ended up unnecessary. The current setup is fine, and lower latency is better." The fourth bank has 1,828 bytes free (play build) and the 4K under
 ANDY is empty, for the next thing worth it. The cars' bank on track 6,
 down to 1 byte, has 422 (the frames packed tighter), and the build's stamps no longer let a fast build pass
 for up to date.
