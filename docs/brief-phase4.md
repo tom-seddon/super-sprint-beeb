@@ -11,11 +11,12 @@
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
 **Resume point: Phase 4's end** (§8's last entries). Step 13 is done: every track's race 17 bit-exact through
-the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Speed's fourth round is done:
-the hazard race's frames over a TV frame 311 -> 150 of 2,240 over rounds three and four (mean 34,228 ->
-32,224 cycles); what's still over is structural (the helicopter, gate steps, cars under bridges and against
-walls together), and the levers measured and not built are at the end of each round. Left: the joysticks
-(once measured on a real Master).
+the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Speed's fourth round is done,
+and the helicopter replaced by a cue (D16): the hazard race's frames over a TV frame 311 -> 106 of 2,240 since
+round three (mean 34,228 -> 31,874 cycles); what's still over is mostly the gates' steps, cars under bridges
+and against walls, together. The fourth bank has 2,608 free and its first 4K (under ANDY) empty, for whatever
+is worth it next (a copy of mask B by column was measured and reverted: about 100 cycles for 2K). Left: the
+joysticks (once measured on a real Master).
 
 ## 0. The proposal in one paragraph
 
@@ -687,3 +688,19 @@ Measured and not built:
 - The wall columns' line loop over a mixed cell, where its lines run contiguously: an unrolled ORA chain
   entered at the first line would be about 7 cycles a line instead of 16-25, but needs first- and last-bit
   tables (512 bytes); about 300 cycles in the wall-scraping frames.
+
+**The helicopter replaced (D16)** (2026-11-02, Tom: "Blinking car cue sounds good."). The helicopter isn't drawn
+in the game; its logic, timing and sound stay the ST's. In a wreck's last 28 frames the car shows where it
+comes back, 4 frames on and 4 off (the model takes the wait and the safe place from the race's logic trace:
+a race can end with a car still wrecked; two faults fixed after the track checks, D16). MEASURED (`make check`, every frame matching the model): the hazard race's
+frames over a TV frame 150 -> 106, mean 32,224 -> 31,874; track 1's race mean 23,939 -> 23,534. The fourth bank
+1,476 -> 2,608 free on every track (play builds), and its first 4K, under ANDY, empty.
+
+Then the wall columns from a copy of mask B's mixed cells by column (Tom: "Moving mask B back out of ANDY
+sounds like it'd be worth trying after that, then measuring the result."). Mask B didn't need to move: the
+copy fitted above ANDY where the helicopter was, read with no paging; the cells a gate or barrier changes kept
+out of it (each row's numbered last, `MbDyn`). Exact, but MEASURED small (`7b70c1c`): the logic test 12,730 ->
+12,650 cycles a frame, the game 31,874 -> 31,771 and its frames over unchanged at 106, the wall-scraping frames
+about 100 less each, for 1,200-2,320 bytes of the fourth bank (track 8 left 229). The line loop it replaced
+cost less than projected (a column touches few of a cell's lines). Reverted (Tom: "Yes, revert it."); the room
+stays free.

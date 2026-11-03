@@ -10,9 +10,9 @@ each effect in `build/lgen/wav`. A disc to play: `build/play.ssd` (`make beeb TR
 then made room (main RAM 52 -> 416 bytes free, the fourth bank 136 -> 2,398, nothing on the screen or in the
 play changed), and the hazards went in: the tornado, pop-up barriers, gates and cones, bit-exact on track 5's
 race 17 and drawn from the logic, all 2,240 frames matching. That race was too slow: a third of its
-frames took two TV frames. Twenty-four exact speed changes in four rounds bring the frames over a TV frame
-to 150 of 2,240 (from 734), the average 38,207 -> 32,224 cycles; what's still over is structural: the
-helicopter, gate steps, and cars under bridges and against walls, together (below).
+frames took two TV frames. Twenty-four exact speed changes in four rounds, then the helicopter replaced by a
+blinking cue (D16), bring the frames over a TV frame to 106 of 2,240 (from 734), the average 38,207 ->
+31,874 cycles; what's still over is mostly gate steps and cars under bridges and against walls (below).
 
 ## What was built and what proves it
 
@@ -103,6 +103,11 @@ helicopter, gate steps, and cars under bridges and against walls, together (belo
   cells) called once a band instead of once a column, its byte worked out without an inversion, and the
   HUD's scores compared only after points were added. Frames over a TV frame 209 -> 150, the mean 33,056 ->
   32,224; the cars' bank 61-64 bytes more, main RAM 5 less. The suite and the 48 track checks pass.
+- **The helicopter** (D16, your "Blinking car cue sounds good."): not drawn in the game, its logic, timing
+  and sound kept; in a wreck's last 28 frames the car blinks where it comes back, and the model draws the
+  same from the trace. Frames over 150 -> 106; the fourth bank 1,476 -> 2,608 free, its first 4K empty. A
+  copy of mask B by column, for the wall columns, was built and measured (exact, about 100 cycles a frame
+  for up to 2,320 bytes) and reverted at your word.
 - **The other tracks** (step 13): every track's race 17 traced from the logic's side and replayed through
   the BBC's logic, exact on every frame, and drawn from it exactly. Five of the seven new tracks were exact
   at once; four faults fixed: the bonus's cell (stored before the free test, as the ST), the helicopter's
@@ -131,10 +136,10 @@ helicopter, gate steps, and cars under bridges and against walls, together (belo
 
 Resume point: **Phase 4's end** (`docs/brief-phase4.md`). Every track's race 17 now runs bit-exact through the
 BBC's logic and is drawn exactly from it (`tools/tracks_check.sh`: 48 checks). What's left of Phase 4: the
-joysticks once measured on a real Master. The hazard race still has 150 frames over a TV frame: the start's
-(the helicopter on screen, a gate stepping every 6 frames) and the pile-ups (cars under a bridge and against
-walls with the helicopter); each needs 5,000-14,000 cycles off, more than any lever left at this level (the
-measured, unbuilt ones are at the end of the brief's third and fourth rounds). The cars' bank on track 6,
+joysticks once measured on a real Master. The hazard race still has 106 frames over a TV frame, mostly a gate
+stepping (every 6 frames at the start) and cars under a bridge and against walls; the measured, unbuilt levers
+are at the end of the brief's third and fourth rounds. The fourth bank has 2,608 bytes free and the 4K under
+ANDY is empty, for the next thing worth it. The cars' bank on track 6,
 down to 1 byte, has 422 (the frames packed tighter), and the build's stamps no longer let a fast build pass
 for up to date.
 
