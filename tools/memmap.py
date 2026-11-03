@@ -5,7 +5,8 @@ Usage: memmap.py [LISTING] [--write]   (LISTING build/sprint.lst; --write: docs/
 make beeb TRACE=play)
 
 A part's size is from its INCLUDE to the next INCLUDE or the region's end in the same section; a file that only
-includes others shows as 0 and is left out. A region's end is its PRINTed free figure where it has one. The
+includes others shows as 0 and is left out. A file of constants only (every line `Name = ...`: the generators'
+lists) emits nothing and isn't a mark, so the file that includes it keeps the bytes after it. A region's end is its PRINTed free figure where it has one. The
 variables' sections (virtual) are read from their labels and SKIPs.
 """
 import os, re, sys
@@ -21,8 +22,21 @@ Regions = [                             # (name, the PRINT that gives its end, i
     ('Shared, both screens\' `&3070`-`&3EFF`', 'the &3000 area', 0x3F00),
 ]
 Labels = ['FxImage', 'LogicInputs', 'TraceData', 'HudEvents']   # data INCBINned, not INCLUDEd: marked by label
-Vars = {'GameVars': (0x2E00, 0x3000), 'ScreenVars': (0x3000, 0x3F00), 'LogicVars': (0x8E00, 0x9000),
-        'FxData': (0x3000, 0x3F00), 'LogicZp': (0x00, 0x100), 'Shared': (0x3000, 0x3F00)}
+Vars = {'Tables': (0x0400, 0x0800), 'LowFree': (0x0900, 0x0B00), 'ObjBuf': (0x2A00, 0x2B00),
+        'BlackTable': (0x2B00, 0x2C00), 'MoreTables': (0x2C00, 0x2E00), 'GameVars': (0x2E00, 0x3000), 'ScreenVars': (0x3000, 0x3070), 'LogicVars': (0x8E00, 0x9000),
+        'FxData': (0x3000, 0x3F00), 'LogicZp': (0x00, 0x100)}
+
+
+def constants_only(name, listing):
+    """True if an INCLUDEd file (as the listing names it, relative to src/) has nothing but assignments."""
+    f = os.path.normpath(os.path.join(os.path.dirname(listing), '..', 'src', name))
+    try:
+        text = open(f, errors='replace').read()
+    except OSError:
+        return False
+    body = [l.split(';')[0].strip() for l in text.split('\n')]
+    body = [l for l in body if l and not l.startswith('\\\\')]
+    return all(re.match(r'^\w+\s*=', l) for l in body)
 
 
 def parse(path):
@@ -38,7 +52,8 @@ def parse(path):
             continue
         m = re.match(r'^\s+([0-9A-F]{4})\s+INCLUDE "(.*)"', l)
         if m:
-            marks.append((int(m.group(1), 16), m.group(2).replace('../build/', ''), tuple(stack)))
+            if not constants_only(m.group(2), path):
+                marks.append((int(m.group(1), 16), m.group(2).replace('../build/', ''), tuple(stack)))
             continue
         m = re.match(r'^\s+([0-9A-F]{4})\s+\.(%s)$' % '|'.join(Labels), l)
         if m:
@@ -63,10 +78,13 @@ def var_use(lines, name):
             continue
         if not on:
             continue
-        m = re.match(r'^  ([0-9A-F]{4})\s+SKIP (\d+|\w+)', l)
+        m = re.match(r'^  ([0-9A-F]{4})\s+SKIP (.+?)\s*(;.*)?$', l)
         if m:
             a = int(m.group(1), 16)
-            n = int(m.group(2)) if m.group(2).isdigit() else consts.get(m.group(2), 1)
+            try:                        # a number, a constant, or arithmetic on them (SKIP 4 * MaxObjEvents)
+                n = int(eval(re.sub(r'&([0-9A-Fa-f]+)', r'0x\1', m.group(2)), {'__builtins__': {}}, consts))
+            except Exception:
+                n = 1
             lo = a if lo is None else min(lo, a)
             hi = a + n if hi is None else max(hi, a + n)
     return lo, hi
@@ -97,7 +115,9 @@ def report(path):
     for name, (lo, hi) in Vars.items():
         a, b = var_use(lines, name)
         if a is not None:
-            out.append(f'| {name} (`&{a:04X}`-`&{b - 1:04X}`) | {b - a:,} bytes of labels | |')
+            out.append(f'| {name} (`&{a:04X}`-`&{b - 1:04X}`) | {b - a:,} bytes of labels | {hi - b} |')
+        elif any(re.match(r'^SECTION %s\b' % name, l) for l in lines):
+            out.append(f'| {name} (`&{lo:04X}`-`&{hi - 1:04X}`) | nothing yet | {hi - lo} |')
     game = '\n'.join(lines[next(i for i, l in enumerate(lines) if l.startswith('SECTION BgFile')):])
     za = sorted({int(x, 16) for x in re.findall(r'= &([0-9A-F]{2}) \[auto\]', game)})   # (not !BOOT's)
     if za:
