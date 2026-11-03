@@ -338,3 +338,15 @@ ST's 320 x 200 pictures in the play area's 25 rows and the HUD row blank or used
 screen for the front end, with a CRTC change around each race.
 Tom: "I think keep the race's 26 row layout for all screens, so the screen only needs to get set up once. The spare row can be erased as appropriate."
 So: one layout for the whole game, set up once; the wipe runs between a race and a screen with no CRTC change.
+
+### D23. High scores and lap records: Decided (2026-11-03)
+Proposed (`docs/brief-phase5.md` §6): (a) saved to disc after each game as the ST does (its 295-byte
+`SSPRINT.HSC`), a failed save (a write-protected disc, Econet without rights) said in the HUD row and ignored;
+(b) kept for the session only.
+Tom chose (a) ("Save to disc").
+
+### D24. The ST's keys: Decided (2026-11-03)
+Proposed: the ST's F1 options, F5 the celebration shortened, F8 pause, F10 the race abandoned, Esc prepare to
+race ended, F9 sound on/off; on the BBC f1, f5, f8, f0 (it has no f10), Escape read from the matrix (Escape
+itself is off, D7), f9. The options screen offers each player keys or (later, D5) a joystick, and sound.
+Tom chose it as proposed ("Yes, as proposed").

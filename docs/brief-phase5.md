@@ -1,8 +1,8 @@
 # Brief - Phase 5, the game: the first steps
 
-> **Status: PROPOSED (2026-11-03), nothing built.** Branch `phase5`, off `c6f9495` (main, Phase 4 closed).
+> **Status: AGREED (2026-11-03), nothing built.** Branch `phase5`, off `c6f9495` (main, Phase 4 closed).
 > D18-D24 below are this brief's proposals. Tom, 2026-11-03: D18, D19, D20 and D22 decided as proposed;
-> D21 withdrawn (the play build already has every object, §2); D25 (the display) decided; D23 and D24 still Proposed.
+> D21 withdrawn (the play build already has every object, §2); D23, D24 and D25 (the display) decided too: none left open.
 >
 > Figures say **MEASURED** (a tool run, named), **COUNTED** (off the source, the ST's disassembly or a listing)
 > or **PROJECTED** (arithmetic on top).
@@ -11,8 +11,8 @@
 > `docs/st-graphics.md` "Track backgrounds" and "`SUPER.DAT`"; `docs/plan.md` Phase 5; D3, D7, D9, D11, D15,
 > D16.*
 
-**Resume point: §6, D23 and D24 for Tom.** Nothing is built until they're answered. Step 1 (this brief)
-is the only one done.
+**Resume point: step 2, room** (`beeb-ram-hunt`). Every decision is taken; step 1 (this brief) is the only
+one done.
 
 ## 0. The proposal in one paragraph
 
@@ -172,8 +172,8 @@ D3 and D7 decided the mechanism; what's left is what goes in each file, and the 
 | D20 | The cars' frames per race | (a) a file per combination of humans (8); (b) a file per colour, the tables built at the load | **Decided (Tom, 2026-11-03): (a)**, unless the disc doesn't fit (D22) |
 | D21 | (withdrawn) | The play build already makes every object a track can draw (§2) | |
 | D22 | The disc | (a) one 80-track single-sided DFS disc (200K, 31 files), copied as it is to MMFS, ADFS or Econet; (b) double-sided, the second side as drive 2; (c) ADFS only | **Decided (Tom, 2026-11-03): (a)**, measured at step 3 |
-| D23 | High scores and lap records | (a) saved to `SSPRINT.HSC`-style file as the ST does after each game, a failed save (write-protected disc, Econet without rights) said in the HUD row and ignored; (b) kept for the session only | (a) |
-| D24 | The ST's keys | F1 options, F5 shortens the celebration, F8 pause, F10 abandons the race, Esc ends prepare to race, F9 sound on/off: on the BBC f1, f5, f8, f0 (no f10), Escape (read from the matrix, Escape itself is off, D7), f9 | as stated; the options screen offers each player keys or (later, D5) a joystick, and sound |
+| D23 | High scores and lap records | (a) saved to `SSPRINT.HSC`-style file as the ST does after each game, a failed save (write-protected disc, Econet without rights) said in the HUD row and ignored; (b) kept for the session only | **Decided (Tom, 2026-11-03): (a)** |
+| D24 | The ST's keys | F1 options, F5 shortens the celebration, F8 pause, F10 abandons the race, Esc ends prepare to race, F9 sound on/off: on the BBC f1, f5, f8, f0 (no f10), Escape (read from the matrix, Escape itself is off, D7), f9 | **Decided (Tom, 2026-11-03): as stated**; the options screen offers each player keys or (later, D5) a joystick, and sound |
 
 Also to settle, not urgent before step 2:
 - **The display between races (D25)**: **Decided (Tom, 2026-11-03)**: the race's 26 rows for every screen,
