@@ -228,6 +228,7 @@ adds the logic.
   `docs/brief-phase4.md` §9, kept as the record.
 
 ### Phase 5: the game
+- The brief: `docs/brief-phase5.md` (Proposed, 2026-11-03: D18-D24 wait on Tom).
 - All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
   disc, and the loads through the OS (D3, D7), tested on DFS, MMFS, ADFS and Econet.
 
