@@ -2,7 +2,7 @@
 
 > **Status: PROPOSED (2026-11-03), nothing built.** Branch `phase5`, off `c6f9495` (main, Phase 4 closed).
 > D18-D24 below are this brief's proposals. Tom, 2026-11-03: D18, D19, D20 and D22 decided as proposed;
-> D21 withdrawn (the play build already has every object, §2); D23, D24 and the display still Proposed.
+> D21 withdrawn (the play build already has every object, §2); D25 (the display) decided; D23 and D24 still Proposed.
 >
 > Figures say **MEASURED** (a tool run, named), **COUNTED** (off the source, the ST's disassembly or a listing)
 > or **PROJECTED** (arithmetic on top).
@@ -11,7 +11,7 @@
 > `docs/st-graphics.md` "Track backgrounds" and "`SUPER.DAT`"; `docs/plan.md` Phase 5; D3, D7, D9, D11, D15,
 > D16.*
 
-**Resume point: §6, D23, D24 and the display for Tom.** Nothing is built until they're answered. Step 1 (this brief)
+**Resume point: §6, D23 and D24 for Tom.** Nothing is built until they're answered. Step 1 (this brief)
 is the only one done.
 
 ## 0. The proposal in one paragraph
@@ -176,8 +176,8 @@ D3 and D7 decided the mechanism; what's left is what goes in each file, and the 
 | D24 | The ST's keys | F1 options, F5 shortens the celebration, F8 pause, F10 abandons the race, Esc ends prepare to race, F9 sound on/off: on the BBC f1, f5, f8, f0 (no f10), Escape (read from the matrix, Escape itself is off, D7), f9 | as stated; the options screen offers each player keys or (later, D5) a joystick, and sound |
 
 Also to settle, not urgent before step 2:
-- **The display between races**: the same 26 rows as the race (no CRTC change, so the wipe runs from a race
-  to a screen and back), the HUD row blank or used for text. Proposed: the same 26 rows.
+- **The display between races (D25)**: **Decided (Tom, 2026-11-03)**: the race's 26 rows for every screen,
+  set up once; the pictures in the play area's 25 rows, the HUD row erased as each screen needs.
 - **The wipe**: the ST's 16 patterns in MODE 1's pixels, exact. About 16K read and written a step, ~160,000
   cycles (PROJECTED), so 4 fields a step, close to the ST's 3 to 5.
 - **The filing systems**: jsbeeb's Master has DFS and ADFS; MMFS and Econet need b2, b-em or a real machine

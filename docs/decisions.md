@@ -331,3 +331,10 @@ tables, not a traced race (`tools/gendata.py`'s `logic_objects`), so there was n
 Proposed: (a) one 80-track single-sided DFS disc (200K, 31 files) that copies as it is to MMFS, ADFS or
 Econet; (b) double-sided, the second side as drive 2; (c) ADFS only.
 Tom chose (a) ("80T single-side DFS"); its size and catalogue are measured at the brief's step 3.
+
+### D25. The display between races: Decided (2026-11-03)
+Proposed (`docs/brief-phase5.md` §6): every screen in the race's 26 rows (CRTC R6 = 26, start `&3F00`), the
+ST's 320 x 200 pictures in the play area's 25 rows and the HUD row blank or used for text; or a 25-row
+screen for the front end, with a CRTC change around each race.
+Tom: "I think keep the race's 26 row layout for all screens, so the screen only needs to get set up once. The spare row can be erased as appropriate."
+So: one layout for the whole game, set up once; the wipe runs between a race and a screen with no CRTC change.

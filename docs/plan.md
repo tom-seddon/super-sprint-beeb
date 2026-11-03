@@ -228,7 +228,7 @@ adds the logic.
   `docs/brief-phase4.md` §9, kept as the record.
 
 ### Phase 5: the game
-- The brief: `docs/brief-phase5.md` (2026-11-03: D18-D20 and D22 decided, D21 withdrawn; D23, D24 Proposed).
+- The brief: `docs/brief-phase5.md` (2026-11-03: D18-D20 and D22 decided, D21 withdrawn, D25 decided; D23, D24 Proposed).
 - All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
   disc, and the loads through the OS (D3, D7), tested on DFS, MMFS, ADFS and Econet.
 
@@ -257,6 +257,7 @@ adds the logic.
 | D19 | The game around the race | Decided (Tom, 2026-11-03): bit-exact, traced against Hatari |
 | D20 | Cars' frames per race | Decided (Tom, 2026-11-03): a file per combination of humans |
 | D22 | The disc | Decided (Tom, 2026-11-03): one 80-track single-sided DFS disc |
+| D25 | The display between races | Decided (Tom, 2026-11-03): the race's 26 rows for every screen, the HUD row erased as needed |
 
 ## Risks
 
