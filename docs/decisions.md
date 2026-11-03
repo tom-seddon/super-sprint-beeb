@@ -148,6 +148,8 @@ against `race_st.wav`, and each effect's `build/lgen/wav/*_ym.wav` against `*_sn
   octaves up, and its +- 900 alternation (every rate + 1 ticks of 749 Hz, 50 to 125 Hz) is sampled at 50 Hz;
 - the race's start keeps the ST's 1 s pause (50 VBLs), the start's sound in it.
 
+The engine agreed, Tom, 2026-11-03: "D11: the general engine sound sounds good to me." The other three details are still Proposed.
+
 ### D12. Keys: Decided in part (2026-11-02)
 Tom: "propose a three-player keyboard layout, check it for ghosting on paper and in jsbeeb, joysticks as an
 option alongside; I'll test it on a real BBC later."
