@@ -12,11 +12,11 @@
 
 **Resume point: Phase 4's end** (§8's last entries). Step 13 is done: every track's race 17 bit-exact through
 the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Speed's fourth round is done,
-and the helicopter replaced by a cue (D16): the hazard race's frames over a TV frame 311 -> 106 of 2,240 since
-round three (mean 34,228 -> 31,874 cycles); what's still over is mostly the gates' steps, cars under bridges
-and against walls, together. The fourth bank has 2,608 free and its first 4K (under ANDY) empty, for whatever
-is worth it next (a copy of mask B by column was measured and reverted: about 100 cycles for 2K). Left: the
-joysticks (once measured on a real Master).
+the helicopter replaced by a cue (D16), and frames are shown in the blank after the display, not at the
+vsync (D17): the fields repeating a frame on the nine races drawn from the logic 332 -> 42 (the hazard race
+105 -> 5), every frame exact. D17 waits on a real Master. The fourth bank has 2,608 free and its first 4K
+(under ANDY) empty. Left: the joysticks (once measured on a real Master); run-ahead logic (simulated 42 ->
+about 9 more for about 15 ms of latency) if Tom wants it.
 
 ## 0. The proposal in one paragraph
 
@@ -704,3 +704,12 @@ out of it (each row's numbered last, `MbDyn`). Exact, but MEASURED small (`7b70c
 about 100 less each, for 1,200-2,320 bytes of the fourth bank (track 8 left 229). The line loop it replaced
 cost less than projected (a column touches few of a cell's lines). Reverted (Tom: "Yes, revert it."); the room
 stays free.
+
+**The flip in the blank (D17)** (2026-11-03, Tom's idea: a VIA timer at the display's end). A frame is shown
+at the display's end if it was done during the display (System VIA T1, started at each vsync), at once if
+done in the blank, once a blank; before, it waited for the vsync, 40 lines later, and a frame that missed it
+waited a whole field. Measured: every flip lands in the blank (lines 212-309 of 208-311); the fields
+repeating a frame on the nine races drawn from the logic 332 -> 42 (the hazard race 105 -> 5), every frame
+exact. `render_check` now counts those fields (irq.6502's `Repeats`); its cycles a frame now take in the
+vsync's sound field (about 1,000), which used to fall just before a frame's start, so its "over a TV frame"
+no longer measures what's shown. A hardware gate: not yet seen on a real Master.

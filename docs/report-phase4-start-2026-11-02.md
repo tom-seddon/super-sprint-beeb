@@ -1,5 +1,9 @@
 # Report: Phase 4's first steps, 2026-11-02
 
+> **Waiting on hardware (D17):** frames are now shown by flipping in the blank after the display, timed by
+> System VIA T1 and T2 from the vsync. Every flip lands in the blank in jsbeeb (lines 212-309); please look at
+> `make beeb TRACE=play` (or any race) on your Master for tearing or a jumping picture.
+
 **Where it ended.** On the branch `phase4-start` (not merged, not pushed). Track 1's race runs on the BBC
 from its own logic, bit-exact with the ST on every frame of the traced race, drawn exactly (every frame
 matches the model), with three players on the keys (Q W E, V B N, , . /; you've tried it in jsbeeb) and now
@@ -11,8 +15,9 @@ then made room (main RAM 52 -> 416 bytes free, the fourth bank 136 -> 2,398, not
 play changed), and the hazards went in: the tornado, pop-up barriers, gates and cones, bit-exact on track 5's
 race 17 and drawn from the logic, all 2,240 frames matching. That race was too slow: a third of its
 frames took two TV frames. Twenty-four exact speed changes in four rounds, then the helicopter replaced by a
-blinking cue (D16), bring the frames over a TV frame to 106 of 2,240 (from 734), the average 38,207 ->
-31,874 cycles; what's still over is mostly gate steps and cars under bridges and against walls (below).
+blinking cue (D16), and showing a frame in the blank as soon as it's done rather than at the next vsync
+(D17, your idea), bring the fields that repeat a frame to 5 of the hazard race's 2,240 (734 before step 12),
+42 over all nine races drawn from the logic (332 before D17).
 
 ## What was built and what proves it
 
@@ -108,6 +113,10 @@ blinking cue (D16), bring the frames over a TV frame to 106 of 2,240 (from 734),
   same from the trace. Frames over 150 -> 106; the fourth bank 1,476 -> 2,608 free, its first 4K empty. A
   copy of mask B by column, for the wall columns, was built and measured (exact, about 100 cycles a frame
   for up to 2,320 bytes) and reverted at your word.
+- **The flip in the blank** (D17, your timer at the display's end): System VIA T1 at the display's end
+  shows a frame done during the display; one done in the blank is shown at once; T2 closes the blank before
+  the next display. Fields repeating a frame 332 -> 42 over the nine races, every frame exact; `render_check`
+  counts them now.
 - **The other tracks** (step 13): every track's race 17 traced from the logic's side and replayed through
   the BBC's logic, exact on every frame, and drawn from it exactly. Five of the seven new tracks were exact
   at once; four faults fixed: the bonus's cell (stored before the free test, as the ST), the helicopter's
@@ -136,9 +145,9 @@ blinking cue (D16), bring the frames over a TV frame to 106 of 2,240 (from 734),
 
 Resume point: **Phase 4's end** (`docs/brief-phase4.md`). Every track's race 17 now runs bit-exact through the
 BBC's logic and is drawn exactly from it (`tools/tracks_check.sh`: 48 checks). What's left of Phase 4: the
-joysticks once measured on a real Master. The hazard race still has 106 frames over a TV frame, mostly a gate
-stepping (every 6 frames at the start) and cars under a bridge and against walls; the measured, unbuilt levers
-are at the end of the brief's third and fourth rounds. The fourth bank has 2,608 bytes free and the 4K under
+joysticks once measured on a real Master, and D17 seen on it. 42 fields still repeat a frame over the nine
+races (a gate stepping, cars under a bridge and against walls, together); running the logic a frame ahead
+would take that to about 9 (simulated) for about 15 ms more latency, your call. The fourth bank has 2,608 bytes free and the 4K under
 ANDY is empty, for the next thing worth it. The cars' bank on track 6,
 down to 1 byte, has 422 (the frames packed tighter), and the build's stamps no longer let a fast build pass
 for up to date.

@@ -17,8 +17,10 @@ Every frame it draws is checked byte for byte against a model made from the ST's
   alone (D7). The frame loop then plays the race over and over.
 - **The screen**: MODE 1, 26 rows from `&3F00` (R6 = 26, R7 = 31, R12/R13 = `&07E0`), the HUD's row
   and the 25-row play area from `&4180`. One screen in main RAM, one in shadow RAM. The
-  vsync IRQ (the System VIA's CA1, its only interrupt) flips ACCCON's D bit when the main loop asks; the
-  main loop then flips X, so it draws into the screen not shown. All the code and variables that run
+  frame drawn is shown by flipping ACCCON's D bit in the blank between displays (D17): at the display's
+  end (line 208, by System VIA T1, started at each vsync) if it was done during the display, at once if
+  done in the blank, once a blank (`irq.6502`); the main loop then flips X, so it draws into the screen
+  not shown. All the code and variables that run
   during a frame are below `&3000` or in a bank, so X never hides them, but for each screen's own
   variables (ScreenVars, `&3000`): its erase list and the HUD's text it shows, main RAM's and shadow RAM's
   copies, so X picks the screen being drawn's (Tom's idea).
