@@ -153,8 +153,9 @@ blinking cue (D16), and showing a frame in the blank as soon as it's done rather
 ## What is open
 
 Resume point: **Phase 4's end** (`docs/brief-phase4.md`). Every track's race 17 now runs bit-exact through the
-BBC's logic and is drawn exactly from it (`tools/tracks_check.sh`: 48 checks). What's left of Phase 4: the
-joysticks once measured on a real Master (D17 has been seen on it). 42 fields still repeat a frame over the nine
+BBC's logic and is drawn exactly from it (`tools/tracks_check.sh`: 48 checks). Nothing of Phase 4's
+building is left: D17 has been seen on your Master, and the joysticks are left open, not urgent (D5,
+2026-11-03); three players on the keys waits on a three-person playtest. 42 fields still repeat a frame over the nine
 races (a gate stepping, cars under a bridge and against walls, together); running the logic a frame ahead
 would take that to about 9 (simulated) for about 15 ms more latency, your call. The fourth bank has 1,828 bytes free (play build) and the 4K under
 ANDY is empty, for the next thing worth it. The cars' bank on track 6,

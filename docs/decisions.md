@@ -58,6 +58,9 @@ as joysticks weren't super popular on the BBC. Leave thinking about keyboard cla
 So: any player can be on the keyboard, all three included, and the joysticks are an option rather than the
 way in. The input code reads each player's left, right and accelerate from either. Which keys, and what
 ghosting allows, is left until later.
+Tom, 2026-11-03: "D5: let's leave joysticks open for now. I think it's probably worth supporting, but not urgent. Joysticks weren't terribly popular on the BBC, and the sort of digital arcade-type joystick that would work for ST Super Sprint even less so." And: "3 players on keyboard is a bit of a squeeze but this can wait until a proper 3 person playtest."
+So the joysticks are open and not part of Phase 4; the three-player keyboard waits on a three-person
+playtest (with D12's real-keyboard check).
 
 ### D6. The HUD: Decided (2026-11-01)
 Tom: "it might be worth showing the scores and lap indicators as simple 8-pixel text, outside the main 320x200
@@ -171,7 +174,8 @@ no ghosting, `tools/keys_check.mjs` holds each alone and all nine together and t
 player's. The disc to try it: `make beeb TRACE=play` (track 1, three players, car 3 the drone, the race
 restarting when it ends). Alternatives if a key is awkward: any other key in the same column keeps the
 property (SLASH's column 8 also holds `:`, `]`, `[`, `^`, `_`, `\`; RETURN, in column 9, is free for any one
-player). Not built yet: the joysticks (the Master's ADC and the fire buttons are to be measured first).
+player). Not built yet: the joysticks (the Master's ADC and the fire buttons are to be measured first), left
+open by Tom 2026-11-03 (D5).
 The real keyboard's gate deferred, Tom, 2026-11-03: "D12: I think this one can wait. If there turn out to be problems with the keys chosen, we can choose a different set." The layout stays as built; a
 problem found later means another set, each key still in a column of its own.
 

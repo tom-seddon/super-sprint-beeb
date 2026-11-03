@@ -15,7 +15,7 @@ the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). 
 the helicopter replaced by a cue (D16), and frames are shown in the blank after the display, not at the
 vsync (D17): the fields repeating a frame on the nine races drawn from the logic 332 -> 42 (the hazard race
 105 -> 5), every frame exact. D17 seen on a real Master (no tearing). The fourth bank has 2,608 free and its first 4K
-(under ANDY) empty. Left: the joysticks (once measured on a real Master); run-ahead logic (simulated 42 ->
+(under ANDY) empty. Left open (Tom, 2026-11-03, D5): the joysticks, not urgent; three on the keys waits on a playtest. Optional: run-ahead logic (simulated 42 ->
 about 9 more for about 15 ms of latency) if Tom wants it.
 
 ## 0. The proposal in one paragraph

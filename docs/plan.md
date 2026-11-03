@@ -249,7 +249,7 @@ adds the logic.
 | D2 | Frame rate | Decided (Tom, 2026-11-01): 50 fps the goal; logic once a frame, as the ST |
 | D3 | Multiload or all in memory | Decided (Tom, 2026-11-01): one track's data per race, loaded through the OS |
 | D4 | Machines | Decided (Tom, 2026-11-01): Master 128 only, CMOS opcodes allowed; 4 free banks of sideways RAM needed |
-| D5 | Controls | Decided in part (Tom, 2026-11-01): any player on the keyboard, all three included; joysticks optional; ghosting later |
+| D5 | Controls | Decided in part (Tom, 2026-11-01): any player on the keyboard, all three included; joysticks optional, left open, not urgent (Tom, 2026-11-03); three on the keys waits on a three-person playtest |
 | D6 | HUD | Decided (Tom, 2026-11-01): one row of 8-pixel text above the play area |
 | D8 | Object sprites | Decided (Tom, 2026-11-01): the explosion and helicopter snapped to 4-pixel steps |
 | D7 | Bringing the OS back for a load | Decided (Tom, 2026-11-01): leave the OS's memory alone; HAZEL through a bank only if needed |
