@@ -182,7 +182,6 @@ SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec 
         INCLUDE "../build/lgen/path.6502"
         INCLUDE "../build/lgen/probes.6502"
         INCLUDE "../build/lgen/pshift.6502"
-        INCLUDE "../build/lgen/wallcols.6502"
         PRINT "the logic's bank: ", P% - AndyEnd, " bytes from ANDY's end"
     ENDSECTION
 .bank_end

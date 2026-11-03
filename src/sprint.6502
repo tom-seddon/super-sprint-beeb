@@ -50,7 +50,6 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
             INCLUDE "arithtabs.6502"
             INCLUDE "../build/lgen/cells.6502"
             INCLUDE "../build/lgen/pshift.6502"
-            INCLUDE "../build/lgen/wallcols.6502"
             PRINT "the fourth bank: ", SwramEnd - P%, " bytes free"
         ELSE
             INCLUDE "heli.6502"

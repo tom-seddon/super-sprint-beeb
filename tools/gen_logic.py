@@ -21,9 +21,7 @@ Writes:
 - OUTDIR/walls.6502: the track's mask B as D13 stores it (tools/maskb.py); OUTDIR/probes.6502: the walls'
   probes per facing, the probed lines and columns (G_01E160) (read-only: the game has them in both screens'
   &3000 area, with the path); OUTDIR/pshift.6502: what of a car's frame they test, by its set of shapes and
-  shifted to its place in mask B's bytes (in the walls' bank); OUTDIR/wallcols.6502: mask B's mixed cells by
-  column, for the wall columns' test (the cells a gate or barrier changes left out of its use: each row's
-  first such, MbDyn), also in the walls' bank.
+  shifted to its place in mask B's bytes (in the walls' bank).
 
 The probes. F_01519C ANDs each of a car's 12 lines of opacity (its frame's pixels that aren't colour 8,
 the frame car * 16 + facing, + 64 if a drone drives it) with mask B, the opacity's column j over the
@@ -139,7 +137,7 @@ def tables():
 
 
 def walls(track, drones):
-    hdr, maps, cells, dyn = maskb.encode_dyn(track)
+    hdr, maps, cells = maskb.encode(track)
     rows = [hdr[r * 8:r * 8 + 8] for r in range(25)]
     lo = [h[0] for h in rows]
     n = [h[1] for h in rows]
@@ -219,14 +217,6 @@ def walls(track, drones):
         *eq('PRight0', 'the right column\'s', [r & 255 for t, b, l, r in shifted]),
         *eq('PRight1', '', [r >> 8 & 255 for t, b, l, r in shifted]),
         *eq('PRight2', '', [r >> 16 for t, b, l, r in shifted]),
-        '']), '\n'.join([
-        '\\\\ wallcols.6502 - track %d\'s mask B\'s mixed cells by column (tools/gen_logic.py): read only by walls.6502, in its bank' % (track + 1),
-        '',
-        *eq('MbDyn', 'a cell row\'s first mixed cell a gate or barrier can change (its number; 255 none)', dyn),
-        f'.{"MbCols":<38}; MbCells\' cells by column, at the same offsets: a cell\'s column c (bit 7 of a line',
-        '                                        ; the leftmost, c 0) a byte, bit n its line n',
-        '    EQUB ' + byte_list([sum(((cells[i - i % 8 + n] >> (7 - i % 8)) & 1) << n for n in range(8))
-                                 for i in range(len(cells))]),
         ''])
 
 
@@ -326,11 +316,10 @@ def main(trace_path, out):
     drone = [m[str(0x1E34C + 2 * c)] << 8 | m[str(0x1E34C + 2 * c + 1)] for c in range(4)]
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, 'tables.6502'), 'w').write(tables())
-    wtext, ptext, stext, ctext = walls(t['track'], drone)
+    wtext, ptext, stext = walls(t['track'], drone)
     open(os.path.join(out, 'walls.6502'), 'w').write(wtext)
     open(os.path.join(out, 'probes.6502'), 'w').write(ptext)
     open(os.path.join(out, 'pshift.6502'), 'w').write(stext)
-    open(os.path.join(out, 'wallcols.6502'), 'w').write(ctext)
     open(os.path.join(out, 'cells.6502'), 'w').write(cells(t['track']))
     open(os.path.join(out, 'path.6502'), 'w').write(path(t['track']))
     open(os.path.join(out, 'hazards.6502'), 'w').write(hazards(t['track']))
