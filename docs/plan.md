@@ -88,7 +88,9 @@ and a CRT: the checkerboard reads as grey and isn't too busy).
 | `&0000`-`&00FF` | 256 | Zero page; `&90`-`&FF` swapped with a copy around a load (D7) |
 | `&0100`-`&03FF` | 768 | Stack; the OS's vectors and variables (the game hooks IRQ1V and BRKV only) |
 | `&0400`-`&07FF` | 1,024 | The game's (the language's workspace) |
-| `&0800`-`&0DFF` | 1,536 | The OS's: sound, buffers, the NMI handler |
+| `&0800`-`&08FF` | 256 | The OS's: sound, the printer buffer |
+| `&0900`-`&0AFF` | 512 | The game's (D26): the MOS's serial and cassette buffers, unused; kept across loads |
+| `&0B00`-`&0DFF` | 768 | The OS's: soft keys, the font, the NMI handler |
 | `&0E00`-`&2FFF` | 8,704 | IRQ, main loop, game logic, state |
 | `&3000`-`&3EFF` main | 3,840 | The main screen's own variables (ScreenVars: its erase list, the HUD text it shows); tables, a copy in each, always readable (Tom's idea) |
 | `&3F00`-`&7FFF` main | 16,640 | Screen A |
@@ -223,7 +225,7 @@ adds the logic.
   another sound later.
 - Room, the play build (track 1, `docs/memory-map.md`): main RAM's code 103 bytes free, the fourth bank
   1,828, ANDY 1,496, Shared 1,146, the cars' bank 2,245, the objects' 7,273. The tightest tracks are in
-  `docs/brief-room-2026-11-02.md` and `tools/all_tracks.sh`. Main RAM is the binding region for Phase 5.
+  `docs/brief-room-2026-11-02.md` and `tools/all_tracks.sh`. Main RAM is the binding region for Phase 5: 780 bytes free after Phase 5's room hunt, and `&0900`-`&0AFF` (D26).
 - Phase 3's budget for the logic (the cycles the renderer left a frame by track, and the memory) is in
   `docs/brief-phase4.md` §9, kept as the record.
 
@@ -259,6 +261,7 @@ adds the logic.
 | D22 | The disc | Decided (Tom, 2026-11-03): one 80-track single-sided DFS disc |
 | D23 | High scores | Decided (Tom, 2026-11-03): saved to disc, a failed save shown and ignored; lower priority, dropped if the catalogue or room runs short |
 | D24 | The ST's keys | Decided (Tom, 2026-11-03): f1, f5, f8, f0 (for F10), f9, Escape from the matrix |
+| D26 | `&0900`-`&0AFF` | Decided (Tom, 2026-11-03): the game's, kept across loads (revises D7) |
 | D25 | The display between races | Decided (Tom, 2026-11-03): the race's 26 rows for every screen, the HUD row erased as needed |
 
 ## Risks
@@ -270,7 +273,7 @@ adds the logic.
   together).
 - **Keyboard ghosting**: none possible on paper with the chosen nine keys (each in its own column); untried
   on a real BBC with three players (D12).
-- **Main RAM** has 103 bytes free in the play build; Phase 5's loader and front end need room found first
+- **Main RAM** has 780 bytes free in the play build after Phase 5's room hunt, and `&0900`-`&0AFF` (D26)
   (`beeb-ram-hunt`).
 - **A filing system in sideways RAM** (MMFS is often loaded that way) leaves 3 banks; the game needs 4 free
   (D4), so such a machine is told so at boot.

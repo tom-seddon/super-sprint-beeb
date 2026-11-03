@@ -84,7 +84,7 @@ renderer's from `src/sprint.6502` and `docs/renderer.md`):
 | The attribute map, slots, probes (`lgen/cells`) | the fourth bank | 1,195 | track |
 | The drone path (`lgen/path`) | Shared | 616 to 994 | track |
 | The hazards' boxes (`lgen/hazards`) | Shared | about 285 | track |
-| The background objects' variants (`objdata`, `gen/objects`) | the objects' bank, and **main RAM** | 3,589, and 1,600 of tables in main RAM | track (its gates, barriers' kinds, banner) |
+| The background objects' variants and tables (`objdata`) | the objects' bank | 3,589 | track (its gates, barriers' kinds, banner) |
 | `TrackGates`, the banner's place, `LgTrack`, `LgRace` | assembled constants | | track, race |
 
 Same on every track: the probes and their pre-shifted shapes, `lgen/tables`, the tornado's compiled code,
@@ -98,7 +98,7 @@ Two things in that table aren't just data moving:
   gate and barrier frame the track has, from the ST's tables (`logic_objects`), all 22 slot sprites, and
   every moving object's frames (explosion, sparks, the track's banner); only the renderer test's builds
   pick variants from a traced race (`frames_used`). So a track's objects need no new work, only moving into
-  its file; the main RAM tables (1,600 bytes) are per track, as the rest. (COUNTED, `tools/gendata.py`;
+  its file. (COUNTED, `tools/gendata.py`;
   the first draft of this brief had it the other way, D21 withdrawn.)
 
 ## 3. The ledger
@@ -109,7 +109,7 @@ it):
 
 | Region | Free now (track 1) | Phase 5 wants | Where it comes from |
 |---|---|---|---|
-| Main RAM's code (`&0E00`-`&29FF`) | 103 | the game's sequence glue: paging the front end in and out, ~100 | gen/objects' tables (1,600) moved to the objects' bank: lever 1 |
+| Main RAM's code (`&0E00`-`&29FF`) | 103 | the game's sequence glue: paging the front end in and out, ~100 | the room hunt (`docs/brief-ram-2026-11-03.md`): 780 free after it |
 | GameVars (`&2E00`-`&2FFF`) | 174 (338 of 512 used) | the state that outlives a race: scores 24, devices 3, wrenches and upgrades (already in the logic's state, which ANDY keeps), race count, track, the attract's place: ~60 | itself |
 | The fourth bank's first 4K (`&8000`-`&8FFF`, under ANDY while the logic runs) | 4,096 (D16) | the game's rules between races, the loader's code (copied out to run), the high-score and lap-record tables (295) | itself |
 | The background's bank | 177 in a race | between races: the front end's code, font, the screen's picture packed, its tune | itself: reloaded for the next race |
@@ -121,8 +121,10 @@ it):
 
 **Main RAM is the binding region, and the plan is not to put anything there.** The levers, to cost in a
 `beeb-ram-hunt` before the loader is written (step 2):
-1. `gen/objects`' 1,600 bytes of variant tables into the objects' bank (7,273 free on track 1, 2,567 on
-   track 5, §8), read with that bank paged (its plotters are already there).
+1. Code and tables only the logic reads, into the logic's bank, and read-only data into Shared: built in
+   `docs/brief-ram-2026-11-03.md` (main RAM 103 -> 780). (First proposed here: `gen/objects`' "1,600 bytes
+   of tables" into the objects' bank. There were none: the memory map credited `objects.6502`'s own code to
+   the constants file it includes, fixed in `tools/memmap.py`.)
 2. The loader's code (the zero-page swap, the vectors, OSFILE, the unpacker) kept in the fourth bank's first
    4K and copied into the main screen to run: the display shows only the HUD row during a load (D7), and code
    calling OSFILE can't sit in `&8000`-`&BFFF` (the filing system's ROM is paged in there). Main RAM keeps a
@@ -189,13 +191,22 @@ Each one commit with its measurement in the body; the suite (`tools/suite.sh`, `
 touches the build.
 
 1. **This brief, D18-D24** - no code. (Done.)
-2. **Room** (`beeb-ram-hunt`): §3's levers costed, lever 1 built, the ledger regenerated. Proved by: the suite;
+2. **Room** (`beeb-ram-hunt`, `docs/brief-ram-2026-11-03.md`): §3's levers costed, the cheap ones built, the ledger regenerated. (Done: main RAM 103 -> 780, and `&0900`-`&0AFF` the game's, D26.) Proved by: the suite;
    the default disc byte-identical where nothing should change (`beeb-identical-build`).
 3. **One build, every track**: the per-track constants made variables; the generators write a file per track
    (and per car combination, D20) instead of assembling one; the loader (D7's sequence, the ZX02 unpacker)
    loads track n's files before a race. The disc's size and catalogue measured (D22). Proved by: the Phase 4
    oracles, all eight tracks' race 17 replayed from the one disc, every frame exact (`tools/tracks_check.sh`
    driven through the loads); a load timed in jsbeeb and on Tom's Master.
+   **Zero page around a load** (Tom asked, 2026-11-03; nothing of it built yet): in a race the game owns
+   `&04`-`&FF` but `&FC`, over the MOS's NMI workspace `&A0`-`&A7`, the filing system's transient `&B0`-`&BF`
+   and its persistent `&C0`-`&CF`. The takeover saves the OS's `&90`-`&FF` (112 bytes) before the game
+   writes any of it (today it doesn't: `src/entry.6502`); a load swaps the game's out and the OS's in, and
+   back after it, so every OS and filing-system call sees its own values, and whatever a filing system leaves
+   in `&B0`-`&BF` is swapped out before the game resumes. `&00`-`&8F` is the language's, unused, never swapped.
+   The two copies go in `&0900`-`&0AFF` (D26), which survives loads. The loader's own code uses no zero page
+   at `&90`-`&FF` while the OS is back. Proved by: a sentinel in the OS's copy across a race (`beeb-bss-bugs`),
+   and `*CAT` and a load working after it on DFS, ADFS and Econet.
 4. **The race count's hazards on every track**: races traced with the barriers (every third race) and
    without, the tornado (after race 3) and without, on each track, through the one disc's loads. (D21's
    question withdrawn: the objects are already complete per track.)
@@ -230,5 +241,5 @@ Each track's play build (three humans, race 17's objects), free bytes by region 
 
 Every track assembles. In one build for every track each region has to hold the largest track's part, so
 the fixed parts' room is the column minimum: ANDY 237, Shared 768, the cars' bank 422, the objects' bank
-2,491 (lever 1's 1,600 fits there on every track). The fourth bank and main RAM are the same on every track:
-nothing per track lives in them but `lgen/cells` (the same size on each) and `gen/objects`' tables.
+2,491. The fourth bank and main RAM are the same on every track: nothing per track lives in them but
+`lgen/cells` (the same size on each). (Before the room hunt: see `docs/brief-ram-2026-11-03.md` for after.)

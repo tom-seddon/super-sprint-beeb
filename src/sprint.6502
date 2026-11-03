@@ -10,6 +10,7 @@ INCLUDE "constants.6502"
 INCLUDE "memory.6502"
 INCLUDE "macros.6502"
 INCLUDE "../build/gen/trace.6502"       ; (GenLogic: the race drawn from the logic, Phase 4 step 8)
+INCLUDE "../build/gen/font.6502"        ; the HUD's glyphs (Font: in Shared in the game, main RAM in the test)
 
 IF GenLogic
     INCLUDE "../build/gen/logickeys.6502"
@@ -48,6 +49,8 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
             INCLUDE "logicframe.6502"
             INCLUDE "logictabs.6502"
             INCLUDE "arithtabs.6502"
+            INCLUDE "arith.6502"        ; (the logic's alone: in its bank, Phase 5's room)
+            INCLUDE "../build/lgen/tables.6502"
             INCLUDE "../build/lgen/cells.6502"
             INCLUDE "../build/lgen/pshift.6502"
             PRINT "the fourth bank: ", SwramEnd - P%, " bytes free"
@@ -100,9 +103,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
         INCLUDE "irq.6502"
         INCLUDE "main.6502"
         INCLUDE "hud.6502"
-        INCLUDE "objects.6502"
         IF GenLogic
-            INCLUDE "arith.6502"
             INCLUDE "random.6502"
             INCLUDE "race.6502"
             INCLUDE "human.6502"
@@ -110,8 +111,8 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
                 INCLUDE "keyboard.6502"
             ENDIF
             INCLUDE "sound.6502"
-            INCLUDE "../build/lgen/tables.6502"
         ENDIF
+        INCLUDE "objects.6502"          ; (last: its loops' page padding least here)
         PRINT "main RAM's code: ", ObjBufOrg - P%, " bytes free below ObjBuf"
         ASSERT P% <= ObjBufOrg, "main RAM's code: below ObjBuf"
     ENDSECTION

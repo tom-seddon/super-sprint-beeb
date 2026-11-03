@@ -353,3 +353,14 @@ Proposed: the ST's F1 options, F5 the celebration shortened, F8 pause, F10 the r
 race ended, F9 sound on/off; on the BBC f1, f5, f8, f0 (it has no f10), Escape read from the matrix (Escape
 itself is off, D7), f9. The options screen offers each player keys or (later, D5) a joystick, and sound.
 Tom chose it as proposed ("Yes, as proposed").
+
+### D26. `&0900`-`&0AFF`, the MOS's serial and cassette buffers: Decided (2026-11-03)
+Revises D7, which left `&0800`-`&0DFF` to the OS. Tom, 2026-11-03, on the memory map: "$900...$aff - tape/serial
+buffers, again not used by the game". Then: "These regions are documented in the official Master Reference
+Manual."
+So: `&0900`-`&0AFF` (512 bytes) is the game's, kept across loads. Checked in jsbeeb 2.18.0 (Master, MOS 3.20), a
+pattern in both pages, then `*CAT`, `*LOAD`, `*SAVE`, `*LOAD` on the 1770 DFS: 0 of 512 bytes changed; on
+ANFS (MasterANFS), the logon refused ("No directory") and the pattern intact. ADFS not tried (jsbeeb's
+MasterADFS reached no prompt without a disc): Phase 5's step 11 tries the real loader on each. `&0800`-`&08FF`
+and `&0B00`-`&0DFF` stay the OS's. (`&0400`-`&07FF`, the language's workspace, was already the game's: the car
+plotter's tables.)
