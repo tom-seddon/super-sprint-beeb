@@ -16,7 +16,7 @@ VENV = .venv/installed
 # (index 0 to 7; t4 is the default's); TRACE=attract the attract mode's race on track 6; TRACE=logic0 the
 # logic trace's race on track 1, drawn from the BBC's own race logic (Phase 4, step 8); TRACE=logic4 the default
 # race (track 5, race 17, the hazards) drawn from the BBC's logic (step 11), and TRACE=h0 to h7 race 17 on
-# track 1 to 8 so (h4 is logic4); TRACE=play the same race to play (make beeb TRACE=play): three players on the keys (Q W E, V B N, , . /), car 3 a drone.
+# track 1 to 8 so (h4 is logic4); TRACE=play the same race to play (make play: build/play.ssd): three players on the keys (Q W E, V B N, , . /), car 3 a drone.
 TRACE ?= race
 RACE = 17
 FORCE = tornado,cones
@@ -54,7 +54,7 @@ GEN = build/gen
 # A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
 .DELETE_ON_ERROR:
 
-.PHONY: all venv disasm tracks convert sheets viewer beeb check clean always logictrace logic logiccheck
+.PHONY: all venv disasm tracks convert sheets viewer beeb play check clean always logictrace logic logiccheck
 
 all: disasm convert sheets viewer beeb
 
@@ -168,6 +168,12 @@ $(GEN)/cars.6502: tools/gendata.py tools/convert.py tools/st_sprites.py tools/ob
 	$(PY) tools/gendata.py $(TRACK) $(TRACEFILE) $(GEN) $(GENFLAGS)
 
 beeb: build/sprint.ssd
+
+# The disc to play (TRACE=play's build), kept as build/play.ssd: build/sprint.ssd is whichever build was made
+# last, and every check makes its own.
+play:
+	$(MAKE) beeb TRACE=play
+	cp build/sprint.ssd build/play.ssd
 build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(LOGICDEPS)
 	baron -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
 

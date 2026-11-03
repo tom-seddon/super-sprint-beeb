@@ -2,7 +2,7 @@
 
 > **Waiting on hardware (D17):** frames are now shown by flipping in the blank after the display, timed by
 > System VIA T1 and T2 from the vsync. Every flip lands in the blank in jsbeeb (lines 212-309); please look at
-> `make beeb TRACE=play` (or any race) on your Master for tearing or a jumping picture.
+> `build/play.ssd` (`make play`) on your Master for tearing or a jumping picture.
 
 **Where it ended.** On the branch `phase4-start` (not merged, not pushed). Track 1's race runs on the BBC
 from its own logic, bit-exact with the ST on every frame of the traced race, drawn exactly (every frame
@@ -10,7 +10,7 @@ matches the model), with three players on the keys (Q W E, V B N, , . /; you've 
 sound: the ST's effects captured from its own YM and converted for the SN76489, the engines live. The
 sound's starters match the ST's call for call, and every effect the ST started is found at the BBC's chip
 field for field; how it sounds is yours to judge: `build/sound/race_bbc.wav` against `race_st.wav`, and
-each effect in `build/lgen/wav`. A disc to play: `build/play.ssd` (`make beeb TRACE=play`). A RAM hunt
+each effect in `build/lgen/wav`. A disc to play: `build/play.ssd` (`make play`). A RAM hunt
 then made room (main RAM 52 -> 416 bytes free, the fourth bank 136 -> 2,398, nothing on the screen or in the
 play changed), and the hazards went in: the tornado, pop-up barriers, gates and cones, bit-exact on track 5's
 race 17 and drawn from the logic, all 2,240 frames matching. That race was too slow: a third of its
