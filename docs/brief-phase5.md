@@ -1,7 +1,8 @@
 # Brief - Phase 5, the game: the first steps
 
 > **Status: PROPOSED (2026-11-03), nothing built.** Branch `phase5`, off `c6f9495` (main, Phase 4 closed).
-> D18-D24 below are this brief's proposals, Proposed until Tom agrees.
+> D18-D24 below are this brief's proposals. Tom, 2026-11-03: D18, D19, D20 and D22 decided as proposed;
+> D21 withdrawn (the play build already has every object, §2); D23, D24 and the display still Proposed.
 >
 > Figures say **MEASURED** (a tool run, named), **COUNTED** (off the source, the ST's disassembly or a listing)
 > or **PROJECTED** (arithmetic on top).
@@ -10,7 +11,7 @@
 > `docs/st-graphics.md` "Track backgrounds" and "`SUPER.DAT`"; `docs/plan.md` Phase 5; D3, D7, D9, D11, D15,
 > D16.*
 
-**Resume point: §6, the questions for Tom.** Nothing is built until they're answered. Step 1 (this brief)
+**Resume point: §6, D23, D24 and the display for Tom.** Nothing is built until they're answered. Step 1 (this brief)
 is the only one done.
 
 ## 0. The proposal in one paragraph
@@ -83,7 +84,7 @@ renderer's from `src/sprint.6502` and `docs/renderer.md`):
 | The attribute map, slots, probes (`lgen/cells`) | the fourth bank | 1,195 | track |
 | The drone path (`lgen/path`) | Shared | 616 to 994 | track |
 | The hazards' boxes (`lgen/hazards`) | Shared | about 285 | track |
-| The background objects' variants (`objdata`, `gen/objects`) | the objects' bank, and **main RAM** | 3,589, and 1,600 of tables in main RAM | the race's objects (D21) |
+| The background objects' variants (`objdata`, `gen/objects`) | the objects' bank, and **main RAM** | 3,589, and 1,600 of tables in main RAM | track (its gates, barriers' kinds, banner) |
 | `TrackGates`, the banner's place, `LgTrack`, `LgRace` | assembled constants | | track, race |
 
 Same on every track: the probes and their pre-shifted shapes, `lgen/tables`, the tornado's compiled code,
@@ -93,10 +94,12 @@ Two things in that table aren't just data moving:
 - **The cars' frames depend on who's human.** A race stores the human cars' own sets and, if any of cars 0-2
   is a drone, the drone-driven set: 64 + 16 frames at most (`docs/renderer.md`). In the game that changes
   between races (joining, elimination), and the demo race draws all four cars in their own colours.
-- **The objects' variants were made from the traced race**: only the variants that race drew. A real race on
-  the track can draw any of them (the barriers only every third race, the tornado after race 3, the cones
-  and the oil-type hazards by chance), so the per-track set is the union over every race, and the main RAM
-  tables (1,600 bytes) are per track too.
+- **The objects are already complete per track.** In the play build `tools/gendata.py --logic` makes every
+  gate and barrier frame the track has, from the ST's tables (`logic_objects`), all 22 slot sprites, and
+  every moving object's frames (explosion, sparks, the track's banner); only the renderer test's builds
+  pick variants from a traced race (`frames_used`). So a track's objects need no new work, only moving into
+  its file; the main RAM tables (1,600 bytes) are per track, as the rest. (COUNTED, `tools/gendata.py`;
+  the first draft of this brief had it the other way, D21 withdrawn.)
 
 ## 3. The ledger
 
@@ -152,9 +155,8 @@ D3 and D7 decided the mechanism; what's left is what goes in each file, and the 
 
 - The per-track file sizes assume 2:1 packing for the logic's data and the priority cells; nothing but the
   background has been packed.
-- The cars' bank with every hazard and three humans is 422 bytes free on track 6; a race's objects become the union over every race (§2), so the objects'
-  bank (2,491 free on track 5) and the cars' bank (422 on track 6) are the likely casualties, not main RAM
-  (§8).
+- The tightest banks per track are the objects' (2,491 free on track 5) and the cars' (422 on track 6), with
+  every object and three humans (§8); D20's demo set (all four cars' own frames) is the cars' bank's risk.
 - The front end's code size isn't counted at all: the ST's front-end functions lie between `F_0172EA` and
   `F_01BF34` (19,530 bytes of 68000, COUNTED) with other code among them, much of it text drawing. If the
   fourth bank's 4K and the background's bank between races aren't enough, the front end is an overlay of
@@ -165,11 +167,11 @@ D3 and D7 decided the mechanism; what's left is what goes in each file, and the 
 
 | # | Question | Options | Proposed |
 |---|---|---|---|
-| D18 | The front-end screens' colours | (a) each screen its own 4 of the BBC's 8 colours, dithered, converted as Phase 2 did the tracks, with option sheets and a viewer disc; (b) the race's palette for all | (a): the title and the prepare-to-race screens are reds and purples, which the race's palette hasn't got |
-| D19 | How exact the game around the race is | (a) D9 extended: the select dial, the joins, the bonuses, the elimination, the upgrades, the next track and race count, the demo race, all bit-exact with the ST, checked against Hatari traces of the sequence; the screens' layouts checked by eye against the ST's pictures; (b) the rules by the spec, not traced | (a): the tracer and oracle exist, and the race already depends on the race count and the upgrades |
-| D20 | The cars' frames per race | (a) a file per combination of humans (8); (b) a file per colour, the tables built at the load | (a), unless the disc doesn't fit (D22) |
-| D21 | The objects per track | every variant any race on the track can draw, made from the spec's rules rather than a traced race, checked by tracing a race of each kind (barriers, tornado, cones) per track | as stated; no alternative that keeps the hazards |
-| D22 | The disc | (a) one 80-track single-sided DFS disc (200K, 31 files), copied as it is to MMFS, ADFS or Econet; (b) double-sided, the second side as drive 2; (c) ADFS only | (a): the one image every filing system can take, if it fits; measured at step 3 |
+| D18 | The front-end screens' colours | (a) each screen its own 4 of the BBC's 8 colours, dithered, converted as Phase 2 did the tracks, with option sheets and a viewer disc; (b) the race's palette for all | **Decided (Tom, 2026-11-03): (a)** |
+| D19 | How exact the game around the race is | (a) D9 extended: the select dial, the joins, the bonuses, the elimination, the upgrades, the next track and race count, the demo race, all bit-exact with the ST, checked against Hatari traces of the sequence; the screens' layouts checked by eye against the ST's pictures; (b) the rules by the spec, not traced | **Decided (Tom, 2026-11-03): (a)** |
+| D20 | The cars' frames per race | (a) a file per combination of humans (8); (b) a file per colour, the tables built at the load | **Decided (Tom, 2026-11-03): (a)**, unless the disc doesn't fit (D22) |
+| D21 | (withdrawn) | The play build already makes every object a track can draw (§2) | |
+| D22 | The disc | (a) one 80-track single-sided DFS disc (200K, 31 files), copied as it is to MMFS, ADFS or Econet; (b) double-sided, the second side as drive 2; (c) ADFS only | **Decided (Tom, 2026-11-03): (a)**, measured at step 3 |
 | D23 | High scores and lap records | (a) saved to `SSPRINT.HSC`-style file as the ST does after each game, a failed save (write-protected disc, Econet without rights) said in the HUD row and ignored; (b) kept for the session only | (a) |
 | D24 | The ST's keys | F1 options, F5 shortens the celebration, F8 pause, F10 abandons the race, Esc ends prepare to race, F9 sound on/off: on the BBC f1, f5, f8, f0 (no f10), Escape (read from the matrix, Escape itself is off, D7), f9 | as stated; the options screen offers each player keys or (later, D5) a joystick, and sound |
 
@@ -194,8 +196,9 @@ touches the build.
    loads track n's files before a race. The disc's size and catalogue measured (D22). Proved by: the Phase 4
    oracles, all eight tracks' race 17 replayed from the one disc, every frame exact (`tools/tracks_check.sh`
    driven through the loads); a load timed in jsbeeb and on Tom's Master.
-4. **The objects per track** (D21): every variant a track can draw, and a trace per track of a race with
-   barriers and one with the tornado where the race count allows.
+4. **The race count's hazards on every track**: races traced with the barriers (every third race) and
+   without, the tornado (after race 3) and without, on each track, through the one disc's loads. (D21's
+   question withdrawn: the objects are already complete per track.)
 5. **The sequence tracer**: Hatari traces of a whole game (select, two or three races, joins, an elimination,
    upgrades bought, a game over), the state between races at each screen. The demo race traced on each track.
 6. **The game's rules** on the BBC, one screen's logic at a time, each checked against step 5's traces, with

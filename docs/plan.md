@@ -228,7 +228,7 @@ adds the logic.
   `docs/brief-phase4.md` §9, kept as the record.
 
 ### Phase 5: the game
-- The brief: `docs/brief-phase5.md` (Proposed, 2026-11-03: D18-D24 wait on Tom).
+- The brief: `docs/brief-phase5.md` (2026-11-03: D18-D20 and D22 decided, D21 withdrawn; D23, D24 Proposed).
 - All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
   disc, and the loads through the OS (D3, D7), tested on DFS, MMFS, ADFS and Econet.
 
@@ -253,6 +253,10 @@ adds the logic.
 | D15 | ANDY for the logic's data | Decided (Tom, 2026-11-02): mask B and the logic's state in ANDY |
 | D16 | The helicopter | Decided (Tom, 2026-11-02): not drawn, the car blinks where it comes back; its chop kept for now (2026-11-03) |
 | D17 | The flip | Decided (Tom, 2026-11-03): in the blank after the display, by System VIA T1 and T2; seen on a real Master |
+| D18 | Front-end colours | Decided (Tom, 2026-11-03): each screen its own 4 colours, from option sheets |
+| D19 | The game around the race | Decided (Tom, 2026-11-03): bit-exact, traced against Hatari |
+| D20 | Cars' frames per race | Decided (Tom, 2026-11-03): a file per combination of humans |
+| D22 | The disc | Decided (Tom, 2026-11-03): one 80-track single-sided DFS disc |
 
 ## Risks
 

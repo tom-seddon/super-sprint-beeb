@@ -307,3 +307,27 @@ races drawn from the logic: 332 -> 42 (tracks 1 and 1's race 0: 0; 2: 14 -> 2; 3
 "D17: looks good. No noticeable tearing running on real Master 128 with CUB."
 The logic run a frame ahead (simulated above: 42 -> about 9 repeated fields, for about 15 ms more latency)
 closed, not built, Tom, 2026-11-03: "Run-ahead logic: let's close this, on the basis it's ended up unnecessary. The current setup is fine, and lower latency is better."
+
+### D18. The front-end screens' colours: Decided (2026-11-03)
+Proposed (`docs/brief-phase5.md` §6): (a) each screen its own 4 of the BBC's 8 colours, dithered, converted as
+Phase 2 did the tracks, with option sheets and a viewer disc; or (b) the race's palette for all.
+Tom chose (a) ("Own palette each").
+
+### D19. How exact the game around the race is: Decided (2026-11-03)
+Proposed: (a) D9 extended to the select dial, joins, bonuses, elimination, upgrades, next track and race count
+and the demo race, bit-exact with the ST and checked against Hatari traces; the screens' layouts by eye.
+Tom chose (a) ("Bit-exact, traced").
+
+### D20. The cars' frames per race: Decided (2026-11-03)
+Proposed: (a) a file per combination of human cars (the 7 non-empty subsets of cars 0-2 and the demo's four
+own colours: 8), the generator as it is; (b) a file per colour, the frame tables built at the load.
+Tom chose (a) ("File per combination"), (b) only if the disc doesn't fit (D22).
+
+### D21. Withdrawn (2026-11-03)
+Proposed as "every object variant a track can draw"; the play build already makes them from the track's
+tables, not a traced race (`tools/gendata.py`'s `logic_objects`), so there was nothing to decide.
+
+### D22. The disc: Decided (2026-11-03)
+Proposed: (a) one 80-track single-sided DFS disc (200K, 31 files) that copies as it is to MMFS, ADFS or
+Econet; (b) double-sided, the second side as drive 2; (c) ADFS only.
+Tom chose (a) ("80T single-side DFS"); its size and catalogue are measured at the brief's step 3.
