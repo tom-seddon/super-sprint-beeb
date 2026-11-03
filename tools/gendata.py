@@ -529,6 +529,10 @@ def trace(frames, sets, movpieces, insts, room, piecedx, used, ent_per_frame):
     return bytes(out[:end]), n, hud_events(n)
 
 
+ObjVariantsMax = 48                     # the background objects' variants, every track's (Phase 5, 3a: the most,
+EntriesMax = 48                         # track 8's; the gates' and barriers' entries, track 5's)
+
+
 def lst(name, vals):
     return f'{name} = {{{", ".join(str(v) for v in vals)}}}\n'
 
@@ -661,6 +665,10 @@ def main(track, tracepath, out, logic=False, play=False):
                 blocks.append(((kind, i), 1, m))
     movkeys = []
     heli = {}
+    if logic:                           # every key the logic can draw, in an order the same on every track
+        bx, by = BannerPlace[track]     # (Phase 5, 3a: the bank's code, the tornado's compiled, the same)
+        movkeys = ([('explosion', f) for f in range(26)] + [('spark', f) for f in range(41)]
+                   + [('banner', f, bx & 3) for f in range(36)] + [('tornado', f, x) for f in range(3) for x in range(4)])
     for fr_ in frames:
         cars_, movers = frame_draws(fr_, heli)
         for k in [d[1] for d in cars_ if d[0] == 'explosion'] + [m[0] for m in movers]:
@@ -750,17 +758,20 @@ def main(track, tracepath, out, logic=False, play=False):
             bases.append(base)
             base += len(variants[kind])
         f.write(lst('GenObjKindBase', [0] + bases))
+        assert not logic or len(vt) <= ObjVariantsMax and len(ent_runs) <= EntriesMax, 'the objects\' tables\' room'
+        nvar, nent = max(len(vt), ObjVariantsMax), max(len(ent_runs), EntriesMax)  # (the traced tests' own, more)
         for i, name in enumerate(('GenObjW', 'GenObjH', 'GenObjFlags', 'GenObjData', 'GenObjMask')):
-            f.write(lst(name, [v[i] for v in vt]))
+            f.write(lst(name, [v[i] for v in vt] + [0] * (nvar - len(vt))))
         # the gates' and barriers' entries (each a transition: an instance from one frame to the next, or
         # its first): its variant, its runs (up to 3: an offset in prio.bin, bytes), its bits in objects.bin
         # (the runs' bytes one after another)
         runs3 = [r + [(0, 0)] * (3 - len(r)) for r in ent_runs] or [[(0, 0)] * 3]
-        f.write(lst('GenEntVar', ent_var or [0]))
-        f.write(lst('GenEntRuns', [len(r) for r in ent_runs] or [0]))
-        f.write(lst('GenEntRunOff', [o for r in runs3 for o, n in r]))
-        f.write(lst('GenEntRunLen', [n for r in runs3 for o, n in r]))
-        f.write(lst('GenEntData', ent_data or [0]))
+        pad = lambda v, n: v + [0] * (n - len(v))                  # (every track's tables the same size)
+        f.write(lst('GenEntVar', pad(ent_var, nent)))
+        f.write(lst('GenEntRuns', pad([len(r) for r in ent_runs], nent)))
+        f.write(lst('GenEntRunOff', pad([o for r in runs3 for o, n in r], 3 * nent)))
+        f.write(lst('GenEntRunLen', pad([n for r in runs3 for o, n in r], 3 * nent)))
+        f.write(lst('GenEntData', pad(ent_data, nent)))
         f.write(f'Entries = {len(ent_runs)}\n')
         f.write(f'ObjVariants = {len(vt)}\n')
         for i, name in enumerate(('GenMovDX', 'GenMovDY', 'GenMovW', 'GenMovH', 'GenMovTable', 'GenMovData')):
@@ -801,9 +812,8 @@ def main(track, tracepath, out, logic=False, play=False):
             f.write(lst('GenHeliCount', [len(k) for k in hk]))
             f.write(lst('GenSetOf', [sets.index((None, True) if d else (c, False)) if ((None, True) if d else (c, False)) in sets
                                      else 255 for c in range(4) for d in (0, 1)]))
-            f.write(f'GenBannerX = {bx & ~3}\nGenBannerY = {by}\n')
             f.write(lst('GenTorPiece', [movpieces[('tornado', fr_, x)][0] for fr_ in range(3) for x in range(4)]))
-            f.write(lst('GenEntCode', ent_codes or [255]))
+            f.write(lst('GenEntCode', ent_codes + [255] * (9 * 6 - len(ent_codes))))   # (6 instances' room, every track)
             f.write(f'GenGateInst0 = 3\n')
         tdata, nframes, events = b'', len(frames), b''
     else:

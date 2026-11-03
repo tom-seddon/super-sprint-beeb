@@ -146,14 +146,16 @@ RandomMul = 3141592621                  # TOS's XBIOS Random: seed = seed * this
 
 
 def race(frames):
-    """The race: the longest run of consecutive frame counters."""
+    """The race: the first run of consecutive frame counters over 100 frames, the race the poke started (a
+    run long enough for its race to end goes on into the game's next track's: track 1's race 17, 1,852 frames,
+    in 9,000 VBLs, its next race longer; the longest run, as this took before, was that one)."""
     runs = [[frames[0]]]
     for f in frames[1:]:
         if f['frame'] == runs[-1][-1]['frame'] + 1:
             runs[-1].append(f)
         else:
             runs.append([f])
-    return max(runs, key=len)
+    return next(r for r in runs if len(r) > 100)
 
 
 def seed(values):

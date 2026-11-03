@@ -36,11 +36,6 @@ ASSERT RcSparkTimerHi == RcSparkTimerLo + 8 AND RcSparkEnd == RcSparkTimerLo + 1
 ASSERT RcSparkXLo == RcSparkTimerLo + 32 AND RcSparkXHi == RcSparkTimerLo + 40 AND RcSparkYLo == RcSparkTimerLo + 48
 ASSERT RcSparkYHi == RcSparkTimerLo + 56, "the sparks' arrays in LfSparks's order"
 
-.TorPiece                               ; the tornado's piece, by frame * 4 + x's shift
-    EQUB GenTorPiece
-.EntCode                                ; a gate's or barrier's entry, by instance * 9 + code (logicframe.6502)
-    EQUB GenEntCode
-
     ALIGN 8                             ; (each glyph in one page: hud_char's LDY Font,X never crosses)
 .Font                                   ; the HUD's glyphs, 8 lines each (tools/font.py; hud.6502 reads them)
     EQUB GenFont

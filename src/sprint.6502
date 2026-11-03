@@ -24,7 +24,9 @@ SECTION BgFile, filename = "SPRINTA", load = &FFFF0000+LoadAddr
     SECTION BgBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
         INCLUDE "erase.6502"
         PADTO BgOrg
+.BgSlot                                 ; the track's part (Phase 5, 3a)
         INCBIN "../build/gen/bg.bin"    ; the play area, clean, as the screen's (tools/gendata.py)
+.BgSlotEnd
         ASSERT P% == SwramEnd, "the background ends at the bank's end"
     ENDSECTION
 ENDSECTION
@@ -47,11 +49,15 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
             INCLUDE "effects.6502"
             INCLUDE "hazards.6502"
             INCLUDE "logicframe.6502"
+.KeysSlot                               ; the track's part (Phase 5, 3a): its moving objects' keys
             INCLUDE "logictabs.6502"
+.KeysSlotEnd
             INCLUDE "arithtabs.6502"
             INCLUDE "arith.6502"        ; (the logic's alone: in its bank, Phase 5's room)
             INCLUDE "../build/lgen/tables.6502"
+.CellsSlot                              ; the track's part (Phase 5, 3a): its attribute map and slots
             INCLUDE "../build/lgen/cells.6502"
+.CellsSlotEnd
             INCLUDE "../build/lgen/pshift.6502"
             PRINT "the fourth bank: ", SwramEnd - P%, " bytes free"
         ELSE
@@ -73,6 +79,12 @@ SECTION ObjFile, filename = "SPRINTD", load = &FFFF0000+LoadAddr
         IF GenLogic
             INCLUDE "shared.6502"
         ENDIF
+        PADTO (P% + &FF) AND &FF00
+.ObjSlot                                ; the track's part (Phase 5, 3a): the variants' bytes, last
+.ObjData                                ; each variant's data and mask wholly in a page, 7 bytes in
+        INCBIN "../build/gen/objects.bin"   ; (tools/gendata.py)
+        ASSERT LO(ObjData) == 0, "the objects' bytes: from a page's start"
+.ObjSlotEnd
         PRINT "the objects' bank: ", SwramEnd - P%, " bytes free"
     ENDSECTION
 ENDSECTION
@@ -86,10 +98,16 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
         SKIP SharedOrg - LoadAddr       ; (ScreenVars: set by start)
         SECTION Shared, org = SharedOrg, guard = HudAddr
             INCLUDE "../build/lgen/sound.6502"
-            INCLUDE "../build/lgen/path.6502"
             INCLUDE "../build/lgen/probes.6502"
-            INCLUDE "../build/lgen/hazards.6502"
             INCLUDE "sharedtabs.6502"
+.SharedSlot                             ; the track's part (Phase 5, 3a): the same size on every track
+            INCLUDE "../build/lgen/path.6502"
+            INCLUDE "../build/lgen/hazards.6502"
+.EntCode                                ; a gate's or barrier's entry, by instance * 9 + code (logicframe.6502)
+            EQUB GenEntCode
+.TorPiece                               ; the tornado's piece, by frame * 4 + x's shift (the track's pieces'
+            EQUB GenTorPiece            ; numbers)
+.SharedSlotEnd
             IF GenPlay = 0
 .LogicInputs
                 INCBIN "../build/lgen/inputs.rle" ; the traced race's inputs, as runs (tools/gen_logic.py)
@@ -121,7 +139,9 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
     IF GenLogic                         ; ANDY's image, which the loader copies in
 .andy_image
         SECTION Andy, org = AndyOrg, guard = LogicVarsOrg
+.AndySlot                               ; the track's part (Phase 5, 3a): mask B
             INCLUDE "../build/lgen/walls.6502"
+.AndySlotEnd
             PRINT "ANDY: ", LogicVarsOrg - P%, " bytes free below the logic's state"
         ENDSECTION
 .andy_end

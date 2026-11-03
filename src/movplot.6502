@@ -277,6 +277,7 @@ ASSERT mov_plot.shiseq - mov_plot.sloseq == MovCols * SloStep + 5, "the screen's
 \\ The moving variants (tools/gendata.py): each one's first byte column and line in its box, its width and
 \\ height, its data table, its bytes
 
+.MovTabSlot                             ; the track's part (Phase 5, 3a: every track has the same number)
 .MovDX
     EQUB GenMovDX
 .MovDY
@@ -295,3 +296,4 @@ ASSERT mov_plot.shiseq - mov_plot.sloseq == MovCols * SloStep + 5, "the screen's
     EQUB LO((GenMovW - 1) * GenMovH)
 .MovLastHi
     EQUB HI((GenMovW - 1) * GenMovH)
+.MovTabSlotEnd

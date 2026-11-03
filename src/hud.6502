@@ -55,7 +55,12 @@ ZA_AUTO1 hudcount                       ; frames still to bring a screen up to H
     DEX
     BPL blank
     LDA #(HudT OR HudWhite):STA HudWant+TrackCol
-    LDA #((TraceTrack + 1) OR HudWhite):STA HudWant+TrackCol+1
+    IF GenLogic                         ; (the track's number, from its data: Phase 5, 3a)
+        LDA TrackNum:INC A:ORA #HudWhite
+    ELSE
+        LDA #((TraceTrack + 1) OR HudWhite)
+    ENDIF
+    STA HudWant+TrackCol+1
     LDA #2:STA hudcount
     RTS
 }

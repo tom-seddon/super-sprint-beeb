@@ -207,6 +207,40 @@ touches the build.
    The two copies go in `&0900`-`&0AFF` (D26), which survives loads. The loader's own code uses no zero page
    at `&90`-`&FF` while the OS is back. Proved by: a sentinel in the OS's copy across a race (`beeb-bss-bugs`),
    and `*CAT` and a load working after it on DFS, ADFS and Econet.
+   **How (2026-11-03, from the eight tracks' play builds compared byte for byte):** what differs between
+   tracks is the data, as §2 has it, and code only where per-track data sits mid-region: the objects'
+   variants and the drone path vary in size, so everything after them moves, and main RAM's code differs
+   in 45 bytes, all addresses. Genuine constants in code are few (`TrackGates`, `PathCount`, the banner's
+   place and keys, `LgTrack`). So, in order, each its own commit:
+   - **3a, a fixed layout**: in each region the per-track part in a slot at a fixed address (`*Slot` to
+     `*SlotEnd`), every per-track array padded to the largest track's, each per-track constant a byte in
+     the slot; the generators make every track's data so they know the largest. Proved by
+     `tools/track_slots.py`: the eight tracks' play builds differ in no byte outside the slots (it fails
+     the suite otherwise), and every check as before.
+     **Built 2026-11-03.** Slots: the background (16,000), the cars' frames (`CarsSlot`, by who's human)
+     and the track's priority cells and tables (`PrioSlot`, last in the cars' bank, up to 3,947), the
+     objects' tables (964, padded to 48 variants and 48 entries) and moving objects' tables (927) and their
+     bytes (`ObjSlot`, last in its bank, page-aligned, up to 7,390), the fourth bank's slots' backgrounds
+     (640), keys (188) and attribute map (1,199, with the track's gates, number and banner's place), mask B
+     in ANDY (padded to track 8's 3,427), Shared's path, hazards, gate entries and tornado keys (1,353, the
+     path padded to 142 entries). The code put first in the cars' and objects' banks; the logic's moving
+     keys in one order on every track (the tornado's compiled code had followed the traced race's). Cost,
+     least free over the tracks: the cars' bank 422 -> 370, the objects' 2,491 -> 2,338, Shared 648 -> 607,
+     ANDY 237 (now every track's), the fourth bank 1,244 -> 1,230; main RAM 780 unchanged. The hazard race:
+     32,863 -> 32,879 cycles a frame (the track's constants read, not immediate), fields repeating 6 -> 5,
+     all 2,240 frames matching. `tools/track_slots.py` (in `tools/all_tracks.sh`, so the suite): outside the
+     slots the same on every track. The suite 19 of 19, `tools/tracks_check.sh` 48 of 48.
+     **Mistake found on the way, not this step's**: the logic tracer kept "the longest run of frames"; with
+     every race 17 traced at 9,000 VBLs, track 1's (1,852 frames) ends inside the run and the game's next
+     race (track 3's) ran longer, so the re-traced track 1 file was track 3's race. It keeps the first race
+     now. (The tracers' file times had moved, so make re-traced every race in Hatari.)
+     Open for D20: `CarsSlot` padded to the largest set of frames, so `PrioSlot` starts at one place
+     whoever's human; the wall probes' sets (`lgen/pshift`'s `PSet`) depend on who's human too.
+   - **3b, the files**: each track's slots as one disc file, its parts ZX02-packed by a disc builder (the
+     kit's `make_disc.py` and `dfs.py`), and the car sets' (D20) likewise.
+   - **3c, the loader**: D7's sequence and the zero page's swap (below), the unpacker, a track's file
+     loaded before a race.
+   - **3d, the proof**: every track's race 17 replayed from one disc, through the loads.
 4. **The race count's hazards on every track**: races traced with the barriers (every third race) and
    without, the tornado (after race 3) and without, on each track, through the one disc's loads. (D21's
    question withdrawn: the objects are already complete per track.)

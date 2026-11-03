@@ -160,10 +160,10 @@ OpInx = &E8                             ; INX
     ZA_AUTO1 i                          ; local: the gate or barrier
 
     STZ RcHazDrawCount
-    LDA #TrackGates:STA RcGateCount
+    LDA TrackGates:STA RcGateCount
     LDX #0
 .gate
-    CPX #TrackGates:BCS gated
+    CPX TrackGates:BCS gated
     STZ RcGateStep,X
     TXA:INC A:ASL A:ASL A:ASL A:ASL A   ; 16 * (gate + 1)
     STA RcGateTimerLo,X
@@ -186,7 +186,7 @@ OpInx = &E8                             ; INX
     STZ i
 .shut
     LDX i
-    CPX #TrackGates:BCS done
+    CPX TrackGates:BCS done
     LDA GateCol,X:STA mb_box.col        ; the box cleared, its 16 lines
     LDA GateY,X:STA mb_box.line
     LDA #6:STA mb_box.w
@@ -341,7 +341,7 @@ OpInx = &E8                             ; INX
     ASL A:STA t
     LDA RcFrameLo:AND #1:ORA t
     TAX:LDA GateOfFrame,X:TAX           ; the gate
-    CPX #TrackGates:BCS done
+    CPX TrackGates:BCS done
 
     LDA RcGateStep,X:BEQ still
     LDA RcFrameLo:LSR A:BCC step        ; (odd: C set)

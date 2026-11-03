@@ -37,7 +37,7 @@ What the skills look up, for this project:
   symbols `build/sprint.json` (Baron's `--symbols`). No `-D` flags.
 - **Memory**: `src/memory.6502` (the map), `docs/memory-map.md` (generated: `tools/memmap.py --write` from the
   play build), `docs/renderer.md` "Memory".
-- **Oracles**: `make check` (`tools/render_check.mjs`: every frame's screen against `tools/render_model.py`'s,
+- **Oracles**: `tools/suite.sh OUT` (all of them, `tools/all_tracks.sh` and its `tools/track_slots.py` among them: every track assembles, and outside each region's `*Slot`-`*SlotEnd` every track's build is the same), `tools/tracks_check.sh OUT` (every track's race, about 15 minutes), `make check` (`tools/render_check.mjs`: every frame's screen against `tools/render_model.py`'s,
   exit 1 if any is wrong), `tools/render_profile.mjs` (cycles by region, `--list N` the worst frames),
   `tools/game_profile.mjs` (by label, each bank's), `tools/screenshot.mjs`; all headless through
   `tools/jsbeeb.mjs`.

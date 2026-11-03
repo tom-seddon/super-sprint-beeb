@@ -12,16 +12,8 @@
 INCLUDE "../build/gen/cars.6502"
 INCLUDE "../build/gen/prio.6502"
 
-\\ The data first, the frames at the bank's start, on a page (gendata.py's layout: each frame-shift in a
-\\ page, 7 bytes in)
-
-.CarData
-    INCBIN "../build/gen/cars.bin"
-    ASSERT LO(CarData) == 0, "the frames: from a page's start"
-.PrioMap
-    INCBIN "../build/gen/priomap.bin"
-.PrioData
-    INCBIN "../build/gen/prio.bin"
+\\ The code first, at the same place whoever's human and whatever the track; then the cars' frames and their
+\\ tables (CarsSlot: by who's human, D20), then the track's priority cells and theirs (PrioSlot), last
 
 
 \\ The fast loop's five column blocks, column 4 first: each draws a line of one column, its operands
@@ -361,17 +353,6 @@ WsHi = 14
     RTS
 }
 
-\\ The priority cells' classes (after the code: it places the fast loop in one page)
-
-.PrioClass
-    INCBIN "../build/gen/prioclass.bin"
-
-\\ Each car's data table, by the car | drone-driven << 2 (tools/gendata.py)
-
-CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
-.CarTables
-    EQUB CarTablePages[GenCarTable]
-
 \\ The fast loop's branch back, by the car's width: to column w - 1's block
 
 .PlotBack
@@ -384,6 +365,13 @@ CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
     EQUB (4 - (0..4)) * FastBlkSize
 .SlowBit
     EQUB 1, 2, 4, 8, 16
+
+\\ Each car's data table, by the car | drone-driven << 2 (tools/gendata.py)
+
+CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
+.CarsSlot                               ; the cars' part (Phase 5, 3a; by who's human, D20)
+.CarTables
+    EQUB CarTablePages[GenCarTable]
 
 \\ The frame-shifts' first byte column and width (dx * 8 + w) and places, and each frame's rows
 \\ (tools/gendata.py)
@@ -398,6 +386,15 @@ CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
     EQUB GenFrDY
 .CarFrH
     EQUB GenFrH
+
+\\ The frames, on a page (gendata.py's layout: each frame-shift in a page, 7 bytes in)
+
+    PADTO (P% + &FF) AND &FF00
+.CarData
+    INCBIN "../build/gen/cars.bin"
+    ASSERT LO(CarData) == 0, "the frames: from a page's start"
+.CarsSlotEnd
+.PrioSlot                               ; the track's part (Phase 5, 3a)
 
 \\ The priority map's rows, and each row's cells' data and classes (less one cell: a cell's number in its
 \\ row counts from 1)
@@ -418,3 +415,13 @@ CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
     EQUB LO(PrioClass + GenPrioRowOff)
 .ClsRowHi
     EQUB HI(PrioClass + GenPrioRowOff)
+
+\\ The priority map, the cells and their classes
+
+.PrioMap
+    INCBIN "../build/gen/priomap.bin"
+.PrioData
+    INCBIN "../build/gen/prio.bin"
+.PrioClass
+    INCBIN "../build/gen/prioclass.bin"
+.PrioSlotEnd

@@ -66,7 +66,7 @@ ENDIF
     STZ LogicZpOrg,X
     DEX
     BPL zclear
-    LDA #LgTrack:STA RcTrack
+    LDA TrackNum:STA RcTrack
     LDA #LgRace:STA RcRace
     IF GenPlay                          ; the play build: three players, car 3 the drone
         LDA #1:STA RcDrone+3
@@ -246,7 +246,9 @@ ENDIF
     RTS
 
 .SlotBg                                 ; each slot's clean background (tools/gendata.py)
+.SlotBgSlot                             ; (the track's part, Phase 5, 3a)
     INCBIN "../build/gen/slotbg.bin"
+.SlotBgSlotEnd
     ENDIF
 
     \\ F_00C592's start: the start's sound on each channel (F_0131A8), the 50 VBLs' pause (F_010214(50)) with
@@ -518,9 +520,9 @@ ENDIF
     LDY RcBannerFrame
     LDA BannerFirst,Y:STA first
     LDA BannerCount,Y:STA count
-    LDA #LO(GenBannerX):STA xlo
-    LDA #HI(GenBannerX):STA xhi
-    LDA #GenBannerY:STA ylo
+    LDA BannerXLo:STA xlo
+    LDA BannerXHi:STA xhi
+    LDA BannerY:STA ylo
     STZ yhi
     JSR pieces
 .nobanner

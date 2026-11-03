@@ -1,10 +1,10 @@
 \\ objdata.6502 - the objects' bank: the background objects' variants (tools/gendata.py), their bytes and
 \\ the tables obj_events reads them by.
 
-.ObjData                                ; the bytes first, at the bank's start: each variant's data and mask
-    INCBIN "../build/gen/objects.bin"   ; wholly in a page, 7 bytes in (tools/gendata.py)
-    ASSERT LO(ObjData) == 0, "the objects' bytes: from a page's start"
+\\ The tables first, the same size on every track (padded to the most, gendata.py's ObjVariantsMax and
+\\ EntriesMax), so the bank's code is at the same place on every track; the bytes last (ObjSlot, sprint.6502).
 
+.ObjTabSlot                             ; the track's part (Phase 5, 3a)
 \\ Each kind's first variant (kind 1 the slots' sprites, 2 the gates', 3 the barriers'), then per variant its
 \\ width in bytes, height, flags (ObjMasked, ObjHasPrio) and where its bytes, mask and priority bits are
 
@@ -44,4 +44,4 @@
     EQUB LO(ObjData + GenEntData)
 .EntDataHi
     EQUB HI(ObjData + GenEntData)
-
+.ObjTabSlotEnd

@@ -241,8 +241,8 @@ ENDSECTION
 {
     ZA_AUTO1 t                          ; local: the entry, kept
     LDA RcPathIdx,X:CLC:ADC #2
-    CMP #PathCount:BCC @+
-    SBC #PathCount                      ; (C set)
+    CMP PathCount:BCC @+
+    SBC PathCount                       ; (C set)
 .@
     TAY
     LDA PathDirHi,Y:CMP #1:BNE notfork

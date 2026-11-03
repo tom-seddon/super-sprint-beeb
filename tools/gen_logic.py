@@ -136,6 +136,9 @@ def tables():
         ''])
 
 
+MaskBMax = max(len(m) + len(c) for _, m, c in (maskb.encode(t) for t in range(8)))   # every track's mask B
+
+
 def walls(track, drones):
     hdr, maps, cells = maskb.encode(track)
     rows = [hdr[r * 8:r * 8 + 8] for r in range(25)]
@@ -191,6 +194,8 @@ def walls(track, drones):
         f'    EQUB HI(MbCells + {rowlist(coff)} - 8)',
         *eq('MbMaps', 'the maps', maps),
         *eq('MbCells', 'the cells', cells),
+        f'\\\\ (padded to the largest track\'s, {MaskBMax} bytes of maps and cells: Phase 5, 3a)',
+        *([f'    EQUB {byte_list([0] * (MaskBMax - len(maps) - len(cells)))}'] if MaskBMax > len(maps) + len(cells) else []),
         '']), '\n'.join([
         '\\\\ probes.6502 - the race\'s cars\' wall probes (tools/gen_logic.py): read-only, in both screens\' &3000 area',
         '',
@@ -220,17 +225,23 @@ def walls(track, drones):
         ''])
 
 
+PathMax = max(L.PATH_COUNT) + 4         # a path's entries, and the 4 read past its end
+
+
 def path(track):
     n = L.PATH_COUNT[track]
     w = L.words(L.SUPER[L.PATH_OFF:L.PATH_OFF + 7100 + 64])
     base = (L.PATH_START[track] + 2) // 2
     e = [tuple(v & 0xFFFF for v in w[base + 4 * k:base + 4 * k + 4]) for k in range(n + 4)]
     assert all(ln < 256 and d < 0x800 for x, y, ln, d in e[:n]), 'lengths a byte, flags in bits 8-10'
+    e += [(0, 0, 0, 0)] * (PathMax - len(e))        # every track's arrays the longest's (Phase 5, 3a)
     eq = lambda name, comment, v: [f'.{name:<38}; {comment}', '    EQUB ' + byte_list(v)]
     return '\n'.join([
-        '\\\\ path.6502 - track %d\'s drone path (tools/gen_logic.py)' % (track + 1),
+        '\\\\ path.6502 - track %d\'s drone path (tools/gen_logic.py), each array padded to the longest track\'s' % (track + 1),
         '',
-        'PathCount = %d                          ; G_01D168: its entries' % n,
+        f'PathMax = {PathMax}                          ; entries in each array, every track',
+        *eq('TrackNum', 'the track (index; here, in Shared, for the HUD whatever\'s paged)', [track]),
+        *eq('PathCount', 'G_01D168: its entries', [n]),
         *eq('PathX8Lo', 'by entry: its start, x in eighths', [v[0] for v in e]),
         *eq('PathX8Hi', '', [v[0] >> 8 for v in e]),
         *eq('PathY8Lo', 'y', [v[1] for v in e]),
@@ -239,6 +250,10 @@ def path(track):
         *eq('PathDirLo', 'its direction (bits 0-3), a gate (bits 0-1) or a skip (0-7)', [v[3] for v in e]),
         *eq('PathDirHi', 'its flags: 1 a fork (the word &100 exactly), 2 a gate, 4 a skip', [v[3] >> 8 for v in e]),
         ''])
+
+
+def banner_x(track):
+    return L.words(L.tb(0x1EBE0))[track] & ~3
 
 
 def cells(track):
@@ -251,7 +266,10 @@ def cells(track):
     return '\n'.join([
         '\\\\ cells.6502 - track %d\'s attribute map and its probe points (tools/gen_logic.py)' % (track + 1),
         '',
-        'TrackGates = %d                         ; G_01ED88: the track\'s gates' % gates,
+        *eq('TrackGates', 'G_01ED88: its gates', [gates]),
+        *eq('BannerXLo', 'G_01EBE0: its banner\'s place, x on a 4-pixel step (D8),', [banner_x(track) & 255]),
+        *eq('BannerXHi', '', [banner_x(track) >> 8]),
+        *eq('BannerY', 'G_01EBF0: and y', [L.words(L.tb(0x1EBF0))[track]]),
         *eq('AttrProbe', 'G_01E0C0 by facing * 4: the probes\' dx1, dy1, dx2, dy2 from the sprite box', pts),
         *eq('SlotX', 'G_01EC48: the track\'s 20 pickup and hazard slots, the left cell\'s column,', slots[0::2]),
         *eq('SlotY', 'and row', slots[1::2]),
@@ -299,8 +317,8 @@ def hazards(track):
         '\\\\ hazards.6502 - track %d\'s gates and pop-up barriers, and their mask B (tools/gen_logic.py)' % (track + 1),
         '',
         *eq('InstCol', 'each barrier\'s box (16 x 8, G_01EC00), then gate\'s (48 x 16, G_01ED98): its first byte\'s column',
-            [x // 8 for x, y in bars + gates]),
-        *eq('InstY', 'its first line', [y for x, y in bars + gates]),
+            [x // 8 for x, y in bars + gates] + [0] * (3 - ng)),          # (3 gates' room on every track)
+        *eq('InstY', 'its first line', [y for x, y in bars + gates] + [0] * (3 - ng)),
         'GateCol = InstCol + 3                   ; (the gates\' from the 4th)',
         'GateY = InstY + 3',
         *eq('BarKind', 'G_01EC30: its kind, its first frame (0, 4 or 8)', list(bk[track * 3:track * 3 + 3])),
