@@ -255,9 +255,9 @@ ENDIF
     LDA RcSafeX8Lo,Y
     LSR t:ROR A:LSR t:ROR A:LSR t:ROR A
     STA CarXLo,X
-    LDA RcSafeY8Hi,Y:STA t
+    LDA RcSafeY8Hi,Y:STA k              ; (k a moment: t holds x's high byte)
     LDA RcSafeY8Lo,Y
-    LSR t:ROR A:LSR t:ROR A:LSR t:ROR A
+    LSR k:ROR A:LSR k:ROR A:LSR k:ROR A
     STA CarY,X
     LDA RcSafeDir,Y:STA f
     LDA #0:STA k                        ; (on the ground: a safe place is)

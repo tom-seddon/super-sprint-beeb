@@ -1,11 +1,12 @@
 """The renderer test's model: each frame of the ST race as the BBC should draw it, from the ST's own data.
 
-Usage: render_model.py TRACK TRACE.json OUT.bin [--cue]   (OUT: 16,640 bytes a frame, the HUD row and the play
-area in screen order)
+Usage: render_model.py TRACK TRACE.json OUT.bin [--cue LOGIC.json]   (OUT: 16,640 bytes a frame, the HUD row
+and the play area in screen order)
 
---cue: the game's (drawn from the logic, D16): no helicopter; instead, in the CueFrames before a wrecked car is
-put back (the first frame it's drawn again), its explosion replaced by the car where it's put back, as it's
-drawn then, on the ground, shown for 4 frames and hidden for 4, shown in the first 4 and the last 4.
+--cue LOGIC.json: the game's (drawn from the logic, D16): no helicopter; instead, in a wreck's last CueFrames
+(its wait, G_01E3B4, from the race's logic trace, which tools/st_trace_logic.py records frame for frame with
+this trace), its explosion replaced by the car where it's put back (its safe place), on the ground, shown for 4
+frames and hidden for 4, shown in the first 4 and the last 4.
 
 Independent of the BBC's data (gendata.py's trimming, shifts, key colour, priority cells and object
 variants): the clean background in the ST's colours, changed by the frame's background objects as the ST
@@ -49,32 +50,25 @@ def hud_row(text):
     return bytes(out)
 
 
-def cues(frames):
-    """By frame, each wrecked car's cue: car -> its put-back frame's (x, y, facing, drone), or None (hidden)."""
+def cues(frames, logicpath):
+    """By frame, each wrecked car's cue, from the ST's logic trace of the same race (tools/st_trace_logic.py,
+    frame for frame): car -> (x, y, facing, drone) where it's put back (its safe place), or None (hidden)."""
+    logic = json.load(open(logicpath))['frames']
+    assert len(logic) >= len(frames) and all(logic[n]['frame'] == n for n in range(len(frames))), \
+        'the logic trace: the same race, frame for frame (it may run on: track 8\'s race trace stops at 3,935)'
+    word = lambda m, a: m[str(a)] << 8 | m[str(a + 1)]
     out = [dict() for _ in frames]
-    for car in range(4):
-        wrecked = [any(c[0] == 'explosion' and c[1][0] == car for c in fr['calls']) for fr in frames]
-        n = 0
-        while n < len(frames):
-            if not wrecked[n]:
-                n += 1
-                continue
-            s = n
-            while n < len(frames) and wrecked[n]:
-                n += 1
-            back = n                    # the frame it's drawn again
-            if back == len(frames):     # the trace ends first: its cue can't have begun (a wait is 40 or more)
-                assert back - s <= 10, f"car {car} wrecked from frame {s} to the trace's end: its cue unknown"
-                continue
-            assert any(c[0] == 'car' and c[1][0] == car for c in frames[back]['calls']), 'drawn again as a car'
-            x, y, facing, flags = frames[back]['cars'][car]
-            for f in range(max(s, back - CueFrames), back):
-                left = back - f
-                out[f][car] = (x, y, facing, frames[back]['drone'][car]) if (left - 1) & 4 == 0 else None
+    for n, fr in enumerate(frames):
+        m = logic[n]['mem']
+        for car in range(4):
+            left = word(m, 0x1E3B4 + 2 * car)                  # G_01E3B4: the wait left (a wreck's)
+            if word(m, 0x1E3D4 + 2 * car) == 2 and 1 <= left <= CueFrames:   # G_01E3D4: 2 wrecked
+                out[n][car] = ((word(m, 0x1E3EC + 2 * car) >> 3, word(m, 0x1E3E4 + 2 * car) >> 3,
+                                word(m, 0x1E3DC + 2 * car), fr['drone'][car]) if (left - 1) & 4 == 0 else None)
     return out
 
 
-def main(track, tracepath, out, cue=False):
+def main(track, tracepath, out, cue=None):
     opt = OPTIONS['B']
     dat = open('orig/st/SUPER.DAT', 'rb').read()
     stbg = np.load(f'build/gfx/bg_t{track}.npy').copy()
@@ -105,7 +99,7 @@ def main(track, tracepath, out, cue=False):
                 lidx[y + r, x + c0:x + c1][row] = sprite[r, c0:c1][row]
 
     race = list(load_race(tracepath))
-    cue_at = cues(race) if cue else [dict() for _ in race]
+    cue_at = cues(race, cue) if cue else [dict() for _ in race]
     with open(out, 'wb') as fo:
         for n, fr in enumerate(race):
             now = hud.text(fr['laps'], fr['scores'], track)
@@ -156,4 +150,4 @@ def main(track, tracepath, out, cue=False):
 
 
 if __name__ == '__main__':
-    main(int(sys.argv[1]), sys.argv[2], sys.argv[3], '--cue' in sys.argv[4:])
+    main(int(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[5] if sys.argv[4:5] == ['--cue'] else None)

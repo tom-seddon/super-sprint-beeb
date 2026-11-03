@@ -172,9 +172,10 @@ build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(LOGICDEPS)
 	baron -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
 
 # The model each frame's play area is checked against, and the check.
-build/check/model_$(TRACE).bin: tools/render_model.py tools/objects.py tools/gendata.py $(TRACEFILE) build/conv/A_t0.bin | $(VENV)
+CUETRACE = $(if $(filter --logic,$(GENFLAGS)),$(LOGICTRACE))
+build/check/model_$(TRACE).bin: tools/render_model.py tools/objects.py tools/gendata.py $(TRACEFILE) $(CUETRACE) build/conv/A_t0.bin | $(VENV)
 	mkdir -p build/check
-	$(PY) tools/render_model.py $(TRACK) $(TRACEFILE) $@ $(if $(filter --logic,$(GENFLAGS)),--cue)
+	$(PY) tools/render_model.py $(TRACK) $(TRACEFILE) $@ $(if $(CUETRACE),--cue $(CUETRACE))
 
 check: build/sprint.ssd build/check/model_$(TRACE).bin
 	node tools/render_check.mjs --model build/check/model_$(TRACE).bin

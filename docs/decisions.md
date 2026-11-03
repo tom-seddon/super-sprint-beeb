@@ -256,8 +256,16 @@ after that, then measuring the result."
 Built 2026-11-02, (c): in the game (the races drawn from the logic) the helicopter isn't drawn; its logic, its
 timing and its sound are the ST's still. `build_cars` (logicframe) draws, in a wreck's last 28 frames
 (`CueFrames`; `RcBounce` is the frames left), the car at its safe place on the ground for 4 frames and not for
-4, shown first and last; the model (`render_model.py --cue`, from the trace: the frame the car is drawn again,
-and its place then) the same. The traced races (Phase 3's renderer tests, `heli1`-`heli3`) keep the ST's
+4, shown first and last; the model (`render_model.py --cue`) the same, from the ST's own wait and safe place
+in the race's logic trace (G_01E3B4, G_01E3EC/E4/DC, frame for frame with the race's draw trace). The traced races (Phase 3's renderer tests, `heli1`-`heli3`) keep the ST's
 helicopter. MEASURED (`make check`, every frame matching the model): the hazard race 150 -> 106 frames over a TV
 frame, mean 32,224 -> 31,874; track 1's race mean 23,939 -> 23,534. The fourth bank 1,476 -> 2,608 free on every
 track (play builds), and its first 4K, under ANDY, empty.
+Two faults the track checks found (2026-11-03), fixed: the cue's y used the byte holding x's high bit, so a
+car put back at x 256 or more was drawn 256 to the left (tracks 2 and 8); and the model first found the cue
+from the frame the car is drawn again, which a race that ends with a car still wrecked doesn't have (track 6),
+so it now reads the wait from the logic trace.
+Mask B and ANDY, after (2026-11-02): the copy of mask B's mixed cells by column this row proposed for the
+room was built (`7b70c1c`, above ANDY: mask B didn't need to move) and measured: exact, the game's mean 31,874
+-> 31,771, its frames over unchanged at 106, for 1,200-2,320 bytes. Tom: "Yes, revert it." Reverted; the room
+is free.
