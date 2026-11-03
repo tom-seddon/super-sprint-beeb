@@ -137,9 +137,9 @@ blinking cue (D16), and showing a frame in the blank as soon as it's done rather
 
 - **D12, the keys**: Q W E, V B N, , . / (Proposed; player 1 was Z X SHIFT until your suggestion). The real
   BBC's check deferred (2026-11-03): "D12: I think this one can wait. If there turn out to be problems with the keys chosen, we can choose a different set."
-- **D11's details** (Proposed, for your ears): each effect one captured instance; tone and noise together
-  play as the noise alone (the kit's 1942 rule); the start's 1 s pause kept. The engine (two octaves up, its
-  growl sampled at 50 Hz) agreed, 2026-11-03: "D11: the general engine sound sounds good to me." Each is a small change if it sounds wrong.
+- **D11's details**, agreed by you 2026-11-03 ("D11: the general engine sound sounds good to me.", then
+  "D11: the sounds all sound good to me."): each effect one captured instance; tone and noise together play as the noise alone
+  (the kit's 1942 rule); the engine two octaves up, its growl sampled at 50 Hz; the start's 1 s pause kept.
 - One finding that follows from D9: 7 of the 16 facings' car shapes differ between the car sets, so the
   wall probes have to use each frame's own shape. The cheaper fixed shape per facing would not be bit-exact.
 

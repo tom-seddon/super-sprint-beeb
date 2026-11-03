@@ -138,7 +138,7 @@ running ST, its hardware envelope stepped into volumes, converted to SN76489 wri
 played by the vsync IRQ. The engines (one tone per human car) are worked out each frame from the car's speed
 by `F_012BA2`'s formulas. Effects take a car's channel by the ST's priorities (st-logic §8).
 
-Built 2026-11-02 (brief step 10). The details taken, Proposed for Tom's ears (`build/sound/race_bbc.wav`
+Built 2026-11-02 (brief step 10). The details taken, agreed by Tom 2026-11-03 (below), heard in (`build/sound/race_bbc.wav`
 against `race_st.wav`, and each effect's `build/lgen/wav/*_ym.wav` against `*_sn.wav`):
 - each effect is one captured instance (its fields at the ST's VBLs; another instance differs a little, by
   where the 749 Hz timer stood);
@@ -148,7 +148,7 @@ against `race_st.wav`, and each effect's `build/lgen/wav/*_ym.wav` against `*_sn
   octaves up, and its +- 900 alternation (every rate + 1 ticks of 749 Hz, 50 to 125 Hz) is sampled at 50 Hz;
 - the race's start keeps the ST's 1 s pause (50 VBLs), the start's sound in it.
 
-The engine agreed, Tom, 2026-11-03: "D11: the general engine sound sounds good to me." The other three details are still Proposed.
+The engine agreed, Tom, 2026-11-03: "D11: the general engine sound sounds good to me." Then: "D11: the sounds all sound good to me." So all four details are agreed.
 
 ### D12. Keys: Decided in part (2026-11-02)
 Tom: "propose a three-player keyboard layout, check it for ghosting on paper and in jsbeeb, joysticks as an
