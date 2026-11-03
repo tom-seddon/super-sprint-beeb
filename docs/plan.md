@@ -1,9 +1,10 @@
 # Super Sprint for the BBC Master: plan
 
 A port of the Atari ST version of *Super Sprint* (State of the Art / Electric Dreams, 1987; `orig/st`) to the
-BBC Master 128, written in Baron. Phases 1 and 2 are done (2026-11-01): the original is specified in
-`docs/st-graphics.md` and `docs/st-logic.md`, and its graphics converted to MODE 1 in `docs/colours.md`.
-Figures marked as estimates stay so until Phase 3 measures them. Decisions are in `docs/decisions.md`, work
+BBC Master 128, written in Baron. Phases 1 to 4 are done (2026-11-01 to 11-03): the original specified (`docs/st-graphics.md`,
+`docs/st-logic.md`), its graphics converted to MODE 1 (`docs/colours.md`), the renderer
+(`docs/renderer.md`) and one race, its logic bit-exact with the ST's (`docs/brief-phase4.md`). Next is
+Phase 5, the game. The Verdict and Speed sections are the plan's estimates from before Phase 3, kept as made. Decisions are in `docs/decisions.md`, work
 done in `JOURNAL.md`.
 
 ## Verdict
@@ -150,7 +151,8 @@ adds the logic.
 - **Three players**, each on the keyboard or a joystick (D5): joysticks weren't common on the BBC, so all
   three can be on the keyboard. Joysticks are the Master 128's two analogue ones (the ADC, read as
   left/centre/right, fire buttons on system VIA PB4/PB5). Each player needs only left, right and accelerate.
-- **Keyboard ghosting** with several keys held decides which keys each player gets; left until later (D5).
+- **Keyboard ghosting**: the nine keys chosen are each in a matrix column of their own, so none can ghost
+  another (D12).
 - **ADC:** slow conversions (about 10 ms a channel). Poll it from the frame IRQ, not by interrupt.
 - **Sound:** the SN76489's 3 tones and noise against the YM's 3 channels: one engine tone per human car,
   effects taking channels by the ST's priorities, the noise parts on the shared noise channel. The ST's periods
@@ -202,40 +204,28 @@ adds the logic.
   bits only for the cells that change, the screen copies indexed as the erase's. No frame of any track
   goes over 40,000 cycles but the race's set-up.
 
-### Phase 4: one race
-- Physics, collisions, drones, laps, scoring, HUD, input for 3 players, sound. One track, played start to
-  finish, checked against Hatari traces.
-- **Started 2026-11-02** (`docs/brief-phase4.md`): bit-exact with the ST (D9), on track 1 first (D10), sound as
-  captured register streams (D11, which replaces the sequencer plan under "Input and sound"), keys proposed
-  and checked for ghosting (D12), mask B as its mixed cells (D13, decided). The tracer and the oracle come first.
-- **The logic's cycles**, what the renderer leaves of a TV frame (39,936), measured over the first ~320
-  frames of race 17 on each track with every hazard (`render_check.mjs --json`; the race's set-up and the
-  test's own trace reading, about 600 a frame, left out):
-
-  | Track (index) | Mean left | 90% of frames | 99% | Worst | Frames over with logic 12K / 16K / 20K |
-  |---|---|---|---|---|---|
-  | 0 | 24,180 | 22,064 | 20,580 | 15,045 | 0 / 1 / 1 of 329 |
-  | 1 | 24,009 | 21,961 | 20,564 | 12,250 | 0 / 1 / 3 of 323 |
-  | 2 | 22,812 | 19,292 | 13,390 | 8,951 | 1 / 12 / 47 of 330 |
-  | 3 | 19,653 | 10,277 | 7,021 | 6,045 | 54 / 93 / 117 of 312 |
-  | 4 | 18,227 | 9,521 | 3,132 | 1,291 | 52 / 107 / 160 of 315 |
-  | 5 | 23,460 | 20,064 | 14,651 | 11,956 | 1 / 9 / 32 of 321 |
-  | 6 | 24,340 | 22,168 | 19,576 | 10,567 | 1 / 1 / 5 of 330 |
-  | 7 | 20,404 | 12,927 | 9,651 | 7,435 | 27 / 84 / 122 of 331 |
-
-  The logic (4 cars, the IRQ's sound and ADC, input) has to fit in these. A frame over only drops the
-  display to 25 fps for a moment (D2), but the busy tracks (3, 4, 7: bridges, gates, the helicopter) would
-  do so a quarter to a third of the time at the plan's 16,000. Aim for about 10,000-12,000.
-- **The logic's memory**: main RAM `&1813`-`&29FF` free (4,589 bytes) for code, about 300 bytes of
-  `&2E00`-`&2FFF` for variables (the erase lists and the HUD's shown text moved to `&3000`), and
-  `&3000`-`&3EFF` less the 104 bytes of each screen's own variables: about 3,700 bytes, in main and shadow
-  RAM alike, so a table written into both copies is always readable, from a bank or the IRQ too (Tom's
-  idea; rebuilt after each per-race load, which lands in screen memory, D7); zero page
-  `&71`-`&FB`. The fourth bank has 11,361 bytes after the helicopter; the objects' bank 2,933 to 8,424 by
-  track; the cars' bank 504 to 2,346 with three players. The race's own data: mask B (walls) 8,000 bytes at
-  1 bit a pixel, the attribute map 1,000, a drone path about 900; sound about 12K for all, before
-  transcoding. Mask B is the big one: stored only for the cells that aren't all road or all wall, as the
-  priority mask is, it would be much less.
+### Phase 4: one race (done, 2026-11-03: `docs/brief-phase4.md`, `docs/report-phase4-start-2026-11-02.md`)
+- Done: the ST's race logic on the BBC, bit-exact with the ST on every frame (D9): the humans' cars, walls
+  (mask B as its mixed cells, D13, in ANDY with the logic's state, D15), the track's cells, drones,
+  car-to-car, wrecks, pickups, points, laps and the race's end, and the hazards (tornado, barriers, gates,
+  cones). Every track's race 17 traced from the ST, replayed through the BBC's logic and drawn from it,
+  every frame matching (`tools/tracks_check.sh`, 48 checks; `tools/suite.sh`, 19).
+- Done too: three players on the keys (Q W E, V B N, , . /: no ghosting on paper, D12), sound captured from
+  the ST's YM and converted for the SN76489 with the engines live (D11, agreed by ear), the helicopter not
+  drawn but cued (D16), and a frame shown in the blank after the display, not at the vsync (D17, seen on a
+  real Master 128 with no tearing). `build/play.ssd` (`make play`) plays track 1, restarting at the race's
+  end.
+- Speed, four rounds and D14-D17: the hazard race's (track 5, race 17) fields repeating a frame 734 -> 5
+  of 2,240; over the nine races drawn from the logic, 42. The logic run
+  a frame ahead (about 9, simulated) was closed, not built: lower latency is better.
+- Left open, not urgent (Tom, 2026-11-03): the joysticks (D5); three players on the keys waits on a
+  three-person playtest, with D12's check on a real BBC; D16's helicopter chop kept for now, perhaps
+  another sound later.
+- Room, the play build (track 1, `docs/memory-map.md`): main RAM's code 103 bytes free, the fourth bank
+  1,828, ANDY 1,496, Shared 1,146, the cars' bank 2,245, the objects' 7,273. The tightest tracks are in
+  `docs/brief-room-2026-11-02.md` and `tools/all_tracks.sh`. Main RAM is the binding region for Phase 5.
+- Phase 3's budget for the logic (the cycles the renderer left a frame by track, and the memory) is in
+  `docs/brief-phase4.md` §9, kept as the record.
 
 ### Phase 5: the game
 - All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
@@ -258,14 +248,22 @@ adds the logic.
 | D11 | Sound | Decided (Tom, 2026-11-02): 50 Hz IRQ; captured streams for effects and tunes; engines live |
 | D12 | Keys | Decided in part (Tom, 2026-11-02): layout Proposed (Q W E, V B N, , . /: no ghosting on paper), the real BBC's check deferred (Tom, 2026-11-03: another set if needed); joysticks as an option |
 | D13 | Mask B's storage | Decided (Tom, 2026-11-02): the mixed cells only, as the priority mask |
+| D14 | The drones' dead accumulators | Decided (Tom, 2026-11-02): dropped (only dead ST code reads them) |
+| D15 | ANDY for the logic's data | Decided (Tom, 2026-11-02): mask B and the logic's state in ANDY |
+| D16 | The helicopter | Decided (Tom, 2026-11-02): not drawn, the car blinks where it comes back; its chop kept for now (2026-11-03) |
+| D17 | The flip | Decided (Tom, 2026-11-03): in the blank after the display, by System VIA T1 and T2; seen on a real Master |
 
 ## Risks
 
 - **Memory.** The estimate above is over the banks by about a quarter before the savings listed. Phase 3
   measures the sprites and code.
-- **Speed at 50 fps.** The estimate is about 42,000 cycles against 40,000. Four cars' wall probes and drone
-  steering is the biggest item, and the least certain.
-- **Keyboard ghosting** may limit which keys three keyboard players can have.
+- **Speed at 50 fps.** Measured in Phase 4: logic and drawing fit a TV frame on most frames of every track;
+  42 fields in the nine races repeat a frame (a gate stepping, cars under a bridge and against walls,
+  together).
+- **Keyboard ghosting**: none possible on paper with the chosen nine keys (each in its own column); untried
+  on a real BBC with three players (D12).
+- **Main RAM** has 103 bytes free in the play build; Phase 5's loader and front end need room found first
+  (`beeb-ram-hunt`).
 - **A filing system in sideways RAM** (MMFS is often loaded that way) leaves 3 banks; the game needs 4 free
   (D4), so such a machine is told so at boot.
 - **Unpaged space** is about 13.5K with the OS's memory left alone (D7). If the IRQ, logic and state don't

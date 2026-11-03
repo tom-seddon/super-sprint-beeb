@@ -21,7 +21,8 @@ Baron 0.6 is on the PATH as `baron`; don't build it from `rich/baron`.
 (`hardware-facts.md`, `gotchas.md`, `verification.md`), `lib/` and `py/` to fork from (`ay2sn.py`,
 `sfx50.6502`, `zx02depack.6502`, `keydown.6502`), and its skills, copied into `.claude/skills/beeb-*`. Use
 them as advice; where they differ, this project's own way holds: decisions in `docs/decisions.md` (Proposed
-until Tom agrees), the plan in `docs/plan.md`, work done in `JOURNAL.md`, the renderer in `docs/renderer.md`.
+until Tom agrees), the plan in `docs/plan.md` (where the port stands and the next phase), work done in `JOURNAL.md`, the renderer
+in `docs/renderer.md`, a phase's work in its brief (`docs/brief-*.md`).
 The kit also aims at the Model B (NMOS 6502, `nmos.6502`); this game is the Master 128's only, CMOS opcodes
 allowed (D4, above).
 
@@ -34,7 +35,8 @@ What the skills look up, for this project:
 - **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes
   `build/sprint.ssd`, the listing `build/sprint.lst` (each bank's free bytes are printed in it) and the
   symbols `build/sprint.json` (Baron's `--symbols`). No `-D` flags.
-- **Memory**: `src/memory.6502` (the map), `docs/renderer.md` "Memory", `docs/plan.md` Phase 4.
+- **Memory**: `src/memory.6502` (the map), `docs/memory-map.md` (generated: `tools/memmap.py --write` from the
+  play build), `docs/renderer.md` "Memory".
 - **Oracles**: `make check` (`tools/render_check.mjs`: every frame's screen against `tools/render_model.py`'s,
   exit 1 if any is wrong), `tools/render_profile.mjs` (cycles by region, `--list N` the worst frames),
   `tools/game_profile.mjs` (by label, each bank's), `tools/screenshot.mjs`; all headless through

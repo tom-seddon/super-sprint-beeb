@@ -1,5 +1,8 @@
 # Report: Phase 4's first steps, 2026-11-02
 
+> **Phase 4 closed, 2026-11-03** (Tom: "Yes, close out docs"): your reviews of the items below are recorded
+> in `docs/decisions.md`; `docs/plan.md` and `JOURNAL.md` are up to date.
+>
 > **Hardware (D17), passed 2026-11-03:** frames are now shown by flipping in the blank after the display,
 > timed by System VIA T1 and T2 from the vsync. Every flip lands in the blank in jsbeeb (lines 212-309), and
 > on your Master: "D17: looks good. No noticeable tearing running on real Master 128 with CUB."

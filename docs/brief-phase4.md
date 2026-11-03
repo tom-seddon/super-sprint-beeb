@@ -1,6 +1,7 @@
 # Brief - Phase 4, one race: the first steps
 
-> **Status: PLAN, agreed 2026-11-02 (Tom: "Yes, D13 as proposed"); steps 1-3, 5 and mask B's part of 4 built.**
+> **Status: BUILT, Phase 4 closed 2026-11-03 (Tom: "Yes, close out docs"). The plan agreed 2026-11-02 (Tom:
+> "Yes, D13 as proposed"); every step built (§8).**
 > Branch `phase4-start`, off `02741da` (the commit Tom last saw). Tom's four answers are D9-D12 in
 > `docs/decisions.md`; D13 (mask B's storage) was this brief's proposal, decided by Tom 2026-11-02.
 >
@@ -10,13 +11,11 @@
 > *Read first: `docs/st-logic.md` §1-6 and §12, `docs/renderer.md` "How it draws" (the priority cells),
 > `docs/plan.md` Phase 4, D2, D3, D7, D9-D13.*
 
-**Resume point: Phase 4's end** (§8's last entries). Step 13 is done: every track's race 17 bit-exact through
-the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Speed's fourth round is done,
-the helicopter replaced by a cue (D16), and frames are shown in the blank after the display, not at the
-vsync (D17): the fields repeating a frame on the nine races drawn from the logic 332 -> 42 (the hazard race
-105 -> 5), every frame exact. D17 seen on a real Master (no tearing). The fourth bank has 2,608 free and its first 4K
-(under ANDY) empty. Left open (Tom, 2026-11-03, D5): the joysticks, not urgent; three on the keys waits on a playtest. Run-ahead logic (simulated 42 -> about 9,
-for about 15 ms more latency) closed, not built (Tom, 2026-11-03: the current setup is fine, lower latency better).
+**Resume point: none, Phase 4 is closed** (2026-11-03). Next is Phase 5, the game (`docs/plan.md`), from a
+brief of its own. What Phase 4 built is in §8 and `docs/report-phase4-start-2026-11-02.md`; left open, not
+urgent (Tom, 2026-11-03): the joysticks (D5), three players on the keys until a three-person playtest
+(D5, D12), and D16's helicopter chop, kept for now. Run-ahead logic (simulated 42 -> about 9 repeated
+fields, for about 15 ms more latency) closed, not built.
 
 ## 0. The proposal in one paragraph
 
@@ -732,3 +731,36 @@ is `&08`. MEASURED (a check left to race with the drone alone, two restarts): af
 disc's background differed from the boot's in 20 then 72 bytes and its map in 2 then 6 cells, the new disc's
 in none, and both screens match the background at every slot. The play build's main RAM 152 -> 103 bytes
 free, the fourth bank 2,608 -> 1,828.
+
+## 9. Phase 3's budget for the logic (moved from `docs/plan.md` at Phase 4's close)
+
+As the plan had it before Phase 4, measured 2026-11-01:
+
+- **The logic's cycles**, what the renderer leaves of a TV frame (39,936), measured over the first ~320
+  frames of race 17 on each track with every hazard (`render_check.mjs --json`; the race's set-up and the
+  test's own trace reading, about 600 a frame, left out):
+
+  | Track (index) | Mean left | 90% of frames | 99% | Worst | Frames over with logic 12K / 16K / 20K |
+  |---|---|---|---|---|---|
+  | 0 | 24,180 | 22,064 | 20,580 | 15,045 | 0 / 1 / 1 of 329 |
+  | 1 | 24,009 | 21,961 | 20,564 | 12,250 | 0 / 1 / 3 of 323 |
+  | 2 | 22,812 | 19,292 | 13,390 | 8,951 | 1 / 12 / 47 of 330 |
+  | 3 | 19,653 | 10,277 | 7,021 | 6,045 | 54 / 93 / 117 of 312 |
+  | 4 | 18,227 | 9,521 | 3,132 | 1,291 | 52 / 107 / 160 of 315 |
+  | 5 | 23,460 | 20,064 | 14,651 | 11,956 | 1 / 9 / 32 of 321 |
+  | 6 | 24,340 | 22,168 | 19,576 | 10,567 | 1 / 1 / 5 of 330 |
+  | 7 | 20,404 | 12,927 | 9,651 | 7,435 | 27 / 84 / 122 of 331 |
+
+  The logic (4 cars, the IRQ's sound and ADC, input) has to fit in these. A frame over only drops the
+  display to 25 fps for a moment (D2), but the busy tracks (3, 4, 7: bridges, gates, the helicopter) would
+  do so a quarter to a third of the time at the plan's 16,000. Aim for about 10,000-12,000.
+- **The logic's memory**: main RAM `&1813`-`&29FF` free (4,589 bytes) for code, about 300 bytes of
+  `&2E00`-`&2FFF` for variables (the erase lists and the HUD's shown text moved to `&3000`), and
+  `&3000`-`&3EFF` less the 104 bytes of each screen's own variables: about 3,700 bytes, in main and shadow
+  RAM alike, so a table written into both copies is always readable, from a bank or the IRQ too (Tom's
+  idea; rebuilt after each per-race load, which lands in screen memory, D7); zero page
+  `&71`-`&FB`. The fourth bank has 11,361 bytes after the helicopter; the objects' bank 2,933 to 8,424 by
+  track; the cars' bank 504 to 2,346 with three players. The race's own data: mask B (walls) 8,000 bytes at
+  1 bit a pixel, the attribute map 1,000, a drone path about 900; sound about 12K for all, before
+  transcoding. Mask B is the big one: stored only for the cells that aren't all road or all wall, as the
+  priority mask is, it would be much less.

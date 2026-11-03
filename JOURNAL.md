@@ -393,3 +393,41 @@
   again (it doesn't exist), and branches out of range twice. The race is slow: 734 of 2,240 frames take two
   TV frames. Room: track 8 would be about 260 bytes over in the fourth bank.
 
+
+## 2026-11-02 to 11-03: Phase 4, speed, room, every track, the flip (Phase 4 done)
+
+- **Speed, step 12, four rounds**, every change exact on both traces: mask B's box writes a band at a time,
+  TOS's multiply from the byte that matters and then unrolled, a car's road test cached, the wall columns a
+  cell row at a time, the draw order by counted places, the divide's quotient by ROL, the wall probes'
+  shapes pre-shifted, a divide by 40 from a table, the plot's slow loop once a band. The hazard race's frames
+  taking two TV frames 734 -> 150, its mean 38,207 -> 32,224 cycles. New unit checks: the wall columns
+  (caught a fault the races missed) and the arithmetic (`tools/arith_check.mjs`, 158,340 cases).
+  `tools/game_profile.mjs` (cycles by label) found set-up costs the regions hid.
+- **Room** (`docs/brief-room-2026-11-02.md`): every track measured; mask B and the logic's state moved into
+  ANDY once measured untouched by the game and by loads (D15); all eight tracks assemble
+  (`tools/all_tracks.sh`, in the suite).
+- **D14**: the drones' two accumulators that only dead ST code reads dropped (135 cycles a frame).
+- **Every track** (step 13): each track's race 17 traced and replayed through the BBC's logic, exact and
+  drawn exactly (`tools/tracks_check.sh`, 48 checks). Five of seven new tracks exact at once. Faults: the
+  bonus's cell stored before the free test (as the ST does), moving objects not clipped at the screen's
+  sides, the race's end run before the frame was drawn. **Mistake**: the helicopter's tables read with ANDY
+  paged in, which D15 had put over them.
+- **D16**: the helicopter not drawn; in a wreck's last 28 frames the car blinks where it comes back.
+  Frames over 150 -> 106, the fourth bank +1,132. A copy of mask B by column was built, measured (about
+  100 cycles a frame for up to 2,320 bytes) and reverted at Tom's word.
+- **D17, the flip in the blank** (Tom's idea): System VIA T1 at the display's end shows a frame done during
+  the display; one done in the blank shows at once; T2 closes the blank. Measured in jsbeeb, every flip in
+  lines 212-309 of the blank's 208-311; the vsync interrupt starts at line 250, 2 lines after its edge, not
+  the kit's 4. Fields repeating a frame over the nine races 332 -> 42. Seen on Tom's Master 128 (CUB):
+  no tearing. Run-ahead logic (simulated 42 -> about 9, for about 15 ms of latency) closed, not built.
+- **The play build's restart** (Tom found it: a pickup left lying when the race ends): the restart cleared
+  the logic's state but not the attribute map or the clean background. Each slot's cells and 32 bytes of
+  background now go back. **Mistake**: `slot_put`'s `fresh` was set before the loop, where a sibling
+  callee (`slot_cell`) shares its zero-page byte; it's set just before the call now.
+- **The replay discs' pauses** (`worst_h4`): after the race the replay builds don't restart, and the 8-bit
+  countdown wraps, so the cars drive about 90 frames in 256. A replay artefact, not in play.
+- **Tom's reviews, 2026-11-03**: D11's sounds all agreed by ear; D12's real-keyboard check and three
+  players on the keys wait on a three-person playtest; the joysticks (D5) left open, not urgent; D16's chop
+  kept for now, 336 of the wreck effect's 402 bytes, perhaps another sound later.
+- **Phase 4 closed**: `docs/plan.md` Phase 4 done, its budget table moved to `docs/brief-phase4.md` §9, the
+  brief BUILT. Next: Phase 5, the game, and main RAM (103 bytes free in the play build) first.
