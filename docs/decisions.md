@@ -269,3 +269,27 @@ Mask B and ANDY, after (2026-11-02): the copy of mask B's mixed cells by column 
 room was built (`7b70c1c`, above ANDY: mask B didn't need to move) and measured: exact, the game's mean 31,874
 -> 31,771, its frames over unchanged at 106, for 1,200-2,320 bytes. Tom: "Yes, revert it." Reverted; the room
 is free.
+
+### D17. The flip at the display's end, or in the blank: Decided (2026-11-03)
+A drawn frame was shown at the vsync after it was done (the vsync interrupt flipped ACCCON's D), so one that
+missed a vsync waited a whole field, and the next started then. In this mode the display ends at scan line
+208 (26 rows), the vsync comes at 248 (R7 31) and the next display starts at 312 (39 rows): a blank of 104
+lines, 13,312 cycles, of which a flip anywhere is unseen. Tom, 2026-11-03: "Regarding waiting for vsync: the
+vsync occurs at scanline 272, well past the physical end of the visible display. What if there were a VIA
+timer set up to interrupt at the point the visible display ends? Then the next frame's processing could start
+the moment the last visible scanline of the current frame has scanned out." (272: the lines from the vsync to
+the display's end.) So: a frame done during the display is shown at its end, by a System VIA T1 interrupt
+started at each vsync; one done during the blank flips at once; never two flips in one blank. SIMULATED on the
+nine races' per-frame cycles (logic and drawing): fields repeating a frame 332 -> 28 (the vsync and an
+8,000-cycle late window: 50; with the logic run a frame ahead as well: 9, for about 15 ms more latency). The
+keys are read about 2.6 ms earlier than the frame's showing, and a field less in the frames that were late.
+Tom: "Yes, build it". A hardware gate: a new interrupt source and flip timing, to be seen on a real Master.
+Built 2026-11-03: the vsync interrupt starts System VIA T1 and T2 (one-shot); T1, 3 lines after the display's
+end, opens the blank and shows a waiting frame; T2, 3 lines before the next display, closes it; a frame done
+in the blank is shown by the main loop at once, interrupts off (`irq.6502`, `main.6502`). MEASURED in jsbeeb
+over the hazard race (2,240 frames): the vsync interrupt in at line 250 (2 lines after its edge, not the kit's
+4), T1's 2,092 flips all at line 212, the main loop's 148 between lines 212 and 309, T2 at 310: every flip in
+the blank (208-311). Fields repeating a frame (`render_check`, now counting irq.6502's `Repeats`), the nine
+races drawn from the logic: 332 -> 42 (tracks 1 and 1's race 0: 0; 2: 14 -> 2; 3: 71 -> 12; 4: 17 -> 1; 5:
+105 -> 5; 6: 70 -> 12; 7: 32 -> 8; 8: 25 -> 2), every frame still matching the model. Not yet seen on a real
+Master.

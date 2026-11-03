@@ -98,7 +98,8 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     LDA #HI(irq):STA &205
     JSR make_tables
 
-    \\ the VIAs: the System VIA's CA1 (vsync) the only interrupt; the keyboard's auto-scan off
+    \\ the VIAs: the System VIA's CA1 (vsync), T1 and T2 the only interrupts (irq.6502, D17); the keyboard's
+    \\ auto-scan off
 
     LDA #&7F:STA &FE4E:STA &FE6E        ; system, user VIAs: IER, every interrupt off
     STA &FE4D:STA &FE6D                 ; IFR: every flag cleared
@@ -107,7 +108,8 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
                                         ; MOS leaves it (low, the keyboard drives PA7, and every byte to the
                                         ; sound chip loses its bit 7; keyboard.6502 drops it to read a key)
     LDA #4:STA &FE4C                    ; system VIA: PCR 4, CA1 on vsync's falling edge
-    LDA #&82:STA &FE4E                  ; system VIA: IER, CA1 only
+    LDA &FE4B:AND #&1F:STA &FE4B        ; system VIA: ACR, T1 one-shot (PB7 its own), T2 timed
+    LDA #&E2:STA &FE4E                  ; system VIA: IER, CA1, T1 and T2
 
     \\ ACCCON: the main screen shown and written, HAZEL out; IFJ and ITU as the OS had them
 
@@ -115,6 +117,8 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     STA &FE34
     STZ swapreq
     STZ vsyncs
+    STZ inblank
+    STZ flipped
     CLI
     JMP start
 }
@@ -172,7 +176,7 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     EQUB 80                             ; R1: displayed
     EQUB ScreenHSyncPos                 ; R2: sync position
     EQUB &28                            ; R3: sync widths
-    EQUB 38                             ; R4: vertical total
+    EQUB ScreenVTotal - 1               ; R4: vertical total
     EQUB 0                              ; R5: total adjust
     EQUB ScreenRows                     ; R6: displayed
     EQUB ScreenVSyncPos                 ; R7: sync position

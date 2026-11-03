@@ -18,6 +18,7 @@ ASSERT LO(HudAddr DIV 8) == &E0 AND HI(HudAddr DIV 8) == &07, "R12/R13: &07E0"
 
 ScreenHSyncPos = 98
 ScreenVSyncPos = 31
+ScreenVTotal = 39                       ; character rows a field (R4 + 1): 312 lines
 
 \\ The Video ULA: MODE 1's control register, and the palette (D1, option B): black, green, yellow, white
 

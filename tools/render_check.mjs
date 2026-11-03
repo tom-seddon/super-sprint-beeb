@@ -2,8 +2,11 @@
 // screen it drew (the HUD's row and the play area) checked against the model (tools/render_model.py).
 //
 // Each frame runs from frame_loop.frame_top (the screen to draw chosen) to frame_loop.frame_end (the cars
-// drawn): its cycles are the erase, the trace's read and the plot, with any vsync interrupt that lands in
-// it. The vsyncs between frame_tops are the TV frames each drawn frame took.
+// drawn): its cycles are the erase, the trace's read and the plot, with any interrupt that lands in it (a
+// frame starts at the display's end or in the blank, D17, so the vsync's sound field is usually in it). The
+// fields that showed a frame again (irq.6502's Repeats: no flip in the blank before them) are counted between
+// frame_tops: the fields each drawn frame took beyond one. The race's start, its 50-field pause in one frame,
+// is counted apart.
 //
 // Exit status: 1 if any frame differs from the model, else 0.
 //
@@ -32,9 +35,9 @@ const TvFrame = 39936;
 
 const s = await bootDisc();
 const peek = (a) => s.readMemory(a, 1)[0];
-const work = [], tv = [];
+const work = [], tv = [], reps = [];
 const parts = { erase: [], read: [], plot: [], hud: [], trace: [] };
-let wrong = 0, firstWrong = null, lastVsyncs = null;
+let wrong = 0, firstWrong = null, lastVsyncs = null, lastRepeats = null;
 
 for (let n = 0; n < want; n++) {
     await runTo(s, syms["frame_loop.frame_top"]);
@@ -42,6 +45,9 @@ for (let n = 0; n < want; n++) {
     const v = peek(syms["vsyncs"]);
     if (lastVsyncs !== null) tv.push((v - lastVsyncs) & 255);
     lastVsyncs = v;
+    const r = peek(syms["Repeats"]) | (peek(syms["Repeats"] + 1) << 8);
+    if (lastRepeats !== null) reps.push((r - lastRepeats) & 0xFFFF);
+    lastRepeats = r;
     await runTo(s, syms["frame_loop.erased"]);
     const t1 = cycles(s);
     await runTo(s, syms["frame_loop.objects"]);
@@ -76,7 +82,7 @@ for (let n = 0; n < want; n++) {
     }
 }
 
-if (option("--json", null)) writeFileSync(option("--json"), JSON.stringify({ work, ...parts }));
+if (option("--json", null)) writeFileSync(option("--json"), JSON.stringify({ work, ...parts, repeats: reps }));
 const sorted = [...work].sort((a, b) => a - b);
 const pct = (p) => sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))];
 const mean = work.reduce((a, b) => a + b, 0) / work.length;
@@ -97,7 +103,10 @@ for (const [k, v] of Object.entries(parts)) {
     const m = v.reduce((a, b) => a + b, 0) / v.length;
     console.log(`  ${k}: mean ${m.toFixed(0)}, max ${Math.max(...v)}`);
 }
-console.log(`TV frames per drawn frame: ${JSON.stringify(hist)}`);
+console.log(`TV frames per drawn frame (vsyncs between frame starts): ${JSON.stringify(hist)}`);
+const pause = reps.filter((d) => d >= 40), repeated = reps.filter((d) => d < 40).reduce((a, b) => a + b, 0);
+console.log(`fields showing a frame again: ${repeated}, in ${reps.filter((d) => d > 0 && d < 40).length} frames` +
+    ` (the start's pause: ${pause.join(", ") || "none"})`);
 if (model) console.log(wrong ? `model: ${wrong} frames wrong, the first frame ${firstWrong.frame} (${firstWrong.bad} bytes)`
     : `model: all ${work.length} frames match`);
 process.exit(wrong ? 1 : 0);
