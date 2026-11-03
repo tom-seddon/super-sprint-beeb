@@ -1,0 +1,151 @@
+\\ loadcode.6502 - the load's code (load.6502 says how it's loaded): assembled to run at LoadCodeOrg, in
+\\ the main screen, kept in the fourth bank's first 4K.
+
+\\ Track A's file loaded and unpacked, then the race started again from the top (start). Never returns.
+\\
+\\ Inputs:
+\\     A: the track (index) + 1, from LoadWant
+
+.load_track
+{
+    ZA_AUTO2 part                       ; local: the part's header, in the file
+
+    CLC:ADC #'0':STA LoadName+5         ; "TRACKn", n the track's number (A: the index + 1)
+    SEI
+    LDX #3
+.quiet
+    LDA SnQuiet,X:JSR sn_write          ; every channel silent
+    DEX
+    BPL quiet
+    LDA #6:STA &FE00                    ; CRTC: R6
+    LDA #1:STA &FE01                    ; only the HUD's row displayed: the play area's free for the file
+    TSX:STX LoadStack
+
+    \\ the OS given back its zero page, VIAs, vectors and paging (D7)
+
+    LDX #ZpSwapLen-1
+.give
+    LDA ZpSwap,X:STA GameZp,X
+    LDA OsZp,X:STA ZpSwap,X
+    DEX
+    BPL give
+    ZA_WIPE
+    LDA #&7F:STA &FE4E:STA &FE6E        ; system, user VIAs: IER, every interrupt off
+    LDA OsAcr:STA &FE4B                 ; system VIA: ACR, PCR as the OS had them
+    LDA OsPcr:STA &FE4C
+    LDA OsT1L:STA &FE44                 ; T1 from the OS's latch: its 100 Hz tick again
+    LDA OsT1L+1:STA &FE45
+    LDA OsIer:ORA #&80:STA &FE4E        ; the OS's interrupts back
+    LDA OsIer+1:ORA #&80:STA &FE6E
+    LDA OsIrq1v:STA &204
+    LDA OsIrq1v+1:STA &205
+    LDA #LO(brk):STA &202               ; a disc error: back to the load, to try again
+    LDA #HI(brk):STA &203
+    LDA OsAcccon:STA &FE34              ; ACCCON as the OS had it
+    LDA OsRom:STA &F4:STA &FE30         ; ROMSEL: the OS's ROM
+    CLI
+
+.again
+    LDA #143:LDX #11:LDY NmiOwner:JSR &FFF4 ; OSBYTE 143: the NMIs back to who had them
+    LDX #17                             ; OSFILE's block: the name, the load address (the host's), exec's
+    LDA #0                              ; low byte 0 (the address given); OSFILE writes the catalogue's back,
+.block                                  ; so it's made again each time
+    STA LoadBlock,X
+    DEX
+    BPL block
+    LDA #LO(LoadName):STA LoadBlock
+    LDA #HI(LoadName):STA LoadBlock+1
+    LDA #LO(TrackFileAddr):STA LoadBlock+2
+    LDA #HI(TrackFileAddr):STA LoadBlock+3
+    LDA #&FF:STA LoadBlock+4:STA LoadBlock+5
+    LDX #LO(LoadBlock):LDY #HI(LoadBlock)
+    JSR &FFDD                           ; OSFILE: load (A = &FF)
+    LDA #143:LDX #12:LDY #255:JSR &FFF4 ; OSBYTE 143: the NMIs claimed again
+    STY NmiOwner
+
+    \\ the machine taken back: the OS's zero page kept for the next load, the game's back
+
+    SEI
+    LDX #ZpSwapLen-1
+.take
+    LDA ZpSwap,X:STA OsZp,X
+    LDA GameZp,X:STA ZpSwap,X
+    DEX
+    BPL take
+    ZA_WIPE
+    LDA OsBrkv:STA &202
+    LDA OsBrkv+1:STA &203
+    LDA #LO(irq):STA &204
+    LDA #HI(irq):STA &205
+    JSR game_vias
+    LDA #UlaMode1:STA &FE20             ; video ULA: MODE 1 and the palette again (the MOS's colour flashing
+    LDX #15                             ; wrote its own control register while it had the machine, which
+.palette                                ; halves the CRTC's clock)
+    LDA LoadPal,X:STA &FE21
+    DEX
+    BPL palette
+    LDA &FE34:AND #&30:STA acccon       ; ACCCON: the main screen shown and written
+    STA &FE34
+
+    \\ each part unpacked into its place
+
+    LDA #LO(TrackFileAddr+1):STA part
+    LDA #HI(TrackFileAddr+1):STA part+1
+    LDX TrackFileAddr                   ; the parts
+.unpack
+    PHX
+    LDY #0
+    LDA (part),Y                        ; where: Shared (main RAM's &3000 area, paged as it is), or a bank
+    BIT #&40:BNE shared
+    PHA:AND #3:TAX
+    PLA:AND #&80:ORA bankbg,X
+    STA &FE30                           ; ROMSEL: the bank, ANDY in if it's ANDY's
+.shared
+    INY:LDA (part),Y:STA zxdst
+    INY:LDA (part),Y:STA zxdst+1
+    INY:LDA (part),Y:CLC:ADC #LO(TrackFileAddr):STA zxsrc
+    INY:LDA (part),Y:ADC #HI(TrackFileAddr):STA zxsrc+1
+    JSR zx_unpack
+    LDA part:CLC:ADC #6:STA part
+    BCC @+
+    INC part+1
+.@
+    PLX
+    DEX
+    BNE unpack
+    LDA bankobj:STA &FE30               ; ROMSEL: the objects' bank, where shared_copy is
+    JSR shared_copy                     ; Shared into the shadow screen's &3000 area too
+    LDA acccon:STA &FE34
+
+    \\ the race from the top, as at the takeover
+
+    JSR clear_state
+    LDA #6:STA &FE00                    ; CRTC: R6
+    LDA #ScreenRows:STA &FE01           ; the screen's rows again (start turns the display on)
+    LDX #&FF:TXS
+    CLI
+    JMP start
+
+    \\ BRKV while the OS has the machine: a disc error. The stack as the load had it, and the load again
+.brk
+    LDX LoadStack:TXS
+    CLI
+    JMP again
+}
+
+.LoadPal                                ; the palette (D1), as entry.6502's PalVals
+    EQUB (0..15) * 16 + (PalPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)
+.SnQuiet                                ; the SN76489's four channels' volumes off
+    EQUB &9F, &BF, &DF, &FF
+
+
+\\ The ZX02 depacker (the beeb-port-kit's zx02depack.6502, forked: zx02depack.6502 here)
+
+ZA_AUTO2 zxsrc                          ; the stream
+ZA_AUTO2 zxdst                          ; the output
+ZA_AUTO1 zxofs
+ZA_AUTO1 zxbit
+ZA_AUTO2 zxwrk
+INCLUDE "zx02depack.6502"
+.zx_unpack
+    ZX02_DEPACKER

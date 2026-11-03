@@ -32,6 +32,7 @@ What the skills look up, for this project:
   `&3000`-`&7FFF`, `&3000`-`&3EFF` included (ScreenVars). Four sideways RAM banks. The game hooks IRQ1V
   (the System VIA's vsync, and its T1 and T2 timing the flip into the blank, D17) and leaves the OS's memory alone (D7) but `&0900`-`&0AFF` (D26) and ANDY, which holds mask B and the
   logic's state (D15).
+- **The game's disc**: `make game` makes `build/game.ssd` (track 1's play build and a packed file per track, loaded between races: `src/load.6502`); `node tools/load_check.mjs` proves every track's load.
 - **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes
   `build/sprint.ssd`, the listing `build/sprint.lst` (each bank's free bytes are printed in it) and the
   symbols `build/sprint.json` (Baron's `--symbols`). No `-D` flags.

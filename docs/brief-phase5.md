@@ -201,7 +201,7 @@ touches the build.
    **Zero page around a load** (Tom asked, 2026-11-03; nothing of it built yet): in a race the game owns
    `&04`-`&FF` but `&FC`, over the MOS's NMI workspace `&A0`-`&A7`, the filing system's transient `&B0`-`&BF`
    and its persistent `&C0`-`&CF`. The takeover saves the OS's `&90`-`&FF` (112 bytes) before the game
-   writes any of it (today it doesn't: `src/entry.6502`); a load swaps the game's out and the OS's in, and
+   writes any of it (`load_takeover`, built in 3c); a load swaps the game's out and the OS's in, and
    back after it, so every OS and filing-system call sees its own values, and whatever a filing system leaves
    in `&B0`-`&BF` is swapped out before the game resumes. `&00`-`&8F` is the language's, unused, never swapped.
    The two copies go in `&0900`-`&0AFF` (D26), which survives loads. The loader's own code uses no zero page
@@ -238,9 +238,31 @@ touches the build.
      whoever's human; the wall probes' sets (`lgen/pshift`'s `PSet`) depend on who's human too.
    - **3b, the files**: each track's slots as one disc file, its parts ZX02-packed by a disc builder (the
      kit's `make_disc.py` and `dfs.py`), and the car sets' (D20) likewise.
+     **Built 2026-11-03** (the car sets not yet: one set, three humans, stays resident): `make game`,
+     `tools/make_game.py` on `tools/all_tracks.sh`'s eight builds, the kit's ZX02 built from its source
+     (`build/zx02`), its `dfs.py` used in place. MEASURED: TRACK1-TRACK8 6,380 to 7,519 bytes (29,905 to
+     35,577 unpacked); the disc 14 files of 31, 500 sectors of 800 (128,000 bytes).
    - **3c, the loader**: D7's sequence and the zero page's swap (below), the unpacker, a track's file
      loaded before a race.
+     **Built 2026-11-03.** `src/load.6502` (main RAM, 50 bytes: `load_go` copies the rest and runs it) and
+     `src/loadcode.6502` (501 bytes, kept in the fourth bank's first 4K and run at `&7C00` in the main
+     screen), the takeover's half in `src/entry.6502`, the kit's depacker forked (`src/zx02depack.6502`).
+     The play build's race's end asks for the ST's next track (`LoadWant`); the frame loop's top loads it
+     and starts the race from the top. Main RAM 780 -> 677 free (the VIAs' and the state's set-up moved
+     there from the loader, 72; the objects' copier first in main RAM, its page padding less).
+     Faults found by the check: `shared_copy` and `load_go` patched their copy loops' operands and never put
+     them back (run once until now); and the MOS's colour flashing, left on (D7 had said to turn it off),
+     wrote its own Video ULA control while it had the machine, which halved the CRTC's clock, so the field
+     after a load was 40 ms: the load now writes the ULA's control and palette again.
    - **3d, the proof**: every track's race 17 replayed from one disc, through the loads.
+     **Done otherwise, 2026-11-03**: outside the slots every track's build is the same (3a), so a track
+     loaded right is that track's build, which `tools/tracks_check.sh` checks race by race.
+     `tools/load_check.mjs` boots the game disc, loads each track in the ST's order and compares every slot
+     with that track's build, both screens' Shared too, then runs 300 frames of its race. MEASURED: all 8
+     load right; in jsbeeb's 1770 DFS the first load 87 fields, the others 241-294 (5-6 s; not yet looked
+     into: the head's travel between files laid out by track number is the guess). Seen: track 7 racing
+     after its load (`docs/img/jsbeeb-game-t6-loaded.png`). Not yet: ADFS, MMFS, Econet (step 11), a disc
+     error's retry, a real Master.
 4. **The race count's hazards on every track**: races traced with the barriers (every third race) and
    without, the tornado (after race 3) and without, on each track, through the one disc's loads. (D21's
    question withdrawn: the objects are already complete per track.)

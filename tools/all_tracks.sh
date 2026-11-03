@@ -20,7 +20,7 @@ json.dump(t, open('$trace', 'w'))"
     if make beeb TRACE=play TRACK=$n TRACEFILE=build/trace/race_t${n}_r17.json LOGICTRACE=$trace > build/all_tracks_t$n.log 2>&1
     then
         mkdir -p build/tracks
-        cp build/sprint.ssd build/tracks/t$n.ssd; cp build/sprint.lst build/tracks/t$n.lst
+        cp build/sprint.ssd build/tracks/t$n.ssd; cp build/sprint.lst build/tracks/t$n.lst; cp build/sprint.json build/tracks/t$n.json
         echo "track $((n + 1)) (index $n): $(grep -h 'bytes free' build/sprint.lst | grep -v PADTO | sed 's/ bytes free.*//; s/^the //' | tr '\n' ';' | sed 's/;$//; s/;/; /g')"
     else
         echo "track $((n + 1)) (index $n): FAILS ($(grep -a -m1 'error' build/all_tracks_t$n.log))"

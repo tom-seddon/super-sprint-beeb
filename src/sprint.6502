@@ -41,7 +41,14 @@ ENDSECTION
 SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
     SECTION TraceBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
         IF GenLogic
-            SKIP AndyEnd - P%           ; (the bank's first 4K, under ANDY while the logic runs: free, D16)
+            IF GenPlay                  ; (the bank's first 4K, under ANDY while the logic runs, D16: the
+.loadcode_image                         ; load's code, copied to the main screen to run, load.6502)
+                SECTION LoadCode, org = LoadCodeOrg, guard = &8000, cmos = TRUE
+                    INCLUDE "loadcode.6502"
+                ENDSECTION
+.loadcode_end
+            ENDIF
+            SKIP AndyEnd - P%
             INCLUDE "walls.6502"
             INCLUDE "cells.6502"
             INCLUDE "drone.6502"
@@ -118,6 +125,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
         ENDIF
 .maincode_image
     SECTION MainCode, org = MainCodeOrg, guard = GameVarsOrg, cmos = TRUE
+        INCLUDE "objects.6502"          ; (first: its loops' page padding least here, Phase 5)
         INCLUDE "irq.6502"
         INCLUDE "main.6502"
         INCLUDE "hud.6502"
@@ -127,10 +135,10 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             INCLUDE "human.6502"
             IF GenPlay
                 INCLUDE "keyboard.6502"
+                INCLUDE "load.6502"
             ENDIF
             INCLUDE "sound.6502"
         ENDIF
-        INCLUDE "objects.6502"          ; (last: its loops' page padding least here)
         PRINT "main RAM's code: ", ObjBufOrg - P%, " bytes free below ObjBuf"
         ASSERT P% <= ObjBufOrg, "main RAM's code: below ObjBuf"
     ENDSECTION

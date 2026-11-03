@@ -16,6 +16,8 @@
 .shared_copy
 {
     ASSERT LO(ScreenVarsOrg) == 0, "shared_copy: from a page"
+    LDA #HI(ScreenVarsOrg)              ; (its operands from the first page: it runs after every load too)
+    STA get+2:STA put+5
     LDX #HI(SharedEnd - ScreenVarsOrg + &FF)
     LDY #0
 .page

@@ -21,7 +21,9 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     CLI
     LDA #19:JSR &FFF4                   ; OSBYTE 19, vsync: the calls below hold interrupts off a while
     LDA #16:LDX #0:JSR &FFF4            ; OSBYTE 16: the ADC off
-    LDA #143:LDX #12:LDY #255:JSR &FFF4 ; OSBYTE 143: NMIs claimed from the filing system
+    IF GenPlay = 0
+        LDA #143:LDX #12:LDY #255:JSR &FFF4 ; OSBYTE 143: NMIs claimed from the filing system (the play
+    ENDIF                               ; build's in load_takeover, which keeps who had them)
     LDA #19:JSR &FFF4                   ; vsync before changing the CRTC
     SEI
     LDX #&FF:TXS
@@ -58,6 +60,11 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     INC copy+5
     DEX
     BNE copy
+    IF GenPlay                          ; the OS's state kept for the loads (load.6502), before the game
+        CLI                             ; writes any of zero page's &90-&FF
+        JSR load_takeover
+        SEI
+    ENDIF
 
     \\ in the game built from the logic, Shared copied into the shadow screen's &3000 area (from a bank:
     \\ while ACCCON's X shows the shadow screen, this code's own place is hidden)
@@ -85,40 +92,18 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
         BNE andy
     ENDIF
 
-    \\ the game's variables zeroed (nothing drawn to erase), IRQ1V ours, the tables made
+    \\ the game's variables zeroed (nothing drawn to erase), IRQ1V ours, the tables made, the VIAs ours
 
-    LDA #0:TAX
-.clear
-    FOR page = HI(GameVarsOrg)..<HI(GameVarsEnd)
-        STA page * &100,X
-    NEXT
-    INX
-    BNE clear
     LDA #LO(irq):STA &204
     LDA #HI(irq):STA &205
     JSR make_tables
-
-    \\ the VIAs: the System VIA's CA1 (vsync), T1 and T2 the only interrupts (irq.6502, D17); the keyboard's
-    \\ auto-scan off
-
-    LDA #&7F:STA &FE4E:STA &FE6E        ; system, user VIAs: IER, every interrupt off
-    STA &FE4D:STA &FE6D                 ; IFR: every flag cleared
-    LDA #&0F:STA &FE42                  ; system VIA: DDRB, PB0-3 drive the addressable latch
-    LDA #&0B:STA &FE40                  ; addressable latch: line 3 high, the keyboard's auto-scan on, as the
-                                        ; MOS leaves it (low, the keyboard drives PA7, and every byte to the
-                                        ; sound chip loses its bit 7; keyboard.6502 drops it to read a key)
-    LDA #4:STA &FE4C                    ; system VIA: PCR 4, CA1 on vsync's falling edge
-    LDA &FE4B:AND #&1F:STA &FE4B        ; system VIA: ACR, T1 one-shot (PB7 its own), T2 timed
-    LDA #&E2:STA &FE4E                  ; system VIA: IER, CA1, T1 and T2
+    JSR game_vias
 
     \\ ACCCON: the main screen shown and written, HAZEL out; IFJ and ITU as the OS had them
 
     LDA &FE34:AND #&30:STA acccon       ; ACCCON
     STA &FE34
-    STZ swapreq
-    STZ vsyncs
-    STZ inblank
-    STZ flipped
+    JSR clear_state
     CLI
     JMP start
 }
@@ -189,3 +174,43 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
 
 .PalVals                                ; palette entry e is logical e DIV 8 * 2 + e DIV 2 MOD 2's (MODE 1)
     EQUB (0..15) * 16 + (PalPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)
+
+IF GenPlay
+\\ The OS's state saved at the takeover (before the game writes any of &90-&FF), and the NMIs claimed: in
+\\ the loader SPRINT runs once (load.6502 has the state).
+\\
+\\ Inputs: none. Outputs: OsZp on; A, X, Y corrupted.
+
+.load_takeover
+{
+    LDX #ZpSwapLen-1
+.zp
+    LDA ZpSwap,X:STA OsZp,X
+    DEX
+    BPL zp
+    ZA_WIPE                             ; (a copy, not a store into the pool)
+    LDA &204:STA OsIrq1v
+    LDA &205:STA OsIrq1v+1
+    LDA &202:STA OsBrkv
+    LDA &203:STA OsBrkv+1
+    LDA &FE4B:STA OsAcr
+    LDA &FE4C:STA OsPcr
+    LDA &FE4E:STA OsIer
+    LDA &FE6E:STA OsIer+1
+    LDA &FE46:STA OsT1L
+    LDA &FE47:STA OsT1L+1
+    LDA &FE34:STA OsAcccon
+    LDA &F4:STA OsRom
+    LDA #143:LDX #12:LDY #255:JSR &FFF4 ; OSBYTE 143: NMIs claimed from the filing system
+    STY NmiOwner
+    LDX #6
+.name
+    LDA TrackName,X:STA LoadName,X
+    DEX
+    BPL name
+    RTS
+}
+
+.TrackName                              ; a track's file: TRACK1 to TRACK8
+    EQUS "TRACK?", 13
+ENDIF

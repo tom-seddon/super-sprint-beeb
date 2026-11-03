@@ -54,7 +54,7 @@ GEN = build/gen
 # A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
 .DELETE_ON_ERROR:
 
-.PHONY: all venv disasm tracks convert sheets viewer beeb play check clean always logictrace logic logiccheck
+.PHONY: all venv disasm tracks convert sheets viewer beeb play game check clean always logictrace logic logiccheck
 
 all: disasm convert sheets viewer beeb
 
@@ -169,13 +169,23 @@ $(GEN)/cars.6502: tools/gendata.py tools/convert.py tools/st_sprites.py tools/ob
 
 beeb: build/sprint.ssd
 
-# The disc to play (TRACE=play's build), kept as build/play.ssd: build/sprint.ssd is whichever build was made
-# last, and every check makes its own.
-play:
-	$(MAKE) beeb TRACE=play
-	cp build/sprint.ssd build/play.ssd
+# The disc to play, kept as build/play.ssd: the game's (make game: the play build loads the next track's file
+# after each race, so its disc is the one with them). build/sprint.ssd is whichever build was made last.
+play: game
+	cp build/game.ssd build/play.ssd
 build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(LOGICDEPS)
 	baron -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
+
+# The game's disc (Phase 5, 3b): every track's play build (tools/all_tracks.sh, which checks their layout),
+# then track 1's as it boots and a packed file for each track's slots (tools/make_game.py). The compressor is
+# the beeb-port-kit's ZX02, built from its source (one compressor, so the disc doesn't depend on the machine).
+ZX02SRC = reference/beeb-port-kit/template/tools/zx02src/src
+build/zx02: $(ZX02SRC)/compress.c $(ZX02SRC)/memory.c $(ZX02SRC)/optimize.c $(ZX02SRC)/zx02.c
+	mkdir -p build
+	cc -O2 -o $@ $^
+game: build/zx02 | $(VENV)
+	tools/all_tracks.sh
+	$(PY) tools/make_game.py build/tracks build/zx02 build/game.ssd
 
 # The model each frame's play area is checked against, and the check.
 CUETRACE = $(if $(filter --logic,$(GENFLAGS)),$(LOGICTRACE))

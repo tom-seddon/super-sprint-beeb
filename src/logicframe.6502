@@ -177,8 +177,11 @@ ENDIF
     LDA setup:BNE count                 ; (the set-up's flips: no race frame)
     JSR race_end                        ; after the frame's records: the ST's runs after its flip
     IF GenPlay
-        LDA RcOver:BEQ count            ; over: the next race (the same, from its start), its set-up's
-        JMP logic_start                 ; flips next (LfFrame 0)
+        LDA RcOver:BEQ count            ; over: the next track's race (G_01D138), loaded (load.6502)
+        LDX TrackNum                    ; (the frame loop loads it, at its top: load.6502)
+        LDA NextTrack1,X
+        STA LoadWant
+        BRA count
     ENDIF
 .count
     INC LfFrame
@@ -251,6 +254,10 @@ ENDIF
 .SlotBgSlotEnd
     ENDIF
 
+    IF GenPlay
+.NextTrack1                             ; G_01D138: the track after each, + 1 (0, 2, 6, 5, 1, 4, 7, 3, 0)
+    EQUB 3, 5, 7, 1, 8, 2, 6, 4
+    ENDIF
     \\ F_00C592's start: the start's sound on each channel (F_0131A8), the 50 VBLs' pause (F_010214(50)) with
     \\ the set-up's last frame shown, the engines on (F_013582)
 .start_pause

@@ -70,6 +70,46 @@ ZA_AUTO1 carnum                         ; the car being drawn
 \\ Outputs:
 \\     none: it goes on to frame_loop
 
+\\ The VIAs as the game has them: the System VIA's CA1 (vsync), T1 and T2 the only interrupts (irq.6502,
+\\ D17); the keyboard's auto-scan off. At the takeover and after each load (load.6502).
+\\
+\\ Inputs: none. Outputs: A corrupted.
+
+.game_vias
+{
+    LDA #&7F:STA &FE4E:STA &FE6E        ; system, user VIAs: IER, every interrupt off
+    STA &FE4D:STA &FE6D                 ; IFR: every flag cleared
+    LDA #&0F:STA &FE42                  ; system VIA: DDRB, PB0-3 drive the addressable latch
+    LDA #&0B:STA &FE40                  ; addressable latch: line 3 high, the keyboard's auto-scan on, as the
+                                        ; MOS leaves it (low, the keyboard drives PA7, and every byte to the
+                                        ; sound chip loses its bit 7; keyboard.6502 drops it to read a key)
+    LDA #4:STA &FE4C                    ; system VIA: PCR 4, CA1 on vsync's falling edge
+    LDA &FE4B:AND #&1F:STA &FE4B        ; system VIA: ACR, T1 one-shot (PB7 its own), T2 timed
+    LDA #&E2:STA &FE4E                  ; system VIA: IER, CA1, T1 and T2
+    RTS
+}
+
+\\ The game's variables zeroed (nothing drawn to erase) and the flip's state: at the takeover and after each
+\\ load.
+\\
+\\ Inputs: none. Outputs: A, X corrupted.
+
+.clear_state
+{
+    LDA #0:TAX
+.clear
+    FOR page = HI(GameVarsOrg)..<HI(GameVarsEnd)
+        STA page * &100,X
+    NEXT
+    INX
+    BNE clear
+    STZ swapreq
+    STZ vsyncs
+    STZ inblank
+    STZ flipped
+    RTS
+}
+
 .start
 {
     LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
@@ -193,6 +233,11 @@ ENDIF
     JSR erase_cars
 .erased
 
+    IF GenPlay
+        LDA LoadWant:BEQ @+             ; a race over: the next track's loaded, the race from the top
+        JMP load_go
+    .@
+    ENDIF
     IF GenLogic
         LDA banktrace:ORA #RomselAndy
         STA &FE30                       ; ROMSEL: the logic's bank (the fourth), ANDY in (D15)

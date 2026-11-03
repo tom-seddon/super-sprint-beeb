@@ -1,0 +1,83 @@
+\\ load.6502 - a track's file loaded between races (D3, D7; Phase 5, 3c): the OS given back what it had at
+\\ the takeover, the file loaded through OSFILE into the main screen (only the HUD's row shown), the game
+\\ taking the machine back, and each of the file's parts unpacked into its region. Code calling OSFILE can't
+\\ sit in &8000-&BFFF (the filing system's ROM is paged in there), and main RAM is short: so the load's code
+\\ (loadcode.6502) is kept in the fourth bank's first 4K (free with ANDY out, D16) and copied to the main
+\\ screen's end to run (LoadCodeOrg), the file landing below it; main RAM has load_go, which copies it.
+\\ The takeover's half (load_takeover) is in the loader SPRINT runs once (entry.6502).
+\\
+\\ A track's file (tools/make_game.py): a byte, the parts' count, then 6 bytes a part (where: 0-3 the bank,
+\\ as bankbg on, | &80 ANDY, or &40 Shared; its address, low and high; its stream's offset in the file, low
+\\ and high; a spare), then the streams, each ZX02 (zx02depack.6502).
+\\
+\\ While the OS is back the game's zero page &90-&FF is the OS's (D7): swapped with OsZp, saved at the
+\\ takeover, and nothing here touches zero page until it's swapped back.
+
+TrackFileAddr = &4200                   ; where a track's file lands: the main screen, after the HUD's row
+LoadCodeOrg = &7C00                     ; where the load's code runs: the main screen's end
+ASSERT TrackFileAddr >= PlayAddr, "a track's file below the play area: the HUD's row shown while it loads"
+ZpSwap = &90                            ; zero page's OS half (D7)
+ZpSwapLen = &100 - ZpSwap
+
+SECTION LowFree                         ; &0900-&0AFF, kept across loads (D26)
+.OsZp                                   ; the OS's &90-&FF, while the game has them
+    SKIP ZpSwapLen
+.GameZp                                 ; the game's, while the OS has them
+    SKIP ZpSwapLen
+.OsIrq1v                                ; the OS's vectors and the VIAs' state at the takeover
+    SKIP 2
+.OsBrkv
+    SKIP 2
+.OsAcr
+    SKIP 1
+.OsPcr
+    SKIP 1
+.OsIer                                  ; (System VIA's, then the user VIA's)
+    SKIP 2
+.OsT1L
+    SKIP 2
+.OsAcccon
+    SKIP 1
+.OsRom                                  ; the ROM paged in (&F4)
+    SKIP 1
+.NmiOwner                               ; who had the NMIs before the game claimed them (OSBYTE 143,12's Y)
+    SKIP 1
+.LoadStack                              ; the stack pointer when the load began (a disc error goes back to it)
+    SKIP 1
+.LoadName                               ; the file's name: "TRACKn" and a CR
+    SKIP 7
+.LoadBlock                              ; OSFILE's block
+    SKIP 18
+ENDSECTION
+
+SECTION GameVars
+.LoadWant                               ; the track to load, + 1 (0 none): set by the race's end
+    SKIP 1
+ENDSECTION
+
+\\ The load's code copied from the fourth bank to where it runs, and run. From the frame loop's top.
+\\
+\\ Inputs:
+\\     LoadWant: the track (index) + 1
+
+.load_go
+{
+    LDA banktrace:STA &FE30             ; ROMSEL: the fourth bank, ANDY out: its first 4K
+    LDA acccon:AND #&FF EOR AccX
+    STA &FE34                           ; ACCCON: main RAM written
+    LDA #HI(loadcode_image):STA copy+2  ; (its operands from the first page: every load)
+    LDA #HI(LoadCodeOrg):STA copy+5
+    LDX #HI(loadcode_end - loadcode_image + &FF)
+    LDY #0
+.copy
+    LDA loadcode_image,Y                ; self-modified: the page's high byte
+    STA LoadCodeOrg,Y                   ; self-modified: the page's high byte
+    INY
+    BNE copy
+    INC copy+2
+    INC copy+5
+    DEX
+    BNE copy
+    LDA LoadWant
+    JMP load_track
+}

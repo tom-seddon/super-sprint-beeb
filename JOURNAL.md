@@ -431,3 +431,23 @@
   kept for now, 336 of the wreck effect's 402 bytes, perhaps another sound later.
 - **Phase 4 closed**: `docs/plan.md` Phase 4 done, its budget table moved to `docs/brief-phase4.md` §9, the
   brief BUILT. Next: Phase 5, the game, and main RAM (103 bytes free in the play build) first.
+
+## 2026-11-03: Phase 5 begins: the brief, room, one build for every track, the loads
+
+- **The brief** (`docs/brief-phase5.md`): the ST's front-end screens found in its code (the title, winner's
+  circle and select screens are tile maps 8-10; `SUPER.DAT`'s first three blocks the high-score backdrop,
+  prepare to race, select and upgrades). Tom decided D18-D20 and D22-D25 as proposed (D21 withdrawn: built on
+  a wrong reading), and D26: `&0900`-`&0AFF` the game's. D23's saving is lower priority.
+- **Room** (`docs/brief-ram-2026-11-03.md`): the memory map had credited files' code to the constants files
+  they include; fixed first. Main RAM 103 -> 780 (the font into Shared, the logic's arithmetic and tables
+  into its bank), every check passing.
+- **3a, one layout**: every track's part of each region in a slot at a fixed address, padded to the largest
+  track's; outside the slots the eight tracks' builds are the same byte for byte (`tools/track_slots.py`, in
+  the suite). **Mistake, Phase 4's, found now**: the logic tracer kept the longest run of frames, so track 1's
+  race 17, traced again at 9,000 VBLs, came out as the next race on track 3; it keeps the first race now.
+- **3b, 3c: the loads**: `make game` makes the disc (a packed file a track, 6.4-7.5K); `src/load.6502` gives
+  the OS back its zero page, VIAs and vectors, loads through OSFILE, takes the machine back and unpacks. Its
+  code lives in the fourth bank's first 4K and runs in the main screen (main RAM 677 free). All eight tracks
+  load right (`tools/load_check.mjs`). **Mistakes**: two copy loops that patched their operands and never
+  reset them (run once until now), and the MOS's colour flashing left on, which rewrote the Video ULA and
+  halved the CRTC's clock after a load (D7 had said to turn it off).
