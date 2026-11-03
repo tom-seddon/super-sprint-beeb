@@ -713,3 +713,20 @@ repeating a frame on the nine races drawn from the logic 332 -> 42 (the hazard r
 exact. `render_check` now counts those fields (irq.6502's `Repeats`); its cycles a frame now take in the
 vsync's sound field (about 1,000), which used to fall just before a frame's start, so its "over a TV frame"
 no longer measures what's shown. A hardware gate: not yet seen on a real Master.
+
+**The play build's restart** (2026-11-03, Tom: "it occurs if there's a powerup lying around uncollected when
+the race finishes. When the race restarts, it's not erased, and it's no longer collectable, and driving over
+it might (not reliably I don't think) produce the grey square."). The play build starts the race again by
+clearing the logic's state, but two things kept what the last race wrote: the attribute map (assembled into
+the logic's bank) and the clean background. A bonus or wrench left lying stayed drawn, and its cells stayed
+`&11` or `&0D`. Driving over a stale bonus took it again, and `bonus_frame` drew road at the new race's bonus
+slot: the map's cell (0, 0), the play area's top-left, until the new bonus was placed (read from the code, not
+reproduced headless). Fixed until D3's load per race: at a restart the 20 slots' cells go back as the track
+has them (`SlotCellL`, `SlotCellR`, from `gen_logic.py`) before the new race places its own; on the set-up's
+two flips each slot's 32 bytes of clean background (`slotbg.bin`, from `gendata.py`) go into the background
+and the screen being written, then the other screen (`slot_put`, in main RAM). Not the ST's road sprite: on
+track 6 slot 17 and track 8 slot 4 the background isn't that sprite, and on tracks 5 and 7 a slot's left cell
+is `&08`. MEASURED (a check left to race with the drone alone, two restarts): after each restart the old
+disc's background differed from the boot's in 20 then 72 bytes and its map in 2 then 6 cells, the new disc's
+in none, and both screens match the background at every slot. The play build's main RAM 152 -> 103 bytes
+free, the fourth bank 2,608 -> 1,828.

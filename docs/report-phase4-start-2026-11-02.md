@@ -117,6 +117,13 @@ blinking cue (D16), and showing a frame in the blank as soon as it's done rather
   shows a frame done during the display; one done in the blank is shown at once; T2 closes the blank before
   the next display. Fields repeating a frame 332 -> 42 over the nine races, every frame exact; `render_check`
   counts them now.
+- **The play build's restart** (your report: a pickup left lying when the race ends): the restart cleared
+  the logic's state but not the attribute map or the clean background, so a leftover bonus or wrench stayed
+  drawn and in the map, and driving over a stale bonus drew road at the new race's bonus slot, the map's
+  top-left cell until the new bonus is placed: the dithered square. Each slot's cells and 32 bytes of clean
+  background now go back at a restart (until D3's load per race). Checked over two restarts: the old disc's
+  background and map kept 20 then 72 bytes and 2 then 6 cells of the last races; the new one's match the
+  boot's exactly. Main RAM 152 -> 103 bytes free in the play build, the fourth bank 2,608 -> 1,828.
 - **The other tracks** (step 13): every track's race 17 traced from the logic's side and replayed through
   the BBC's logic, exact on every frame, and drawn from it exactly. Five of the seven new tracks were exact
   at once; four faults fixed: the bonus's cell (stored before the free test, as the ST), the helicopter's
@@ -147,7 +154,7 @@ Resume point: **Phase 4's end** (`docs/brief-phase4.md`). Every track's race 17 
 BBC's logic and is drawn exactly from it (`tools/tracks_check.sh`: 48 checks). What's left of Phase 4: the
 joysticks once measured on a real Master, and D17 seen on it. 42 fields still repeat a frame over the nine
 races (a gate stepping, cars under a bridge and against walls, together); running the logic a frame ahead
-would take that to about 9 (simulated) for about 15 ms more latency, your call. The fourth bank has 2,608 bytes free and the 4K under
+would take that to about 9 (simulated) for about 15 ms more latency, your call. The fourth bank has 1,828 bytes free (play build) and the 4K under
 ANDY is empty, for the next thing worth it. The cars' bank on track 6,
 down to 1 byte, has 422 (the frames packed tighter), and the build's stamps no longer let a fast build pass
 for up to date.

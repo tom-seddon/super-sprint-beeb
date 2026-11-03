@@ -495,3 +495,46 @@ FUNCTION MaskBlk(n) = obj_bands.mblocks + (MaskCols - 1 - n) * MaskBlkSize
 }
 
 ASSERT LO(ObjBufPrio) == 0, "ObjBufPrio: on a page"
+
+IF GenPlay
+
+\\ The play build's restart (logicframe.6502's slots_back, the logic's bank in): a slot's clean background
+\\ put back, over what the last race drew there: with fresh, Junk's 32 bytes into the background first;
+\\ then the background's into the screen being written. In main RAM: it pages the background's bank.
+\\
+\\ Inputs:
+\\     scr: the slot's first byte in the screen
+\\     fresh: non-zero to put Junk into the background first
+\\     Junk: the slot's 32 bytes, as the track has them
+\\
+\\ Outputs:
+\\     ROMSEL: the logic's bank, ANDY in, again
+\\     A, Y: corrupted; X preserved
+
+.slot_put
+{
+    ZA_AUTO2 scr                        ; in: the slot's first byte in the screen
+    ZA_AUTO1 fresh                      ; in: non-zero, Junk into the background first
+    ZA_AUTO2 bg                         ; local: the slot's first byte in the background
+
+    CLC
+    LDA scr:ADC #LO(BgOffset):STA bg
+    LDA scr+1:ADC #HI(BgOffset):STA bg+1
+    LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
+    LDY #31
+    LDA fresh:BEQ copy
+.put
+    LDA Junk,Y:STA (bg),Y
+    DEY
+    BPL put
+    LDY #31
+.copy
+    LDA (bg),Y:STA (scr),Y
+    DEY
+    BPL copy
+    LDA banktrace:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: the logic's bank, ANDY in (D15)
+    RTS
+}
+
+ENDIF
