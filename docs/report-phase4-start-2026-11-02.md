@@ -1,8 +1,8 @@
 # Report: Phase 4's first steps, 2026-11-02
 
-> **Waiting on hardware (D17):** frames are now shown by flipping in the blank after the display, timed by
-> System VIA T1 and T2 from the vsync. Every flip lands in the blank in jsbeeb (lines 212-309); please look at
-> `build/play.ssd` (`make play`) on your Master for tearing or a jumping picture.
+> **Hardware (D17), passed 2026-11-03:** frames are now shown by flipping in the blank after the display,
+> timed by System VIA T1 and T2 from the vsync. Every flip lands in the blank in jsbeeb (lines 212-309), and
+> on your Master: "D17: looks good. No noticeable tearing running on real Master 128 with CUB."
 
 **Where it ended.** On the branch `phase4-start` (not merged, not pushed). Track 1's race runs on the BBC
 from its own logic, bit-exact with the ST on every frame of the traced race, drawn exactly (every frame
@@ -146,13 +146,14 @@ blinking cue (D16), and showing a frame in the blank as soon as it's done rather
 ## Hardware gates
 
 - **The keys** (D12): the play disc on a real BBC, three players holding keys together.
+- **The flip in the blank** (D17): passed on your Master 128 with a CUB monitor, 2026-11-03, no tearing.
 - Nothing else in this job touches timing a real machine sees differently (no new mid-frame tricks).
 
 ## What is open
 
 Resume point: **Phase 4's end** (`docs/brief-phase4.md`). Every track's race 17 now runs bit-exact through the
 BBC's logic and is drawn exactly from it (`tools/tracks_check.sh`: 48 checks). What's left of Phase 4: the
-joysticks once measured on a real Master, and D17 seen on it. 42 fields still repeat a frame over the nine
+joysticks once measured on a real Master (D17 has been seen on it). 42 fields still repeat a frame over the nine
 races (a gate stepping, cars under a bridge and against walls, together); running the logic a frame ahead
 would take that to about 9 (simulated) for about 15 ms more latency, your call. The fourth bank has 1,828 bytes free (play build) and the 4K under
 ANDY is empty, for the next thing worth it. The cars' bank on track 6,

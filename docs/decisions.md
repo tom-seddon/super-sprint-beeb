@@ -291,5 +291,5 @@ over the hazard race (2,240 frames): the vsync interrupt in at line 250 (2 lines
 4), T1's 2,092 flips all at line 212, the main loop's 148 between lines 212 and 309, T2 at 310: every flip in
 the blank (208-311). Fields repeating a frame (`render_check`, now counting irq.6502's `Repeats`), the nine
 races drawn from the logic: 332 -> 42 (tracks 1 and 1's race 0: 0; 2: 14 -> 2; 3: 71 -> 12; 4: 17 -> 1; 5:
-105 -> 5; 6: 70 -> 12; 7: 32 -> 8; 8: 25 -> 2), every frame still matching the model. Not yet seen on a real
-Master.
+105 -> 5; 6: 70 -> 12; 7: 32 -> 8; 8: 25 -> 2), every frame still matching the model. Seen on a real Master, Tom, 2026-11-03:
+"D17: looks good. No noticeable tearing running on real Master 128 with CUB."

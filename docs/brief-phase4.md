@@ -14,7 +14,7 @@
 the BBC's logic and drawn exactly from it (`tools/tracks_check.sh`, 48 checks). Speed's fourth round is done,
 the helicopter replaced by a cue (D16), and frames are shown in the blank after the display, not at the
 vsync (D17): the fields repeating a frame on the nine races drawn from the logic 332 -> 42 (the hazard race
-105 -> 5), every frame exact. D17 waits on a real Master. The fourth bank has 2,608 free and its first 4K
+105 -> 5), every frame exact. D17 seen on a real Master (no tearing). The fourth bank has 2,608 free and its first 4K
 (under ANDY) empty. Left: the joysticks (once measured on a real Master); run-ahead logic (simulated 42 ->
 about 9 more for about 15 ms of latency) if Tom wants it.
 
@@ -712,7 +712,7 @@ waited a whole field. Measured: every flip lands in the blank (lines 212-309 of 
 repeating a frame on the nine races drawn from the logic 332 -> 42 (the hazard race 105 -> 5), every frame
 exact. `render_check` now counts those fields (irq.6502's `Repeats`); its cycles a frame now take in the
 vsync's sound field (about 1,000), which used to fall just before a frame's start, so its "over a TV frame"
-no longer measures what's shown. A hardware gate: not yet seen on a real Master.
+no longer measures what's shown. A hardware gate, passed: Tom, 2026-11-03: "D17: looks good. No noticeable tearing running on real Master 128 with CUB."
 
 **The play build's restart** (2026-11-03, Tom: "it occurs if there's a powerup lying around uncollected when
 the race finishes. When the race restarts, it's not erased, and it's no longer collectable, and driving over
