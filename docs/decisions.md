@@ -170,6 +170,8 @@ player's. The disc to try it: `make beeb TRACE=play` (track 1, three players, ca
 restarting when it ends). Alternatives if a key is awkward: any other key in the same column keeps the
 property (SLASH's column 8 also holds `:`, `]`, `[`, `^`, `_`, `\`; RETURN, in column 9, is free for any one
 player). Not built yet: the joysticks (the Master's ADC and the fire buttons are to be measured first).
+The real keyboard's gate deferred, Tom, 2026-11-03: "D12: I think this one can wait. If there turn out to be problems with the keys chosen, we can choose a different set." The layout stays as built; a
+problem found later means another set, each key still in a column of its own.
 
 ### D13. Mask B (walls): only the mixed cells: Decided (2026-11-02)
 Proposed for Phase 4's first steps (`docs/brief-phase4.md` §3).
