@@ -209,7 +209,8 @@ touches the build.
 8. **The screens converted** (D18): option sheets and a viewer disc for Tom; then drawn by the game, with the
    wipe.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
-10. **High scores** (D23): initials entry, the table and the lap records saved and loaded.
+10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
+    2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.
 11. **The disc on every filing system**: DFS and ADFS in jsbeeb (`beeb-target-matrix`), MMFS and Econet on
     hardware or another emulator; the BRKV retry on a disc error tried.
 

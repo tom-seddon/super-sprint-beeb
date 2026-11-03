@@ -257,7 +257,7 @@ adds the logic.
 | D19 | The game around the race | Decided (Tom, 2026-11-03): bit-exact, traced against Hatari |
 | D20 | Cars' frames per race | Decided (Tom, 2026-11-03): a file per combination of humans |
 | D22 | The disc | Decided (Tom, 2026-11-03): one 80-track single-sided DFS disc |
-| D23 | High scores | Decided (Tom, 2026-11-03): saved to disc, a failed save shown and ignored |
+| D23 | High scores | Decided (Tom, 2026-11-03): saved to disc, a failed save shown and ignored; lower priority, dropped if the catalogue or room runs short |
 | D24 | The ST's keys | Decided (Tom, 2026-11-03): f1, f5, f8, f0 (for F10), f9, Escape from the matrix |
 | D25 | The display between races | Decided (Tom, 2026-11-03): the race's 26 rows for every screen, the HUD row erased as needed |
 

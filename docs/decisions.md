@@ -344,6 +344,9 @@ Proposed (`docs/brief-phase5.md` §6): (a) saved to disc after each game as the 
 `SSPRINT.HSC`), a failed save (a write-protected disc, Econet without rights) said in the HUD row and ignored;
 (b) kept for the session only.
 Tom chose (a) ("Save to disc").
+Then: "One note about the high score saving: this is a good feature, but lower priority. If the disk runs out of catalogue entries, or if handling all the error cases takes up too much room, it can be abandoned."
+So: saving is lower priority; it gives way to the disc's catalogue and to room, and is dropped (scores kept
+for the session) if either runs short.
 
 ### D24. The ST's keys: Decided (2026-11-03)
 Proposed: the ST's F1 options, F5 the celebration shortened, F8 pause, F10 the race abandoned, Esc prepare to
