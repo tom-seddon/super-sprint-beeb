@@ -450,4 +450,5 @@
   code lives in the fourth bank's first 4K and runs in the main screen (main RAM 677 free). All eight tracks
   load right (`tools/load_check.mjs`). **Mistakes**: two copy loops that patched their operands and never
   reset them (run once until now), and the MOS's colour flashing left on, which rewrote the Video ULA and
-  halved the CRTC's clock after a load (D7 had said to turn it off).
+  halved the CRTC's clock after a load (D7 had said to turn it off). Off now (Tom: OSBYTE 9 and 10), and the
+  flash counter cleared by OSBYTE 193: one already counting froze at the takeover and fired in the first load.

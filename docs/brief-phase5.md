@@ -253,7 +253,10 @@ touches the build.
      Faults found by the check: `shared_copy` and `load_go` patched their copy loops' operands and never put
      them back (run once until now); and the MOS's colour flashing, left on (D7 had said to turn it off),
      wrote its own Video ULA control while it had the machine, which halved the CRTC's clock, so the field
-     after a load was 40 ms: the load now writes the ULA's control and palette again.
+     after a load was 40 ms. Tom: OSBYTE 9 and 10 with X = 0 at startup; and a flash already counting when
+     the game takes IRQ1V stays frozen (`&251` read 20) and runs out in the first load, so OSBYTE 193 clears
+     the counter too (`load_takeover`). `tools/load_check.mjs` checks 10 vsyncs in 10 fields after each load
+     and the counter 0, and failed on each of the two lesser builds (no calls; 9 and 10 alone).
    - **3d, the proof**: every track's race 17 replayed from one disc, through the loads.
      **Done otherwise, 2026-11-03**: outside the slots every track's build is the same (3a), so a track
      loaded right is that track's build, which `tools/tracks_check.sh` checks race by race.

@@ -78,12 +78,6 @@
     LDA #LO(irq):STA &204
     LDA #HI(irq):STA &205
     JSR game_vias
-    LDA #UlaMode1:STA &FE20             ; video ULA: MODE 1 and the palette again (the MOS's colour flashing
-    LDX #15                             ; wrote its own control register while it had the machine, which
-.palette                                ; halves the CRTC's clock)
-    LDA LoadPal,X:STA &FE21
-    DEX
-    BPL palette
     LDA &FE34:AND #&30:STA acccon       ; ACCCON: the main screen shown and written
     STA &FE34
 
@@ -133,8 +127,6 @@
     JMP again
 }
 
-.LoadPal                                ; the palette (D1), as entry.6502's PalVals
-    EQUB (0..15) * 16 + (PalPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)
 .SnQuiet                                ; the SN76489's four channels' volumes off
     EQUB &9F, &BF, &DF, &FF
 

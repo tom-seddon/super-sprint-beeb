@@ -3,15 +3,17 @@
 // every slot compared with that track's own play build's (build/game_slots.json, tools/make_game.py): the
 // banks' (each read in its bank), ANDY's, and Shared in both screens. Outside the slots every track's build
 // is the same (tools/track_slots.py), so a track loaded right is that track's build. Then a few hundred
-// frames of its race, each load timed in fields.
+// frames of its race, each load timed in fields, and the field's length: 10 vsyncs in 10 fields' cycles (the
+// MOS's colour flashing, if left on, rewrites the Video ULA during a load and halves the CRTC's clock). The
+// MOS's flash counter (&251) must be 0 too: one still counting fires on a later load.
 //
-// Exit status: 1 if any slot's byte differs or a load never finishes, else 0.
+// Exit status: 1 if any slot's byte differs, a load never finishes or the fields run slow, else 0.
 //
 // Usage (from the repo root, after make game): node tools/load_check.mjs [TRACKS]   (indexes, default all 8,
 // in the ST's order from track 1's: 2 6 5 1 4 7 3 0)
 
 import { readFileSync } from "node:fs";
-import { andy, bootDisc, cycles, ram, runTo, symbols } from "./jsbeeb.mjs";
+import { andy, bootDisc, cycles, ram, runTo, settle, symbols } from "./jsbeeb.mjs";
 
 const syms = symbols("build/tracks/t0.json");
 const want = JSON.parse(readFileSync("build/game_slots.json"));
@@ -48,6 +50,14 @@ for (const n of order) {
     bad += wrong ? 1 : 0;
     console.log(`track ${n + 1}: loaded in ${fields} fields; ${want[n].length} slots ${wrong ? "WRONG: " + out.join(", ") : "all as its build"}`);
     for (let f = 0; f < 300; f++) await runTo(s, syms["frame_loop.frame_end"], 4000000);
+    settle(s);
+    const v0 = ram(s, syms.vsyncs, 1)[0];
+    await s.runFor(399360);
+    const vs = (ram(s, syms.vsyncs, 1)[0] - v0 + 256) % 256, flash = ram(s, 0x251, 1)[0];
+    if (vs !== 10 || flash !== 0) {
+        console.log(`track ${n + 1}: ${vs} vsyncs in 10 fields, the MOS's flash counter ${flash}`);
+        bad++;
+    }
 }
 console.log(bad ? `${bad} of ${order.length} tracks wrong` : `all ${order.length} tracks load right`);
 process.exit(bad ? 1 : 0);

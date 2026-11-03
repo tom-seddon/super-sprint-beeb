@@ -95,8 +95,9 @@ for unrolled loops. It was just in case: nothing measured says the game needs HA
   DFS's NMI claim runs the ROMs' service calls with interrupts off for 582 us (Teddy Boy), harmless between
   races.
 - **Also needed**: BRKV caught while the OS is back, so a disc error shows in the HUD row and offers a retry;
-  Escape off (`*FX229,1`); the OS's colour flashing off (OSBYTE 9 and 10), since its IRQ would otherwise
-  rewrite the ULA's control register; no VDU calls.
+  Escape off (`*FX229,1`); the OS's colour flashing off (OSBYTE 9 and 10 with X = 0, and OSBYTE 193 to clear a
+  count in progress, built 2026-11-03), since its IRQ would otherwise rewrite the ULA's control register; no VDU
+  calls.
 - **Cost**: 112 bytes of main RAM, and HAZEL's 8K, ANDY's 4K and about 2K of low pages not available to the
   game.
 
