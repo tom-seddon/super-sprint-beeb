@@ -453,6 +453,9 @@ touches the build.
      and headings, stays in the picture. Two 1-bit masks a place, 1,204 bytes packed in all (measured). A car's look,
      body and sides, as `G_01DC18`'s seven rows: player 1 white, white; player 2 green; player 3 yellow; drone-driven,
      black with sides white, green or yellow as its player's; car 3 black, black. Proposed; to judge at that screen.
+     The cars' colours may be changed later (Tom, 2026-11-04: perhaps a separate colour for the player cars' sides), and
+     the circle must follow: so the seven looks live in one place, `tools/convert.py`'s table, which makes both the race's
+     sprites and the circle's colours. The masks hold shape, not colour, so a change is a rebuild, nothing redrawn.
    - The credits aren't a plane, as §1 projected, but RLE, as is prepare; upgrades has no picture at all. **`SUPER1.DAT` is
      never read**: wiped after its load, a whole game came out the same to the byte, with a control that the file was
      there and the wipe took. 17K nobody has to convert. The disc budget improves by that, and the screens' data
