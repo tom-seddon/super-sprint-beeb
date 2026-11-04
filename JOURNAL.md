@@ -462,3 +462,11 @@
   Escape off; `Loading` and the OS's error text in the HUD's row, in the MOS's font at `&B900` in ROM 15 (Tom).
   **Mistake**: OSWORD 10 for that font first, against D7's "no VDU calls": the VDU's workspace is in ANDY, which is
   the game's, and it returned zeros.
+- **Step 4, the race count's hazards** (2026-11-04): the disc had played every race as race 17 from one seed; the
+  counter, the generator and the drones now outlive a race (`GmRace`, `GmSeed`, `GmDrone`). `tools/disc_races.mjs`
+  plays traced races on the disc itself, state and screen every frame: 40 races (none, barriers, tornado, all, the
+  counter's end, on every track), 126,141 frames, all exact first time, so it was made to fail three ways before
+  that was believed. **Mistake**: my first screen mutant "passed", because the byte it changed was already that
+  value; checked before the oracle was doubted or trusted. **Mistake, Phase 4's**: the object tracer's 7,000 VBLs
+  cut track 8's race 17 short, and `st_race.py` kept the longest run; both fixed. Worst timing: track 5's race
+  50, 34 repeated fields in 1,689 frames.

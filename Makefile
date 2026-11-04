@@ -20,6 +20,7 @@ VENV = .venv/installed
 TRACE ?= race
 RACE = 17
 FORCE = tornado,cones
+RACEVBLS = 14000
 ifeq ($(TRACE),attract)
 TRACK = 5
 TRACEFILE = build/trace/cars_t5.json
@@ -54,7 +55,7 @@ GEN = build/gen
 # A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
 .DELETE_ON_ERROR:
 
-.PHONY: all venv disasm tracks convert sheets viewer beeb play game check clean always logictrace logic logiccheck
+.PHONY: all venv disasm tracks convert sheets viewer beeb play game check clean always logictrace hazardtrace hazardrace logic logiccheck
 
 all: disasm convert sheets viewer beeb
 
@@ -95,7 +96,7 @@ build/trace/cars_t5.json: tools/st_trace_cars.py tools/hatari.sh | $(VENV)
 
 # A real race (Hatari, about 20 s): every object drawing routine's calls logged, then turned into frames.
 build/trace/obj_t%_r$(RACE).json: tools/st_trace_objects.py tools/hatari.sh | $(VENV)
-	$(PY) tools/st_trace_objects.py $* $(RACE) $@ $(FORCE)
+	VBLS=$(RACEVBLS) $(PY) tools/st_trace_objects.py $* $(RACE) $@ $(if $(FORCE),$(FORCE),-)
 build/trace/race_t%_r$(RACE).json: tools/st_race.py build/trace/obj_t%_r$(RACE).json | $(VENV)
 	$(PY) tools/st_race.py build/trace/obj_t$*_r$(RACE).json $@
 build/trace/obj_t4_r$(RACE)_heli%.json: tools/st_trace_objects.py tools/hatari.sh | $(VENV)
@@ -108,11 +109,20 @@ build/trace/race_t4_r$(RACE)_heli%.json: tools/st_race.py build/trace/obj_t4_r$(
 build/trace/logic_t%_r0.json: tools/st_trace_logic.py tools/hatari.sh tools/logic_scripts/t%.json | $(VENV)
 	$(PY) tools/st_trace_logic.py $* 0 tools/logic_scripts/t$*.json $@
 # race 17's logic on track N (step 11, then every track): accelerate held, the tornado and cones forced, the
-# renderer's own race (race_tN_r17.json) from the logic's side; 9,000 VBLs (about 70 s), as tracks 6-8's races
+# renderer's own race (race_tN_r17.json) from the logic's side; 14,000 VBLs (about 5 minutes), as the longest races
 # outrun the tracer's default 6,000
 build/trace/logic_t%_r$(RACE).json: tools/st_trace_logic.py tools/hatari.sh | $(VENV)
-	VBLS=9000 $(PY) tools/st_trace_logic.py $* $(RACE) - $@ $(FORCE)
+	VBLS=$(RACEVBLS) $(PY) tools/st_trace_logic.py $* $(RACE) - $@ $(FORCE)
 logictrace: build/trace/logic_t0_r0.json $(foreach t,0 1 2 3 4 5 6 7,build/trace/logic_t$(t)_r$(RACE).json)
+# Phase 5, step 4: the race count's hazards on every track, for tools/disc_races.sh: race 1 none, 2 the barriers, 4
+# the tornado (forced), 50 the counter's end, all forced, each race's logic and draw calls. (Race 17 is the rule
+# above's.) 14,000 VBLs: the slow drones of the early races outrun 9,000. About 3 hours one at a time.
+hazardtrace:
+	$(MAKE) hazardrace RACE=1 FORCE=
+	$(MAKE) hazardrace RACE=2 FORCE=
+	$(MAKE) hazardrace RACE=4 FORCE=tornado
+	$(MAKE) hazardrace RACE=50 FORCE=tornado,cones
+hazardrace: $(foreach t,0 1 2 3 4 5 6 7,build/trace/logic_t$(t)_r$(RACE).json build/trace/race_t$(t)_r$(RACE).json)
 
 # The race logic's test (Phase 4): the logic trace's race replayed through the BBC's logic, no display
 # (build/logic.ssd), and its check against the ST's state every frame (tools/logic_check.mjs). LOGICTRACE picks

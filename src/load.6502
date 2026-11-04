@@ -52,6 +52,12 @@ SECTION LowFree                         ; &0900-&0AFF, kept across loads (D26)
     SKIP 1
 .LoadIndex                              ; a message's next character
     SKIP 1
+.GmRace                                 ; what outlives a race (clear_state clears GameVars): G_01EBC2, the race
+    SKIP 1                              ; counter, 0-50,
+.GmSeed                                 ; TOS's generator, as the last race left it,
+    SKIP 4
+.GmDrone                                ; and who drives each car (logic_start gives these to the logic)
+    SKIP 4
 ENDSECTION
 
 SECTION GameVars

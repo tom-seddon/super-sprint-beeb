@@ -38,5 +38,6 @@ run keys_check node tools/keys_check.mjs
 run all_tracks tools/all_tracks.sh
 run game_disc sh -c 'make build/zx02 && .venv/bin/python tools/make_game.py build/tracks build/zx02 build/game.ssd'
 run load_check node tools/load_check.mjs
+run disc_races tools/disc_races.sh "$OUT/disc_races"
 echo "done $fail" >> "$OUT/verdicts.txt"
 exit $fail

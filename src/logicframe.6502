@@ -67,17 +67,23 @@ ENDIF
     DEX
     BPL zclear
     LDA TrackNum:STA RcTrack
-    LDA #LgRace:STA RcRace
-    IF GenPlay                          ; the play build: three players, car 3 the drone
-        LDA #1:STA RcDrone+3
+    IF GenPlay                          ; the play build: what the last race left (load.6502's Gm)
+        LDA GmRace:STA RcRace
+        LDX #3
+    .between
+        LDA GmDrone,X:STA RcDrone,X
+        LDA GmSeed,X:STA RcSeed,X
+        DEX
+        BPL between
     ELSE
+        LDA #LgRace:STA RcRace
         FOR c = 0..3
             LDA #LgDrones[c]:STA RcDrone+c
         NEXT
+        FOR i = 0..3
+            LDA #(LgSeed >> (8 * i)) AND &FF:STA RcSeed+i
+        NEXT
     ENDIF
-    FOR i = 0..3
-        LDA #(LgSeed >> (8 * i)) AND &FF:STA RcSeed+i
-    NEXT
     LDX #23
 .scores
     LDA LfScores,X:STA RcScore,X
@@ -152,6 +158,7 @@ ENDIF
 .@
     IF GenPlay
         JSR read_players                ; the players' keys
+    .played                             ; (tools/disc_races.mjs gives a traced race's inputs here)
     ELSE
         LDA lfleft:BNE same             ; the next run of inputs
         LDA (lfin):BEQ same             ; (none left: the last ones held)
@@ -174,10 +181,19 @@ ENDIF
     JSR build_objects
     JSR build_movers
     JSR build_hud
+.built                                  ; (tools/disc_races.mjs: the state the ST's flip dumps)
     LDA setup:BNE count                 ; (the set-up's flips: no race frame)
     JSR race_end                        ; after the frame's records: the ST's runs after its flip
     IF GenPlay
         LDA RcOver:BEQ count            ; over: the next track's race (G_01D138), loaded (load.6502)
+        LDX #3                          ; the generator goes on where this race left it
+    .seed
+        LDA RcSeed,X:STA GmSeed,X
+        DEX
+        BPL seed
+        LDA GmRace:CMP #50:BCS @+       ; the race counter + 1, at most 50
+        INC GmRace
+    .@
         LDX TrackNum                    ; (the frame loop loads it, at its top: load.6502)
         LDA NextTrack1,X
         STA LoadWant

@@ -208,6 +208,11 @@ IF GenPlay
     LDA &F4:STA OsRom
     LDA #143:LDX #12:LDY #255:JSR &FFF4 ; OSBYTE 143: NMIs claimed from the filing system
     STY NmiOwner
+    STZ GmRace                          ; the game's first race; three players, car 3 the drone
+    FOR i = 0..3
+        LDA #(LgSeed >> (8 * i)) AND &FF:STA GmSeed+i
+        LDA #(i DIV 3):STA GmDrone+i
+    NEXT
     LDX #6
 .name
     LDA TrackName,X:STA LoadName,X

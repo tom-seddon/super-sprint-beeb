@@ -11,7 +11,7 @@
 > `docs/st-graphics.md` "Track backgrounds" and "`SUPER.DAT`"; `docs/plan.md` Phase 5; D3, D7, D9, D11, D15,
 > D16.*
 
-**Resume point: step 4.** Every decision is taken; steps 1-3 are done.
+**Resume point: step 5.** Every decision is taken; steps 1-4 are done.
 
 ## 0. The proposal in one paragraph
 
@@ -109,7 +109,7 @@ it):
 | Region | Free now (track 1) | Phase 5 wants | Where it comes from |
 |---|---|---|---|
 | Main RAM's code (`&0E00`-`&29FF`) | 103 | the game's sequence glue: paging the front end in and out, ~100 | the room hunt (`docs/brief-ram-2026-11-03.md`): 780 free after it |
-| GameVars (`&2E00`-`&2FFF`) | 174 (338 of 512 used) | the state that outlives a race: scores 24, devices 3, wrenches and upgrades (already in the logic's state, which ANDY keeps), race count, track, the attract's place: ~60 | itself |
+| GameVars (`&2E00`-`&2FFF`) | 174 (338 of 512 used) | the state that outlives a race: scores 24, devices 3, wrenches and upgrades (already in the logic's state, which ANDY keeps), track, the attract's place: ~60; but `clear_state` clears GameVars at each load, so step 4 put the race count, generator and drones in `LowFree` (`Gm`), and the rest will want the same | itself |
 | The fourth bank's first 4K (`&8000`-`&8FFF`, under ANDY while the logic runs) | 4,096 (D16) | the game's rules between races, the loader's code (copied out to run), the high-score and lap-record tables (295) | itself |
 | The background's bank | 177 in a race | between races: the front end's code, font, the screen's picture packed, its tune | itself: reloaded for the next race |
 | Both screens (`&3F00`-`&7FFF`) and shadow's `&3000` area | | during a load: the file lands packed in main's screen (~15.9K below `&8000` after the HUD row, D7), the load's code beside it | itself |
@@ -285,6 +285,37 @@ touches the build.
 4. **The race count's hazards on every track**: races traced with the barriers (every third race) and
    without, the tornado (after race 3) and without, on each track, through the one disc's loads. (D21's
    question withdrawn: the objects are already complete per track.)
+   - **Done (2026-11-04).** The disc had played every race as race 17 from one seed. Now `GmRace`, `GmSeed` and
+     `GmDrone` (in `LowFree`, as `clear_state` clears GameVars) carry what outlives a race: the counter goes up by
+     one at each race's end, at most 50, and the generator goes on where it was. The disc starts at race 0, on
+     the seed of track 1's traced race: a real seed, and the drone-won decrement, wait for step 6. Cost: 16 bytes in
+     the fourth bank (1,130 free), and the loader's.
+   - `tools/disc_races.mjs` plays a traced race on `build/game.ssd` itself, through its load: every frame the
+     logic's whole state against the ST's (`tools/logic_compare.mjs`, `logic_check`'s, now shared) and the screen
+     against the model; at the race's end the race over on the trace's last frame, the counter, the generator
+     and the next track. `tools/disc_races.sh` (in the suite) runs it round the tracks five times at once, the races
+     in turn, so each kind of race follows others. 40 races: race 1 (no hazards), 2 (barriers), 4 (the tornado,
+     forced), 17 (both, cones, oil; the tornado and cones forced), 50 (the counter's end, the same forced), on
+     each of the 8 tracks, 126,141 frames. **All 40 exact, state and screen.** Seen to fail: the coin not forced,
+     a byte of the background changed, a wrong next track and counter (the first try at the background
+     changed nothing: the byte was already `&55`). `make hazardtrace` records the traces (about 3 hours one at a
+     time; these ran three at once, `TRACEDIR`).
+   - Fields repeated (a frame late), by race, in each track's run (the start's pause left out):
+
+     | Race | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+     |---|---|---|---|---|---|---|---|---|
+     | 1 | 1 | 0 | 1 | 1 | 3 | 1 | 1 | 1 |
+     | 2 | 2 | 1 | 2 | 7 | 5 | 3 | 2 | 2 |
+     | 4 | 1 | 1 | 2 | 1 | 15 | 4 | 1 | 2 |
+     | 17 | 3 | 5 | 19 | 3 | 11 | 18 | 11 | 5 |
+     | 50 | 3 | 3 | 3 | 7 | 34 | 23 | 2 | 12 |
+
+     The worst, track 5's race 50: 34 fields in 1,689 frames (2%), so that race runs about 2% slow (D2: 50 fps,
+     logic once a frame). Track 5's race 17 repeats 11 here against 6 in the test build at Phase 4's end; why
+     hasn't been looked into (the play build also reads the keys, and the frame's cycles have moved since).
+   - Also found: the object tracer stopped at 7,000 VBLs, so track 8's race 17 had only 3,935 of its 4,599
+     frames, and `make check TRACE=h7` had never seen its end; and `st_race.py` kept the longest run, as the logic
+     tracer had. Both fixed (14,000 VBLs, the first run over 100 frames).
 5. **The sequence tracer**: Hatari traces of a whole game (select, two or three races, joins, an elimination,
    upgrades bought, a game over), the state between races at each screen. The demo race traced on each track.
 6. **The game's rules** on the BBC, one screen's logic at a time, each checked against step 5's traces, with

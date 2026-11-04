@@ -38,7 +38,7 @@ def main(raw, out):
             runs.append(run)
             run = [f]
     runs.append(run)
-    race = max(runs, key=len)
+    race = next(r for r in runs if len(r) > 100)    # (the race the poke started, as st_trace_logic.py's race())
     json.dump(race, open(out, 'w'))
     print(f'{len(race)} frames, {race[0]["frame"]} to {race[-1]["frame"]}')
 

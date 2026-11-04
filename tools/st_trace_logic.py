@@ -30,7 +30,7 @@ import json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-D = os.path.join(ROOT, 'build', 'trace')
+D = os.environ.get('TRACEDIR') or os.path.join(ROOT, 'build', 'trace')    # (Hatari's scripts and log: one each, to run several at once)
 RaceEntryStack = 0x21780                # a7 at F_00C592's entry in this run (as st_trace_objects.py)
 FlipPc, InputPc, RandomPc = 0x14D9C, 0xDC64, 0xADC4
 Frame = 0x1D30E

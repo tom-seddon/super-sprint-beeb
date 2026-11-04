@@ -296,6 +296,7 @@ ENDSECTION
 .coin
     LDA RcRace:CMP #4:BCC calm
     LDA #2:JSR random
+.tornado_coin                           ; (tools/disc_races.mjs forces a traced race's coin here)
     IF LgForceTornado                   ; (the test: the trace's coin was forced, after its draw)
         LDA #1
     ENDIF

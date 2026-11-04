@@ -161,6 +161,7 @@ MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wren
 
     STZ RcCones
     LDA #20:JSR random
+.cones_coin                             ; (tools/disc_races.mjs forces a traced race's coin here)
     IF LgForceCones                     ; (the test: the trace's coin was forced, after its draw)
         LDA #10
     ENDIF

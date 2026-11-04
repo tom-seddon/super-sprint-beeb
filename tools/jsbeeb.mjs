@@ -98,3 +98,22 @@ export async function runTo(s, addr, limit = 40000000) {
         s.removeBreakpoint(id);
     }
 }
+
+// run until the CPU reaches any of addrs, each [address, bank] (bank: the sideways bank that must be paged in,
+// for an address in &8000-&BFFF, where another bank's code can sit; undefined otherwise), or throw after limit
+// cycles. -> the address reached. The breakpoints are removed after.
+export async function runToAny(s, addrs, limit = 40000000) {
+    const ids = addrs.map(([a, bank]) => s.addBreakpoint("execute", a, bank === undefined ? {} : { bank }));
+    try {
+        for (let ran = 0; ran < limit; ran += 200000) {
+            s.resetBreakpointHits();
+            settle(s);
+            await s.runFor(200000);
+            const hit = s.hitBreakpoint();
+            if (hit) return hit.address;
+        }
+        throw new Error(`never reached ${addrs.map(([a]) => `&${a.toString(16)}`).join(", ")}`);
+    } finally {
+        for (const id of ids) s.removeBreakpoint(id);
+    }
+}

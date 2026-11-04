@@ -108,7 +108,7 @@ if __name__ == '__main__':
     force = sys.argv[4].split(',') if len(sys.argv) > 4 and sys.argv[4] != '-' else []
     script = json.load(open(sys.argv[5])) if len(sys.argv) > 5 else None
     os.makedirs(D, exist_ok=True)
-    frames = parse(record(track, race, 7000, force, script))
+    frames = parse(record(track, race, int(os.environ.get('VBLS', 7000)), force, script))
     json.dump([{'mem': {str(k): v for k, v in f['mem'].items()},
                 'calls': [[n, w, {str(k): v for k, v in e.items()}] for n, w, e in f['calls']]} for f in frames],
               open(path, 'w'))
