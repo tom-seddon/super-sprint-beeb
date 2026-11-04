@@ -505,3 +505,7 @@
   decodes `SUPER.DAT`'s front-end blocks against them: title, credits, high scores and lap records exact to the pixel,
   prepare but for its flickers. `SUPER1.DAT` is never read, shown by wiping it. **Mistake, mine**: the first wipe was
   before the file loaded, so it proved nothing; caught by asking for a control, and done again after it.
+  **Mistake, mine, found by Tom against the video**: the captures' colours were wrong on every screen with raster bands, as
+  I'd read one palette from the Shifter for the whole screen; the ST changes palette down the screen on Timer B, in code
+  the disassembler had left as data. The bands are recorded now, and checked against Hatari's own pictures. My first
+  limit for that check, by the row, passed the very fault it was for; the mutant showed it, so it's a total now.

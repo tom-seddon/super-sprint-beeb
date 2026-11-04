@@ -4,7 +4,9 @@ Usage: st_frontend.py check   every decoder against tools/st_screens.py's captur
 """
 import json, os, sys
 import numpy as np
+from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import st_screens as S
 import stgfx
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -37,14 +39,14 @@ def unrle(d, off):
 
 
 def shot(name):
-    """A captured screen: (the indices, the palette words)."""
+    """A captured screen: (the indices, its step's event: tools/st_screens.py's rgb() colours it)."""
     d = os.path.join(ROOT, 'build/st_screens')
     for f in ('screens.json', 'options.json'):
         t = json.load(open(f'{d}/{f}'))
         for e in t['events']:
             if e['kind'] == 'step' and t['script']['steps'][e['index']].get('shot') == name:
                 which = (0xF8000, 0x21800).index(e['base'])
-                return stgfx.planar_to_indices(open(f'{d}/{name}_{which}.bin', 'rb').read(), 320, 200), e['palette']
+                return stgfx.planar_to_indices(open(f'{d}/{name}_{which}.bin', 'rb').read(), 320, 200), e
     raise KeyError(name)
 
 
@@ -228,9 +230,9 @@ def main():
             # the text, the dial, the bonuses and the sparkles over the maps: step 8's to draw
             ('the circle (map 9)', T.decode_map(d, 9), 'circle1', 4000, None),
             ('the select (map 10)', T.decode_map(d, 10), 'select1', 3000, None)):
-        want, pal = shot(against)
+        want, e = shot(against)
         n, where = diff(idx, want)
-        stgfx.indices_to_png(idx, stgfx.palette_from_words(pal), os.path.join(ROOT, f'build/st_screens/dec_{against}.png'), scale=2)
+        Image.fromarray(S.rgb(idx, e)).resize((640, 400), Image.NEAREST).save(os.path.join(ROOT, f'build/st_screens/dec_{against}.png'))
         ok = n <= limit and (box is None or where is None or (where[0] >= box[0] and where[1] >= box[1] and where[2] <= box[2] and where[3] <= box[3]))
         bad += not ok
         print(f'{name}: {n} pixels differ{f" in {where}" if n else ""}{"" if ok else ": WRONG"}')

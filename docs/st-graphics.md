@@ -86,6 +86,26 @@ Every screen was captured from Hatari as its raw memory and palette (`tools/game
 The ones not composed are text and shapes over decoded pictures, through the routines below: step 8 draws them, and
 the captures are what it's checked against.
 
+**Most of these screens change palette down the screen.** `xbios_010070` (its code sits in `dc.b` lines in `build/super.s`: not
+followed by the disassembler) installs a VBL handler at `&10188`, which loads the first palette and starts MFP Timer B
+counting 2 display lines an interrupt, and a Timer B handler at `&1013C`, which after each count in the line table
+loads the next 16 colours. A count of `&FF` ends it. So a screen is up to 4 bands of 16 colours:
+
+| Screen | Palettes | Line counts | Bands start at line |
+|---|---|---|---|
+| Title, high scores, lap records, credits, the race | one | none | 0 |
+| Select | `G_01DAF8`, 4 | `G_01DAAC` | 0, 34, 86, 148 |
+| Prepare, initials, options | `G_01DBB8`, 3 | `G_01DABC` | 0, 52, 112 |
+| Upgrades | `G_01DB78`, 2 | `G_01DAB4` | 0, 24 |
+| Winner's circle | `G_01DC42`, 4 | `G_01DAC4` | 0, 18, 74, 140 |
+
+That's how prepare's three cars, one picture, are blue, yellow and red: the bottom car has a band of its own. The tables
+are written to as the screens run (the select's highlight, the circle's places), so each shot records them.
+`tools/st_screens.py` colours a shot by band, and `tools/st_screens_check.py`, in the suite, compares that with
+Hatari's own picture: the first captures took one palette from the Shifter for the whole screen, and looked wrong
+beside the video (Tom). The index comparisons above were right all along; only the colours weren't. On a busy
+frame the change can land part way along its line (the circle's line 74, for 160 pixels).
+
 **`SUPER1.DAT` is never read.** It's loaded at `G_01F238` (`&61B36`), the masks' space. Wiped to zeros at the first title,
 with the file seen there before and zeros after, a whole game (the attract screens, a demo, select, prepare, a race,
 the circle, upgrades, initials) gave the same 34 screen buffers, the same state and the same random numbers. Options

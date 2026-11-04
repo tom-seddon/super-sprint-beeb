@@ -4,8 +4,9 @@ Usage: st_trace_game.py SCRIPT OUT.json   (SCRIPT: tools/game_scripts/NAME.json,
 
 The game is started from the attract mode and played by the script: a list of steps, one after another, each
 {"when": W, "keys": {car: keys}, "poke": [[address, byte, ...], ...], "shot": NAME}, any of the last three left out
-(shot: both of the game's screens saved to OUT's directory, as NAME_0.bin and NAME_1.bin, the step's event having
-the Shifter's base and palette; a step may also have "raw", Hatari commands as they are). W is:
+(shot: both of the game's screens saved to OUT's directory, as NAME_0.bin and NAME_1.bin, and Hatari's own picture of
+it as NAME_hatari.png, the step's event having the Shifter's base and palette, the raster's palettes and line
+counts and whether it's on, and the palette tables; a step may also have "raw", Hatari commands as they are). W is:
 - ["vbl", N]: the VBL counter reaches N (only the first step);
 - ["pc", A]: the program reaches address A;
 - ["vsync", N]: the Nth XBIOS Vsync after the last step: every front-end wait goes through xbios_01194C;
@@ -34,6 +35,8 @@ D = os.environ.get('TRACEDIR') or os.path.join(ROOT, 'build', 'trace')
 Vbl = 0x466                             # TOS's VBL counter, a long: each event's time
 Vsync, Flip = 0x1194C, 0x14D9C
 Screens = (0xF8000, 0x21800)            # G_01F244, G_01F248
+RasterPtrs, RasterOn = 0x101E8, 0x1DACC # xbios_010070's palettes and line counts, and whether they're in use (G_01DACC)
+Palettes = (0x1DAA4, 0x2F0)             # G_01DAA4 to past G_01DD62: the palettes and their line counts
 Region = (0x1C722, 0x1FC00 - 0x1C722)   # the data and BSS, the screens' strings with them
 Points = {0x141B0: 'start', 0x141D0: 'select', 0x141E8: 'prepare', 0x141F6: 'race', 0x14210: 'circle', 0x1421E: 'upgrades',
           0x1422C: 'prepare again', 0x14232: 'restored', 0x14282: 'over', 0x17A42: 'initials'}
@@ -55,7 +58,8 @@ def trigger(when, file):
 
 def shot(name, into):
     """A step's screens, the Shifter's base and its palette."""
-    return ''.join(f'savebin {into}/{name}_{i}.bin ${a:X} $7D00\n' for i, a in enumerate(Screens)) + 'm $FF8200 4\nm $FF8240 32\n'
+    return (''.join(f'savebin {into}/{name}_{i}.bin ${a:X} $7D00\n' for i, a in enumerate(Screens)) + 'm $FF8200 4\nm $FF8240 32\n'
+            + f'm ${RasterPtrs:X} 8\nm ${RasterOn:X} 2\nm ${Palettes[0]:X} {Palettes[1]}\nscreenshot {into}/{name}_hatari.png\n')
 
 
 def record(steps, vbls, points, into):
@@ -136,6 +140,12 @@ def parse(log, points):
             cur['base'] = bs[1] << 16 | bs[3] << 8
         elif cur['kind'] == 'step' and a in (0xFF8240, 0xFF8250):
             cur.setdefault('palette', []).extend(bs[i] << 8 | bs[i + 1] for i in range(0, 16, 2))
+        elif cur['kind'] == 'step' and a == RasterPtrs:
+            cur['raster'] = [int.from_bytes(bytes(bs[:4]), 'big'), int.from_bytes(bytes(bs[4:8]), 'big')]
+        elif cur['kind'] == 'step' and a == RasterOn:
+            cur['rasterOn'] = bs[0] << 8 | bs[1]
+        elif cur['kind'] == 'step' and Palettes[0] <= a < Palettes[0] + Palettes[1]:
+            cur.setdefault('tables', []).extend(bs)
         elif cur['kind'] == 'input' and a == cur.get('a7'):
             cur['from'], cur['device'] = int.from_bytes(bytes(bs[:4]), 'big'), bs[4] << 8 | bs[5]
     close()

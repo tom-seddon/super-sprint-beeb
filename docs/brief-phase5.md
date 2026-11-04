@@ -434,6 +434,13 @@ touches the build.
      credits, high scores and lap records are **exact, 0 pixels different**, the last two wholly composed, table and all;
      prepare differs only by the cars' flickering details. The select, circle, upgrades, initials and options
      aren't composed: their pictures and routines are decoded, and step 8 draws them against the captures.
+   - **Most of the screens change palette down the screen** (`docs/st-graphics.md`): select and the circle 4 bands of 16
+     colours, prepare, initials and options 3, upgrades 2, on Timer B. Tom spotted it: the first captures took one
+     palette for the whole screen, so the options' three cars came out alike where the video has blue, yellow and red.
+     Now each shot records the bands, and `tools/st_screens_check.py` compares the colours with Hatari's own picture.
+     **This changes step 8's sums**: D18's "each screen its own 4 of the BBC's 8 colours" meets up to 64 ST colours a
+     screen. The Video ULA's palette can be changed down the screen too, so a screen's bands could each have their
+     own 4, at a cost of raster timing the front end has plenty of; that's for the option sheets to show.
    - The credits aren't a plane, as §1 projected, but RLE, as is prepare; upgrades has no picture at all. **`SUPER1.DAT` is
      never read**: wiped after its load, a whole game came out the same to the byte, with a control that the file was
      there and the wipe took. 17K nobody has to convert. The disc budget improves by that, and the screens' data

@@ -18,6 +18,7 @@ run() {
 }
 
 run st_frontend .venv/bin/python -P tools/st_frontend.py
+run st_screens .venv/bin/python -P tools/st_screens_check.py
 run logic_build make logic
 run logic_check node tools/logic_check.mjs
 run maskb_check node tools/maskb_check.mjs
