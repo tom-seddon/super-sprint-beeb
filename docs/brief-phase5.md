@@ -365,6 +365,29 @@ touches the build.
      failed before any race ran.
 5. **The sequence tracer**: Hatari traces of a whole game (select, two or three races, joins, an elimination,
    upgrades bought, a game over), the state between races at each screen. The demo race traced on each track.
+   - **Done (2026-11-04).** `tools/st_trace_game.py` plays a game from a script of steps, each at a pc, the Nth Vsync
+     or the Nth flip after the last (every front-end wait goes through `xbios_01194C`), and dumps all the data and
+     BSS, 11,486 bytes with the high scores and lap records, at the game's start, each return to `F_0141B0` and the
+     initials' entry. So each screen is a function: the state before it and its inputs give the state after it. A
+     race isn't driven: its loop only tests a car's laps for 4, so a step pokes the result wanted (the races are
+     checked on their own). Random numbers and the steps' VBLs are logged too. `tools/game_traces.sh` makes them all.
+   - Three games (`tools/game_scripts.py`): **three** (the dial moved, joins at the select and prepare, an elimination,
+     an upgrade bought, initials for one car and then two at once, a drone's win, game over), **alone** (the select's
+     countdown run out, Esc at prepare, F5, a lap record, the upgrade's time run out, game over with no entry),
+     **rejoin** (both humans eliminated, one back at the last prepare, F10 abandoning race 2).
+   - The demo race on every track at race counters 0 and 17: `build/trace/logic_tN_demoR.json`, 16 races, 16,252
+     frames, in `st_trace_logic.py`'s form for `logic_compare.mjs`. Oil, cones, barriers and the tornado all appear.
+   - Repeatable: `rejoin` run twice, every dump the same at the same VBL, and the same 55 random numbers. Nothing
+     checks these against the BBC yet: that's step 6. `tools/game_diff.py` lists what each screen changes.
+   - **What step 6 needs that the docs didn't say** (`docs/st-logic.md` §9, corrected):
+     - `G_01EBC2` is a signed word: a drone winning race 0 takes it to -1, then back to 0. `GmRace` (a byte, 0-50) must
+       allow for it.
+     - The upgrades' timer running out buys what the dial's on, as fire would.
+     - The winner's circle draws 17 or 18 random numbers, so it moves the next race's seed, and F5 changes how many.
+       F5 made no real difference to the circle's length: what it shortens is unread.
+     - `F_017A42` (initials) runs at the end of every prepare, not only when there's an entry.
+     - The demo's drone flags stay 0, and its hazards follow the counter the last game left.
+     - The scores have a second copy at `G_01DF90`, changing with them: not read yet, probably what `F_01BBAA` restores.
 6. **The game's rules** on the BBC, one screen's logic at a time, each checked against step 5's traces, with
    placeholder screens (text in the HUD row's font): select, prepare, winner's circle and its bonuses,
    elimination, upgrades, next track, game over, the demo race and the attract loop's order and timings.

@@ -10,7 +10,9 @@ counter G_01D30E (a number), or a comparison of car 0's pixel x, pixel y or faci
 [[car, x, y, facing], ...]: those cars put there, stopped, at that flip (the logic's only: not for
 tools/st_trace_objects.py; tools/disc_races.mjs does the same to the BBC). SCRIPT "-": accelerate held from
 the attract mode on, as tools/st_trace_objects.py drives a race without one, so the two record the same race.
-FORCE: "tornado", "cones" or both, joined by commas: their coin flips forced, as st_trace_objects.py's)
+FORCE: "tornado", "cones" or both, joined by commas: their coin flips forced, as st_trace_objects.py's. With DEMO
+in the environment, the demo race F_00D1FA instead, as the attract mode first reaches it, the track and the race
+counter poked at its entry; SCRIPT "-", nobody driving)
 
 A game is started from the attract mode as st_trace_objects.py does (the blue car on the keyboard, the others
 as the script says),
@@ -37,6 +39,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 D = os.environ.get('TRACEDIR') or os.path.join(ROOT, 'build', 'trace')    # (Hatari's scripts and log: one each, to run several at once)
 RaceEntryStack = 0x21780                # a7 at F_00C592's entry in this run (as st_trace_objects.py)
+DemoEntryStack = 0x217A0                # and at F_00D1FA's, the first the attract mode reaches
+DemoPc = 0xD1FA
 FlipPc, InputPc, RandomPc = 0x14D9C, 0xDC64, 0xADC4
 Frame = 0x1D30E
 AttrMap = 0x678F6                       # the attribute map (G_01EB20's), 40 x 25
@@ -105,7 +109,7 @@ def condition(when):
     return f'(${Car0[m.group(1)]:X}).w {m.group(2)} ${int(m.group(3)):X}'
 
 
-def record(track, race, script, vbls, force=()):
+def record(track, race, script, vbls, force=(), demo=False):
     ev = lambda k: os.path.join(D, f'lev{k}.ini')
     def arm(k):
         if k >= len(script):
@@ -114,9 +118,10 @@ def record(track, race, script, vbls, force=()):
     import st_trace_objects as O
     force = sorted(force, key=('tornado', 'cones').index)
     setbp = lambda f: f'b pc = ${O.Force[f][0]:X} :once :file {D}/lf_{f}.ini\n'
-    ini = {'l0.ini': f'b VBL = 2000 :once :file {D}/l1.ini\nb pc = $C592 :once :file {D}/l2.ini\n',
+    ini = {'l0.ini': (f'b pc = ${DemoPc:X} :once :file {D}/l2.ini\n' if demo else
+                      f'b VBL = 2000 :once :file {D}/l1.ini\nb pc = $C592 :once :file {D}/l2.ini\n'),
            'l1.ini': join(script),
-           'l2.ini': (f'w ${RaceEntryStack + 4:X} 0 {track}\nw $1EBC2 0 {race}\n'
+           'l2.ini': (f'w ${(DemoEntryStack if demo else RaceEntryStack) + 4:X} 0 {track}\nw $1EBC2 0 {race}\n'
                       + release(script)
                       + (setbp(force[0]) if force else '')
                       + f'b pc = ${FlipPc:X} :quiet :file {D}/lflip.ini\n'
@@ -220,9 +225,10 @@ if __name__ == '__main__':
     script = [] if sys.argv[3] == '-' else json.load(open(sys.argv[3]))
     force = sys.argv[5].split(',') if len(sys.argv) > 5 else []
     os.makedirs(D, exist_ok=True)
-    frames = race(parse(record(track, race_no, script, int(os.environ.get('VBLS', 6000)), force)))
+    demo = bool(os.environ.get('DEMO'))
+    frames = race(parse(record(track, race_no, script, int(os.environ.get('VBLS', 6000)), force, demo)))
     values = [v for f in frames for n, v in f['random']]
-    json.dump({'track': track, 'race': race_no, 'script': script, 'force': force, 'seed': seed(values),
+    json.dump({'track': track, 'race': race_no, 'demo': demo, 'script': script, 'force': force, 'seed': seed(values),
                'frames': [{'frame': f['frame'], 'phase': f['phase'], 'inputs': f['inputs'], 'random': f['random'],
                            'mem': {str(k): v for k, v in f['mem'].items()}} for f in frames]}, open(path, 'w'))
     print(f'{len(frames)} frames, {frames[0]["frame"]} to {frames[-1]["frame"]};',

@@ -787,12 +787,12 @@ that car (`F_0141B0(car)`). Either skips back to the title afterwards.
 3. **Race** `F_00C592(track)`. F10 returns 1: back to the attract mode.
 4. **Winner's circle** `F_01AC1C` (checked against a screenshot): lap times from `G_01E32C`, finishing order (section
    6), place and lap bonuses counted up 10 at a time, lap records for humans, 200 frames of celebration (random
-   animation, F5 to shorten). If a drone won, `G_01EBC2` goes down by 1 (so the race count doesn't advance).
+   animation, F5 to shorten: traced, see below). If a drone won, `G_01EBC2` goes down by 1 (so the race count doesn't advance): a signed word, -1 after a drone wins race 0 (traced), back to 0 at step 7.
    Then the **elimination** (checked): going down the order, the first drone found turns every car from that place
    down into a drone, which loses its wrenches and upgrades. A human must finish ahead of every drone; a lone human
    against 3 drones must win.
 5. **Upgrades** `F_01A0D6` / `F_01A130(car)`: for each human with 4 or more wrenches. A dial picks one of: higher top
-   speed, increase score, turbo acceleration, super traction (`G_01D03C` = {1, 3, 2, 0}); about 9.5 s, fire to pick.
+   speed, increase score, turbo acceleration, super traction (`G_01D03C` = {1, 3, 2, 0}); about 9.5 s, fire to pick. When the time runs out, what the dial's on is bought all the same (traced: 4 wrenches gone, a level gained).
    Each purchase costs 4 wrenches and adds 1 level (up to 5); "increase score" adds 3,000 points instead.
 6. Prepare to race again (rejoins, high scores), then `F_01BBAA` restores the drones' running scores for display.
 7. Next track `G_01D138[track]`; race counter `G_01EBC2` + 1, at most 50.
@@ -802,9 +802,15 @@ that car (`F_0141B0(car)`). Either skips back to the title afterwards.
 + &0B; codes 1-26 letters, 27 space), 8 big-endian lap records in frames. Initials are entered with left, right
 and accelerate, 30 s.
 
+**Traced** (`tools/st_trace_game.py`, `docs/brief-phase5.md` step 5). F5 is read once, at `&1B492`, just before the
+celebration, so a press waits in its byte until then. It takes the other branch there (`G_01CF2E`/`30` 10 not 30, one
+random number fewer), but in the one race traced with it the winner's circle took 1,042 VBLs against 1,043 without.
+What it shortens hasn't been read. The circle draws 17 or 18 random numbers, so it moves the next race's seed.
+
 **Differences between the demo race `F_00D1FA` and the real one `F_00C592`:** the demo makes every car a drone
 driven by `F_00F23C` but drawn in player colours; laps start at 2; top speed `110 - 4 * track + 4 * car`; no engine
-sounds; no "get ready" pause; a 50-frame end; fire or F1 ends it.
+sounds; no "get ready" pause; a 50-frame end; fire or F1 ends it. The drone flags stay 0 (traced), so they don't say
+who's driving here. Its hazards follow `G_01EBC2`, which is 0 on a fresh boot and otherwise what the last game left.
 
 ## 10. Where the data lives
 

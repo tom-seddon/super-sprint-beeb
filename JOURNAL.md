@@ -479,3 +479,10 @@
   back are caught. **Mistake, mine**: I'd told Tom that fault was on players 2 and 3 at 2-5 facings; measured, it's
   one pixel of player 2's car at facing 6. **Mistake, mine**: `disc_races.sh` through BSD `xargs -I`, which cuts an
   argument at 255 bytes. Worst timing is now three humans, track 5's race 17: 93 fields in 2,246 frames (4.1%).
+- **Step 5, the sequence tracer** (2026-11-04): `tools/st_trace_game.py` plays whole games from scripts and dumps all the
+  ST's data at every screen, so a screen is a function of the state before it and its inputs; races are ended by
+  poking the result. Three games and 16 demo races traced, and Hatari shown to repeat them to the byte. The traces
+  corrected the docs: the upgrades' timer buys, the race counter goes to -1, F5 barely changes the circle's length.
+  **Mistakes, mine, all in the scripts**: taps before the select's loop had started, so the dial never moved; a
+  release step that outlived the initials' entry, so the chain waited through a whole race; F5 pressed after its one
+  read. Each showed up in the trace's own timeline. Also a stray `rm -f /dev/null` in a command, refused, no effect.
