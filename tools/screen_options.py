@@ -104,6 +104,9 @@ def mapped(idx, table):
 
 # The title in MODE 2, by hand: sky cyan, reds red, the oranges flat or checked red and yellow, yellows yellow, blues blue
 TitleFlat = {0: 'K', 1: 'W', 2: 'R', 3: 'R', 4: 'R', 5: 'Y', 6: 'C', 7: 'R', 8: 'Y', 9: 'Y', 10: 'B', 11: 'B', 12: 'C', 13: 'B', 14: 'R', 15: 'W'}
+# In MODE 1, black, red, yellow, blue, by hand (Tom's): sky blue, white yellow, the tyres' blues darker. Tiles of four
+TitleKRYB = {0: 'KKKK', 1: 'YYYY', 2: 'RRRR', 3: 'RRRY', 4: 'RYYR', 5: 'YYYY', 6: 'BBBB', 7: 'RRRK', 8: 'YYYY', 9: 'YYYY',
+             10: 'BKKB', 11: 'BKKB', 12: 'BBBB', 13: 'BBBK', 14: 'RRRR', 15: 'YYYY'}
 TitleChecked = {**TitleFlat, 3: 'RY', 4: 'RY', 5: 'YR', 2: 'RK', 7: 'RK', 11: 'BC', 6: 'CB'}
 
 
@@ -178,7 +181,9 @@ if __name__ == '__main__':
     chosen = sys.argv[2].split(',') if len(sys.argv) > 2 else [r[1] for r in ranked[:6]]
     options = [(f'MODE 1 {p}', 1, p, mode1_bytes(render(idx, next(r[2] for r in ranked if r[1] == p), p))) for p in chosen]
     if want == 'title':
-        options += [(f'MODE 2 {n}', 2, '', mode2_bytes(mapped(idx, tab))) for n, tab in (('flat', TitleFlat), ('checked', TitleChecked))]
+        options[5:5] = [(f'MODE 2 {n}', 2, '', mode2_bytes(mapped(idx, tab))) for n, tab in (('flat', TitleFlat), ('checked', TitleChecked))]
+    if want == 'title':
+        options.insert(7, ('MODE 1 KRYB by hand', 1, 'KRYB', mode1_bytes(render(idx, TitleKRYB, 'KRYB'))))
     viewer(want, options)
     sheet = Image.new('RGB', (3 * 648, 2 * 424), (60, 60, 60))
     from PIL import ImageDraw
