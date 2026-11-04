@@ -102,6 +102,34 @@ Scripts = {
                + at(Over)},
 }
 
+def shot(name, after=40, when='vsync'):
+    return [{'when': [when, after], 'shot': name}]
+
+
+# Every screen, for the pictures (tools/st_screens.py): the attract mode's, then a game's, a press or two on the way
+Scripts['screens'] = {'vbls': 9000, 'points': {0x141B0: 'start', 0x14282: 'over'}, 'steps': [{'when': ['vbl', 300], 'poke': [[0x1F200, 0, 0]]}]
+    + at(0x140F0) + shot('title')
+    + at(0x172EA) + at(0x140F0) + shot('scores')
+    + at(0x1BF34) + at(0x140F0) + shot('records')
+    + at(0xD1FA) + shot('demo', 300, 'flip')
+    + at(0x14196) + at(0x140F0) + shot('credits')
+    + at(0x140F0) + [{'when': ['vsync', 60], 'poke': [[Fire0, 3]]}]
+    + [{'when': ['pc', 0x198B6], 'poke': [[Fire0, 0]]}]
+    + shot('select0', Loop) + tap('0', 'R', gap=10) + tap('0', 'R') + shot('select1', 30) + tap('1', 'A') + shot('select2', 60) + tap('0', 'A')
+    + at(0x18776) + shot('prepare0', 90) + tap('2', 'A', gap=30) + shot('prepare1', 90)
+    + finish(result([4, 3, 2, 3], check=[1, 4, 2, 3], stripes=[0, 30, 10, 20],
+                    times=[[300, 620, 930, 1250], [340, 700, 1040, 0], [420, 900, 0, 0], [360, 720, 0, 0]],
+                    wrenches=[5, 2, 9, 0], scores=[None, None, [0x80, 7, 2, 3, 4, 0]]))
+    + at(0x1AC1C) + shot('circle0', 150) + shot('circle1', 150, 'flip')
+    + at(Upgrade) + shot('upgrade0', 100) + tap('0', 'R', gap=20) + shot('upgrade1', 40) + tap('0', 'A', gap=40) + shot('upgrade2', 30)
+    + at(Initials) + shot('initials0', Loop) + tap('2', 'R', gap=10) + tap('2', 'A') + shot('initials1', 20)}
+
+# The options (F1), from the title, each player's control changed
+Scripts['options'] = {'vbls': 2600, 'points': {0x192A6: 'options'}, 'steps': [{'when': ['vbl', 300]}]
+    + at(0x140F0) + [{'when': ['vsync', 60], 'poke': [[Keys + 0x3B, 1]]}]
+    + at(0x192A6) + shot('options0', 120) + [{'when': ['vsync', 10], 'poke': [[Keys + 0x3C, 1]]}] + shot('options1', 20)
+    + [{'when': ['vsync', 10], 'poke': [[Keys + 0x43, 1]]}] + shot('options2', 20)}
+
 # The attract mode left alone, the order and times of its screens from its dumps' VBLs (tools/attract_check.mjs).
 Scripts['attract'] = {'vbls': 22000, 'steps': [{'when': ['vbl', 1000]}],
                       'points': {0x13F68: 'title', 0x172EA: 'high scores', 0x1BF34: 'lap records', 0xD1FA: 'demo', 0x14196: 'credits',

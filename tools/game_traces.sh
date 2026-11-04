@@ -2,6 +2,7 @@
 # Phase 5 step 5's traces: the whole games (tools/game_scripts.py, tools/st_trace_game.py) as build/trace/game_NAME.json,
 # and the demo race on every track at the race counters 0 (as a fresh boot) and 17 (the hazards: the counter a
 # game leaves behind) as build/trace/logic_tN_demoR.json, JOBS at a time (default 3); a trace already made is kept.
+# And step 7's: every screen in build/st_screens, as raw dumps and PNGs (tools/st_screens.py).
 # Exit status 1 if any failed.
 #
 # Usage (from the repo root): tools/game_traces.sh
@@ -12,6 +13,15 @@ if [ "$1" = game ]; then
     mkdir -p $dir
     TRACEDIR=$PWD/$dir .venv/bin/python -P tools/st_trace_game.py tools/game_scripts/$2.json $out > $dir/out 2>&1 || { cat $dir/out; exit 1; }
     echo "game $2: $(tail -1 $dir/out)"
+    rm -rf $dir
+    exit 0
+elif [ "$1" = screens ]; then
+    out=build/st_screens/$2.json dir=build/st_screens/w_$2
+    [ -f $out ] && exit 0
+    mkdir -p $dir
+    TRACEDIR=$PWD/$dir .venv/bin/python -P tools/st_trace_game.py tools/game_scripts/$2.json $out > $dir/out 2>&1 || { cat $dir/out; exit 1; }
+    .venv/bin/python -P tools/st_screens.py $out build/st_screens > /dev/null || exit 1
+    echo "screens $2: $(tail -1 $dir/out)"
     rm -rf $dir
     exit 0
 elif [ "$1" = demo ]; then
@@ -26,5 +36,6 @@ fi
 .venv/bin/python -P tools/game_scripts.py || exit 1
 {
     for g in three alone rejoin attract; do echo game $g; done
+    echo screens screens; echo screens options
     for n in 0 1 2 3 4 5 6 7; do echo demo $n 0; echo demo $n 17; done
 } | xargs -P ${JOBS:-3} -L 1 tools/game_traces.sh

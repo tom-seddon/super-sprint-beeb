@@ -47,22 +47,77 @@ Each mask is 1 bit a pixel, 40 bytes a line, 200 lines.
 
 | Offset | Bytes | Pointer | Contents |
 |---|---|---|---|
-| `&0000` | 3,488 | `G_01F234` | Front end (not decoded) |
-| `&0DA0` | 9,120 | `G_01F230` | Front end (not decoded) |
-| `&3140` | 7,190 | `G_01F22C` | Front end (not decoded) |
+| `&0000` | 3,488 | `G_01F234` | The high scores' and lap records' car and tiles (below) |
+| `&0DA0` | 9,120 | `G_01F230` | Prepare to race's three cars, RLE (below) |
+| `&3140` | 7,190 | `G_01F22C` | The upgrades' box shapes (150 bytes), then the dial's 5 frames (below) |
 | `&4D56` | 32,768 | `G_01E484` | **Cars**: 128 frames of 256 bytes |
 | `&CD56` | 80,000 | `G_01EDEA` | **Maps and tiles**: 10 bytes of header, 11 maps from `&CD60` (`G_01EDEE`), then the four tile sets |
 | `&205D6` | 30,000 | `G_01EBDC` | **Object sprites** (catalogue below) |
 | `&27B06` | 3,000 | `G_01D30A` | Road outlines, as line segments and fill seeds, per track |
 | `&286BE` | 3,520 | `G_01DF4E` | Not decoded |
-| `&2947E` | 2,000 | `G_01F228` | Not decoded |
-| `&29C4E` | 12,300 | `G_01F220` | Not decoded |
-| `&2CC5A` | 480 | `G_01F21C` | Not decoded |
+| `&2947E` | 2,000 | `G_01F228` | Prepare's flickering details on the cars (below) |
+| `&29C4E` | 12,300 | `G_01F220` | The winner's circle's figure, 12 frames (below) |
+| `&2CC5A` | 480 | `G_01F21C` | The winner's circle's sparkles, 6 frames (below) |
 | `&2CE3A` | 7,100 | `G_01E2A6` | Not decoded |
-| `&2E9F6` | 8,000 | `G_01F218` | Not decoded |
+| `&2E9F6` | 8,000 | `G_01F218` | The credits, RLE (below) |
 | `&30936` | 13,684 | `G_01F210` etc. | Read into the background buffer's space and used by the front end before the first race overwrites it |
 
 The blocks marked "not decoded" are left to the logic spec (paths, track data) or later phases.
+
+## The front end (Phase 5, step 7)
+
+Every screen was captured from Hatari as its raw memory and palette (`tools/game_traces.sh`, in `build/st_screens`:
+`title`, `scores`, `records`, `credits`, `select0-2`, `prepare0-1`, `circle0-1`, `upgrade0-2`, `initials0-1`, `options0-2`, as
+`.bin` and `.png`). `tools/st_frontend.py` decodes the data and diffs each picture against those; it's in the suite.
+
+| Screen | How it's made | Against the capture |
+|---|---|---|
+| Title | map 8 | **exact** |
+| Credits | RLE at `&2E9F6` | **exact** |
+| High scores | composed (below), the table from `G_01D382` and `G_01D324` | **exact** |
+| Lap records | the same frame, the times from `G_01D314` | **exact** |
+| Prepare to race | RLE cars, two bands, the checker, panels (below) | 68-161 pixels, all the cars' flickering details |
+| Winner's circle | map 9, then the HUD, the bonuses, the figure, the sparkles | map alone: 3,715 pixels, all overlays; not composed |
+| Select | map 10, then panels and the dial | map alone: 2,453 pixels, all overlays; not composed |
+| Upgrades | no picture: the checker and HUD as prepare's, the boxes (`F_016A44`, `F_016AF2`, `F_016A6C`, `F_016B76`, `F_016BB8`), text, the dial | not composed |
+| Initials entry | prepare's picture, text in a panel (`F_017A42`) | not composed |
+| Options | prepare's picture, each car's control in its panel (`F_0192A6`) | not composed |
+
+The ones not composed are text and shapes over decoded pictures, through the routines below: step 8 draws them, and
+the captures are what it's checked against.
+
+**`SUPER1.DAT` is never read.** It's loaded at `G_01F238` (`&61B36`), the masks' space. Wiped to zeros at the first title,
+with the file seen there before and zeros after, a whole game (the attract screens, a demo, select, prepare, a race,
+the circle, upgrades, initials) gave the same 34 screen buffers, the same state and the same random numbers. Options
+wasn't on that run, but it only saves and restores what it draws there. Nothing needs converting.
+
+**RLE** (`F_014F9C`, `unrle`): a screen a plane at a time, 4,000 words each. The first word is the escape; the escape, a
+word and a count is that word that many times; any other word is itself.
+
+**Coordinates**: `F_0169D4` (fill) and `F_0168CC` (blit) take x in 16-pixel groups; `F_016E12` (tile) in 8-pixel columns;
+text and the checker in pixels.
+
+**The high scores' frame** (`F_0172EA`, `F_01BF34`; `frame()`): all colour 1; the block's car, 9 groups x 44 lines, at line
+65; `F_016DCA` flips it onto the right half; bands of colour 3; the title; lines of 8 x 8 tiles from `&C60` in the block, 32
+bytes each, a byte a plane a line (10 are used).
+
+**The checker** (`F_01AA88`, `F_016912`): 16 x 7 squares of 20 pixels from line 41, colours 11 and 12 alternating, 12 being
+13 in the outer ring, written only over colour 0, so behind the cars. Bands of colour 13 above (41 lines) and below
+(19 from line 181).
+
+**Fonts**, both in `G_`'s data: small (`F_016C7A`, `G_01D43C`), 6 x 6 in 8 bytes a glyph, with a background and a foreground
+colour, 6 pixels on; a letter's glyph is its code AND 31 + 11, anything else `G_01D118[code AND 31]`, the digits 0-9
+being glyphs 0-9. Big (`F_016EB8`, `G_01D594`), 12 lines of a mask word and a data word (48 bytes a glyph, by code AND
+31 less 1), one colour, 11 pixels on; a space is skipped.
+
+**The dial** (`F_01713E`): 16 positions of 64 x 44, at x 128, each `&580` bytes. 5 are stored, at `&3140 + &96`: positions
+5-8 are 3-0 flipped vertically (`F_017078`), 9-15 are 7-1 flipped horizontally (`F_0170B4`).
+
+**The figure** (`F_01BC36`): 48 x 32 frames of `&300` bytes, `(3 * kind + frame) * &300` from `G_01F220`, at x 160 (group 10) line
+144, kind the celebration's 0-3. **The sparkles** (`F_01BDCE`): 6 frames of 80 bytes, 8 pixels wide: 8 lines of 10 bytes, a byte a plane at 0, 2, 4 and 6, the mask at 8.
+
+**The flickering details** (`F_017766`, from `G_01F228`): `F_017898`, 7 lines, frames of `&40`; `F_01784A`, 1 line, frames of `&10`, at
+`+&100`; `F_0178DE`, frames of `&F0`, at `+&130`.
 
 ## Track backgrounds (`F_015A24`)
 

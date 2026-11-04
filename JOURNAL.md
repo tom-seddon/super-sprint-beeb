@@ -501,3 +501,7 @@
   nothing moves once the race has stopped. **Mistake, mine**: I'd copied only the win's, and no oracle listened after
   a race. Measured on the chip (2 of 3 races left at 0.013), now silenced in `game_go`, and `disc_races.mjs --silence`
   and `game_check` read the chip after a race.
+- **Step 7, the front end's data** (2026-11-04): every screen captured from the ST as raw memory; `tools/st_frontend.py`
+  decodes `SUPER.DAT`'s front-end blocks against them: title, credits, high scores and lap records exact to the pixel,
+  prepare but for its flickers. `SUPER1.DAT` is never read, shown by wiping it. **Mistake, mine**: the first wipe was
+  before the file loaded, so it proved nothing; caught by asking for a control, and done again after it.

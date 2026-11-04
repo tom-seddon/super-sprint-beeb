@@ -1,0 +1,83 @@
+{
+"vbls": 2600,
+"points": {
+"103078": "options"
+},
+"steps": [
+{
+"when": [
+"vbl",
+300
+]
+},
+{
+"when": [
+"pc",
+82160
+]
+},
+{
+"when": [
+"vsync",
+60
+],
+"poke": [
+[
+122895,
+1
+]
+]
+},
+{
+"when": [
+"pc",
+103078
+]
+},
+{
+"when": [
+"vsync",
+120
+],
+"shot": "options0"
+},
+{
+"when": [
+"vsync",
+10
+],
+"poke": [
+[
+122896,
+1
+]
+]
+},
+{
+"when": [
+"vsync",
+20
+],
+"shot": "options1"
+},
+{
+"when": [
+"vsync",
+10
+],
+"poke": [
+[
+122903,
+1
+]
+]
+},
+{
+"when": [
+"vsync",
+20
+],
+"shot": "options2"
+}
+]
+}

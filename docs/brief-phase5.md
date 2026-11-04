@@ -429,6 +429,15 @@ touches the build.
      on: one random number in the circle depends on it).
 7. **The ST's front-end data decoded**: `SUPER.DAT`'s first three blocks, the credits' plane, `SUPER1.DAT`,
    maps 8-10, initials entry and options captured; written up in `docs/st-graphics.md`.
+   - **Done (2026-11-04).** Every screen captured as raw memory and palette, the four never seen before among them
+     (select, upgrades, initials, options). `tools/st_frontend.py` decodes against those, in the suite: the title,
+     credits, high scores and lap records are **exact, 0 pixels different**, the last two wholly composed, table and all;
+     prepare differs only by the cars' flickering details. The select, circle, upgrades, initials and options
+     aren't composed: their pictures and routines are decoded, and step 8 draws them against the captures.
+   - The credits aren't a plane, as §1 projected, but RLE, as is prepare; upgrades has no picture at all. **`SUPER1.DAT` is
+     never read**: wiped after its load, a whole game came out the same to the byte, with a control that the file was
+     there and the wipe took. 17K nobody has to convert. The disc budget improves by that, and the screens' data
+     is small: credits 6,194 bytes as stored, prepare 8,572, the frame block 3,488, the dial 7,040.
 8. **The screens converted** (D18): option sheets and a viewer disc for Tom; then drawn by the game, with the
    wipe.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.

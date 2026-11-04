@@ -17,6 +17,7 @@ run() {
     [ $status -eq 0 ] || fail=1
 }
 
+run st_frontend .venv/bin/python -P tools/st_frontend.py
 run logic_build make logic
 run logic_check node tools/logic_check.mjs
 run maskb_check node tools/maskb_check.mjs

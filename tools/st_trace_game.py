@@ -3,7 +3,9 @@
 Usage: st_trace_game.py SCRIPT OUT.json   (SCRIPT: tools/game_scripts/NAME.json, made by tools/game_scripts.py)
 
 The game is started from the attract mode and played by the script: a list of steps, one after another, each
-{"when": W, "keys": {car: keys}, "poke": [[address, byte, ...], ...]}, any of the last two left out. W is:
+{"when": W, "keys": {car: keys}, "poke": [[address, byte, ...], ...], "shot": NAME}, any of the last three left out
+(shot: both of the game's screens saved to OUT's directory, as NAME_0.bin and NAME_1.bin, the step's event having
+the Shifter's base and palette; a step may also have "raw", Hatari commands as they are). W is:
 - ["vbl", N]: the VBL counter reaches N (only the first step);
 - ["pc", A]: the program reaches address A;
 - ["vsync", N]: the Nth XBIOS Vsync after the last step: every front-end wait goes through xbios_01194C;
@@ -31,7 +33,8 @@ ROOT = L.ROOT
 D = os.environ.get('TRACEDIR') or os.path.join(ROOT, 'build', 'trace')
 Vbl = 0x466                             # TOS's VBL counter, a long: each event's time
 Vsync, Flip = 0x1194C, 0x14D9C
-Region = (0x1C722, 0x1F400 - 0x1C722)   # the data and BSS
+Screens = (0xF8000, 0x21800)            # G_01F244, G_01F248
+Region = (0x1C722, 0x1FC00 - 0x1C722)   # the data and BSS, the screens' strings with them
 Points = {0x141B0: 'start', 0x141D0: 'select', 0x141E8: 'prepare', 0x141F6: 'race', 0x14210: 'circle', 0x1421E: 'upgrades',
           0x1422C: 'prepare again', 0x14232: 'restored', 0x14282: 'over', 0x17A42: 'initials'}
 RacePc = 0xC592
@@ -50,7 +53,12 @@ def trigger(when, file):
     return f'b {cond}{count} :once :file {file}\n'
 
 
-def record(steps, vbls, points):
+def shot(name, into):
+    """A step's screens, the Shifter's base and its palette."""
+    return ''.join(f'savebin {into}/{name}_{i}.bin ${a:X} $7D00\n' for i, a in enumerate(Screens)) + 'm $FF8200 4\nm $FF8240 32\n'
+
+
+def record(steps, vbls, points, into):
     f = lambda name: os.path.join(D, name)
     stamp = f'm ${Vbl:X} 4\n'
     ini = {'g0.ini': ''.join(f'b pc = ${a:X} :quiet :file {f(f"gp{i}.ini")}\n' for i, a in enumerate(points))
@@ -66,7 +74,7 @@ def record(steps, vbls, points):
     for k, s in enumerate(steps):
         nxt = trigger(steps[k + 1]['when'], f(f'gs{k + 1}.ini')) if k + 1 < len(steps) else ''
         ini[f'gs{k}.ini'] = (f'm ${StepMark + k:X} 1\n{stamp}' + (L.press(s['keys']) if 'keys' in s else '')
-                             + poke(s.get('poke', [])) + nxt + 'c\n')
+                             + poke(s.get('poke', [])) + s.get('raw', '') + (shot(s['shot'], into) if 'shot' in s else '') + nxt + 'c\n')
     for name, text in ini.items():
         open(f(name), 'w').write(text)
     log = f('hatari_game.log')
@@ -124,6 +132,10 @@ def parse(log, points):
             cur['track'] = bs[4] << 8 | bs[5]
         elif cur['kind'] == 'random' and a == cur.get('a6'):
             cur['n'], cur['value'] = bs[8] << 8 | bs[9], d0
+        elif cur['kind'] == 'step' and a == 0xFF8200:
+            cur['base'] = bs[1] << 16 | bs[3] << 8
+        elif cur['kind'] == 'step' and a in (0xFF8240, 0xFF8250):
+            cur.setdefault('palette', []).extend(bs[i] << 8 | bs[i + 1] for i in range(0, 16, 2))
         elif cur['kind'] == 'input' and a == cur.get('a7'):
             cur['from'], cur['device'] = int.from_bytes(bytes(bs[:4]), 'big'), bs[4] << 8 | bs[5]
     close()
@@ -133,7 +145,7 @@ def parse(log, points):
 def main(script, out):
     s = json.load(open(script))
     points = {int(a): n for a, n in s['points'].items()} if 'points' in s else Points
-    events = parse(record(s['steps'], s.get('vbls', 30000), points), points)
+    events = parse(record(s['steps'], s.get('vbls', 30000), points, os.path.dirname(os.path.abspath(out))), points)
     json.dump({'script': s, 'events': events}, open(out, 'w'))
     pts = [e for e in events if e['kind'] == 'point']
     print(f'{len(pts)} points: ' + ' '.join(e['name'] for e in pts))

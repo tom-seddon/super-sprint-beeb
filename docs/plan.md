@@ -236,7 +236,8 @@ adds the logic.
   Master (2026-11-04); the race count real, and 72 traced races (every track, each mix of hazards, one to three
   humans) exact on the disc itself, state and screen (`tools/disc_races.sh`); whole games and the demo races traced
   on the ST, screen by screen (`tools/game_traces.sh`); the game's rules around the race, attract mode to game over,
-  exact against those (`tools/game_check.mjs`, `tools/attract_check.mjs`), with text for screens. Next: step 7.
+  exact against those (`tools/game_check.mjs`, `tools/attract_check.mjs`), with text for screens; the ST's front-end
+  data decoded, every screen captured (`tools/st_frontend.py`, `docs/st-graphics.md`). Next: step 8.
 - Put aside for the three-player playtest (Tom, 2026-11-04): sparks repeat up to 4.1% of fields with three humans
   driving at random. The cause, the options and how to measure it again: `docs/brief-phase5.md`, step 4.
 - All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
