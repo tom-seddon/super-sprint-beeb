@@ -106,6 +106,13 @@ Hatari's own picture: the first captures took one palette from the Shifter for t
 beside the video (Tom). The index comparisons above were right all along; only the colours weren't. On a busy
 frame the change can land part way along its line (the circle's line 74, for 160 pixels).
 
+**The winner's circle's cars take the race's result** (`F_01AC1C`, `L_01AF30`). The map has four cars, each one's body in
+three palette entries, and those are written with the colours of the car that came in that place: first in band 1's
+entries 7-9, second in band 2's 7-9, third in band 2's 10-12, fourth in band 3's 7-9 (`G_01CFAE`, `G_01CFB6`). The colours
+are `G_01DC18`, three a car, by car, + 4 if a drone's driving it: blue `567 225 027`, red `773 500 703`, yellow `763 540 770`,
+car 3 `563 333 444`, and a drone-driven player's car its own first colour with the greys `333 444`. Only the palette
+changes: the picture's the same whoever wins.
+
 **`SUPER1.DAT` is never read.** It's loaded at `G_01F238` (`&61B36`), the masks' space. Wiped to zeros at the first title,
 with the file seen there before and zeros after, a whole game (the attract screens, a demo, select, prepare, a race,
 the circle, upgrades, initials) gave the same 34 screen buffers, the same state and the same random numbers. Options
