@@ -454,4 +454,5 @@
   flash counter cleared by OSBYTE 193: one already counting froze at the takeover and fired in the first load.
   **Found on Tom's Master** (jsbeeb had shown it only as slow loads, which I'd put down to the head's travel): the
   game's DDRB `&0F` cut off the CMOS chip, so the filing system read its seek time as `&FF`. The game leaves
-  DDRB at the OS's `&CF` now, which MOS 3.20 writes only at reset.
+  DDRB at the OS's `&CF` now, which MOS 3.20 writes only at reset. Seen working on Tom's Master, 2026-11-04: the
+  first race, then the second loaded.

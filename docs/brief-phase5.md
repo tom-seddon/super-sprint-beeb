@@ -11,8 +11,8 @@
 > `docs/st-graphics.md` "Track backgrounds" and "`SUPER.DAT`"; `docs/plan.md` Phase 5; D3, D7, D9, D11, D15,
 > D16.*
 
-**Resume point: step 2, room** (`beeb-ram-hunt`). Every decision is taken; step 1 (this brief) is the only
-one done.
+**Resume point: step 4.** Every decision is taken; steps 1-3 are done (step 3 with its car sets, D20, still to
+come, and a disc error's retry and Escape off, D7, not built).
 
 ## 0. The proposal in one paragraph
 
@@ -265,7 +265,10 @@ touches the build.
      with `&0F` forced back (287 fields against 186); `tools/load_check.mjs` checks DDRB. It explains
      most of the later loads' time: 241-294 fields -> 162-186. The rest is expected (Tom, 2026-11-04): by then the
      drive has spun down, so a load seeks to track 0 for the catalogue and back to the file; the first
-     comes straight after the boot's. (Not measured, but it fits: one CMOS read in the first load, two after.)
+     comes straight after the boot's. (Not timed, but it fits: one CMOS read in the first load, two after.)
+     Seen on Tom's Master, 2026-11-04, the disc of `ca4de2e`: the first race to its end and the second loaded,
+     "it works as expected now", the seeks to and from track 0 plain to hear. A brief test: one load, no lap of
+     the eight tracks yet.
    - **3d, the proof**: every track's race 17 replayed from one disc, through the loads.
      **Done otherwise, 2026-11-03**: outside the slots every track's build is the same (3a), so a track
      loaded right is that track's build, which `tools/tracks_check.sh` checks race by race.
