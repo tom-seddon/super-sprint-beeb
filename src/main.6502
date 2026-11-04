@@ -79,7 +79,9 @@ ZA_AUTO1 carnum                         ; the car being drawn
 {
     LDA #&7F:STA &FE4E:STA &FE6E        ; system, user VIAs: IER, every interrupt off
     STA &FE4D:STA &FE6D                 ; IFR: every flag cleared
-    LDA #&0F:STA &FE42                  ; system VIA: DDRB, PB0-3 drive the addressable latch
+                                        ; (system VIA: DDRB left at the OS's &CF, which MOS 3.20 sets only at
+                                        ; reset: PB0-3 the addressable latch, PB6-7 the CMOS chip, which the
+                                        ; filing system reads its seek time from)
     LDA #&0B:STA &FE40                  ; addressable latch: line 3 high, the keyboard's auto-scan on, as the
                                         ; MOS leaves it (low, the keyboard drives PA7, and every byte to the
                                         ; sound chip loses its bit 7; keyboard.6502 drops it to read a key)

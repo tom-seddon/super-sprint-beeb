@@ -5,7 +5,9 @@
 // is the same (tools/track_slots.py), so a track loaded right is that track's build. Then a few hundred
 // frames of its race, each load timed in fields, and the field's length: 10 vsyncs in 10 fields' cycles (the
 // MOS's colour flashing, if left on, rewrites the Video ULA during a load and halves the CRTC's clock). The
-// MOS's flash counter (&251) must be 0 too: one still counting fires on a later load.
+// MOS's flash counter (&251) must be 0 too: one still counting fires on a later load. And the System VIA's
+// DDRB &CF, as MOS 3.20 sets it once at reset: PB6 and PB7 drive the CMOS chip, where the filing system reads
+// its seek time (at &0F, seen on Tom's Master, the disc stepped at the wrong rate).
 //
 // Exit status: 1 if any slot's byte differs, a load never finishes or the fields run slow, else 0.
 //
@@ -54,8 +56,9 @@ for (const n of order) {
     const v0 = ram(s, syms.vsyncs, 1)[0];
     await s.runFor(399360);
     const vs = (ram(s, syms.vsyncs, 1)[0] - v0 + 256) % 256, flash = ram(s, 0x251, 1)[0];
-    if (vs !== 10 || flash !== 0) {
-        console.log(`track ${n + 1}: ${vs} vsyncs in 10 fields, the MOS's flash counter ${flash}`);
+    const ddrb = s._machine.processor.sysvia.ddrb;
+    if (vs !== 10 || flash !== 0 || ddrb !== 0xcf) {
+        console.log(`track ${n + 1}: ${vs} vsyncs in 10 fields, the MOS's flash counter ${flash}, DDRB &${ddrb.toString(16)}`);
         bad++;
     }
 }

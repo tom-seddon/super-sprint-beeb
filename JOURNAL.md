@@ -447,8 +447,11 @@
   race 17, traced again at 9,000 VBLs, came out as the next race on track 3; it keeps the first race now.
 - **3b, 3c: the loads**: `make game` makes the disc (a packed file a track, 6.4-7.5K); `src/load.6502` gives
   the OS back its zero page, VIAs and vectors, loads through OSFILE, takes the machine back and unpacks. Its
-  code lives in the fourth bank's first 4K and runs in the main screen (main RAM 677 free). All eight tracks
+  code lives in the fourth bank's first 4K and runs in the main screen (main RAM 682 free). All eight tracks
   load right (`tools/load_check.mjs`). **Mistakes**: two copy loops that patched their operands and never
   reset them (run once until now), and the MOS's colour flashing left on, which rewrote the Video ULA and
   halved the CRTC's clock after a load (D7 had said to turn it off). Off now (Tom: OSBYTE 9 and 10), and the
   flash counter cleared by OSBYTE 193: one already counting froze at the takeover and fired in the first load.
+  **Found on Tom's Master** (jsbeeb had shown it only as slow loads, which I'd put down to the head's travel): the
+  game's DDRB `&0F` cut off the CMOS chip, so the filing system read its seek time as `&FF`. The game leaves
+  DDRB at the OS's `&CF` now, which MOS 3.20 writes only at reset.

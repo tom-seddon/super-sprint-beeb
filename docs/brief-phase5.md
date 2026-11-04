@@ -248,7 +248,7 @@ touches the build.
      `src/loadcode.6502` (501 bytes, kept in the fourth bank's first 4K and run at `&7C00` in the main
      screen), the takeover's half in `src/entry.6502`, the kit's depacker forked (`src/zx02depack.6502`).
      The play build's race's end asks for the ST's next track (`LoadWant`); the frame loop's top loads it
-     and starts the race from the top. Main RAM 780 -> 677 free (the VIAs' and the state's set-up moved
+     and starts the race from the top. Main RAM 780 -> 682 free (the VIAs' and the state's set-up moved
      there from the loader, 72; the objects' copier first in main RAM, its page padding less).
      Faults found by the check: `shared_copy` and `load_go` patched their copy loops' operands and never put
      them back (run once until now); and the MOS's colour flashing, left on (D7 had said to turn it off),
@@ -257,13 +257,19 @@ touches the build.
      the game takes IRQ1V stays frozen (`&251` read 20) and runs out in the first load, so OSBYTE 193 clears
      the counter too (`load_takeover`). `tools/load_check.mjs` checks 10 vsyncs in 10 fields after each load
      and the counter 0, and failed on each of the two lesser builds (no calls; 9 and 10 alone).
+     **Found by Tom on his Master** (2026-11-04): the disc's seek times changed from the second race. The game
+     set the System VIA's DDRB to `&0F`; MOS 3.20 writes `&CF` there once, at reset (ROM offset `&1C034`,
+     its only write), and PB6-7 drive the CMOS chip, so the filing system's read of its seek time
+     (`LDY &FE4F` at `&98C9`) got `&FF`, `&00` on a good read in Tom's logs. DDRA needs nothing: every OS routine
+     sets it first. The game no longer writes DDRB. In jsbeeb the same read gives `&C8` in every load, and `&FF`
+     with `&0F` forced back (287 fields against 186); `tools/load_check.mjs` checks DDRB. It explains
+     most of the later loads' time: 241-294 fields -> 162-186. The first load's 87 is still unexplained.
    - **3d, the proof**: every track's race 17 replayed from one disc, through the loads.
      **Done otherwise, 2026-11-03**: outside the slots every track's build is the same (3a), so a track
      loaded right is that track's build, which `tools/tracks_check.sh` checks race by race.
      `tools/load_check.mjs` boots the game disc, loads each track in the ST's order and compares every slot
      with that track's build, both screens' Shared too, then runs 300 frames of its race. MEASURED: all 8
-     load right; in jsbeeb's 1770 DFS the first load 87 fields, the others 241-294 (5-6 s; not yet looked
-     into: the head's travel between files laid out by track number is the guess). Seen: track 7 racing
+     load right; in jsbeeb's 1770 DFS the first load 87 fields, the others 162-186 (3-4 s). Seen: track 7 racing
      after its load (`docs/img/jsbeeb-game-t6-loaded.png`). Not yet: ADFS, MMFS, Econet (step 11), a disc
      error's retry, a real Master.
 4. **The race count's hazards on every track**: races traced with the barriers (every third race) and

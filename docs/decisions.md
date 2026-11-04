@@ -97,7 +97,8 @@ for unrolled loops. It was just in case: nothing measured says the game needs HA
 - **Also needed**: BRKV caught while the OS is back, so a disc error shows in the HUD row and offers a retry;
   Escape off (`*FX229,1`); the OS's colour flashing off (OSBYTE 9 and 10 with X = 0, and OSBYTE 193 to clear a
   count in progress, built 2026-11-03), since its IRQ would otherwise rewrite the ULA's control register; no VDU
-  calls.
+  calls. The System VIA's DDRB stays the OS's `&CF` (MOS 3.20 sets it only at reset, and PB6-7 reach the CMOS chip,
+  where the filing system reads its seek time: found by Tom on a real Master, 2026-11-04).
 - **Cost**: 112 bytes of main RAM, and HAZEL's 8K, ANDY's 4K and about 2K of low pages not available to the
   game.
 
