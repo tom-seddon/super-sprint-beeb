@@ -334,8 +334,29 @@ touches the build.
      which shows the pixel counts, and the BBC follows exactly, 2,113 frames. With the faults back,
      `disc_races.mjs --probes` sees car 1's at frame 301 and car 0's at 807. State only: there's no object trace.
    - Fields repeated with humans: the worst is track 5's race 17 with cars 0-2, 93 fields in 2,246 frames (4.1%),
-     then track 3's, 95 in 2,759 (3.4%), against 2% for the worst race with one human. Not looked into; three
-     humans at random aren't how people drive, so it wants measuring in the three-player playtest.
+     then track 3's, 95 in 2,759 (3.4%), against 2% for the worst race with one human. **The cause is the sparks**
+     (measured 2026-11-04, each frame's cycles by routine on the disc). Humans themselves cost about 100 cycles a
+     frame more than drones; random driving hits walls far more, and a bounce's sparks are movers, about 1,490
+     cycles a piece to draw and erase (`objmov` 918, `erase_cars` 365, `build_movers` 137, `mov_all` 71). Track 5's
+     race has 4.2 pieces a frame against 2.75 with one human, and a mean frame of 36,645 against 32,772. With the
+     sparks left out of the drawing, the logic exact: 93 repeats become 7 and 95 become 2, the means 31,798 and
+     30,927. A frame may run long: it flips anywhere in the blank (98 lines, 12,544 cycles), so repeats come from
+     runs of long frames, not from single ones, and 551 frames over 39,936 give only 93. A simulation of the
+     flips from those cycles gives 87 and 91, so it's fit to predict: pieces 25% cheaper 48 and 38, 50% cheaper
+     19 and 10. **Put aside until the three-player playtest (Tom, 2026-11-04: in general play it doesn't feel
+     like it'll be an issue).** Random driving isn't how people drive. If it starts to feel necessary, in order:
+     1. Sparks get a plotter of their own, as the tornado did (its took the race's mean from 22,602 to 20,994).
+        Exact, so the oracles stand. They go through the general `mov_plot` (clipping, patching, bands) for at
+        most 32 bytes; how much of its 918 cycles is set-up hasn't been split, nor the objects' bank's room
+        checked. Halving the plotting alone makes a piece about 30% cheaper: roughly 40 repeats, an estimate.
+     2. Only if that's not enough, sparks dropped when the frames are running late. Cheap, but the screen no
+        longer matches the ST in those frames: a decision to log, and the screen oracle changed to allow it.
+
+     To measure again: the profile was a scratch copy of `tools/disc_races.mjs`, not kept. It hangs
+     `tools/game_profile.mjs`'s `debugInstruction` hook, labels from `build/tracks/tN.json`, on `race()`, and writes
+     each frame's cycles by routine with `Repeats`, `CarCount` and `MovCount`; the sparks are left out by cutting
+     `MovCount` at `logic_frame.built`, keeping the last piece if `RcTornado`'s set. The flips: a frame shown at
+     once if it ends inside a blank with no flip yet, else at the next blank's start.
    - Two traces stopped at the tracer's limit with the race unfinished: track 6's cars 0-2 and track 8's cars 0-1,
      about 11,000 frames each. On the ST every drone left in those races stays wrecked (state 2) to the end, the
      helicopter coming and going, and the humans never finish; why the drones aren't picked up wasn't looked into.

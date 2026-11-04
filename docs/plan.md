@@ -235,6 +235,8 @@ adds the logic.
   through the OS, `make game` (`build/game.ssd`), each track's file loaded right in jsbeeb, a load seen on Tom's
   Master (2026-11-04); the race count real, and 72 traced races (every track, each mix of hazards, one to three
   humans) exact on the disc itself, state and screen (`tools/disc_races.sh`). Next: step 5.
+- Put aside for the three-player playtest (Tom, 2026-11-04): sparks repeat up to 4.1% of fields with three humans
+  driving at random. The cause, the options and how to measure it again: `docs/brief-phase5.md`, step 4.
 - All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
   disc, and the loads through the OS (D3, D7), tested on DFS, MMFS, ADFS and Econet.
 
