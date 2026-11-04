@@ -263,7 +263,9 @@ touches the build.
      (`LDY &FE4F` at `&98C9`) got `&FF`, `&00` on a good read in Tom's logs. DDRA needs nothing: every OS routine
      sets it first. The game no longer writes DDRB. In jsbeeb the same read gives `&C8` in every load, and `&FF`
      with `&0F` forced back (287 fields against 186); `tools/load_check.mjs` checks DDRB. It explains
-     most of the later loads' time: 241-294 fields -> 162-186. The first load's 87 is still unexplained.
+     most of the later loads' time: 241-294 fields -> 162-186. The rest is expected (Tom, 2026-11-04): by then the
+     drive has spun down, so a load seeks to track 0 for the catalogue and back to the file; the first
+     comes straight after the boot's. (Not measured, but it fits: one CMOS read in the first load, two after.)
    - **3d, the proof**: every track's race 17 replayed from one disc, through the loads.
      **Done otherwise, 2026-11-03**: outside the slots every track's build is the same (3a), so a track
      loaded right is that track's build, which `tools/tracks_check.sh` checks race by race.

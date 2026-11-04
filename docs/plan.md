@@ -234,6 +234,10 @@ adds the logic.
 - All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
   disc, and the loads through the OS (D3, D7), tested on DFS, MMFS, ADFS and Econet.
 
+### At the end of the project
+- Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
+  issues or PRs for the beeb-port-kit, jsbeeb, Baron and the rest (Tom, 2026-11-04). Add to it as things turn up.
+
 ## Decisions
 
 | | Question | State |

@@ -4,6 +4,12 @@ Use the `beeb-baron` skill for all 6502, with one exception: the game targets th
 (CMOS) opcodes are allowed, in sections with `cmos = TRUE` (D4 in `docs/decisions.md`). The skill's NMOS-only
 rule doesn't apply here.
 
+## Upstream
+
+`docs/upstream-notes.md` collects faults and gaps that may be worth raising with the kit, jsbeeb, Baron or Rich's
+projects: add to it as they turn up, saying how each was checked. Nothing goes upstream until Tom decides, at the
+project's end.
+
 ## Reference projects
 
 `rich/` holds Rich Talbot-Watkins's Baron and some of his Baron projects as submodules, for reference only:
