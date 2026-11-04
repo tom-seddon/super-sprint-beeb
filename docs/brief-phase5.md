@@ -445,8 +445,11 @@ touches the build.
      not blue, red, yellow), so the screens needn't match the ST's. Proposed for step 8: the front end's cars in the
      BBC's colours, so they're the cars you race, and the words with them ("BLUE CAR", "RED CAR"): to show on the sheets.
      The winner's circle must also colour each place's car by who came there (Tom, 2026-11-04; `docs/st-graphics.md`), a
-     drone-driven car looking different. The ST does it by palette, but second and third share a band, so on the BBC
-     the cars are better drawn over the picture in the right colour, from one stored shape, as the HUD's text is inked.
+     drone-driven car looking different. The ST does it by palette, but second and third share a band. The four cars
+     are four different drawings (the first's a small side view, second and third face each other, the fourth's huge and
+     cut off), and each place's heading ("FIRST PLACE") is in the same palette entries as its car. So: the cars stay in
+     the picture, and only those pixels are rewritten, from a 1-bit mask a place: 254, 297, 267 and 408 bytes packed
+     (measured, one mask each: ~1.2K in all, more if shades are kept). Proposed; to judge at that screen.
    - The credits aren't a plane, as §1 projected, but RLE, as is prepare; upgrades has no picture at all. **`SUPER1.DAT` is
      never read**: wiped after its load, a whole game came out the same to the byte, with a control that the file was
      there and the wipe took. 17K nobody has to convert. The disc budget improves by that, and the screens' data
