@@ -448,8 +448,11 @@ touches the build.
      drone-driven car looking different. The ST does it by palette, but second and third share a band. The four cars
      are four different drawings (the first's a small side view, second and third face each other, the fourth's huge and
      cut off), and each place's heading ("FIRST PLACE") is in the same palette entries as its car. So: the cars stay in
-     the picture, and only those pixels are rewritten, from a 1-bit mask a place: 254, 297, 267 and 408 bytes packed
-     (measured, one mask each: ~1.2K in all, more if shades are kept). Proposed; to judge at that screen.
+     the picture, and two parts of each are rewritten (Tom, 2026-11-04), matching the in-game cars: the main bodywork and
+     rear spoiler (the place's third palette entry) and the sides and front spoiler (its first). Its second, edges
+     and headings, stays in the picture. Two 1-bit masks a place, 1,204 bytes packed in all (measured). A car's look,
+     body and sides, as `G_01DC18`'s seven rows: player 1 white, white; player 2 green; player 3 yellow; drone-driven,
+     black with sides white, green or yellow as its player's; car 3 black, black. Proposed; to judge at that screen.
    - The credits aren't a plane, as §1 projected, but RLE, as is prepare; upgrades has no picture at all. **`SUPER1.DAT` is
      never read**: wiped after its load, a whole game came out the same to the byte, with a control that the file was
      there and the wipe took. 17K nobody has to convert. The disc budget improves by that, and the screens' data

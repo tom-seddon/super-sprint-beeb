@@ -111,8 +111,9 @@ three palette entries, and those are written with the colours of the car that ca
 entries 7-9, second in band 2's 7-9, third in band 2's 10-12, fourth in band 3's 7-9 (`G_01CFAE`, `G_01CFB6`). The colours
 are `G_01DC18`, three a car, by car, + 4 if a drone's driving it: blue `567 225 027`, red `773 500 703`, yellow `763 540 770`,
 car 3 `563 333 444`, and a drone-driven player's car its own first colour with the greys `333 444`. Only the palette
-changes: the picture's the same whoever wins. The four cars are different drawings, and each place's heading uses the
-same entries, so it takes the car's colour too. Pixels by place: 1,314, 1,727, 1,673 and 3,304.
+changes: the picture's the same whoever wins. The four cars are different drawings. A place's first entry is the car's
+sides and front spoiler, its third the main bodywork and rear spoiler, its second thin edges and the place's heading
+(and, in band 1, "WINNER'S CIRCLE", so the title takes the winner's colour). Pixels by place: 1,314, 1,727, 1,673 and 3,304.
 
 **`SUPER1.DAT` is never read.** It's loaded at `G_01F238` (`&61B36`), the masks' space. Wiped to zeros at the first title,
 with the file seen there before and zeros after, a whole game (the attract screens, a demo, select, prepare, a race,
