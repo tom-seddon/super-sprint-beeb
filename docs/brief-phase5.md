@@ -449,7 +449,9 @@ touches the build.
      there and the wipe took. 17K nobody has to convert. The disc budget improves by that, and the screens' data
      is small: credits 6,194 bytes as stored, prepare 8,572, the frame block 3,488, the dial 7,040.
 8. **The screens converted** (D18): option sheets and a viewer disc for Tom; then drawn by the game, with the
-   wipe.
+   wipe. **One screen at a time** (Tom, 2026-11-04): after each, a testing stage, Tom checking it by eye and reporting
+   back, before the next. Ten screens: title, high scores, lap records, credits, select, prepare, winner's circle,
+   upgrades, initials, options.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
 10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.
