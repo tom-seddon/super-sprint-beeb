@@ -110,7 +110,7 @@ it):
 |---|---|---|---|
 | Main RAM's code (`&0E00`-`&29FF`) | 103 | the game's sequence glue: paging the front end in and out, ~100 | the room hunt (`docs/brief-ram-2026-11-03.md`): 780 free after it |
 | GameVars (`&2E00`-`&2FFF`) | 174 (338 of 512 used) | the state that outlives a race: scores 24, devices 3, wrenches and upgrades (already in the logic's state, which ANDY keeps), track, the attract's place: ~60; but `clear_state` clears GameVars at each load, so step 4 put the race count, generator and drones in `LowFree` (`Gm`), and the rest will want the same | itself |
-| The fourth bank's first 4K (`&8000`-`&8FFF`, under ANDY while the logic runs) | 4,096 (D16) | the game's rules between races, the loader's code (copied out to run), the high-score and lap-record tables (295) | itself |
+| The fourth bank's first 4K (`&8000`-`&8FFF`, under ANDY while the logic runs) | 4,096 (D16) | the game's rules between races (copied to the background's bank to run: step 6), the loader's code (copied out to run) | itself; the high-score and lap-record tables went to Shared |
 | The background's bank | 177 in a race | between races: the front end's code, font, the screen's picture packed, its tune | itself: reloaded for the next race |
 | Both screens (`&3F00`-`&7FFF`) and shadow's `&3000` area | | during a load: the file lands packed in main's screen (~15.9K below `&8000` after the HUD row, D7), the load's code beside it | itself |
 | The fourth bank (`&9000`-`&BFFF`) | 1,828 on every track (§8) | the per-track constants as variables, a little | |
@@ -391,6 +391,42 @@ touches the build.
 6. **The game's rules** on the BBC, one screen's logic at a time, each checked against step 5's traces, with
    placeholder screens (text in the HUD row's font): select, prepare, winner's circle and its bonuses,
    elimination, upgrades, next track, game over, the demo race and the attract loop's order and timings.
+   - **Done (2026-11-04)**, but for two things: the demo's car 3 is drawn in the drone-driven colours (D20's small
+     file: below), and the initials are step 10's, as planned (a score in the table simply stays, for now).
+   - **Where it lives, not where §3 said.** `src/game.6502` is kept as an image in the fourth bank's first 4K, as the
+     load's code is, and `game_go` copies it to `&9000` in the background's bank when a race ends, a page at a
+     time through `&7F00`. Every load rewrites that bank, so nothing's lost and no disc's needed; `&9000` is above
+     ANDY, so the race's state stays in reach, and the rules work on it where the logic left it. `save_game` keeps
+     what outlives a race in LowFree (`Gm*`), `load_game` and `logic_start` give it back; the lap records and high
+     scores (SSPRINT.HSC, 295 bytes) are in Shared, as the copy doesn't survive a load, and written to both
+     screens' copies. Scratch is `GameScratch`, `&B800` up in the bank. The first 4K has 473 bytes free: steps
+     7-10 will want more, and ZX02-packing the image is the way out, the unpacker being there already. Main RAM 474
+     free, the fourth bank 1,086, Shared 312, LowFree 118. First tried in the objects' bank, on a figure of 6,626 free: that was track 1's
+     alone, `ObjSlot` isn't padded, and track 5 overflowed by 521. `tools/track_slots.py` said so at once.
+   - **The oracle.** `tools/game_check.mjs` plays each of step 5's games on `build/game.ssd` from the ST's seed. Every
+     read of a player's input is given as the ST's read it, in order, so the BBC's screens must ask as often and for
+     the same car; a race's result goes in at the frame the ST's did; and the state's compared at every point the ST's
+     was dumped, all of the logic at a race's return, the game's state elsewhere (who's playing, wrenches, scores,
+     upgrades, race counter, lap records, the generator). **Three games, 35 points, 3,440 reads: exact.** Seen to
+     fail: place points, the upgrades' order, the next track, the points added. `tools/attract_check.mjs` leaves the
+     disc alone from the ST's seed: every screen's order and time, each demo's track, and the generator against the
+     ST's after each of three demos back to back; then fire ending a demo. All 16 demo races are in
+     `disc_races.sh`, exact frame by frame (16,252 frames, state only). Keys: Escape 112, f5 116, f0 32, measured in
+     `keys_check`. Played with real key presses too, as no oracle does: fire, the dial, a track loaded, a race run.
+   - **What the second races found**, each traced race so far having been a game's first: the ST never resets the
+     coasting phase, which changes the cars' handling, or the sparks' timers: `GmPhase`, `GmSparks` carry them. It
+     leaves the last track's gate variables too, which a track without gates never reads: not carried, and not
+     compared on such a track. The demo leaves `G_01E35C` and `G_01E364`, which only the human handler reads.
+   - **Faults of mine that these caught**: the attract loop's `LDX` between a read and its `BMI`; `score_add` given
+     the race's `Ten`, in a bank not paged in here, so background bytes were added as digits; `save_game` before
+     anything had been loaded, zeroing the seed; F10 running one more race frame; and a demo's car 3, whose
+     `SetOf` entry was the generator's 255 for "no such set", plotted from set 15 until it overwrote `plot_car`'s
+     first opcode with 0, which the next call ran as `BRK`.
+   - **Not done, to decide**: car 3's own colours in the demo. D20 expected one small file here. It wants a file over
+     the drone-driven set for a demo and back for a game's first race, so a load path of its own, and the screen
+     model checking it; it changes only how one car looks in the attract mode, so it's left until the screens
+     (steps 7-8) can be judged together. F1's options, F9, and the music's gaps are later steps' (G_01D312 is taken as
+     on: one random number in the circle depends on it).
 7. **The ST's front-end data decoded**: `SUPER.DAT`'s first three blocks, the credits' plane, `SUPER1.DAT`,
    maps 8-10, initials entry and options captured; written up in `docs/st-graphics.md`.
 8. **The screens converted** (D18): option sheets and a viewer disc for Tom; then drawn by the game, with the

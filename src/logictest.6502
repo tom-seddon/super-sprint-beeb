@@ -33,6 +33,7 @@ SECTION GameVars, org = &0900, guard = &0E00, virtual = TRUE  ; (the OS's, which
 ENDSECTION
 SoundLog = 1                            ; sound.6502 logs each frame's starters' calls (SndLog...)
 GenLogic = 1
+GenPlay = 0                             ; (race.6502's demo and the game's state are the play build's)
 
 SECTION Test, filename = "!BOOT", org = TestOrg, load = &FFFF0000+TestOrg, exec = &FFFF0000+test_entry, guard = &7C00, cmos = TRUE
 

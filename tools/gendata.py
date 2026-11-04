@@ -811,7 +811,8 @@ def main(track, tracepath, out, logic=False, play=False):
             f.write(lst('GenHeliFirst', [k[0] if k else 0 for k in hk]))
             f.write(lst('GenHeliCount', [len(k) for k in hk]))
             f.write(lst('GenSetOf', [sets.index((None, True) if d else (c, False)) if ((None, True) if d else (c, False)) in sets
-                                     else 255 for c in range(4) for d in (0, 1)]))
+                                     else sets.index((None, True)) if (None, True) in sets else 255   # (the demo's car 3, for now)
+                                     for c in range(4) for d in (0, 1)]))
             f.write(lst('GenTorPiece', [movpieces[('tornado', fr_, x)][0] for fr_ in range(3) for x in range(4)]))
             f.write(lst('GenEntCode', ent_codes + [255] * (9 * 6 - len(ent_codes))))   # (6 instances' room, every track)
             f.write(f'GenGateInst0 = 3\n')

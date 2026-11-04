@@ -807,10 +807,18 @@ celebration, so a press waits in its byte until then. It takes the other branch 
 random number fewer), but in the one race traced with it the winner's circle took 1,042 VBLs against 1,043 without.
 What it shortens hasn't been read. The circle draws 17 or 18 random numbers, so it moves the next race's seed.
 
+**What's never reset between races** (found by a game's second race, `docs/brief-phase5.md` step 6): the coasting phase
+`G_01D178`, which changes the handling, and the sparks' timers. A race on a track with no gates leaves the last
+track's gate variables, unread. `G_01E324`'s car 3 keeps its wrenches from race to race and game to game: the select
+sets only cars 0-2's, and only a demo clears it.
+
 **Differences between the demo race `F_00D1FA` and the real one `F_00C592`:** the demo makes every car a drone
 driven by `F_00F23C` but drawn in player colours; laps start at 2; top speed `110 - 4 * track + 4 * car`; no engine
 sounds; no "get ready" pause; a 50-frame end; fire or F1 ends it. The drone flags stay 0 (traced), so they don't say
 who's driving here. Its hazards follow `G_01EBC2`, which is 0 on a fresh boot and otherwise what the last game left.
+It blanks all four scores and clears all four wrenches and drone flags, which the next game inherits; leaves
+`G_01E35C` and `G_01E364` as they were (only the human handler reads them); and, unlike the race, goes on adding
+the 10 points every 64 frames after a car has finished.
 
 ## 10. Where the data lives
 

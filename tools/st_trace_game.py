@@ -50,10 +50,10 @@ def trigger(when, file):
     return f'b {cond}{count} :once :file {file}\n'
 
 
-def record(steps, vbls):
+def record(steps, vbls, points):
     f = lambda name: os.path.join(D, name)
     stamp = f'm ${Vbl:X} 4\n'
-    ini = {'g0.ini': ''.join(f'b pc = ${a:X} :quiet :file {f(f"gp{i}.ini")}\n' for i, a in enumerate(Points))
+    ini = {'g0.ini': ''.join(f'b pc = ${a:X} :quiet :file {f(f"gp{i}.ini")}\n' for i, a in enumerate(points))
            + f'b pc = ${RacePc:X} :quiet :file {f("grace.ini")}\n'
            + f'b pc = ${L.RandomPc:X} :quiet :file {f("grandom.ini")}\n'
            + f'b pc = ${InputEnd:X} :quiet :file {f("ginput.ini")}\n'
@@ -61,7 +61,7 @@ def record(steps, vbls):
            'grace.ini': f'm ${RaceMark:X} 1\n{stamp}m a7 8\nc\n',
            'grandom.ini': f'm ${RandomMark:X} 1\n{stamp}r\nm a6 10\nc\n',
            'ginput.ini': f'm ${InputMark:X} 1\nr\nm a7 6\nc\n'}
-    for i in range(len(Points)):
+    for i in range(len(points)):
         ini[f'gp{i}.ini'] = f'm ${PointMark + i:X} 1\n{stamp}m ${Region[0]:X} {Region[1]}\nc\n'
     for k, s in enumerate(steps):
         nxt = trigger(steps[k + 1]['when'], f(f'gs{k + 1}.ini')) if k + 1 < len(steps) else ''
@@ -76,8 +76,8 @@ def record(steps, vbls):
     return log
 
 
-def parse(log):
-    names, events, cur, d0 = list(Points.values()), [], None, None
+def parse(log, points):
+    names, events, cur, d0 = list(points.values()), [], None, None
     def close():
         if cur is None:
             return
@@ -132,7 +132,8 @@ def parse(log):
 
 def main(script, out):
     s = json.load(open(script))
-    events = parse(record(s['steps'], s.get('vbls', 30000)))
+    points = {int(a): n for a, n in s['points'].items()} if 'points' in s else Points
+    events = parse(record(s['steps'], s.get('vbls', 30000), points), points)
     json.dump({'script': s, 'events': events}, open(out, 'w'))
     pts = [e for e in events if e['kind'] == 'point']
     print(f'{len(pts)} points: ' + ' '.join(e['name'] for e in pts))

@@ -167,11 +167,15 @@ ENDIF
 .race
     LDA LfFrame+1:BNE @+                ; the first race frame: the ST's start, then its 1 s pause
     LDA LfFrame:CMP #2:BNE @+
+    IF GenPlay
+        LDA GmDemo:BNE @+               ; (the demo starts at once)
+    ENDIF
     JSR start_pause
 .@
     IF GenPlay
         JSR read_players                ; the players' keys
     .played                             ; (tools/disc_races.mjs gives a traced race's inputs here)
+        LDA GmDemo:BNE @+
         LDA #KeyF0:JSR key_down         ; F10 (D24: f0): the race abandoned, back to the attract mode
     .abandon                            ; (tools/game_check.mjs gives a traced press here)
         TAY:BPL @+
@@ -205,7 +209,13 @@ ENDIF
     LDA setup:BNE count                 ; (the set-up's flips: no race frame)
     JSR race_end                        ; after the frame's records: the ST's runs after its flip
     IF GenPlay
-        LDA RcOver:BEQ count            ; over: the game's rules take it from there (the frame loop, load_go)
+        LDA RcOver:BNE ended            ; over: the game's rules take it from there (the frame loop, load_go)
+        LDA GmDemo:BEQ count
+        JSR read_players                ; the demo: anyone's fire ends it
+        LDA RcInput:ORA RcInput+1:ORA RcInput+2
+    .demo_fire                          ; (tools/attract_check.mjs)
+        TAY:BPL count
+    .ended
         LDA #&FF:STA LoadWant
     ENDIF
 .count

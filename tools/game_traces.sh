@@ -25,6 +25,6 @@ elif [ "$1" = demo ]; then
 fi
 .venv/bin/python -P tools/game_scripts.py || exit 1
 {
-    for g in three alone rejoin; do echo game $g; done
+    for g in three alone rejoin attract; do echo game $g; done
     for n in 0 1 2 3 4 5 6 7; do echo demo $n 0; echo demo $n 17; done
 } | xargs -P ${JOBS:-3} -L 1 tools/game_traces.sh

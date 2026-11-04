@@ -486,3 +486,13 @@
   **Mistakes, mine, all in the scripts**: taps before the select's loop had started, so the dial never moved; a
   release step that outlived the initials' entry, so the chain waited through a whole race; F5 pressed after its one
   read. Each showed up in the trace's own timeline. Also a stray `rm -f /dev/null` in a command, refused, no effect.
+- **Step 6, the game's rules** (2026-11-04): `src/game.6502`, all of it but the initials: select, prepare, the circle and
+  its bonuses, the elimination, the upgrades, next track, game over, the demo, the attract loop. `tools/game_check.mjs`
+  plays step 5's games on the disc read by read: 35 points, 3,440 reads, exact, and seen to fail on four mutants.
+  `tools/attract_check.mjs` proves the attract mode's order and times, and three demos back to back against the
+  ST's generator. All 16 demos exact frame by frame. **Mistake, mine**: the rules first went in the objects' bank on
+  a free figure that was track 1's alone; track 5 overflowed. They run from the background's bank now, copied from
+  the fourth bank's first 4K at each race's end. **Mistake, mine**: a `SetOf` entry I'd meant to look at and didn't:
+  255, so a demo's car 3 plotted from set 15 and overwrote `plot_car`'s first opcode, which ran as `BRK`. The
+  second races found what no race trace could: the ST never resets the coasting phase or the sparks' timers. Left:
+  car 3's own colours in the demo.

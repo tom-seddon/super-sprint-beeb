@@ -70,6 +70,8 @@ SECTION GameScratch
     SKIP 1
 .GsFields                               ; fields' count
     SKIP 1
+.GsWait                                 ; the attract mode's wait
+    SKIP 1
 ENDSECTION
 
 .LapPts0                                ; laps * 100000, three bytes
@@ -120,22 +122,87 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .attract
     STZ GmStage
     STZ GmAbandon
+    LDA GmDemo:BEQ title
+
+    \\ F_013F68's loop, from the demo's end: a wait, the credits, a wait
+
+    STZ GmDemo
+    JSR save_game                       ; (the generator, the phase, the sparks and what the demo did to the cars)
+    LDX GmDemoTrack:LDA NextTrack,X:STA GmDemoTrack
+    JSR say_clear
+    LDA #150:JSR wait
+.credits
+    JSR say_clear
+    LDA #LO(TextCredits):LDX #HI(TextCredits):LDY #12:JSR say
+    LDA #LO(325 - 256):LDX #HI(325):JSR wait_long
+.title
     JSR say_clear
     LDA #LO(TextAttract):LDX #HI(TextAttract):LDY #12:JSR say
+    LDA #250:JSR wait
+.scores
+    JSR say_clear
+    LDA #LO(TextScores):LDX #HI(TextScores):LDY #12:JSR say
+    LDA #250:JSR wait
+.records
+    JSR say_clear
+    LDA #LO(TextRecords):LDX #HI(TextRecords):LDY #12:JSR say
+    LDA #250:JSR wait
+
+    \\ F_00D1FA: the demo, on the next of the tracks in turn: every car its player's, no scores, no wrenches
+
+.demo
+    JSR seed_once
+    LDX #3
+.car
+    STZ GmDrone,X
+    STZ GmWrench,X
+    DEX
+    BPL car
+    LDX #23
+.blank
+    LDA #&80:STA GmScore,X
+    DEX
+    BPL blank
+    FOR c = 0..3
+        STZ GmScore + c * 6 + 5
+    NEXT
+    LDA #1:STA GmDemo
+    LDA GmDemoTrack:STA GmTrack
+    INC A:STA LoadWant
+    JMP load_go
+
+    \\ F_0140F0: A fields gone by, any player's fire starting a game with that car. (F1's options: step 7's.)
+
+.wait
+    STA GsWait
 .idle
     LDA LoadWant:BEQ @+                 ; (a test's race: tools/disc_races.mjs, load_check.mjs)
     JMP load_go
 .@
-    LDX #0                              ; F_0140F0: any player's fire starts a game with that car
+    LDX #0
 .fire
     JSR game_read                       ; (X kept)
     BMI game
     INX
     CPX #3:BNE fire
     LDA #1:JSR fields
-    BRA idle
+    DEC GsWait
+    BNE idle
+    RTS
+.wait_long                              ; (over 255: the first A, then X * 256)
+    PHX
+    JSR wait
+    PLX
+.long
+    PHX
+    LDA #0:JSR wait
+    PLX
+    DEX
+    BNE long
+    RTS
 .game
     STX GsWho
+    JSR seed_once
     JSR load_game
     JSR select
 .selected
@@ -148,6 +215,19 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     JSR save_game
     LDX GmTrack:INX:STX LoadWant
     JMP load_go
+}
+
+\\ TOS seeds its generator from its 200 Hz clock, t << 16 | t, the first time it's used: here from the fields gone by
+\\ and T1, which depends on when the disc finished and on when fire was pressed.
+
+.seed_once
+{
+    LDA GmSeeded:BNE done
+    INC GmSeeded
+    LDA &FE44:STA GmSeed:STA GmSeed+2   ; system VIA: T1 counter, low
+    LDA vsyncs:STA GmSeed+1:STA GmSeed+3
+.done
+    RTS
 }
 
 \\ What outlives a race, for logic_start to give back to the next (the ST's are never cleared).
@@ -263,6 +343,8 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     AND #1:BNE @+
     STZ GsMove
 .@
+    LDA GsDial:LSR A:CLC:ADC #'1':STA TextTrack+6
+    LDA #LO(TextTrack):LDX #HI(TextTrack):LDY #14:JSR say
     LDA #2:JSR fields
     LDA GsDial:LSR A:LSR A:CMP GsLast:BEQ same
     STA GsLast                          ; (its new wording takes the third field's place)
@@ -868,6 +950,11 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     AND #3:CMP #2:BNE @+
     STZ GsMove
 .@
+    LDA GsDial:LSR A:LSR A:TAY          ; what it's on
+    LDA UpgradeOrder,Y:TAY
+    LDA UpgradeTextsLo,Y
+    LDX UpgradeTextsHi,Y
+    LDY #14:JSR say
     LDA #2:JSR fields
     LDA GsKey:BPL nofire
     LDA #1:STA GsCount
@@ -1040,6 +1127,12 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 
 .TextAttract
     EQUS "Super Sprint: press fire", 0
+.TextScores
+    EQUS "High scores", 0
+.TextRecords
+    EQUS "Lap records", 0
+.TextCredits
+    EQUS "Credits", 0
 .TextSelect
     EQUS "Select a track", 0
 .TextPrepare
@@ -1048,3 +1141,17 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     EQUS "Winner's circle", 0
 .TextUpgrade
     EQUS "Upgrades", 0
+.TextTrack
+    EQUS "Track 1", 0
+.UpgradeTextsLo                         ; by G_01D03C's number
+    EQUB LO(TextTraction), LO(TextTop), LO(TextTurbo), LO(TextScore)
+.UpgradeTextsHi
+    EQUB HI(TextTraction), HI(TextTop), HI(TextTurbo), HI(TextScore)
+.TextTraction
+    EQUS "Super traction  ", 0
+.TextTop
+    EQUS "Higher top speed", 0
+.TextTurbo
+    EQUS "Turbo           ", 0
+.TextScore
+    EQUS "Increase score  ", 0

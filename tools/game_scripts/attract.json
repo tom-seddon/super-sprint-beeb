@@ -1,0 +1,19 @@
+{
+"vbls": 22000,
+"steps": [
+{
+"when": [
+"vbl",
+1000
+]
+}
+],
+"points": {
+"81768": "title",
+"94954": "high scores",
+"114484": "lap records",
+"53754": "demo",
+"82326": "credits",
+"82160": "wait"
+}
+}

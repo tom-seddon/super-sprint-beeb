@@ -14,9 +14,10 @@
 // Exit status: 1 if any frame of any race differs, a race ends at the wrong frame, or anything stops, else 0.
 //
 // Usage (from the repo root, after make game and the traces: tools/disc_races.sh makes the models):
-//   node tools/disc_races.mjs [--races 1,2,4,17,50,h012,h12,h01,h02] [--tracks 2,6,5,1,4,7,3,0] [--rotate J] [--show N]
+//   node tools/disc_races.mjs [--races 1,2,4,17,50,h012,h12,h01,h02,demo0,demo17] [--tracks 2,6,5,1,4,7,3,0] [--rotate J] [--show N]
 //       [--noscreen] [--probes]
-//   --races: race numbers, and hCARS for tools/human_traces.sh's races with those cars human.
+//   --races: race numbers, hCARS for tools/human_traces.sh's races with those cars human, demoR for
+//   tools/game_traces.sh's demo at that race counter (no model: state only).
 //   Each race on each track, unless --rotate J: the tracks once, in turn, the races taken in turn from the
 //   Jth on, so one race's hazards are followed by another's (J from 0 to the races' count less 1 covers them all).
 //   --probes: do the races reach what the wall probes got wrong before 2026-11-04? Each PSet entry a car's human and
@@ -28,12 +29,12 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { andy, bootDisc, cycles, ram, runTo, runToAny, symbols } from "./jsbeeb.mjs";
-import { comparer } from "./logic_compare.mjs";
+import { comparer, PerCar, Race } from "./logic_compare.mjs";
 
 const args = process.argv.slice(2);
 const option = (name, dflt) => (args.includes(name) ? args[args.indexOf(name) + 1] : dflt);
 const probes = args.includes("--probes");
-const races = option("--races", probes ? "hprobe" : "1,2,4,17,50,h012,h12,h01,h02").split(",").map((r) => r.replace(/^r/, ""));
+const races = option("--races", probes ? "hprobe" : "1,2,4,17,50,h012,h12,h01,h02,demo0,demo17").split(",").map((r) => r.replace(/^r/, ""));
 const tracks = option("--tracks", probes ? "0" : "2,6,5,1,4,7,3,0").split(",").map(Number);
 const show = Number(option("--show", 10));
 const screens = !args.includes("--noscreen") && !probes;
@@ -48,9 +49,9 @@ const word = (a) => peek(a) | (peek(a + 1) << 8);
 
 // one race on the disc, a line said about it -> 1 if it's wrong
 async function race(track, kind, stopAtWrong = false) {
-    const name = `t${track}_${/^h/.test(kind) ? kind : `r${kind}`}`;
+    const name = `t${track}_${/^(h|demo)/.test(kind) ? kind : `r${kind}`}`;
     const trace = JSON.parse(readFileSync(`build/trace/logic_${name}.json`));
-    const number = trace.race, label = `track ${track + 1} race ${number}${/^h/.test(kind) ? ` cars ${kind.slice(1)}` : ""}: `;
+    const number = trace.race, label = `track ${track + 1} ${trace.demo ? "demo " : ""}race ${number}${/^h/.test(kind) ? ` cars ${kind.slice(1)}` : ""}: `;
     const frames = trace.frames, last = frames.length - 1, force = trace.force ?? [];
     const syms = symbols(`build/tracks/t${track}.json`);
     const modelPath = `build/check/model_${name}.bin`;
@@ -61,6 +62,7 @@ async function race(track, kind, stopAtWrong = false) {
     // the state a game would have brought here
     const seed = trace.seed;
     s.writeMemory(syms.GmRace, [number]);
+    s.writeMemory(syms.GmDemo, [trace.demo ? 1 : 0]);
     s.writeMemory(syms.GmSeed, [seed & 255, (seed >> 8) & 255, (seed >> 16) & 255, seed >>> 24]);
     s.writeMemory(syms.GmDrone, [0, 1, 2, 3].map((c) => m[0x1e34c + 2 * c + 1]));
     // (the scores and sparks are Shared's, in both screens: the trace's, as a test build has them)
@@ -86,7 +88,9 @@ async function race(track, kind, stopAtWrong = false) {
     await runToAny(s, [[syms["pickups_setup.cones_coin"], banktrace]], 8000000);
     if (force.includes("cones")) cpu.a = 10;
 
-    const check = comparer(s, syms, trace, { show: stopAtWrong ? 0 : show, label });
+    // (the demo leaves G_01E35C and G_01E364 as the last race did: only the human handler reads them)
+    const only = trace.demo ? [...PerCar, ...Race].map((v) => v[0]).filter((n) => n !== "cap" && n !== "thresh").concat("seed", "maskb", "map") : null;
+    const check = comparer(s, syms, trace, { only, show: stopAtWrong ? 0 : show, label });
     // the script's cars put somewhere, at a flip (tools/st_trace_logic.py): here, before the frame after it
     const placed = new Map(trace.script.filter((e) => e.length > 2).map((e) => [e[0], e[2]]));
     const played = syms["logic_frame.played"], built = syms["logic_frame.built"], frameEnd = syms["frame_loop.frame_end"];
@@ -144,7 +148,7 @@ async function race(track, kind, stopAtWrong = false) {
         if (peek(syms.LoadWant) !== 0xff) left.push(`LoadWant ${peek(syms.LoadWant)}, not the game's`);
         if (left.length) problem = left.join(", ");
     }
-    const reps = ((word(syms.Repeats) - repeats0) & 0xffff) - 50;    // (less the start's 50-field pause)
+    const reps = ((word(syms.Repeats) - repeats0) & 0xffff) - (trace.demo ? 0 : 50);    // (less the start's 50-field pause)
     console.log(`${label}loaded in ${fields} fields; ${last} frames: state ${check.wrong ? `WRONG in ${check.wrong}, the first ${check.firstWrong}` : "exact"}; ` +
         `${model ? `screen ${screenWrong ? `WRONG in ${screenWrong}, the first ${firstScreen}` : `exact in ${drawn}`}` : "no model"}; ` +
         `${reps} fields repeated${ended ? "" : "; the trace stopped before the race's end"}${problem ? `; ${problem}` : ""}`);

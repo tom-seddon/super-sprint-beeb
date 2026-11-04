@@ -330,7 +330,8 @@ combination**. Any mix of humans picks its sets by each car's drone flag; the wa
 been fixed from the trace, wrong by one pixel of player 2's car at facing 6, the line 3 column 4 that the drone-driven frame hasn't; not, as first written here, players 2 and 3 on 2-5 facings). It costs no bank room, since the slot had
 to hold the largest anyway, and saves about 5.8K a load, about 40K of disc and 7 catalogue entries. Only the demo
 differs: car 3 in its own colours, which aren't the drone-driven set through `DataBlack` (12 of 16 facings differ),
-so one small file at step 6.
+so one small file at step 6. (Step 6 left it out, 2026-11-04: the demo draws car 3 in the drone-driven set for now,
+and Tom's to say when: `docs/brief-phase5.md` step 6.)
 
 ### D21. Withdrawn (2026-11-03)
 Proposed as "every object variant a track can draw"; the play build already makes them from the track's

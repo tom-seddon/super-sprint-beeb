@@ -76,6 +76,7 @@ async function play(name) {
     }
     const seed = firstSeed(values);
     for (let i = 0; i < 4; i++) put(syms.GmSeed + i, (seed >>> (8 * i)) & 255);
+    put(syms.GmSeeded, 1);
 
     // what's compared, through logic_compare's: a trace of the points
     const show = Number(process.env.SHOW ?? 12);

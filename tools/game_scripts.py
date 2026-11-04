@@ -102,6 +102,11 @@ Scripts = {
                + at(Over)},
 }
 
+# The attract mode left alone, the order and times of its screens from its dumps' VBLs (tools/attract_check.mjs).
+Scripts['attract'] = {'vbls': 22000, 'steps': [{'when': ['vbl', 1000]}],
+                      'points': {0x13F68: 'title', 0x172EA: 'high scores', 0x1BF34: 'lap records', 0xD1FA: 'demo', 0x14196: 'credits',
+                                 0x140F0: 'wait'}}
+
 if __name__ == '__main__':
     here = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'game_scripts')
     for name, s in Scripts.items():

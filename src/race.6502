@@ -245,7 +245,11 @@ ENDSECTION
     \\ a drone: onto its path's first entry (x from it, y the grid's: the difference its offset, times D),
     \\ speed car * 10, D 40, top 60 - track * 4 + car * 4 + race
 
-    LDA RcDrone,X:BEQ human
+    LDA RcDrone,X
+    IF GenPlay
+        ORA GmDemo                      ; (F_00D1FA: every car driven, though its flag says not)
+    ENDIF
+    BEQ human
     STZ RcPathIdx,X
     JSR onto
     TXA:ASL A:STA t:ASL A:ASL A:ADC t   ; car * 10 (C clear)
@@ -253,9 +257,19 @@ ENDSECTION
     STZ RcSpeedHi,X
     LDA #40:STA RcDiv,X
     TXA:SEC:SBC RcTrack:ASL A:ASL A     ; (car - track) * 4 + 60 + race
+    IF GenPlay
+        LDY GmDemo:BEQ real
+        CLC:ADC #110                    ; (the demo's: (car - track) * 4 + 110, and two laps done)
+        STA RcTopLo,X
+        STZ RcTopHi,X
+        LDA #2:STA RcLaps,X
+        BRA topped
+    .real
+    ENDIF
     CLC:ADC #60:CLC:ADC RcRace
     STA RcTopLo,X
     STZ RcTopHi,X
+.topped
     LDA RcYLo,X:STA t                   ; y * 8
     LDA #0
     ASL t:ROL A
@@ -364,7 +378,11 @@ ENDSECTION
     LDX #0
 .control
     LDA RcState,X:BNE next              ; a wrecked car: no control
-    LDA RcDrone,X:BNE driven
+    LDA RcDrone,X
+    IF GenPlay
+        ORA GmDemo
+    ENDIF
+    BNE driven
     JSR human                           ; (X preserved)
     JSR engine                          ; F_012BA2 (sound.6502)
     BRA next
@@ -407,7 +425,11 @@ ENDSECTION
 
     \\ every 64 frames while no car has finished, 10 points to every car
 
+    IF GenPlay
+        LDA GmDemo:BNE always           ; (the demo's go on to its end: F_00D1FA has no test)
+    ENDIF
     LDA RcFinished:BNE pointed
+.always
     LDA RcFrameLo:AND #63:BNE pointed
     LDX #3
 .points
@@ -444,6 +466,15 @@ ENDSECTION
 .race_end
 {
     LDA RcFinished:BEQ done
+    IF GenPlay
+        LDA GmDemo:BEQ real             ; the demo: 50 frames, not 170, and no one's laps put back
+        LDA RcCountdown:CMP #120:BNE done
+        INC RcOver
+        LDA RcFinishLo:STA RcFrameLo
+        LDA RcFinishHi:STA RcFrameHi
+        RTS
+    .real
+    ENDIF
     LDA RcCountdown:BNE done
     INC RcOver
     LDA RcFinishLo:STA RcFrameLo
