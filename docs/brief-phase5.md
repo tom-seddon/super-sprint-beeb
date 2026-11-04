@@ -456,6 +456,10 @@ touches the build.
      The cars' colours may be changed later (Tom, 2026-11-04: perhaps a separate colour for the player cars' sides), and
      the circle must follow: so the seven looks live in one place, `tools/convert.py`'s table, which makes both the race's
      sprites and the circle's colours. The masks hold shape, not colour, so a change is a rebuild, nothing redrawn.
+     Prepare, options and initials follow it too, and are simpler (Tom's reading, measured): their three cars are one
+     drawing, 5,696 and 5,683 of 5,700 pixels alike in shape, so one stored car drawn three times, with the same parts'
+     masks, not a picture of three. Their colours don't map one to one (the left car's colour 3 is two on the right), so
+     the parts come from comparing the three. They sit at x 6, 165 and 86: not the same place in a byte, 4 pixels each.
    - The credits aren't a plane, as §1 projected, but RLE, as is prepare; upgrades has no picture at all. **`SUPER1.DAT` is
      never read**: wiped after its load, a whole game came out the same to the byte, with a control that the file was
      there and the wipe took. 17K nobody has to convert. The disc budget improves by that, and the screens' data
