@@ -39,14 +39,16 @@
     LDA OsIer+1:ORA #&80:STA &FE6E
     LDA OsIrq1v:STA &204
     LDA OsIrq1v+1:STA &205
-    LDA #LO(brk):STA &202               ; a disc error: back to the load, to try again
+    LDA #LO(brk):STA &202               ; a disc error: said in the HUD's row, and the load tried again
     LDA #HI(brk):STA &203
     LDA OsAcccon:STA &FE34              ; ACCCON as the OS had it
     LDA OsRom:STA &F4:STA &FE30         ; ROMSEL: the OS's ROM
     CLI
+    LDA #143:LDX #11:LDY NmiOwner:JSR &FFF4 ; OSBYTE 143: the NMIs back to who had them
 
 .again
-    LDA #143:LDX #11:LDY NmiOwner:JSR &FFF4 ; OSBYTE 143: the NMIs back to who had them
+    JSR row_clear
+    LDX #LoadingText - LoadTexts:JSR row_text
     LDX #17                             ; OSFILE's block: the name, the load address (the host's), exec's
     LDA #0                              ; low byte 0 (the address given); OSFILE writes the catalogue's back,
 .block                                  ; so it's made again each time
@@ -120,13 +122,111 @@
     CLI
     JMP start
 
-    \\ BRKV while the OS has the machine: a disc error. The stack as the load had it, and the load again
+    \\ BRKV while the OS has the machine: a disc error. The stack as the load had it, the OS's message (after
+    \\ the error's number, at &FD's pointer) in the HUD's row, and the load again on a key
 .brk
     LDX LoadStack:TXS
     CLI
+    JSR row_clear
+    LDY #1
+.message
+    STY LoadIndex
+    LDA (&FD),Y:BEQ said
+    JSR row_char
+    LDY LoadIndex:INY
+    CPY #26:BNE message                 ; (the row's 40 less what comes after it)
+.said
+    LDX #KeyText - LoadTexts:JSR row_text
+    LDA #21:LDX #0:JSR &FFF4            ; OSBYTE 21: the keyboard's buffer flushed
+.waitkey
+    JSR &FFE0                           ; OSRDCH
     JMP again
 }
 
+\\ While the OS has the machine: text in the HUD's row, white, the display showing that row alone, in the MOS's
+\\ own font: at &B900 in ROM 15 from ASCII 32, on a Master (Master Reference Manual; the game's Master only, D4).
+\\ Not OSWORD 10: the VDU's workspace is in ANDY, which is the game's (D15). No zero page: it's the OS's.
+\\
+\\ row_clear: the row blank, the next character its first.
+\\ row_text: X: a message's offset in LoadTexts, ending in 0.
+\\ row_char: A: the character, at LoadCol, which goes on one.
+\\ All: A, X, Y corrupted.
+
+RomFont = &B900
+RomFontBank = 15
+
+.row_clear
+{
+    STZ LoadCol
+    LDA #0:TAX
+.pages
+    STA HudAddr,X
+    STA HudAddr+&100,X
+    INX
+    BNE pages
+    LDX #RowBytes-&200-1
+.tail
+    STA HudAddr+&200,X
+    DEX
+    BPL tail
+    RTS
+}
+
+.row_text
+{
+    LDA LoadTexts,X:BEQ done
+    STX LoadIndex
+    JSR row_char
+    LDX LoadIndex:INX
+    BRA row_text
+.done
+    RTS
+}
+
+.row_char
+{
+    CMP #' ':BCS @+                     ; (anything the font hasn't: a space)
+    LDA #' '
+.@
+    SEC:SBC #' '
+    STZ font+2                          ; 8 * the character, from the font
+    ASL A:ROL font+2
+    ASL A:ROL font+2
+    ASL A:ROL font+2
+    ASSERT LO(RomFont) == 0, "the MOS's font: on a page"
+    STA font+1
+    LDA font+2:CLC:ADC #HI(RomFont):STA font+2
+    LDA LoadCol:ASL A:ASL A:ASL A:ASL A ; 16 * the column: its cell's left half, then its right
+    STA left+1                          ; (HudAddr's low byte 0)
+    ORA #8:STA right+1
+    LDA LoadCol:LSR A:LSR A:LSR A:LSR A ; (16 * the column's high byte)
+    CLC:ADC #HI(HudAddr)
+    STA left+2:STA right+2
+    LDX #7
+    SEI                                 ; (the MOS's interrupts page ROMs, and put back &F4's)
+    LDA #RomFontBank:STA &FE30          ; ROMSEL: the font's ROM
+.line
+.font
+    LDY RomFont,X                       ; self-modified: the character
+    LDA PExpHi,Y
+.left
+    STA HudAddr,X                       ; self-modified: the cell's left half
+    LDA PExpLo,Y
+.right
+    STA HudAddr+8,X                     ; self-modified: its right half
+    DEX
+    BPL line
+    LDA &F4:STA &FE30                   ; ROMSEL: as the OS has it
+    CLI
+    INC LoadCol
+    RTS
+}
+
+.LoadTexts
+.LoadingText
+    EQUS "Loading", 0
+.KeyText
+    EQUS " - press a key", 0
 .SnQuiet                                ; the SN76489's four channels' volumes off
     EQUB &9F, &BF, &DF, &FF
 

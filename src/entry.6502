@@ -185,6 +185,7 @@ IF GenPlay
 {
     LDA #9:LDX #0:JSR &FFF4             ; OSBYTE 9, 10: the colours' flash off, or the MOS rewrites the Video
     LDA #10:LDX #0:JSR &FFF4            ; ULA's control with its own during a load, halving the CRTC's clock
+    LDA #229:LDX #1:LDY #0:JSR &FFF4    ; OSBYTE 229: Escape just a key, while the OS has the machine (D7)
     LDA #193:LDX #0:LDY #0:JSR &FFF4    ; OSBYTE 193: the flash counter 0 (one still counting, frozen by the
                                         ; game's taking IRQ1V, would run out in the first load, and flash)
     LDX #ZpSwapLen-1

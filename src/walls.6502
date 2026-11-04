@@ -45,8 +45,9 @@ ENDSECTION
     RTS
 .probe
     STZ code
-    TXA:ASL A:ASL A:ASL A:ASL A
-    ORA d:TAY                           ; car * 16 + facing
+    TXA:ASL A:ORA RcDrone,X             ; (a car's own frames and its drone-driven ones differ in shape)
+    ASL A:ASL A:ASL A:ASL A
+    ORA d:TAY                           ; (car * 2 + drone-driven) * 16 + facing
     LDA RcXLo,X:AND #7:ORA PSet,Y:STA sx
     LDA RcYLo,X:AND #7:ORA PSet,Y:STA sy
 

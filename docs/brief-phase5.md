@@ -11,8 +11,7 @@
 > `docs/st-graphics.md` "Track backgrounds" and "`SUPER.DAT`"; `docs/plan.md` Phase 5; D3, D7, D9, D11, D15,
 > D16.*
 
-**Resume point: step 4.** Every decision is taken; steps 1-3 are done (step 3 with its car sets, D20, still to
-come, and a disc error's retry and Escape off, D7, not built).
+**Resume point: step 4.** Every decision is taken; steps 1-3 are done.
 
 ## 0. The proposal in one paragraph
 
@@ -79,7 +78,7 @@ renderer's from `src/sprint.6502` and `docs/renderer.md`):
 |---|---|---|---|
 | The clean background | the background's bank | 16,000 (about 2.6K packed, `docs/colours.md`) | track |
 | The priority map, cells and classes | the cars' bank | about 3,640 (track 6's, `docs/renderer.md`) | track |
-| The cars' frames | the cars' bank | 5,331 (one human) to 10,615 (three) | which cars are human (D20) |
+| The cars' frames | the cars' bank | 10,275, the same for every race (D20, revised) | |
 | Mask B | ANDY | 2,168 to 3,427 | track |
 | The attribute map, slots, probes (`lgen/cells`) | the fourth bank | 1,195 | track |
 | The drone path (`lgen/path`) | Shared | 616 to 994 | track |
@@ -115,7 +114,7 @@ it):
 | The background's bank | 177 in a race | between races: the front end's code, font, the screen's picture packed, its tune | itself: reloaded for the next race |
 | Both screens (`&3F00`-`&7FFF`) and shadow's `&3000` area | | during a load: the file lands packed in main's screen (~15.9K below `&8000` after the HUD row, D7), the load's code beside it | itself |
 | The fourth bank (`&9000`-`&BFFF`) | 1,828 on every track (§8) | the per-track constants as variables, a little | |
-| The cars' bank | 2,245 (track 1, three humans); 422 on track 6 (§8) | the frames for every combination of humans | D20 |
+| The cars' bank | 2,245 (track 1, three humans); 422 on track 6 (§8) | nothing: every race's frames are resident (D20, revised) | |
 | Zero page | `&5A`-`&7B` free (used to `&59`) | the loader's pointers, borrowed | |
 | The disc | play disc 67,840 bytes (MEASURED, `build/play.ssd`) | 8 tracks' files, the car sets, ~10 screens, the tunes: PROJECTED 150-200K | D22 |
 
@@ -140,17 +139,16 @@ D3 and D7 decided the mechanism; what's left is what goes in each file, and the 
   boxes, the objects' variants and their tables, the track's constants, each part ZX02-packed (Baron's
   transform, as `docs/colours.md` measured), unpacked in place into its bank. PROJECTED 6-9K a track packed:
   2.6K of background, the rest at an assumed 2:1.
-- **The cars' frames** (D20): (a) one file per combination of humans (the 7 non-empty subsets of cars 0-2,
-  plus the demo's four own colours: 8 files of up to ~10.6K raw), or (b) a file per car colour and one for
-  the drone-driven set, their frame tables rebuilt at the load. (a) is the generator as it is, run 8 times;
-  (b) costs code and the page padding the plotter's frames need (659 bytes, `docs/renderer.md`).
+- **The cars' frames** (D20, revised 2026-11-04): first proposed as a file per combination of humans. Building it
+  found every real race needs only cars 0-2's own sets and the drone-driven set, one 10,275-byte block: all
+  resident, no files. The demo alone needs car 3's own set, one small file (step 6).
 - **The screens**: each picture packed in its own file, loaded into the background's bank with its code.
 - **Timing**: not measured; a DFS reads a few K a second on a real Master (to be measured on Tom's), so a
   race's two files (track, cars) at ~15K packed are a few seconds. D7 blanks the display to the HUD row for a
   load so the file can land in the screen; showing a picture during it (the ST's "prepare to race" waits 8 s)
   would need the file to land in the screen not shown, which the OS's ACCCON handling has to allow: measured
   in step 3 (`beeb-measure-fact`), and until then a load shows "LOADING" in the HUD row.
-- **The DFS's 31-file catalogue**: 8 tracks + 8 car sets + ~10 screens + tunes + the resident files is near
+- **The DFS's 31-file catalogue**: 8 tracks + ~10 screens + tunes + the resident files is near
   it already, so screens and tunes share files where they're shown together.
 
 ## 5. Where these figures could be wrong
@@ -158,7 +156,7 @@ D3 and D7 decided the mechanism; what's left is what goes in each file, and the 
 - The per-track file sizes assume 2:1 packing for the logic's data and the priority cells; nothing but the
   background has been packed.
 - The tightest banks per track are the objects' (2,491 free on track 5) and the cars' (422 on track 6), with
-  every object and three humans (§8); D20's demo set (all four cars' own frames) is the cars' bank's risk.
+  every object and three humans (§8); the demo's set is the same size as a race's (10,275, MEASURED).
 - The front end's code size isn't counted at all: the ST's front-end functions lie between `F_0172EA` and
   `F_01BF34` (19,530 bytes of 68000, COUNTED) with other code among them, much of it text drawing. If the
   fourth bank's 4K and the background's bank between races aren't enough, the front end is an overlay of
@@ -171,7 +169,7 @@ D3 and D7 decided the mechanism; what's left is what goes in each file, and the 
 |---|---|---|---|
 | D18 | The front-end screens' colours | (a) each screen its own 4 of the BBC's 8 colours, dithered, converted as Phase 2 did the tracks, with option sheets and a viewer disc; (b) the race's palette for all | **Decided (Tom, 2026-11-03): (a)** |
 | D19 | How exact the game around the race is | (a) D9 extended: the select dial, the joins, the bonuses, the elimination, the upgrades, the next track and race count, the demo race, all bit-exact with the ST, checked against Hatari traces of the sequence; the screens' layouts checked by eye against the ST's pictures; (b) the rules by the spec, not traced | **Decided (Tom, 2026-11-03): (a)** |
-| D20 | The cars' frames per race | (a) a file per combination of humans (8); (b) a file per colour, the tables built at the load | **Decided (Tom, 2026-11-03): (a)**, unless the disc doesn't fit (D22) |
+| D20 | The cars' frames per race | (a) a file per combination of humans (8); (b) a file per colour, the tables built at the load | Decided (Tom, 2026-11-03): (a); **revised 2026-11-04: neither, all four sets resident** (`docs/decisions.md`) |
 | D21 | (withdrawn) | The play build already makes every object a track can draw (§2) | |
 | D22 | The disc | (a) one 80-track single-sided DFS disc (200K, 31 files), copied as it is to MMFS, ADFS or Econet; (b) double-sided, the second side as drive 2; (c) ADFS only | **Decided (Tom, 2026-11-03): (a)**, measured at step 3 |
 | D23 | High scores and lap records | (a) saved to `SSPRINT.HSC`-style file as the ST does after each game, a failed save (write-protected disc, Econet without rights) said in the HUD row and ignored; (b) kept for the session only | **Decided (Tom, 2026-11-03): (a)** |
@@ -217,8 +215,7 @@ touches the build.
      the slot; the generators make every track's data so they know the largest. Proved by
      `tools/track_slots.py`: the eight tracks' play builds differ in no byte outside the slots (it fails
      the suite otherwise), and every check as before.
-     **Built 2026-11-03.** Slots: the background (16,000), the cars' frames (`CarsSlot`, by who's human)
-     and the track's priority cells and tables (`PrioSlot`, last in the cars' bank, up to 3,947), the
+     **Built 2026-11-03.** Slots: the background (16,000), the track's priority cells and tables (`PrioSlot`, last in the cars' bank, up to 3,947), the
      objects' tables (964, padded to 48 variants and 48 entries) and moving objects' tables (927) and their
      bytes (`ObjSlot`, last in its bank, page-aligned, up to 7,390), the fourth bank's slots' backgrounds
      (640), keys (188) and attribute map (1,199, with the track's gates, number and banner's place), mask B
@@ -234,11 +231,10 @@ touches the build.
      every race 17 traced at 9,000 VBLs, track 1's (1,852 frames) ends inside the run and the game's next
      race (track 3's) ran longer, so the re-traced track 1 file was track 3's race. It keeps the first race
      now. (The tracers' file times had moved, so make re-traced every race in Hatari.)
-     Open for D20: `CarsSlot` padded to the largest set of frames, so `PrioSlot` starts at one place
-     whoever's human; the wall probes' sets (`lgen/pshift`'s `PSet`) depend on who's human too.
+     (`CarsSlot`, then, by who's human, went with D20's revision: the frames are the same in every build.)
    - **3b, the files**: each track's slots as one disc file, its parts ZX02-packed by a disc builder (the
      kit's `make_disc.py` and `dfs.py`), and the car sets' (D20) likewise.
-     **Built 2026-11-03** (the car sets not yet: one set, three humans, stays resident): `make game`,
+     **Built 2026-11-03** (no car files: D20, revised): `make game`,
      `tools/make_game.py` on `tools/all_tracks.sh`'s eight builds, the kit's ZX02 built from its source
      (`build/zx02`), its `dfs.py` used in place. MEASURED: TRACK1-TRACK8 6,380 to 7,519 bytes (29,905 to
      35,577 unpacked); the disc 14 files of 31, 500 sectors of 800 (128,000 bytes).
@@ -275,8 +271,17 @@ touches the build.
      `tools/load_check.mjs` boots the game disc, loads each track in the ST's order and compares every slot
      with that track's build, both screens' Shared too, then runs 300 frames of its race. MEASURED: all 8
      load right; in jsbeeb's 1770 DFS the first load 87 fields, the others 162-186 (3-4 s). Seen: track 7 racing
-     after its load (`docs/img/jsbeeb-game-t6-loaded.png`). Not yet: ADFS, MMFS, Econet (step 11), a disc
-     error's retry, a real Master.
+     after its load (`docs/img/jsbeeb-game-t6-loaded.png`). Not yet: ADFS, MMFS, Econet (step 11).
+   - **3e, the rest (2026-11-04).** D20 revised (above): every logic build now has the game's four sets, so
+     `tools/tracks_check.sh` tests the frames a race uses, and the wall probes' shapes go by each car's drone flag
+     (`PSet`, 128 bytes): they'd been fixed from the trace, wrong for players 2 and 3 on 2-5 facings each. Not
+     checked against the ST with more than one human: step 5's traces will. Escape off (OSBYTE 229). `Loading` in
+     the HUD's row during a load; a disc error shows the OS's own message and ` - press a key`, and the load goes
+     again on a key (`load_check`: a file that isn't there, then the name put right). The font: OSWORD 10 was
+     tried and returned 8 zero lines (the VDU's workspace is in ANDY, the game's, D15; D7 said no VDU calls). Tom:
+     the MOS's font is at `&B900` in ROM 15 from ASCII 32, documented for the Master's MOS (the Master 128 and
+     Compact), so `row_char` pages it in for each character, interrupts off. It would serve the front end's text
+     too (step 8), if the screens want it. The retry no longer releases the NMIs a second time.
 4. **The race count's hazards on every track**: races traced with the barriers (every third race) and
    without, the tornado (after race 3) and without, on each track, through the one disc's loads. (D21's
    question withdrawn: the objects are already complete per track.)

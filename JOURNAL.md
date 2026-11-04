@@ -456,3 +456,9 @@
   game's DDRB `&0F` cut off the CMOS chip, so the filing system read its seek time as `&FF`. The game leaves
   DDRB at the OS's `&CF` now, which MOS 3.20 writes only at reset. Seen working on Tom's Master, 2026-11-04: the
   first race, then the second loaded.
+- **The rest of step 3** (2026-11-04): D20 revised with Tom: every real race needs only cars 0-2's own sets and the
+  drone-driven set, so all four stay resident and there are no combination files (a wrong premise of mine, found
+  building it). That found a real fault: the wall probes' shapes were fixed from the trace, wrong for players 2 and 3.
+  Escape off; `Loading` and the OS's error text in the HUD's row, in the MOS's font at `&B900` in ROM 15 (Tom).
+  **Mistake**: OSWORD 10 for that font first, against D7's "no VDU calls": the VDU's workspace is in ANDY, which is
+  the game's, and it returned zeros.

@@ -12,8 +12,8 @@
 INCLUDE "../build/gen/cars.6502"
 INCLUDE "../build/gen/prio.6502"
 
-\\ The code first, at the same place whoever's human and whatever the track; then the cars' frames and their
-\\ tables (CarsSlot: by who's human, D20), then the track's priority cells and theirs (PrioSlot), last
+\\ The code first; then the cars' frames and their tables, the same for every race and every mix of humans
+\\ (D20); then the track's priority cells and theirs (PrioSlot), last
 
 
 \\ The fast loop's five column blocks, column 4 first: each draws a line of one column, its operands
@@ -369,7 +369,6 @@ WsHi = 14
 \\ Each car's data table, by the car | drone-driven << 2 (tools/gendata.py)
 
 CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
-.CarsSlot                               ; the cars' part (Phase 5, 3a; by who's human, D20)
 .CarTables
     EQUB CarTablePages[GenCarTable]
 
@@ -393,7 +392,6 @@ CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
 .CarData
     INCBIN "../build/gen/cars.bin"
     ASSERT LO(CarData) == 0, "the frames: from a page's start"
-.CarsSlotEnd
 .PrioSlot                               ; the track's part (Phase 5, 3a)
 
 \\ The priority map's rows, and each row's cells' data and classes (less one cell: a cell's number in its

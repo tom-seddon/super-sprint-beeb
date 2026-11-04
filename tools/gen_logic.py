@@ -139,7 +139,7 @@ def tables():
 MaskBMax = max(len(m) + len(c) for _, m, c in (maskb.encode(t) for t in range(8)))   # every track's mask B
 
 
-def walls(track, drones):
+def walls(track):
     hdr, maps, cells = maskb.encode(track)
     rows = [hdr[r * 8:r * 8 + 8] for r in range(25)]
     lo = [h[0] for h in rows]
@@ -172,7 +172,7 @@ def walls(track, drones):
             if probe_set(sprite, d) not in sets:
                 sets.append(probe_set(sprite, d))
     assert len(sets) * 8 <= 256, 'the shifted probes indexed by set * 8 + shift'
-    pset = [sets.index(probe_set(car + 4 * drones[car], d)) * 8 for car in range(4) for d in range(16)]
+    pset = [sets.index(probe_set(car + 4 * drone, d)) * 8 for car in range(4) for drone in (0, 1) for d in range(16)]
     shifted = [(t >> s, b >> s, l << s, r << s) for t, b, l, r in sets for s in range(8)]
     assert all(l < 1 << 24 and r < 1 << 24 for t, b, l, r in shifted), 'the shifted lines in 3 bytes'
     rowlist = lambda v: '{' + ', '.join(map(str, v)) + '}'
@@ -207,7 +207,7 @@ def walls(track, drones):
         '']), '\n'.join([
         '\\\\ pshift.6502 - the cars\' wall probes\' shapes, shifted (tools/gen_logic.py): read only by walls.6502, in its bank',
         '',
-        *eq('PSet', 'by car * 16 + facing: its probes\' set (of %d, every sprite set\'s) * 8' % len(sets), pset),
+        *eq('PSet', 'by (car * 2 + drone-driven) * 16 + facing: its probes\' set (of %d, every sprite set\'s) * 8' % len(sets), pset),
         f'\\\\ by set * 8 + x AND 7: the top line\'s opaque columns (bit 7 of PTop0 column 0) shifted right by x AND 7,',
         *eq('PTop0', '0-7,', [t >> 16 & 255 for t, b, l, r in shifted]),
         *eq('PTop1', '8-15,', [t >> 8 & 255 for t, b, l, r in shifted]),
@@ -337,7 +337,7 @@ def main(trace_path, out):
     drone = [m[str(0x1E34C + 2 * c)] << 8 | m[str(0x1E34C + 2 * c + 1)] for c in range(4)]
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, 'tables.6502'), 'w').write(tables())
-    wtext, ptext, stext = walls(t['track'], drone)
+    wtext, ptext, stext = walls(t['track'])
     open(os.path.join(out, 'walls.6502'), 'w').write(wtext)
     open(os.path.join(out, 'probes.6502'), 'w').write(ptext)
     open(os.path.join(out, 'pshift.6502'), 'w').write(stext)

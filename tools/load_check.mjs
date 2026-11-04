@@ -9,12 +9,15 @@
 // DDRB &CF, as MOS 3.20 sets it once at reset: PB6 and PB7 drive the CMOS chip, where the filing system reads
 // its seek time (at &0F, seen on Tom's Master, the disc stepped at the wrong rate).
 //
-// Exit status: 1 if any slot's byte differs, a load never finishes or the fields run slow, else 0.
+// Then a disc error (a file that isn't there): the message, a key, the load again.
+//
+// Exit status: 1 if any slot's byte differs, a load never finishes, the fields run slow or a disc error isn't
+// survived, else 0.
 //
 // Usage (from the repo root, after make game): node tools/load_check.mjs [TRACKS]   (indexes, default all 8,
 // in the ST's order from track 1's: 2 6 5 1 4 7 3 0)
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { andy, bootDisc, cycles, ram, runTo, settle, symbols } from "./jsbeeb.mjs";
 
 const syms = symbols("build/tracks/t0.json");
@@ -62,5 +65,23 @@ for (const n of order) {
         bad++;
     }
 }
+
+// A disc error: a file that isn't there (TRACK9). The OS's message in the HUD's row, a wait for a key, and with
+// the name put right the load again. Any byte lit in the row says something was written; a screenshot says what.
+s.writeMemory(syms.LoadWant, [9]);
+await runTo(s, syms["load_track.waitkey"], 400000000);
+const lit = ram(s, syms.HudAddr ?? 0x3f00, 640).reduce((n, b) => n + (b ? 1 : 0), 0);
+console.log(`a disc error: ${lit} bytes lit in the HUD's row, waiting for a key`);
+if (lit < 100) bad++;
+if (process.env.ROW_SHOT) writeFileSync(process.env.ROW_SHOT, ram(s, 0x3f00, 640));
+s.writeMemory(syms.LoadName + 5, ["3".charCodeAt(0)]);
+s.keyDown("Space");
+await s.runFor(400000);
+s.keyUp("Space");
+await runTo(s, syms.start, 400000000);
+const retried = want[2].every((slot) => slot.section !== "BgBank" || Buffer.from(slot.bytes, "hex").equals(Buffer.from(s.readMemory(slot.address, slot.bytes.length / 2, { bank: banks[0] }))));
+console.log(`the load tried again: ${retried ? "track 3 as its build" : "WRONG"}`);
+if (!retried) bad++;
+for (let f = 0; f < 50; f++) await runTo(s, syms["frame_loop.frame_end"], 4000000);
 console.log(bad ? `${bad} of ${order.length} tracks wrong` : `all ${order.length} tracks load right`);
 process.exit(bad ? 1 : 0);

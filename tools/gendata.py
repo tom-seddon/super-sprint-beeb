@@ -548,8 +548,8 @@ def main(track, tracepath, out, logic=False, play=False):
                                                    for c, r in zip(slots[0::2], slots[1::2])))
     frames = load_race(tracepath)
     sets = car_sets(frames)
-    if play:                            # three players on the keys, car 3 the drone: every set
-        sets = [(0, False), (1, False), (2, False), (None, True)]
+    if logic:                           # the game's sets (D20): cars 0-2's own and the drone-driven, which
+        sets = [(0, False), (1, False), (2, False), (None, True)]   # serve every mix of humans
 
     data, fs, fr = cars(dat, sets)
     open(f'{out}/cars.bin', 'wb').write(data)

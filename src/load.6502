@@ -48,6 +48,10 @@ SECTION LowFree                         ; &0900-&0AFF, kept across loads (D26)
     SKIP 7
 .LoadBlock                              ; OSFILE's block
     SKIP 18
+.LoadCol                                ; the HUD row's next character, while the OS has the machine
+    SKIP 1
+.LoadIndex                              ; a message's next character
+    SKIP 1
 ENDSECTION
 
 SECTION GameVars

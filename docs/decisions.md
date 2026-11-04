@@ -324,6 +324,13 @@ Tom chose (a) ("Bit-exact, traced").
 Proposed: (a) a file per combination of human cars (the 7 non-empty subsets of cars 0-2 and the demo's four
 own colours: 8), the generator as it is; (b) a file per colour, the frame tables built at the load.
 Tom chose (a) ("File per combination"), (b) only if the disc doesn't fit (D22).
+Revised, Tom, 2026-11-04 (found building it: a real race only ever draws cars 0-2's own sets and the drone-driven
+set, car 3 always being a drone, and those four are one 10,275-byte block): **all four resident, no files per
+combination**. Any mix of humans picks its sets by each car's drone flag; the wall probes' shapes likewise (they'd
+been fixed from the trace, wrong for players 2 and 3 on 2-5 facings each). It costs no bank room, since the slot had
+to hold the largest anyway, and saves about 5.8K a load, about 40K of disc and 7 catalogue entries. Only the demo
+differs: car 3 in its own colours, which aren't the drone-driven set through `DataBlack` (12 of 16 facings differ),
+so one small file at step 6.
 
 ### D21. Withdrawn (2026-11-03)
 Proposed as "every object variant a track can draw"; the play build already makes them from the track's

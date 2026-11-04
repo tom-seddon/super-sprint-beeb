@@ -39,6 +39,12 @@ a gap or a workaround looks like it isn't only this project's.
 - `docs/hardware-facts.md` calls `&0A00` the printer buffer. Tom, from the Master Reference Manual: `&0900`-`&0AFF`
   are the tape and serial buffers (D26). To check against the manual before saying the kit's wrong.
 
+### OSWORD 10 after ANDY is overwritten
+- **Found** (2026-11-04): with the game's data in ANDY, OSWORD 10 returned 8 zero lines for every character: MOS
+  3.20's VDU reads a font workspace there. The kit's ANDY notes (`docs/hardware-facts.md`) list which pages the MOS
+  writes; this is the reading side, and a port that owns ANDY and returns to the OS might want the warning. Which
+  page it reads wasn't traced: to check before raising.
+
 ### Smaller
 - A self-patching copy loop that doesn't reset its operands works until it's run a second time (`shared_copy` and
   `load_go` here, 3c). Perhaps a line in `docs/gotchas.md`, if a port's loader is ever re-run.

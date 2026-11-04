@@ -8,8 +8,7 @@ track's slots as its build has them, for tools/load_check.mjs.
 
 A track's file: a byte, the parts' count; 6 bytes a part (where: 0-3 the bank, as bankbg on, | &80 ANDY, or
 &40 Shared; its address, low and high; its stream's offset in the file, low and high; 0); then the streams.
-The cars' frames (CarsSlot) aren't in it: they depend on who's human, not the track (D20). Each stream is
-round-tripped through the kit's zx02.py before it's written, and the file must fit below the load's code.
+Each stream is round-tripped through the kit's zx02.py before it's written, and the file must fit below the load's code.
 """
 import hashlib, json, os, sys
 
@@ -21,7 +20,6 @@ import dfs                                      # the kit's .ssd reader and writ
 FileAddr = 0x4200                               # load.6502's TrackFileAddr
 CodeOrg = 0x7C00                                # and LoadCodeOrg: a file must end below it
 Where = {'BgBank': 0, 'CarsBank': 1, 'TraceBank': 2, 'ObjBank': 3, 'Andy': 0x80 | 2, 'Shared': 0x40}
-Skip = {'CarsSlot'}                             # (by who's human: D20)
 
 
 def slots(d, n):
@@ -30,7 +28,7 @@ def slots(d, n):
     _, at = T.listing(f'{d}/t{n}.lst')
     out = []
     for name, (sec, a) in sorted(at.items(), key=lambda kv: kv[1][1]):
-        if not name.endswith('Slot') or name + 'End' not in at or name in Skip:
+        if not name.endswith('Slot') or name + 'End' not in at:
             continue
         e = at[name + 'End'][1]
         if sec in ('BgBank', 'CarsBank', 'TraceBank', 'ObjBank'):

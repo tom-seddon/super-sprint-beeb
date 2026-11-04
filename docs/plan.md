@@ -264,7 +264,7 @@ adds the logic.
 | D17 | The flip | Decided (Tom, 2026-11-03): in the blank after the display, by System VIA T1 and T2; seen on a real Master |
 | D18 | Front-end colours | Decided (Tom, 2026-11-03): each screen its own 4 colours, from option sheets |
 | D19 | The game around the race | Decided (Tom, 2026-11-03): bit-exact, traced against Hatari |
-| D20 | Cars' frames per race | Decided (Tom, 2026-11-03): a file per combination of humans |
+| D20 | Cars' frames per race | Decided (Tom, 2026-11-04, revised): all four sets resident for every race; one small file for the demo |
 | D22 | The disc | Decided (Tom, 2026-11-03): one 80-track single-sided DFS disc |
 | D23 | High scores | Decided (Tom, 2026-11-03): saved to disc, a failed save shown and ignored; lower priority, dropped if the catalogue or room runs short |
 | D24 | The ST's keys | Decided (Tom, 2026-11-03): f1, f5, f8, f0 (for F10), f9, Escape from the matrix |
