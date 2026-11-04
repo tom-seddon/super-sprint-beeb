@@ -807,6 +807,9 @@ celebration, so a press waits in its byte until then. It takes the other branch 
 random number fewer), but in the one race traced with it the winner's circle took 1,042 VBLs against 1,043 without.
 What it shortens hasn't been read. The circle draws 17 or 18 random numbers, so it moves the next race's seed.
 
+**Silence**: `F_00C592` calls `F_013284` on channels 0-2 three times: at the win, as the race ends 170 frames later
+(`&D166`), and on F10.
+
 **What's never reset between races** (found by a game's second race, `docs/brief-phase5.md` step 6): the coasting phase
 `G_01D178`, which changes the handling, and the sparks' timers. A race on a track with no gates leaves the last
 track's gate variables, unread. `G_01E324`'s car 3 keeps its wrenches from race to race and game to game: the select

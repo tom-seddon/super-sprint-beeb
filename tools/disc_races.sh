@@ -26,6 +26,8 @@ for j in 0 1 2 3 4 5 6 7 8 9 10; do
 done
 node tools/disc_races.mjs --races hprobe --tracks 0 > "$OUT/probe.log" 2>&1 || fail=1
 grep -a '^track .*loaded' "$OUT/probe.log"
+node tools/disc_races.mjs --races h012 --tracks 0 --noscreen --silence > "$OUT/silence.log" 2>&1 || fail=1   # (a race the fault showed in)
+grep -a 'after the end' "$OUT/silence.log"
 node tools/disc_races.mjs --probes > "$OUT/probes.log" 2>&1 || fail=1
 grep -a '^control\|^car \|^all \| entries not' "$OUT/probes.log"
 exit $fail

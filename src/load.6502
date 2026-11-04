@@ -105,6 +105,9 @@ ENDSECTION
 {
     LDX #&FF:TXS
     STZ LoadWant
+    SEI                                 ; every channel silent: F_00C592 does this as a race ends and on F10, as
+    JSR sound_init                      ; a bounce after the win falls back to the engine, which nothing moves now
+    CLI
     LDA &FE34:AND #&30:STA acccon       ; ACCCON: the main screen shown and written
     STA &FE34
     LDA #8:STA &FE00                    ; CRTC: R8

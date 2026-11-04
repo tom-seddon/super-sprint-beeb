@@ -106,7 +106,6 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     JSR clear_state
     CLI
     IF GenPlay
-        JSR sound_init
         JMP game_go                     ; the attract mode (game.6502)
     ELSE
         JMP start

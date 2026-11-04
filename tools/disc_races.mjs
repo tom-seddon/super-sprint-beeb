@@ -20,6 +20,8 @@
 //   tools/game_traces.sh's demo at that race counter (no model: state only).
 //   Each race on each track, unless --rotate J: the tracks once, in turn, the races taken in turn from the
 //   Jth on, so one race's hazards are followed by another's (J from 0 to the races' count less 1 covers them all).
+//   --silence: the first race only, and the chip quiet after its end (the ST silences it there: a bounce or a
+//   crash after the win falls back to the engine, which nothing then moves).
 //   --probes: do the races reach what the wall probes got wrong before 2026-11-04? Each PSet entry a car's human and
 //   drone-driven shapes differ in, for cars 0-2, put back as it was (cars 1 and 2 human with the drone-driven shape,
 //   car 0 drone-driven with its own), and the races run until the state differs. Exit status 1 if any entry
@@ -138,6 +140,14 @@ async function race(track, kind, stopAtWrong = false) {
     }
 
     if (stopAtWrong) return check.firstWrong;
+
+    // --silence: a real race's end, a human at speed to the finish: a few fields on, and the chip must be quiet
+    if (args.includes("--silence")) {
+        await s.runFor(8 * 39936);
+        const volumes = [0, 1, 2, 3].map((c) => s._soundChip.volume[c]);
+        console.log(`${label}after the end, the chip's volumes ${volumes.map((v) => v.toFixed(3)).join(" ")}`);
+        process.exit(volumes.some((v) => v !== 0) ? 1 : 0);
+    }
 
     // the race's end, as it left it for the next
     const rcOver = andy(s, syms.RcOver, 1)[0];

@@ -103,6 +103,15 @@ async function play(name) {
         }
     }
 
+    // After a race nothing's to be heard yet (the tunes are step 9's): the ST silences its channels at a race's end
+    // and on F10. The chip itself is read, each channel's volume.
+    const chip = s._soundChip;
+    async function silent(where) {
+        if (where === "over") await s.runFor(4 * 39936);    // (F10's are the moment before; no reads to miss here)
+        const loud = [0, 1, 2, 3].filter((c) => chip.volume[c] !== 0);
+        if (loud.length) say(`${where}: channels ${loud.join(", ")} still sounding`);
+    }
+
     // the race's result, as the ST's pokes
     function result(entries) {
         for (const [a, ...b] of entries) {
@@ -184,6 +193,7 @@ async function play(name) {
             (stop !== "race" || abandons(raceSteps[ri]) ? only : gates ? wholly : noGates).compare(pi);   // (F10 leaves mid-frame)
             extras(p, pi);
             console.log(`${name}: ${stop}: frames ${word(syms.LfFrame)}, ${read} reads`);
+            if (stop === "circle" || stop === "over") await silent(stop);
             if (stop === "race") ri++;
             pi++;
             if (stop === "over") break;

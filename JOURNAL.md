@@ -496,3 +496,8 @@
   255, so a demo's car 3 plotted from set 15 and overwrote `plot_car`'s first opcode, which ran as `BRK`. The
   second races found what no race trace could: the ST never resets the coasting phase or the sparks' timers. Left:
   car 3's own colours in the demo.
+- **Found on Tom's Master** (2026-11-04): the sound went on after a race's end. The ST silences its channels again as a
+  race really ends (`&D166`) and on F10, not only at the win; a bounce after the win falls back to the engine, which
+  nothing moves once the race has stopped. **Mistake, mine**: I'd copied only the win's, and no oracle listened after
+  a race. Measured on the chip (2 of 3 races left at 0.013), now silenced in `game_go`, and `disc_races.mjs --silence`
+  and `game_check` read the chip after a race.
