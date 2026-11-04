@@ -451,7 +451,8 @@ touches the build.
 8. **The screens converted** (D18): option sheets and a viewer disc for Tom; then drawn by the game, with the
    wipe. **One screen at a time** (Tom, 2026-11-04): after each, a testing stage, Tom checking it by eye and reporting
    back, before the next. Ten screens: title, high scores, lap records, credits, select, prepare, winner's circle,
-   upgrades, initials, options.
+   upgrades, initials, options. The credits are lower priority (Tom, 2026-11-04): if space looks tight the screen can go,
+   its text moving to a README on the disc.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
 10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.
