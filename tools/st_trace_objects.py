@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import st_trace_logic as L
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-D = os.path.join(ROOT, 'build', 'trace')
+D = L.D
 RaceEntryStack = 0x21780                # a7 at F_00C592's entry in this run (deterministic): the track at +4
 Routines = {0x1519C: 'car', 0x149B4: 'slot', 0x14A04: 'gate', 0x14A80: 'barrier', 0x147A0: 'tornado', 0x148BE: 'small',
             0x14B1C: 'spark', 0x146DA: 'heli', 0x152E0: 'explosion', 0x1440E: 'heli2', 0x144AA: 'heli3'}
@@ -45,9 +45,9 @@ def record(track, race, vbls, force=(), script=None):
             return f'b pc = $BC76 :quiet :file {D}/f_{f}.ini\n'
         return f'b pc = ${Force[f][0]:X} :once :file {D}/f_{f}.ini\n'
     ini = {'o0.ini': f'b VBL = 2000 :once :file {D}/o1.ini\nb pc = $C592 :once :file {D}/o2.ini\n',
-           'o1.ini': 'w $1F200 0 0\nw $1DFFE 3\nc\n',
+           'o1.ini': L.join(script),
            'o2.ini': (f'w ${RaceEntryStack + 4:X} 0 {track}\nw $1EBC2 0 {race}\n'
-                      + (''.join(f'w ${a:X} 0\n' for a in L.Keys.values()) + arm(0) if script else '')
+                      + (L.release(script) + arm(0) if script else '')
                       + f'b pc = $14D9C :quiet :file {D}/oflip.ini\n'
                       + ''.join(f'b pc = ${a:X} :quiet :file {D}/o_{n}.ini\n' for a, n in Routines.items())
                       + (setbp(force[0]) if force else '')
@@ -64,8 +64,7 @@ def record(track, race, vbls, force=(), script=None):
         a, reg, v = Force[f]
         ini[f'f_{f}.ini'] = f'r {reg}={v}\n{then}c\n'
     for k, (frame, keys) in enumerate(script or []):
-        ini[f'oev{k}.ini'] = (''.join(f'w ${a:X} {3 if c in keys else 0}\n' for c, a in L.Keys.items())
-                              + arm(k + 1) + 'c\n')
+        ini[f'oev{k}.ini'] = L.press(keys) + arm(k + 1) + 'c\n'
     for name, text in ini.items():
         open(os.path.join(D, name), 'w').write(text)
     log = os.path.join(D, f'hatari_obj_t{track}_r{race}{"_" + "_".join(force) if force else ""}{"_script" if script else ""}.log')

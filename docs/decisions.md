@@ -327,7 +327,7 @@ Tom chose (a) ("File per combination"), (b) only if the disc doesn't fit (D22).
 Revised, Tom, 2026-11-04 (found building it: a real race only ever draws cars 0-2's own sets and the drone-driven
 set, car 3 always being a drone, and those four are one 10,275-byte block): **all four resident, no files per
 combination**. Any mix of humans picks its sets by each car's drone flag; the wall probes' shapes likewise (they'd
-been fixed from the trace, wrong for players 2 and 3 on 2-5 facings each). It costs no bank room, since the slot had
+been fixed from the trace, wrong by one pixel of player 2's car at facing 6, the line 3 column 4 that the drone-driven frame hasn't; not, as first written here, players 2 and 3 on 2-5 facings). It costs no bank room, since the slot had
 to hold the largest anyway, and saves about 5.8K a load, about 40K of disc and 7 catalogue entries. Only the demo
 differs: car 3 in its own colours, which aren't the drone-driven set through `DataBlack` (12 of 16 facings differ),
 so one small file at step 6.

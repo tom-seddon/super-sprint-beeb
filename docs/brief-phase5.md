@@ -274,7 +274,7 @@ touches the build.
      after its load (`docs/img/jsbeeb-game-t6-loaded.png`). Not yet: ADFS, MMFS, Econet (step 11).
    - **3e, the rest (2026-11-04).** D20 revised (above): every logic build now has the game's four sets, so
      `tools/tracks_check.sh` tests the frames a race uses, and the wall probes' shapes go by each car's drone flag
-     (`PSet`, 128 bytes): they'd been fixed from the trace, wrong for players 2 and 3 on 2-5 facings each. Not
+     (`PSet`, 128 bytes): they'd been fixed from the trace, wrong by one pixel of player 2's car at facing 6, the line 3 column 4 that the drone-driven frame hasn't; not, as first written here, players 2 and 3 on 2-5 facings. Not
      checked against the ST with more than one human: step 5's traces will. Escape off (OSBYTE 229). `Loading` in
      the HUD's row during a load; a disc error shows the OS's own message and ` - press a key`, and the load goes
      again on a key (`load_check`: a file that isn't there, then the name put right). The font: OSWORD 10 was
@@ -316,6 +316,32 @@ touches the build.
    - Also found: the object tracer stopped at 7,000 VBLs, so track 8's race 17 had only 3,935 of its 4,599
      frames, and `make check TRACE=h7` had never seen its end; and `st_race.py` kept the longest run, as the logic
      tracer had. Both fixed (14,000 VBLs, the first run over 100 frames).
+   - **With two and three humans** (Tom's question, 2026-11-04: can the traces test them?). The tracers take keys by
+     car (cars 1 and 2 by the joysticks' bytes, `G_01DFCC`'s devices; fire held in the attract mode joins a car).
+     `tools/steer_script.py` drives at random, and `tools/human_traces.sh` traces four races a track: cars 0-2 on
+     race 17, 1-2 on race 2 (car 0 a drone), 0-1 on race 4, 0 and 2 on race 1. With those, 72 races on the disc,
+     249,274 frames, 123,093 of them with two or three humans.
+   - **That found a bug the other 40 races couldn't**, in Phase 4's `cells.6502`: `.ramp` took the cell's type from
+     A, which the dispatch had just overwritten with the handler's high byte, so a ramp `&20` (facing 0-7, sequence
+     8) was treated as a `&10` and never launched a car. Seen on track 2, race 4, cars 0 and 1, frame 2407, as car 1
+     stayed on the ground at facing 3. No other race had started a sequence 8 jump, or it would have differed too.
+     Fixed for no bytes: the type is kept before the dispatch.
+   - **The old probe fault needed placing, not driving.** The fault's one pixel (line 3, column 4 at facing 6) decides
+     a wall only at 10-31 of a track's 40,000-odd places. Put back, it changed nothing in any of the 32 driven races,
+     though a control (facing 14's shape at facing 6) is caught at once, so that was a true miss. So
+     `tools/logic_scripts/probe_t0.json` puts cars at such places, the same on both machines at the same flip: 6
+     for car 1, one held for 30 frames for the drone in car 0. The ST bounces car 1 off the first at frame 301,
+     which shows the pixel counts, and the BBC follows exactly, 2,113 frames. With the faults back,
+     `disc_races.mjs --probes` sees car 1's at frame 301 and car 0's at 807. State only: there's no object trace.
+   - Fields repeated with humans: the worst is track 5's race 17 with cars 0-2, 93 fields in 2,246 frames (4.1%),
+     then track 3's, 95 in 2,759 (3.4%), against 2% for the worst race with one human. Not looked into; three
+     humans at random aren't how people drive, so it wants measuring in the three-player playtest.
+   - Two traces stopped at the tracer's limit with the race unfinished: track 6's cars 0-2 and track 8's cars 0-1,
+     about 11,000 frames each. On the ST every drone left in those races stays wrecked (state 2) to the end, the
+     helicopter coming and going, and the humans never finish; why the drones aren't picked up wasn't looked into.
+     The BBC matches every frame, and a trace where no car has 4 laps has no end to check. **Mistake, mine**:
+     `disc_races.sh` passed its path through BSD `xargs -I`, which cuts an argument at 255 bytes, so a long `OUT`
+     failed before any race ran.
 5. **The sequence tracer**: Hatari traces of a whole game (select, two or three races, joins, an elimination,
    upgrades bought, a game over), the state between races at each screen. The demo race traced on each track.
 6. **The game's rules** on the BBC, one screen's logic at a time, each checked against step 5's traces, with

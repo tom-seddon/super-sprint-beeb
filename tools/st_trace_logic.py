@@ -2,13 +2,18 @@
 
 Usage: st_trace_logic.py TRACK RACE SCRIPT OUT.json [FORCE]   (`make logictrace`; TRACK 0-7; RACE the race counter
 G_01EBC2; SCRIPT a JSON list of [when, keys]: from the flip at which `when` comes true, the blue car's keyboard
-holds `keys`, any of "L" (A), "R" (D) and "A" (left shift), until the next entry's `when`. `when` is a frame
+holds `keys`, any of "L" (A), "R" (D) and "A" (left shift), until the next entry's `when`; or `keys` by car,
+{"1": "LA", "2": "R"}: the cars the first entry names join the game (car 0 by the keyboard, 1 and 2 by the
+joysticks' bytes), the rest are drones. `when` is a frame
 counter G_01D30E (a number), or a comparison of car 0's pixel x, pixel y or facing with a number, "x<60",
-"y>150", "f=8": an autopilot, each entry's breakpoint armed by the one before. SCRIPT "-": accelerate held from
+"y>150", "f=8": an autopilot, each entry's breakpoint armed by the one before. An entry's third item, if any,
+[[car, x, y, facing], ...]: those cars put there, stopped, at that flip (the logic's only: not for
+tools/st_trace_objects.py; tools/disc_races.mjs does the same to the BBC). SCRIPT "-": accelerate held from
 the attract mode on, as tools/st_trace_objects.py drives a race without one, so the two record the same race.
 FORCE: "tornado", "cones" or both, joined by commas: their coin flips forced, as st_trace_objects.py's)
 
-A one-player game is started from the attract mode as st_trace_objects.py does (the blue car on the keyboard),
+A game is started from the attract mode as st_trace_objects.py does (the blue car on the keyboard, the others
+as the script says),
 the real race F_00C592's track and race counter poked at its entry. Logged:
 - at each flip (&14D9C): the frame counter, the coasting phase G_01D178, every per-car variable
   (G_01E2A0-G_01E437), the scores G_01DFA8, the pickups' state G_01EB54-G_01EB6F, the sparks G_01E070-
@@ -50,9 +55,47 @@ def boxes(track):
         out += [(MaskB + off // 4 + 40 * r, w) for r in range(h)]
     return out
 Keys = {'L': 0x1DFF2, 'R': 0x1DFF4, 'A': 0x1DFFE}
+Joy = {1: 0x1DFD2, 2: 0x1DFD3}          # cars 1 and 2: joystick 0 and 1's bytes (G_01DFCC's devices 2 and 3)
+
+
+def humans(script):
+    """The cars a script drives: its first entry's, if its keys are by car; else car 0."""
+    return sorted(map(int, script[0][1])) if script and isinstance(script[0][1], dict) else [0]
+
+
+def press(keys):
+    """An entry's keys as Hatari's writes: a string, car 0's; or by car, {"0": "LA", "2": "R"}."""
+    out = ''
+    for car, k in ({'0': keys} if isinstance(keys, str) else keys).items():
+        if car == '0':
+            out += ''.join(f'w ${a:X} {3 if c in k else 0}\n' for c, a in Keys.items())
+        else:
+            out += f'w ${Joy[int(car)]:X} {4 * ("L" in k) + 8 * ("R" in k) + 128 * ("A" in k)}\n'
+    return out
+
+
+def join(script):
+    """The attract mode's pokes: the copy protection off, and fire held by each car that's to join."""
+    who = humans(script)
+    return ('w $1F200 0 0\n' + ('w $1DFFE 3\n' if 0 in who else '')
+            + ''.join(f'w ${Joy[c]:X} 128\n' for c in who if c) + 'c\n')
+
+
+def release(script):
+    """At the race's entry: every key the script drives up."""
+    return press({str(c): '' for c in humans(script)}) if script else ''
 
 
 Car0 = {'x': 0x1E42C, 'y': 0x1E424, 'f': 0x1E41C}
+
+
+def place(cars):
+    """An entry's third item as Hatari's writes: each [car, x, y, facing], stopped there."""
+    out = ''
+    for c, x, y, f in cars:
+        for a, v in ((0x1E42C, x), (0x1E424, y), (0x1E3FC, x * 8), (0x1E3F4, y * 8), (0x1E41C, f), (0x1E414, f), (0x1E404, 0)):
+            out += f'w ${a + 2 * c:X} {v >> 8} {v & 255}\n'
+    return out
 
 
 def condition(when):
@@ -72,9 +115,9 @@ def record(track, race, script, vbls, force=()):
     force = sorted(force, key=('tornado', 'cones').index)
     setbp = lambda f: f'b pc = ${O.Force[f][0]:X} :once :file {D}/lf_{f}.ini\n'
     ini = {'l0.ini': f'b VBL = 2000 :once :file {D}/l1.ini\nb pc = $C592 :once :file {D}/l2.ini\n',
-           'l1.ini': 'w $1F200 0 0\nw $1DFFE 3\nc\n',
+           'l1.ini': join(script),
            'l2.ini': (f'w ${RaceEntryStack + 4:X} 0 {track}\nw $1EBC2 0 {race}\n'
-                      + (''.join(f'w ${a:X} 0\n' for a in Keys.values()) if script else '')
+                      + release(script)
                       + (setbp(force[0]) if force else '')
                       + f'b pc = ${FlipPc:X} :quiet :file {D}/lflip.ini\n'
                       f'b pc = ${InputPc:X} :quiet :file {D}/linput.ini\n'
@@ -83,9 +126,8 @@ def record(track, race, script, vbls, force=()):
            'lflip.ini': ''.join(f'm ${a:X} {n}\n' for a, n in Dumps + boxes(track)) + 'c\n',
            'linput.ini': 'r\nm a6 10\nc\n',
            'lrandom.ini': 'r\nm a6 10\nc\n'}
-    for k, (frame, keys) in enumerate(script):
-        ini[f'lev{k}.ini'] = (''.join(f'w ${a:X} {3 if c in keys else 0}\n' for c, a in Keys.items())
-                              + arm(k + 1) + 'c\n')
+    for k, entry in enumerate(script):
+        ini[f'lev{k}.ini'] = press(entry[1]) + (place(entry[2]) if len(entry) > 2 else '') + arm(k + 1) + 'c\n'
     for f, after in zip(force, force[1:] + [None]):
         a, reg, v = O.Force[f]
         ini[f'lf_{f}.ini'] = f'r {reg}={v}\n{setbp(after) if after else ""}c\n'

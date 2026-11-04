@@ -458,7 +458,7 @@
   first race, then the second loaded.
 - **The rest of step 3** (2026-11-04): D20 revised with Tom: every real race needs only cars 0-2's own sets and the
   drone-driven set, so all four stay resident and there are no combination files (a wrong premise of mine, found
-  building it). That found a real fault: the wall probes' shapes were fixed from the trace, wrong for players 2 and 3.
+  building it). That found a real fault: the wall probes' shapes were fixed from the trace, wrong by one pixel of player 2's car at facing 6 (first written up, wrongly, as players 2 and 3 on 2-5 facings).
   Escape off; `Loading` and the OS's error text in the HUD's row, in the MOS's font at `&B900` in ROM 15 (Tom).
   **Mistake**: OSWORD 10 for that font first, against D7's "no VDU calls": the VDU's workspace is in ANDY, which is
   the game's, and it returned zeros.
@@ -470,3 +470,12 @@
   value; checked before the oracle was doubted or trusted. **Mistake, Phase 4's**: the object tracer's 7,000 VBLs
   cut track 8's race 17 short, and `st_race.py` kept the longest run; both fixed. Worst timing: track 5's race
   50, 34 repeated fields in 1,689 frames.
+- **Two and three humans** (2026-11-04, Tom's question): the tracers drive cars 1 and 2 by the joysticks' bytes, and
+  32 randomly driven races join the disc's check: 72 races, 249,274 frames. **Mistake, Phase 4's, found by them**:
+  `.ramp` in `cells.6502` read its type from A after the dispatch had overwritten it, so a `&20` ramp never launched
+  a car; no race had taken one until random driving did, on track 2. Fixed for no bytes. The old probe fault stayed
+  out of reach of all 32 (one pixel, 10-31 places a track), which a control showed to be a true miss, so a short
+  race puts cars at those places on both machines: the ST bounces off them, the BBC matches, and both faults put
+  back are caught. **Mistake, mine**: I'd told Tom that fault was on players 2 and 3 at 2-5 facings; measured, it's
+  one pixel of player 2's car at facing 6. **Mistake, mine**: `disc_races.sh` through BSD `xargs -I`, which cuts an
+  argument at 255 bytes. Worst timing is now three humans, track 5's race 17: 93 fields in 2,246 frames (4.1%).

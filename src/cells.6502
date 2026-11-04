@@ -162,6 +162,7 @@ ENDSECTION
 
 .class0_
     CMP #10:BCS none0                   ; types 10 on: nothing
+    STA t                               ; (the type, for ramp)
     ASL A:TAY
     LDA Class0Jmp,Y:STA vec
     LDA Class0Jmp+1,Y:STA vec+1
@@ -205,8 +206,7 @@ class0s = {none0, up, ground, land, ramp, flag1000, nudge, flag2000, ramp, long}
     RTS
 
 .ramp                                   ; &10 (facing 8-15, sequence 0), &20 (facing 0-7, sequence 8): a jump
-    STA t                               ; if elevated, a landing if airborne
-    JSR unland
+    JSR unland                          ; if elevated, a landing if airborne
     LDA RcLatchHi,X:AND #4:BNE no
     LDA RcBitsHi,X:AND #4:BNE landed
     LDA RcBitsLo,X:AND #1:BEQ no

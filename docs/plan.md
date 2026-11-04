@@ -233,8 +233,8 @@ adds the logic.
 - The brief: `docs/brief-phase5.md` (every decision taken: D18-D20 and D22-D26 decided, D21 withdrawn).
 - Done so far: room (main RAM 682 free, `&0900`-`&0AFF` the game's, D26); one build for every track and the loads
   through the OS, `make game` (`build/game.ssd`), each track's file loaded right in jsbeeb, a load seen on Tom's
-  Master (2026-11-04); the race count real, and 40 traced races (every track, each mix of hazards) exact on the
-  disc itself, state and screen (`tools/disc_races.sh`). Next: step 5.
+  Master (2026-11-04); the race count real, and 72 traced races (every track, each mix of hazards, one to three
+  humans) exact on the disc itself, state and screen (`tools/disc_races.sh`). Next: step 5.
 - All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
   disc, and the loads through the OS (D3, D7), tested on DFS, MMFS, ADFS and Econet.
 
