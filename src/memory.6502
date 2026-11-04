@@ -81,6 +81,11 @@ ENDSECTION
 SECTION LowFree, org = LowFreeOrg, guard = LowFreeEnd, virtual = TRUE
 ENDSECTION
 
+GameOrg = &9000                         ; game.6502, in the background's bank between races: above ANDY
+GameScratchOrg = &B800                  ; and its variables
+SECTION GameScratch, org = GameScratchOrg, guard = &C000, virtual = TRUE
+ENDSECTION
+
 ScreenVarsOrg = &3000                   ; (SPRINT's loader is here until it jumps to start)
 SharedOrg = &3070                       ; the read-only data in both screens' &3000 area (Shared: sprint.6502)
 SECTION ScreenVars, org = ScreenVarsOrg, guard = SharedOrg, virtual = TRUE

@@ -17,6 +17,9 @@ KeyN = 85
 KeyComma = 102
 KeyPeriod = 103
 KeySlash = 104
+KeyEscape = 112
+KeyF0 = 32
+KeyF5 = 116
 
 \\ Whether a key is held.
 \\

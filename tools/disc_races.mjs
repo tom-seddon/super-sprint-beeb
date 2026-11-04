@@ -1,14 +1,14 @@
 // The race count's hazards through the game's own disc (Phase 5, step 4): build/game.ssd booted, and each traced
 // race (tools/st_trace_logic.py) played on it in turn, every track's reached through its load. A race's
-// counter, the generator's state and the drones are put where the last race would have left them (GmRace,
-// GmSeed, GmDrone), its scores and sparks as the trace's (LfScores, LfSparks), and the track loaded. The trace's
+// counter, the generator's state, the drones, the wrenches and the scores are put where the last race would have
+// left them (GmRace, GmSeed, GmDrone, GmWrench, GmScore), its sparks as the trace's (GmSparks), and the track loaded. The trace's
 // forced coins are forced as the tracer forced them, in the A register after the draw; the human's inputs are
 // written over the keys' each frame. Then every frame:
 // - the logic's whole state against the ST's (tools/logic_compare.mjs, as tools/logic_check.mjs);
 // - the screen drawn against the model (tools/render_model.py, from the ST's own draw calls; a race with no model
 //   file has only its state checked).
-// At a race's end: the race over on the trace's last frame, the counter on one (at most 50), the generator
-// kept, and the next track the ST's. (A trace where no car has its 4 laps stopped at the tracer's limit, a
+// At a race's end: the race over on the trace's last frame, and the game's rules next (what they do with it:
+// tools/game_check.mjs). (A trace where no car has its 4 laps stopped at the tracer's limit, a
 // race the ST hadn't finished: its frames are checked, and it has no end to check.)
 //
 // Exit status: 1 if any frame of any race differs, a race ends at the wrong frame, or anything stops, else 0.
@@ -41,11 +41,10 @@ const screens = !args.includes("--noscreen") && !probes;
 const syms0 = symbols("build/tracks/t0.json");
 const s = await bootDisc("build/game.ssd");
 const cpu = s._machine.processor;
-await runTo(s, syms0["frame_loop.frame_end"], 80000000);    // (the disc copies its banks first)
+await runTo(s, syms0["game_resume.idle"], 80000000);        // (the disc copies its banks first; the attract mode)
 const banktrace = ram(s, 2, 1)[0];
 const peek = (a) => s.readMemory(a, 1)[0];
 const word = (a) => peek(a) | (peek(a + 1) << 8);
-const NextTrack = [2, 4, 6, 0, 7, 1, 5, 3];                 // G_01D138 (+ 1 in the game's NextTrack1)
 
 // one race on the disc, a line said about it -> 1 if it's wrong
 async function race(track, kind, stopAtWrong = false) {
@@ -66,16 +65,15 @@ async function race(track, kind, stopAtWrong = false) {
     s.writeMemory(syms.GmDrone, [0, 1, 2, 3].map((c) => m[0x1e34c + 2 * c + 1]));
     // (the scores and sparks are Shared's, in both screens: the trace's, as a test build has them)
     const scores = Array.from({ length: 24 }, (_, i) => m[0x1dfa8 + i]);
+    s.writeMemory(syms.GmScore, scores);
+    s.writeMemory(syms.GmWrench, [0, 1, 2, 3].map((c) => m[0x1e324 + 2 * c + 1]));
     const sparks = [];                  // (LfSparks's order: each array's low bytes, then its high bytes if it has them)
     const bytes = (a, st, hi) => Array.from({ length: 8 }, (_, i) => m[a + st * i + (hi ? 0 : 1)]);
     for (const [a, st, words] of [[0x1e070, 2, true], [0x1e080, 2, false], [0x1e090, 2, false], [0x1e0a0, 4, true], [0x1e0a2, 4, true]]) {
         sparks.push(...bytes(a, st, false));
         if (words) sparks.push(...bytes(a, st, true));
     }
-    for (const shadow of [false, true]) {
-        ram(s, syms.LfScores, 24, shadow).set(scores);
-        ram(s, syms.LfSparks, 64, shadow).set(sparks);
-    }
+    s.writeMemory(syms.GmSparks, sparks);
     s.writeMemory(syms.LoadWant, [track + 1]);
     const t0 = cycles(s);
     await runTo(s, syms.start, 400000000);
@@ -141,13 +139,9 @@ async function race(track, kind, stopAtWrong = false) {
     const rcOver = andy(s, syms.RcOver, 1)[0];
     const ended = [0, 1, 2, 3].some((c) => frames[last].mem[0x1e354 + 2 * c + 1] === 4);
     if (!problem && ended) {
-        const want = NextTrack[track] + 1, race1 = Math.min(number + 1, 50), sd = check.seeds[last];
-        const got = s.readMemory(syms.GmSeed, 4), gseed = (got[0] | (got[1] << 8) | (got[2] << 16) | (got[3] << 24)) >>> 0;
         const left = [];
         if (!rcOver) left.push("the race not over");
-        if (peek(syms.LoadWant) !== want) left.push(`next track ${peek(syms.LoadWant)}, not ${want}`);
-        if (peek(syms.GmRace) !== race1) left.push(`race counter ${peek(syms.GmRace)}, not ${race1}`);
-        if (gseed !== sd) left.push(`the generator &${gseed.toString(16)}, not &${sd.toString(16)}`);
+        if (peek(syms.LoadWant) !== 0xff) left.push(`LoadWant ${peek(syms.LoadWant)}, not the game's`);
         if (left.length) problem = left.join(", ");
     }
     const reps = ((word(syms.Repeats) - repeats0) & 0xffff) - 50;    // (less the start's 50-field pause)

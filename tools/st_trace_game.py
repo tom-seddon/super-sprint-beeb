@@ -18,7 +18,9 @@ Logged, in order, as "events":
   changed is the difference between two of these;
 - {"kind": "race", "vbl", "track"}: the race's entry, and its track;
 - {"kind": "step", "index", "vbl"}: a script step taken;
-- {"kind": "random", "vbl", "n", "value"}: each number F_00ADB8 draws.
+- {"kind": "random", "vbl", "n", "value"}: each number F_00ADB8 draws;
+- {"kind": "input", "from", "device", "value"}: each read of a player's input (F_010CF2): where it was called from, the
+  device (0 the keyboard, 2 and 3 the joysticks) and what it gave. tools/game_check.mjs replays these read by read.
 Hatari's breakpoints fire markers: `m` of an address that says which, as the "CPU=" headers can't be trusted.
 """
 import json, os, re, subprocess, sys
@@ -33,7 +35,8 @@ Region = (0x1C722, 0x1F400 - 0x1C722)   # the data and BSS
 Points = {0x141B0: 'start', 0x141D0: 'select', 0x141E8: 'prepare', 0x141F6: 'race', 0x14210: 'circle', 0x1421E: 'upgrades',
           0x1422C: 'prepare again', 0x14232: 'restored', 0x14282: 'over', 0x17A42: 'initials'}
 RacePc = 0xC592
-PointMark, RaceMark, RandomMark, StepMark = 0x700, 0x6F0, 0x6F1, 0x600
+InputEnd = 0x10DA8                      # F_010CF2's rts: d0 the input
+PointMark, RaceMark, RandomMark, InputMark, StepMark = 0x700, 0x6F0, 0x6F1, 0x6F2, 0x600
 
 
 def poke(entries):
@@ -53,9 +56,11 @@ def record(steps, vbls):
     ini = {'g0.ini': ''.join(f'b pc = ${a:X} :quiet :file {f(f"gp{i}.ini")}\n' for i, a in enumerate(Points))
            + f'b pc = ${RacePc:X} :quiet :file {f("grace.ini")}\n'
            + f'b pc = ${L.RandomPc:X} :quiet :file {f("grandom.ini")}\n'
+           + f'b pc = ${InputEnd:X} :quiet :file {f("ginput.ini")}\n'
            + trigger(steps[0]['when'], f('gs0.ini')),
            'grace.ini': f'm ${RaceMark:X} 1\n{stamp}m a7 8\nc\n',
-           'grandom.ini': f'm ${RandomMark:X} 1\n{stamp}r\nm a6 10\nc\n'}
+           'grandom.ini': f'm ${RandomMark:X} 1\n{stamp}r\nm a6 10\nc\n',
+           'ginput.ini': f'm ${InputMark:X} 1\nr\nm a7 6\nc\n'}
     for i in range(len(Points)):
         ini[f'gp{i}.ini'] = f'm ${PointMark + i:X} 1\n{stamp}m ${Region[0]:X} {Region[1]}\nc\n'
     for k, s in enumerate(steps):
@@ -79,6 +84,7 @@ def parse(log):
         if 'mem' in cur:
             cur['mem'] = bytes(cur['mem']).hex()
         cur.pop('a6', None)
+        cur.pop('a7', None)
         events.append(cur)
     for line in open(log, errors='replace'):
         r = re.search(r'\bD0 ([0-9A-F]{8})', line)
@@ -87,6 +93,9 @@ def parse(log):
         r = re.search(r'\bA6 ([0-9A-F]{8})', line)
         if r and cur and cur['kind'] == 'random':
             cur['a6'] = int(r.group(1), 16)
+        r = re.search(r'\bA7 ([0-9A-F]{8})', line)
+        if r and cur and cur['kind'] == 'input':
+            cur['a7'], cur['value'] = int(r.group(1), 16), d0 & 0xFF
         m = re.match(r'^([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', line)
         if not m:
             continue
@@ -98,6 +107,8 @@ def parse(log):
             mark = {'kind': 'race'}
         elif a == RandomMark:
             mark = {'kind': 'random'}
+        elif a == InputMark:
+            mark = {'kind': 'input'}
         elif StepMark <= a < StepMark + 0xF0:
             mark = {'kind': 'step', 'index': a - StepMark}
         if mark:
@@ -113,6 +124,8 @@ def parse(log):
             cur['track'] = bs[4] << 8 | bs[5]
         elif cur['kind'] == 'random' and a == cur.get('a6'):
             cur['n'], cur['value'] = bs[8] << 8 | bs[9], d0
+        elif cur['kind'] == 'input' and a == cur.get('a7'):
+            cur['from'], cur['device'] = int.from_bytes(bytes(bs[:4]), 'big'), bs[4] << 8 | bs[5]
     close()
     return events
 

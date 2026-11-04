@@ -1,0 +1,1050 @@
+\\ game.6502 - the game around the race (Phase 5, step 6; D19): the ST's F_0141B0 and its screens, bit-exact in what
+\\ they do to the game's state, each reading the players as often and in the same order as the ST does, so
+\\ tools/game_check.mjs can give the traced reads to it one by one. The pictures are step 8's: until then each
+\\ screen says what it is in text.
+\\
+\\ Kept as an image in the fourth bank's first 4K, as the load's code is, and copied by game_go to GameOrg in the
+\\ background's bank when a race ends (every load rewrites that bank, so nothing's lost and no disc's needed), above
+\\ ANDY, so the race's state stays in reach: it's worked on where the logic left it, until a race is wanted, when
+\\ save_game keeps what outlives it in LowFree. Nothing here survives a load but the image: the lap records and high
+\\ scores are in Shared (GameScratch is the bank's too).
+
+SECTION GameScratch
+.GsPlace                                ; each car's place, 0-3
+    SKIP 4
+.GsOrder                                ; the cars by place
+    SKIP 4
+.GsKey0                                 ; each car's position, laps * 100000 + check * 10000 + stripes, 24 bits
+    SKIP 4
+.GsKey1
+    SKIP 4
+.GsKey2
+    SKIP 4
+.GsPlacePtsLo                           ; bonuses left to count up: the place's,
+    SKIP 4
+.GsPlacePtsHi
+    SKIP 4
+.GsBestLo                               ; the best lap's,
+    SKIP 4
+.GsBestHi
+    SKIP 4
+.GsAvgLo                                ; the average lap's
+    SKIP 4
+.GsAvgHi
+    SKIP 4
+.GsSaved                                ; G_01DF52: the scores as the circle ended, for the drones' to come back
+    SKIP 24
+.GsWasDrone                             ; G_01DF6A: who was a drone then
+    SKIP 4
+.GsAnim                                 ; prepare to race: a car's panel still moving,
+    SKIP 3
+.GsStage                                ; its stage,
+    SKIP 3
+.GsStep                                 ; its step in it (signed),
+    SKIP 3
+.GsTick                                 ; and passes to the next step
+    SKIP 3
+.GsWho                                  ; the car that started the game
+    SKIP 1
+.GsDial                                 ; a dial's position
+    SKIP 1
+.GsMove                                 ; its move (&FF, 0 or 1)
+    SKIP 1
+.GsKey                                  ; the input read
+    SKIP 1
+.GsCount                                ; a screen's countdown
+    SKIP 1
+.GsLast                                 ; the dial's position >> 2, as last said
+    SKIP 1
+.GsCar                                  ; the car being looked at
+    SKIP 1
+.GsAny                                  ; something happened this pass
+    SKIP 1
+.GsT                                    ; scratch: a 16-bit value and another
+    SKIP 2
+.GsU
+    SKIP 2
+.GsN
+    SKIP 1
+.GsJ                                    ; join_prepare's car
+    SKIP 1
+.GsFields                               ; fields' count
+    SKIP 1
+ENDSECTION
+
+.LapPts0                                ; laps * 100000, three bytes
+    EQUB 0, &A0, &40, &E0, &80
+.LapPts1
+    EQUB 0, &86, &0D, &93, &1A
+.LapPts2
+    EQUB 0, &01, &03, &04, &06
+.CheckPts0                              ; checkpoint * 10000
+    EQUB 0, &10, &20, &30, &40, &50
+.CheckPts1
+    EQUB 0, &27, &4E, &75, &9C, &C3
+ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
+.NextTrack                              ; G_01D138: the track after each
+    EQUB 2, 4, 6, 0, 7, 1, 5, 3
+.UpgradeOrder                           ; G_01D03C: the dial's quarter's upgrade: 1 top speed, 3 score, 2 turbo,
+    EQUB 1, 3, 2, 0                     ; 0 traction
+.Tens                                   ; G_01DF8A: 10 (the race's Ten is in a bank that isn't paged in here)
+    EQUB &80, &80, &80, &80, 1, 0
+.Seven50                                ; G_01D036: 750, "increase score" four times
+    EQUB &80, &80, &80, 7, 5, 0
+
+\\ From the frame loop (game_go): the race just ended, or the game's first arrival. The stack is empty, the
+\\ main screen shown and written, this bank and ANDY paged in.
+
+.game_resume
+{
+    LDA GmStage:BEQ attract
+    LDA GmAbandon:BNE attract           ; F10: straight back (the ST's F_0141B0, with no save)
+    JSR circle
+.after_circle
+    JSR upgrades
+.after_upgrades
+    JSR prepare
+.after_prepare
+    JSR restore_scores
+.restored
+    LDX GmTrack:LDA NextTrack,X:STA GmTrack
+    INC GmRace
+    LDA GmRace:CMP #51:BCC @+           ; (at most 50; -1, a signed word on the ST, is back to 0 here)
+    LDA #50:STA GmRace
+.@
+    LDA RcDrone:AND RcDrone+1:AND RcDrone+2
+    BNE over
+    JMP race
+.over                                   ; every player a drone: the game's over (F_010760's save: step 10)
+    JSR save_game
+.attract
+    STZ GmStage
+    STZ GmAbandon
+    JSR say_clear
+    LDA #LO(TextAttract):LDX #HI(TextAttract):LDY #12:JSR say
+.idle
+    LDA LoadWant:BEQ @+                 ; (a test's race: tools/disc_races.mjs, load_check.mjs)
+    JMP load_go
+.@
+    LDX #0                              ; F_0140F0: any player's fire starts a game with that car
+.fire
+    JSR game_read                       ; (X kept)
+    BMI game
+    INX
+    CPX #3:BNE fire
+    LDA #1:JSR fields
+    BRA idle
+.game
+    STX GsWho
+    JSR load_game
+    JSR select
+.selected
+    STZ GmRace
+    LDA #1:STA GmStage
+    JSR prepare
+.prepared
+    STZ GmAbandon
+.race
+    JSR save_game
+    LDX GmTrack:INX:STX LoadWant
+    JMP load_go
+}
+
+\\ What outlives a race, for logic_start to give back to the next (the ST's are never cleared).
+
+.save_game
+{
+    LDX #3
+.car
+    LDA RcDrone,X:STA GmDrone,X
+    LDA RcWrench,X:STA GmWrench,X
+    LDA RcTurbo,X:STA GmTurbo,X
+    LDA RcTopUp,X:STA GmTopUp,X
+    LDA RcTraction,X:STA GmTraction,X
+    LDA RcSeed,X:STA GmSeed,X
+    DEX
+    BPL car
+    LDX #23
+.score
+    LDA RcScore,X:STA GmScore,X
+    DEX
+    BPL score
+    LDA RcPhase:STA GmPhase
+    LDX #63
+.sparks
+    LDA RcSparkTimerLo,X:STA GmSparks,X
+    DEX
+    BPL sparks
+    RTS
+}
+
+\\ And back, for a game: the race's variables are where the rules work, and a load or a boot leaves them as they were
+\\ at logic_start, or not set at all.
+
+.load_game
+{
+    LDX #3
+.car
+    LDA GmDrone,X:STA RcDrone,X
+    LDA GmWrench,X:STA RcWrench,X
+    LDA GmTurbo,X:STA RcTurbo,X
+    LDA GmTopUp,X:STA RcTopUp,X
+    LDA GmTraction,X:STA RcTraction,X
+    LDA GmSeed,X:STA RcSeed,X
+    DEX
+    BPL car
+    LDX #23
+.score
+    LDA GmScore,X:STA RcScore,X
+    DEX
+    BPL score
+    LDA GmPhase:STA RcPhase
+    LDX #63
+.sparks
+    LDA GmSparks,X:STA RcSparkTimerLo,X
+    DEX
+    BPL sparks
+    RTS
+}
+
+\\ F_016750: a car's score blank (5 blanks and a 0).
+\\ Inputs: X: the car. Outputs: A, Y corrupted; X preserved.
+
+.blank_score
+{
+    TXA:ASL A:STA GsN:ASL A:ADC GsN:TAY ; (C clear: car * 6)
+    LDA #&80
+    FOR i = 0..4
+        STA RcScore+i,Y
+    NEXT
+    LDA #0:STA RcScore+5,Y
+    RTS
+}
+
+\\ A car's upgrades gone. Inputs: X: the car. Outputs: A corrupted; X preserved.
+
+.clear_upgrades
+{
+    STZ RcTurbo,X
+    STZ RcTopUp,X
+    STZ RcTraction,X
+    STZ GmScoreUp,X
+    RTS
+}
+
+\\ The select screen, F_0198B6: the dial, its time, the other players joining.
+\\
+\\ Inputs: GsWho. Outputs: every car a drone but those playing, no scores or upgrades, wrenches by the dial, GmTrack.
+
+.select
+{
+    LDX #3
+.car
+    LDA #1:STA RcDrone,X
+    JSR blank_score
+    JSR clear_upgrades
+    DEX
+    BPL car
+    LDX GsWho:STZ RcDrone,X
+    STZ GsDial:STZ GsMove:STZ GsLast
+    JSR say_clear
+    LDA #LO(TextSelect):LDX #HI(TextSelect):LDY #12:JSR say
+    LDA #167:STA GsCount                ; 499 down by 3 a pass, while above 0
+.pass
+    LDX GsWho:JSR game_read:STA GsKey
+    BIT #4:BEQ notleft
+    LDA #&FF:STA GsMove
+    BRA moved
+.notleft
+    BIT #8:BEQ moved
+    LDA #1:STA GsMove
+.moved
+    LDA GsDial:CLC:ADC GsMove:AND #15:STA GsDial
+    AND #1:BNE @+
+    STZ GsMove
+.@
+    LDA #2:JSR fields
+    LDA GsDial:LSR A:LSR A:CMP GsLast:BEQ same
+    STA GsLast                          ; (its new wording takes the third field's place)
+    BRA said
+.same
+    LDA #1:JSR fields
+.said
+    LDA GsKey:BPL nofire
+    LDA #1:STA GsCount
+.nofire
+    JSR join_select
+    DEC GsCount
+    BNE pass
+    LDA GsDial:LSR A:LSR A
+    LDX #2
+.wrench
+    STA RcWrench,X
+    DEX
+    BPL wrench
+    LDA GsDial:LSR A:STA GmTrack
+.done
+    RTS
+}
+
+\\ F_019F38: any drone among cars 0-2 pressing fire joins.
+
+.join_select
+{
+    LDX #0
+.car
+    STX GsCar
+    LDA RcDrone,X:BEQ next
+    JSR game_read
+    LDX GsCar
+    AND #&80:BEQ next
+    STZ RcDrone,X
+.next
+    LDX GsCar
+    INX
+    CPX #3:BNE car
+    RTS
+}
+
+\\ Prepare to race, F_018776: each car's panel, 400 down by 4 a pass of 4 fields; anyone may join until it's over;
+\\ it ends early once all three are playing and it's below 251, or on Escape, but never with a panel moving.
+\\ Then F_017A42.
+
+.prepare
+{
+    JSR say_clear
+    LDA #LO(TextPrepare):LDX #HI(TextPrepare):LDY #12:JSR say
+    LDX #2
+.init
+    LDA RcDrone,X:EOR #1:STA GsAnim,X
+    STZ GsStep,X
+    STZ GsStage,X
+    LDA #2:STA GsTick,X
+    DEX
+    BPL init
+    LDA #100:STA GsCount                ; (the ST's count / 4)
+    BRA test
+.pass
+    LDX #0
+.car
+    STX GsCar
+    LDA #1:JSR fields
+    LDX GsCar
+    LDA GsAnim,X:BEQ moved
+    DEC GsTick,X:BNE moved
+    LDA #2:STA GsTick,X
+    LDA GsStage,X:BNE stage1
+    LDA GsStep,X:INC GsStep,X           ; (the ST tests the step before it's moved on)
+    CMP #3:BNE moved
+    INC GsStage,X
+    STZ GsStep,X
+    BRA moved
+.stage1
+    CMP #1:BNE stage2
+    LDA GsStep,X:INC GsStep,X
+    CMP #4:BNE moved
+    INC GsStage,X
+    LDA #3:STA GsStep,X
+    BRA moved
+.stage2
+    LDA GsStep,X:DEC GsStep,X
+    CMP #0:BPL moved
+    STZ GsAnim,X
+.moved
+    LDA GsCount:BEQ nojoin
+    JSR join_prepare
+.nojoin
+    LDX GsCar
+    INX
+    CPX #3:BNE car
+    LDA #1:JSR fields
+    LDA GsCount:BEQ @+
+    DEC GsCount
+.@
+    JSR game_esc:BPL test
+    STZ GsCount
+.test
+    LDA GsAnim:ORA GsAnim+1:ORA GsAnim+2:BNE more
+    LDA GsCount:BEQ done
+    CMP #63:BCS more                    ; (the ST's count above 250)
+    LDA RcDrone:ORA RcDrone+1:ORA RcDrone+2:BNE more
+.done
+    JMP scores_kept
+.more
+    JMP pass
+}
+
+\\ F_018E20: any drone among cars 0-2 pressing accelerate joins, its score and upgrades gone (its wrenches are).
+
+.join_prepare
+{
+    LDX #0
+.car
+    STX GsJ
+    LDA RcDrone,X:BEQ next
+    JSR game_read
+    LDX GsJ
+    AND #&80:BEQ next
+    LDA #1:STA GsAnim,X
+    JSR blank_score
+    JSR clear_upgrades
+    STZ RcDrone,X
+.next
+    LDX GsJ
+    INX
+    CPX #3:BNE car
+    RTS
+}
+
+\\ F_017A42, but for the entries (step 10): a drone's score that isn't in the table is blanked, one that is stays.
+
+.scores_kept
+{
+    LDX #0
+.car
+    STX GsCar
+    LDA RcDrone,X:BEQ next
+    JSR score_sum:BEQ next              ; (no score: nothing to do)
+    JSR table_rank:BNE next             ; (in the table: its entry's step 10's)
+    LDX GsCar
+    JSR blank_score
+.next
+    LDX GsCar
+    INX
+    CPX #3:BNE car
+    LDA #101:JMP fields                 ; (a flip and 100 fields)
+}
+
+\\ F_018406: a car's digits added up. Inputs: X: the car. Outputs: A, Z. X preserved.
+
+.score_sum
+{
+    TXA:ASL A:STA GsN:ASL A:ADC GsN:TAY ; (C clear)
+    LDA #0
+    FOR i = 0..5
+        PHA
+        LDA RcScore+i,Y:AND #&7F
+        STA GsN
+        PLA
+        CLC:ADC GsN
+    NEXT
+    RTS
+}
+
+\\ F_017A42's search: the best place in the table the car's score beats, by F_018354's digits, entry 30 up to 1.
+\\ Inputs: GsCar. Outputs: A: the place, 0 if none; Z by it.
+
+.table_rank
+{
+    LDA GsCar:ASL A:STA GsN:ASL A:ADC GsN:STA GsT   ; (C clear: the score's offset)
+    LDA #30:STA GsU                     ; the entry
+    STZ GsU+1                           ; the best found
+    LDA #LO(HiScores + 30 * 6):STA row+1
+    LDA #HI(HiScores + 30 * 6):STA row+2
+.entry
+    LDX GsT
+    LDY #0
+.digit
+    LDA RcScore,X:AND #&7F
+.row
+    CMP HiScores,Y                      ; self-modified: the entry
+    BCC lower
+    BNE higher
+    INX
+    INY
+    CPY #6:BNE digit
+    BRA lower                           ; (the same: not beaten)
+.higher
+    LDA GsU:STA GsU+1
+.lower
+    LDA row+1:SEC:SBC #6:STA row+1
+    BCS @+
+    DEC row+2
+.@
+    DEC GsU
+    BNE entry
+    LDA GsU+1
+    RTS
+}
+
+\\ The winner's circle, F_01AC1C: the lap times, the order, the race counter if a drone won, the bonuses counted up, a
+\\ lap record, the celebration's random numbers and time, then the elimination.
+
+.circle
+{
+    JSR say_clear
+    LDA #LO(TextCircle):LDX #HI(TextCircle):LDY #12:JSR say
+
+    \\ each lap's end frame to its length
+
+    LDX #15
+.lap
+    TXA:AND #3:BEQ first
+    LDA RcLapTimeLo,X:SEC:SBC RcLapTimeLo-1,X:STA RcLapTimeLo,X
+    LDA RcLapTimeHi,X:SBC RcLapTimeHi-1,X:STA RcLapTimeHi,X
+.first
+    DEX
+    BPL lap
+
+    \\ the order: the position, a human ahead of a drone on a tie (F_01AC1C's bubble sort)
+
+    LDX #3
+.keys
+    TXA:STA GsOrder,X
+    LDY RcLaps,X
+    LDA LapPts0,Y:STA GsKey0,X
+    LDA LapPts1,Y:STA GsKey1,X
+    LDA LapPts2,Y:STA GsKey2,X
+    LDY RcCheck,X
+    CLC
+    LDA GsKey0,X:ADC CheckPts0,Y:STA GsKey0,X
+    LDA GsKey1,X:ADC CheckPts1,Y:STA GsKey1,X
+    LDA GsKey2,X:ADC #0:STA GsKey2,X
+    CLC
+    LDA GsKey0,X:ADC RcStripesLo,X:STA GsKey0,X
+    LDA GsKey1,X:ADC RcStripesHi,X:STA GsKey1,X
+    LDA GsKey2,X:ADC #0:STA GsKey2,X
+    DEX
+    BPL keys
+.again
+    STZ GsAny
+    LDY #0
+.pair
+    LDX GsOrder,Y                       ; a, then b
+    STX GsN
+    LDA GsOrder+1,Y:TAX
+    STX GsT
+    LDX GsN
+    LDA GsKey0,X
+    LDX GsT
+    CMP GsKey0,X
+    LDX GsN
+    LDA GsKey1,X
+    LDX GsT
+    SBC GsKey1,X
+    LDX GsN
+    LDA GsKey2,X
+    LDX GsT
+    SBC GsKey2,X
+    BCC swap                            ; a below b
+    LDX GsN
+    LDA GsKey0,X
+    LDX GsT
+    CMP GsKey0,X:BNE next
+    LDX GsN
+    LDA GsKey1,X
+    LDX GsT
+    CMP GsKey1,X:BNE next
+    LDX GsN
+    LDA GsKey2,X
+    LDX GsT
+    CMP GsKey2,X:BNE next
+    LDX GsN
+    LDA RcDrone,X:CMP #1:BNE next
+    LDX GsT
+    LDA RcDrone,X:BNE next
+.swap
+    LDA GsN:STA GsOrder+1,Y
+    LDA GsT:STA GsOrder,Y
+    LDA #1:STA GsAny
+.next
+    INY
+    CPY #3:BEQ sorted
+    JMP pair
+.sorted
+    LDA GsAny:BEQ inorder
+    JMP again
+.inorder
+
+    LDX GsOrder
+    LDA RcDrone,X:BEQ humanwon
+    DEC GmRace                          ; a drone won: the count stays
+.humanwon
+    LDX #3
+.places
+    LDA GsOrder,X:TAY
+    TXA:STA GsPlace,Y
+    DEX
+    BPL places
+
+    LDX #3
+.car
+    STX GsCar
+    JSR lap_bonus
+    LDX GsCar
+    DEX
+    BPL car
+
+    \\ the celebration's random numbers, which move the next race's seed: its kind unless F5, the tune, 16 sparkles
+
+    JSR game_f5:BMI nokind
+    LDA #16:JSR random
+.nokind
+    LDA #5:JSR random
+    LDA #16:STA GsN
+.spark
+    LDA #6:JSR random
+    DEC GsN
+    BNE spark
+
+    \\ the bonuses counted up, 10 at a time, a pass of 2 fields; then 200 fields of the celebration
+
+.count
+    STZ GsAny
+    LDX #3
+.each
+    STX GsCar
+    LDA GsPlacePtsLo,X:ORA GsPlacePtsHi,X:BEQ noplace
+    JSR ten_off
+.noplace
+    LDX GsCar
+    LDA GsBestLo,X:ORA GsBestHi,X:BEQ nobest
+    SEC:LDA GsBestLo,X:SBC #10:STA GsBestLo,X
+    BCS @+
+    DEC GsBestHi,X
+.@
+    JSR ten
+.nobest
+    LDX GsCar
+    LDA GsAvgLo,X:ORA GsAvgHi,X:BEQ noavg
+    SEC:LDA GsAvgLo,X:SBC #10:STA GsAvgLo,X
+    BCS @+
+    DEC GsAvgHi,X
+.@
+    JSR ten
+.noavg
+    LDX GsCar
+    DEX
+    BPL each
+    LDA #2:JSR fields
+    LDA GsAny:BEQ counted
+    JMP count
+.counted
+    LDA #200:JSR fields
+
+    \\ F_01BB0C: the scores kept, and the drones' blanked for the screens to come
+
+    LDX #23
+.save
+    LDA RcScore,X:STA GsSaved,X
+    DEX
+    BPL save
+    LDX #3
+.flag
+    LDA RcDrone,X:STA GsWasDrone,X
+    BEQ @+
+    JSR blank_score
+.@
+    DEX
+    BPL flag
+
+    \\ the elimination: from the first drone in the order, every car behind it a drone too
+
+    LDY #0
+.find
+    LDX GsOrder,Y
+    LDA RcDrone,X:BNE found
+    INY
+    CPY #3:BNE find
+    BRA eliminated
+.found
+    LDX GsOrder,Y
+    LDA #1:STA RcDrone,X
+    INY
+    CPY #4:BNE found
+.eliminated
+
+    \\ the drones among cars 0-2 lose their wrenches and upgrades
+
+    LDX #2
+.drone
+    LDA RcDrone,X:BEQ @+
+    STZ RcWrench,X
+    JSR clear_upgrades
+.@
+    DEX
+    BPL drone
+.done
+    RTS
+
+\\ the place's points: 10 fewer, and 10 added
+.ten_off
+    SEC:LDA GsPlacePtsLo,X:SBC #10:STA GsPlacePtsLo,X
+    BCS ten
+    DEC GsPlacePtsHi,X
+.ten
+    LDA #1:STA GsAny
+    LDX GsCar
+    LDA #LO(Tens):STA score_add.add
+    LDA #HI(Tens):STA score_add.add+1
+    JMP score_add
+}
+
+\\ A car's lap times to its bonuses, and a human's lap record.
+\\ Inputs: GsCar, GsPlace. Outputs: GsPlacePts, GsBest, GsAvg, LapRecord; RcLapTime if it has no laps.
+
+.lap_bonus
+{
+    LDX GsCar
+    LDA GsPlace,X
+    TAY
+    LDA PlacePtsLo,Y:STA GsPlacePtsLo,X
+    LDA PlacePtsHi,Y:STA GsPlacePtsHi,X
+    TXA:ASL A:ASL A:TAX                 ; the car's first lap
+    LDY GsCar
+    LDA RcLaps,Y:STA GsN
+    BNE some
+    LDA RcFrameLo:STA RcLapTimeLo,X     ; no laps: the race's time is its one lap
+    LDA RcFrameHi:STA RcLapTimeHi,X
+    INC GsN
+.some
+    LDA #LO(10000):STA GsT              ; the best,
+    LDA #HI(10000):STA GsT+1
+    STZ GsU:STZ GsU+1                   ; the sum
+    LDY GsN
+.lap
+    LDA RcLapTimeLo,X:CMP GsT           ; below the best, signed
+    LDA RcLapTimeHi,X:SBC GsT+1
+    BVC @+
+    EOR #&80
+.@
+    BPL notbest
+    LDA RcLapTimeLo,X:STA GsT
+    LDA RcLapTimeHi,X:STA GsT+1
+.notbest
+    CLC
+    LDA GsU:ADC RcLapTimeLo,X:STA GsU
+    LDA GsU+1:ADC RcLapTimeHi,X:STA GsU+1
+    INX
+    DEY
+    BNE lap
+
+    \\ the average: the sum, signed, by the laps
+
+    LDA GsU+1:PHP:BPL positive
+    SEC:LDA #0:SBC GsU:STA GsU
+    LDA #0:SBC GsU+1:STA GsU+1
+.positive
+    LDA GsN:JSR div16
+    PLP:BPL @+
+    SEC:LDA #0:SBC GsU:STA GsU
+    LDA #0:SBC GsU+1:STA GsU+1
+.@
+    LDX GsCar
+    LDA RcDrone,X:BNE norecord
+    LDA GmTrack:ASL A:TAY               ; (big-endian, as the file has them)
+    LDA GsT:CMP LapRecords+1,Y
+    LDA GsT+1:SBC LapRecords,Y
+    BVC @+
+    EOR #&80
+.@
+    BPL norecord
+    LDA acccon:ORA #AccX
+    JSR record                          ; in the shadow screen's copy of Shared,
+    LDA acccon                          ; and the main screen's
+    JSR record
+.norecord
+
+    \\ the par: (15 + the track) * 50; a bonus of what a lap's under it, rounded down to 10
+
+    STZ par:STZ par+1
+    LDA GmTrack:CLC:ADC #15:TAY
+.fifty
+    LDA par:CLC:ADC #50:STA par
+    BCC @+
+    INC par+1
+.@
+    DEY
+    BNE fifty
+    LDA GsU:LDX GsU+1:JSR under_par     ; the average's
+    LDX GsCar
+    LDA GsU:STA GsAvgLo,X
+    LDA GsU+1:STA GsAvgHi,X
+    LDA GsT:LDX GsT+1:JSR under_par     ; the best's
+    LDX GsCar
+    LDA GsU:STA GsBestLo,X
+    LDA GsU+1:STA GsBestHi,X
+    RTS
+
+.par
+    SKIP 2
+.lapf
+    SKIP 2
+
+    \\ A: ACCCON. The lap record written where that puts it.
+.record
+    STA &FE34
+    LDA GsT:STA LapRecords+1,Y
+    LDA GsT+1:STA LapRecords,Y
+    RTS
+
+    \\ A, X: a lap's frames, signed. Out: GsU: par less it, 0 if it's not under; less that MOD 10.
+.under_par
+    STA lapf:STX lapf+1
+    SEC
+    LDA par:SBC lapf:STA GsU
+    LDA par+1:SBC lapf+1:STA GsU+1
+    BVC @+
+    EOR #&80
+.@
+    BMI none                            ; par below the lap
+    LDA GsU:ORA GsU+1:BEQ none          ; (or the same)
+    LDA GsU:STA lapf
+    LDA GsU+1:STA lapf+1
+    LDA #10:JSR div16                   ; A: the remainder
+    STA GsN
+    SEC
+    LDA lapf:SBC GsN:STA GsU
+    LDA lapf+1:SBC #0:STA GsU+1
+    RTS
+.none
+    STZ GsU:STZ GsU+1
+    RTS
+}
+
+\\ GsU / A, unsigned. Outputs: GsU: the quotient; A: the remainder. X, Y preserved.
+
+.div16
+{
+    STA d
+    LDA #0
+    PHX
+    LDX #16
+.bit
+    ASL GsU:ROL GsU+1
+    ROL A
+    CMP d:BCC @+
+    SBC d
+    INC GsU
+.@
+    DEX
+    BNE bit
+    PLX
+    RTS
+.d
+    SKIP 1
+}
+
+.PlacePtsLo                             ; 1,000, 500, 250, 0
+    EQUB LO(1000), LO(500), LO(250), 0
+.PlacePtsHi
+    EQUB HI(1000), HI(500), HI(250), 0
+
+\\ The upgrades, F_01A0D6, F_01A130: each human with 4 wrenches or more picks one on a dial, or has what it's on when
+\\ the time's up (474 down by 3 a pass of 2 fields), for 4 wrenches.
+
+.upgrades
+{
+    LDX #0
+.car
+    STX GsCar
+    LDA RcWrench,X:CMP #4:BCC next
+    LDA RcDrone,X:BNE next
+    JSR upgrade
+.next
+    LDX GsCar
+    INX
+    CPX #3:BNE car
+    RTS
+}
+
+.upgrade
+{
+    JSR say_clear
+    LDA #LO(TextUpgrade):LDX #HI(TextUpgrade):LDY #12:JSR say
+    LDA #2:STA GsDial
+    STZ GsMove
+    LDA #158:STA GsCount
+.pass
+    LDX GsCar:JSR game_read:STA GsKey
+    BIT #4:BEQ notleft
+    LDA #&FF:STA GsMove
+    BRA moved
+.notleft
+    BIT #8:BEQ moved
+    LDA #1:STA GsMove
+.moved
+    LDA GsDial:CLC:ADC GsMove:AND #15:STA GsDial
+    AND #3:CMP #2:BNE @+
+    STZ GsMove
+.@
+    LDA #2:JSR fields
+    LDA GsKey:BPL nofire
+    LDA #1:STA GsCount
+.nofire
+    DEC GsCount
+    BNE pass
+    LDA GsDial:LSR A:LSR A:TAY
+    LDA UpgradeOrder,Y:STA GsN
+    LDX GsCar
+    CMP #0:BNE notraction
+    LDA RcTraction,X:CMP #5:BCS bought
+    INC RcTraction,X
+    BRA bought
+.notraction
+    CMP #1:BNE notop
+    LDA RcTopUp,X:CMP #5:BCS bought
+    INC RcTopUp,X
+    BRA bought
+.notop
+    CMP #2:BNE noturbo
+    LDA RcTurbo,X:CMP #5:BCS bought
+    INC RcTurbo,X
+    BRA bought
+.noturbo
+    LDA GmScoreUp,X:CMP #5:BCS bought
+    INC GmScoreUp,X
+.bought
+    LDA #4:STA GsCount
+.pay
+    LDA GsN:CMP #3:BNE nopoints
+    LDX GsCar
+    LDA #LO(Seven50):STA score_add.add
+    LDA #HI(Seven50):STA score_add.add+1
+    JSR score_add
+.nopoints
+    LDX GsCar
+    DEC RcWrench,X
+    LDA #20:JSR fields
+    DEC GsCount
+    BNE pay
+    RTS
+}
+
+\\ F_01BBAA: a car that was a drone at the circle's end and still is gets its running score back.
+
+.restore_scores
+{
+    LDX #3
+.car
+    LDA GsWasDrone,X:BEQ next
+    LDA RcDrone,X:BEQ next
+    TXA:ASL A:STA GsN:ASL A:ADC GsN:TAY ; (C clear)
+    LDA #6:STA GsN
+.digit
+    LDA GsSaved,Y:STA RcScore,Y
+    INY
+    DEC GsN
+    BNE digit
+.next
+    DEX
+    BPL car
+    RTS
+}
+
+\\ A input, as the ST's F_010CF2 gives it. Inputs: X: the car. Outputs: A: 4 left, 8 right, &80 fire; N by it; X kept.
+
+.game_read
+{
+    PHX
+    JSR read_players
+    PLX
+    LDA RcInput,X
+.got                         ; (tools/game_check.mjs gives the traced read here)
+    TAY                                 ; (N by it)
+    RTS
+}
+
+\\ Escape and F5, held. Outputs: N set if so.
+
+.game_esc
+{
+    LDA #KeyEscape:JSR key_down
+.got
+    TAY
+    RTS
+}
+
+.game_f5
+{
+    LDA #KeyF5:JSR key_down
+.got
+    TAY
+    RTS
+}
+
+\\ Fields gone by. Inputs: A: how many, 1-255. Outputs: A corrupted.
+
+.fields
+{
+    STA GsFields
+.field
+    LDA vsyncs
+.wait
+    CMP vsyncs:BEQ wait
+    DEC GsFields
+    BNE field
+    RTS
+}
+
+\\ The placeholder's text. say_clear: the screen black. say: A, X: a text's address, ending in 0, Y: its row: it's
+\\ written from column 2, in the MOS's font (font_char), through the HUD's expanding tables.
+
+.say_clear
+{
+    LDA #HI(HudAddr):STA row+2
+    LDX #HI(&8000 - HudAddr)
+    LDA #0:TAY
+.row
+    STA HudAddr,Y                       ; self-modified: the page
+    INY
+    BNE row
+    INC row+2
+    DEX
+    BNE row
+    RTS
+}
+
+.say
+{
+    STA text+1:STX text+2
+    LDA RowLo,Y:CLC:ADC #32:STA at
+    LDA RowHi,Y:ADC #0:STA at+1
+    STZ i
+.char
+    LDY i
+.text
+    LDA &FFFF,Y                         ; self-modified: the text
+    BEQ done
+    JSR font_char
+    LDA at:STA left+1
+    LDA at+1:STA left+2
+    CLC
+    LDA at:ADC #8:STA right+1
+    LDA at+1:ADC #0:STA right+2
+    LDX #7
+.line
+    LDY FontBuf,X
+    LDA PExpHi,Y
+.left
+    STA &FFFF,X                         ; self-modified
+    LDA PExpLo,Y
+.right
+    STA &FFFF,X                         ; self-modified
+    DEX
+    BPL line
+    CLC
+    LDA at:ADC #16:STA at
+    BCC @+
+    INC at+1
+.@
+    INC i
+    BRA char
+.done
+    RTS
+.at
+    SKIP 2
+.i
+    SKIP 1
+}
+
+.TextAttract
+    EQUS "Super Sprint: press fire", 0
+.TextSelect
+    EQUS "Select a track", 0
+.TextPrepare
+    EQUS "Prepare to race", 0
+.TextCircle
+    EQUS "Winner's circle", 0
+.TextUpgrade
+    EQUS "Upgrades", 0

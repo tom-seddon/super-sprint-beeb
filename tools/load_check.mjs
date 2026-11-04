@@ -24,7 +24,7 @@ const syms = symbols("build/tracks/t0.json");
 const want = JSON.parse(readFileSync("build/game_slots.json"));
 const order = process.argv.length > 2 ? process.argv.slice(2).map(Number) : [2, 6, 5, 1, 4, 7, 3, 0];
 const s = await bootDisc("build/game.ssd");
-await runTo(s, syms["frame_loop.frame_end"], 80000000);   // (the disc copies its banks first)
+await runTo(s, syms["game_resume.idle"], 80000000);       // (the disc copies its banks first; the attract mode)
 const banks = [...ram(s, 0, 4)];                           // bankbg, bankcars, banktrace, bankobj
 const role = { BgBank: 0, CarsBank: 1, TraceBank: 2, ObjBank: 3 };
 

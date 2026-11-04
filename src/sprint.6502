@@ -47,6 +47,12 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
                     INCLUDE "loadcode.6502"
                 ENDSECTION
 .loadcode_end
+.game_image                             ; (and the game's, copied to the background's bank to run: load.6502)
+                SECTION GameCode, org = GameOrg, guard = GameScratchOrg, cmos = TRUE
+                    INCLUDE "game.6502"
+                ENDSECTION
+.game_end
+                PRINT "the first 4K: ", AndyOrg + &1000 - P%, " bytes free"
             ENDIF
             SKIP AndyEnd - P%
             INCLUDE "walls.6502"
@@ -118,6 +124,12 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             IF GenPlay = 0
 .LogicInputs
                 INCBIN "../build/lgen/inputs.rle" ; the traced race's inputs, as runs (tools/gen_logic.py)
+            ENDIF
+            IF GenPlay
+.HiFile                                 ; SSPRINT.HSC: 31 entries of 6 digits (the first unused), their initials,
+                INCBIN "../orig/st/SSPRINT.HSC"     ; and each track's lap record, big-endian: changed by game.6502
+HiScores = HiFile
+LapRecords = HiFile + 279
             ENDIF
 .SharedEnd
             PRINT "the &3000 area: ", HudAddr - SharedEnd, " bytes free after Shared"

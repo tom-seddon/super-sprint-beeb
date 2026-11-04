@@ -69,10 +69,15 @@ ENDIF
     LDA TrackNum:STA RcTrack
     IF GenPlay                          ; the play build: what the last race left (load.6502's Gm)
         LDA GmRace:STA RcRace
+        LDA GmPhase:STA RcPhase
         LDX #3
     .between
         LDA GmDrone,X:STA RcDrone,X
         LDA GmSeed,X:STA RcSeed,X
+        LDA GmWrench,X:STA RcWrench,X
+        LDA GmTurbo,X:STA RcTurbo,X
+        LDA GmTopUp,X:STA RcTopUp,X
+        LDA GmTraction,X:STA RcTraction,X
         DEX
         BPL between
     ELSE
@@ -86,12 +91,20 @@ ENDIF
     ENDIF
     LDX #23
 .scores
-    LDA LfScores,X:STA RcScore,X
+    IF GenPlay
+        LDA GmScore,X:STA RcScore,X
+    ELSE
+        LDA LfScores,X:STA RcScore,X
+    ENDIF
     DEX
     BPL scores
     LDX #63
 .sparks
-    LDA LfSparks,X:STA RcSparkTimerLo,X
+    IF GenPlay
+        LDA GmSparks,X:STA RcSparkTimerLo,X
+    ELSE
+        LDA LfSparks,X:STA RcSparkTimerLo,X
+    ENDIF
     DEX
     BPL sparks
     IF GenPlay                          ; (a restart: the slots' cells as the track has them, the last race's
@@ -159,6 +172,13 @@ ENDIF
     IF GenPlay
         JSR read_players                ; the players' keys
     .played                             ; (tools/disc_races.mjs gives a traced race's inputs here)
+        LDA #KeyF0:JSR key_down         ; F10 (D24: f0): the race abandoned, back to the attract mode
+    .abandon                            ; (tools/game_check.mjs gives a traced press here)
+        TAY:BPL @+
+        LDA #1:STA GmAbandon
+        LDA #&FF:STA LoadWant
+        RTS                             ; (the ST leaves there and then)
+    .@
     ELSE
         LDA lfleft:BNE same             ; the next run of inputs
         LDA (lfin):BEQ same             ; (none left: the last ones held)
@@ -185,19 +205,8 @@ ENDIF
     LDA setup:BNE count                 ; (the set-up's flips: no race frame)
     JSR race_end                        ; after the frame's records: the ST's runs after its flip
     IF GenPlay
-        LDA RcOver:BEQ count            ; over: the next track's race (G_01D138), loaded (load.6502)
-        LDX #3                          ; the generator goes on where this race left it
-    .seed
-        LDA RcSeed,X:STA GmSeed,X
-        DEX
-        BPL seed
-        LDA GmRace:CMP #50:BCS @+       ; the race counter + 1, at most 50
-        INC GmRace
-    .@
-        LDX TrackNum                    ; (the frame loop loads it, at its top: load.6502)
-        LDA NextTrack1,X
-        STA LoadWant
-        BRA count
+        LDA RcOver:BEQ count            ; over: the game's rules take it from there (the frame loop, load_go)
+        LDA #&FF:STA LoadWant
     ENDIF
 .count
     INC LfFrame
@@ -270,10 +279,6 @@ ENDIF
 .SlotBgSlotEnd
     ENDIF
 
-    IF GenPlay
-.NextTrack1                             ; G_01D138: the track after each, + 1 (0, 2, 6, 5, 1, 4, 7, 3, 0)
-    EQUB 3, 5, 7, 1, 8, 2, 6, 4
-    ENDIF
     \\ F_00C592's start: the start's sound on each channel (F_0131A8), the 50 VBLs' pause (F_010214(50)) with
     \\ the set-up's last frame shown, the engines on (F_013582)
 .start_pause

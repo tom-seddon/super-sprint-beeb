@@ -13,6 +13,7 @@
 \\ While the OS is back the game's zero page &90-&FF is the OS's (D7): swapped with OsZp, saved at the
 \\ takeover, and nothing here touches zero page until it's swapped back.
 
+GameBuf = &7F00                         ; game_go's page in transit: the main screen's end
 TrackFileAddr = &4200                   ; where a track's file lands: the main screen, after the HUD's row
 LoadCodeOrg = &7C00                     ; where the load's code runs: the main screen's end
 ASSERT TrackFileAddr >= PlayAddr, "a track's file below the play area: the HUD's row shown while it loads"
@@ -53,11 +54,37 @@ SECTION LowFree                         ; &0900-&0AFF, kept across loads (D26)
 .LoadIndex                              ; a message's next character
     SKIP 1
 .GmRace                                 ; what outlives a race (clear_state clears GameVars): G_01EBC2, the race
-    SKIP 1                              ; counter, 0-50,
+    SKIP 1                              ; counter, -1 to 50,
 .GmSeed                                 ; TOS's generator, as the last race left it,
     SKIP 4
-.GmDrone                                ; and who drives each car (logic_start gives these to the logic)
+.GmClear
+.GmDrone                                ; and who drives each car (logic_start gives these to the logic),
     SKIP 4
+.GmWrench                               ; the wrenches,
+    SKIP 4
+.GmTurbo                                ; the upgrades,
+    SKIP 4
+.GmTopUp
+    SKIP 4
+.GmTraction
+    SKIP 4
+.GmScore                                ; the scores
+    SKIP 24
+.GmScoreUp                              ; G_01E2B2: "increase score"'s level, which the logic has no use for
+    SKIP 4
+.GmTrack                                ; the track, 0-7
+    SKIP 1
+.GmStage                                ; 0 the attract mode, 1 a game going on
+    SKIP 1
+.GmAbandon                              ; F10 ended the race
+    SKIP 1
+.GmPhase                                ; G_01D178: the coasting cycle, never reset between races
+    SKIP 1
+.GmFontStart
+.FontBuf                                ; a character from the MOS's font
+    SKIP 8
+.GmSparks                               ; the sparks' arrays, LfSparks's order: their timers run on from race to race
+    SKIP 64
 ENDSECTION
 
 SECTION GameVars
@@ -65,13 +92,83 @@ SECTION GameVars
     SKIP 1
 ENDSECTION
 
-\\ The load's code copied from the fourth bank to where it runs, and run. From the frame loop's top.
+\\ From the frame loop when a race ends, and at the start: the game around the race (game.6502) copied from the fourth
+\\ bank to where it runs, the race's state left as it is.
+
+.game_go
+{
+    LDX #&FF:TXS
+    STZ LoadWant
+    LDA &FE34:AND #&30:STA acccon       ; ACCCON: the main screen shown and written
+    STA &FE34
+    LDA #8:STA &FE00                    ; CRTC: R8
+    LDA #&C0:STA &FE01                  ; display on, cursor off
+    LDA #HI(game_image):STA from+2      ; (its operands from the first page: every time)
+    LDA #HI(GameOrg):STA into+2
+    LDX #HI(game_end - game_image + &FF)
+.page
+    LDA banktrace:STA &FE30             ; ROMSEL: the fourth bank, ANDY out: its first 4K
+    LDY #0
+.from
+    LDA game_image,Y                    ; self-modified: the page's high byte
+    STA GameBuf,Y                       ; (a bank at a time: both are at &8000-&BFFF)
+    INY
+    BNE from
+    LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
+.copy
+    LDA GameBuf,Y
+.into
+    STA GameOrg,Y                       ; self-modified: the page's high byte
+    INY
+    BNE copy
+    INC from+2
+    INC into+2
+    DEX
+    BNE page
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: the background's bank, ANDY in
+    JMP game_resume
+}
+
+\\ A character of the MOS's font into FontBuf: at &B900 in ROM 15 from ASCII 32 (loadcode.6502), and game.6502's bank
+\\ and ANDY paged in again.
+\\ Inputs: A: the character, 32 up. Outputs: FontBuf; A, X corrupted; Y preserved.
+
+.font_char
+{
+    SEC:SBC #' '
+    STZ font+2
+    ASL A:ROL font+2
+    ASL A:ROL font+2
+    ASL A:ROL font+2
+    STA font+1
+    LDA font+2:CLC:ADC #HI(&B900):STA font+2
+    LDX #7
+    SEI                                 ; (the IRQ's reads are of main RAM, but ROM 15 is the MOS's own)
+    LDA #15:STA &FE30                   ; ROMSEL: the font's ROM
+.line
+.font
+    LDA &B900,X                         ; self-modified: the character
+    STA FontBuf,X
+    DEX
+    BPL line
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: back
+    CLI
+    RTS
+}
+
+\\ The load's code copied from the fourth bank to where it runs, and run. From the frame loop's top: LoadWant the
+\\ track + 1, or &FF, a race just over, when it's the game's.
 \\
 \\ Inputs:
 \\     LoadWant: the track (index) + 1
 
 .load_go
 {
+    LDA LoadWant:BPL load
+    JMP game_go
+.load
     LDA banktrace:STA &FE30             ; ROMSEL: the fourth bank, ANDY out: its first 4K
     LDA acccon:AND #&FF EOR AccX
     STA &FE34                           ; ACCCON: main RAM written
