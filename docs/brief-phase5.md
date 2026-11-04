@@ -441,6 +441,9 @@ touches the build.
      **This changes step 8's sums**: D18's "each screen its own 4 of the BBC's 8 colours" meets up to 64 ST colours a
      screen. The Video ULA's palette can be changed down the screen too, so a screen's bands could each have their
      own 4, at a cost of raster timing the front end has plenty of; that's for the option sheets to show.
+     Against that (Tom, 2026-11-04): the BBC's cars aren't the ST's colours anyway (D1, option B: white, green, yellow,
+     not blue, red, yellow), so the screens needn't match the ST's. Proposed for step 8: the front end's cars in the
+     BBC's colours, so they're the cars you race, and the words with them ("BLUE CAR", "RED CAR"): to show on the sheets.
    - The credits aren't a plane, as §1 projected, but RLE, as is prepare; upgrades has no picture at all. **`SUPER1.DAT` is
      never read**: wiped after its load, a whole game came out the same to the byte, with a control that the file was
      there and the wipe took. 17K nobody has to convert. The disc budget improves by that, and the screens' data
