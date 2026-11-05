@@ -513,3 +513,6 @@
   MODE 2 (his idea), checked, on a CRT. In the game through a new file, `TRACKF`, with the wipe, which turned out to fit
   the BBC's cells in either mode. **Mistake, mine**: moving attract_check's stop for the title broke two of its timings; the
   suite said so.
+- **Found on Tom's Master** (2026-11-05): the old score row stuck during a load, and "Loading" came late. His guess was right: the
+  wrong screen shown. The load restored the OS's ACCCON whole, D and all, and his OS had the shadow screen showing, which
+  jsbeeb's doesn't. Reproduced by setting D in `OsAcccon`; the load now keeps D and X clear, and `load_check` starts from that.

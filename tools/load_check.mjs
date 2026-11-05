@@ -7,7 +7,8 @@
 // MOS's colour flashing, if left on, rewrites the Video ULA during a load and halves the CRTC's clock). The
 // MOS's flash counter (&251) must be 0 too: one still counting fires on a later load. And the System VIA's
 // DDRB &CF, as MOS 3.20 sets it once at reset: PB6 and PB7 drive the CMOS chip, where the filing system reads
-// its seek time (at &0F, seen on Tom's Master, the disc stepped at the wrong rate).
+// its seek time (at &0F, seen on Tom's Master, the disc stepped at the wrong rate). And the main screen shown and
+// written during each load, whichever the OS had.
 //
 // Then a disc error (a file that isn't there): the message, a key, the load again.
 //
@@ -18,7 +19,7 @@
 // in the ST's order from track 1's: 2 6 5 1 4 7 3 0)
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { andy, bootDisc, cycles, ram, runTo, settle, symbols } from "./jsbeeb.mjs";
+import { andy, bootDisc, cycles, ram, runTo, runToAny, settle, symbols } from "./jsbeeb.mjs";
 
 const syms = symbols("build/tracks/t0.json");
 const want = JSON.parse(readFileSync("build/game_slots.json"));
@@ -28,11 +29,18 @@ await runTo(s, syms["game_resume.idle"], 80000000);       // (the disc copies it
 const banks = [...ram(s, 0, 4)];                           // bankbg, bankcars, banktrace, bankobj
 const role = { BgBank: 0, CarsBank: 1, TraceBank: 2, ObjBank: 3 };
 
+// The OS as it is with *CONFIGURE SHADOW, showing the shadow screen, as jsbeeb's isn't: seen on Tom's Master, the load
+// then showed the shadow screen's old HUD row, and "Loading" went unseen in the main one's.
+s.writeMemory(syms.OsAcccon, [s.readMemory(syms.OsAcccon, 1)[0] | syms.AccD]);
+
 let bad = 0;
 for (const n of order) {
     s.writeMemory(syms.LoadWant, [n + 1]);
     const t0 = cycles(s);
     try {
+        await runToAny(s, [[0xffdd]], 400000000);       // OSFILE
+        const acccon = s._machine.processor.acccon;
+        if (acccon & (syms.AccD | syms.AccX)) { console.log(`track ${n + 1}: the load with ACCCON &${acccon.toString(16)}: not the main screen`); bad++; }
         await runTo(s, syms.start, 400000000);
     } catch (e) {
         console.log(`track ${n + 1}: the load never finished (${e.message})`);

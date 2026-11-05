@@ -41,7 +41,9 @@
     LDA OsIrq1v+1:STA &205
     LDA #LO(brk):STA &202               ; a disc error: said in the HUD's row, and the load tried again
     LDA #HI(brk):STA &203
-    LDA OsAcccon:STA &FE34              ; ACCCON as the OS had it
+    LDA OsAcccon:AND #&FF EOR (AccD OR AccX)
+    STA &FE34                           ; ACCCON as the OS had it, but the main screen shown and written: the
+                                        ; "Loading" and the file go there, whichever the OS was showing (*SHADOW)
     LDA OsRom:STA &F4:STA &FE30         ; ROMSEL: the OS's ROM
     CLI
     LDA #143:LDX #11:LDY NmiOwner:JSR &FFF4 ; OSBYTE 143: the NMIs back to who had them
