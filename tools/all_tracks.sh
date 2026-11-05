@@ -12,11 +12,13 @@
 fail=0
 for n in 0 1 2 3 4 5 6 7; do
     trace=build/trace/logic_t${n}_room.json
-    .venv/bin/python -c "
-import json
+    # (the copy, 50MB and 6 seconds, kept until the trace it's from is made again)
+    [ "$trace" -nt build/trace/logic_t0_r0.json ] || .venv/bin/python -c "
+import json, os
 t = json.load(open('build/trace/logic_t0_r0.json'))
 t['track'], t['race'] = $n, 17
-json.dump(t, open('$trace', 'w'))"
+json.dump(t, open('$trace.tmp', 'w'))
+os.replace('$trace.tmp', '$trace')"
     if make beeb TRACE=play TRACK=$n TRACEFILE=build/trace/race_t${n}_r17.json LOGICTRACE=$trace > build/all_tracks_t$n.log 2>&1
     then
         mkdir -p build/tracks
