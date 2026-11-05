@@ -68,12 +68,6 @@ slower loads showed up there before anyone knew why. Tool gaps only:
   "this never comes back". Worked round here by setting a flag and jumping from the frame loop's top level, which
   is arguably better code, so this may be nothing. Worth asking Rich only if another case turns up.
 
-## Checked, nothing to raise
-
-- **Rich's projects**: `teddyboy`, `chasehq-beeb` and `exolon-beeb` write DDRB `&0F`, but their OS loads are all in
-  `boot.6502`, before the takeover in `entry.6502`, so it doesn't bite; Teddy Boy targets the Model B and knows
-  about the flash (`src/boot.6502:102`). `portalc` and `criticalmass` write it too: their loads not read yet.
-
 - **The kit, or jsbeeb: a load that gives ACCCON back to the OS can show the wrong screen.** A game double-buffering on the
   Master's shadow RAM and restoring the OS's ACCCON for a load inherits its D bit: with the OS showing shadow, the load
   showed the shadow screen, not the main one being written. jsbeeb's Master boots with D clear, so nothing there showed
@@ -81,3 +75,8 @@ slower loads showed up there before anyone knew why. Tool gaps only:
   Why his had it set isn't confirmed (`*CONFIGURE SHADOW`, presumably). Worth a line in `gotchas.md`, and perhaps a way to
   boot jsbeeb with that CMOS setting.
 
+## Checked, nothing to raise
+
+- **Rich's projects**: `teddyboy`, `chasehq-beeb` and `exolon-beeb` write DDRB `&0F`, but their OS loads are all in
+  `boot.6502`, before the takeover in `entry.6502`, so it doesn't bite; Teddy Boy targets the Model B and knows
+  about the flash (`src/boot.6502:102`). `portalc` and `criticalmass` write it too: their loads not read yet.
