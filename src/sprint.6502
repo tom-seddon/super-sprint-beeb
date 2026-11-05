@@ -102,6 +102,15 @@ SECTION ObjFile, filename = "SPRINTD", load = &FFFF0000+LoadAddr
     ENDSECTION
 ENDSECTION
 
+IF GenPlay
+SECTION FrontFile, filename = "TRACKF", load = &FFFF0000+TrackFileAddr
+    SECTION FrontCode, org = FrontOrg, guard = GameScratchOrg, cmos = TRUE
+        INCLUDE "front.6502"
+        PRINT "the front end's file: ", GameScratchOrg - P%, " bytes free"
+    ENDSECTION
+ENDSECTION
+ENDIF
+
 \\ SPRINT loads at &3000, below the OS's MODE 7 screen; its loader (entry.6502) runs from its end and copies
 \\ main RAM's code down before anything is drawn at &3F00, so the file may pass it. In the game built from
 \\ the logic it starts with the read-only data the logic and the IRQ read whatever's paged (Shared), at its

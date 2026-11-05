@@ -183,7 +183,12 @@ beeb: build/sprint.ssd
 # after each race, so its disc is the one with them). build/sprint.ssd is whichever build was made last.
 play: game
 	cp build/game.ssd build/play.ssd
-build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(LOGICDEPS)
+# The front end's pictures and tables, for the file TRACKF: a screen's look is in tools/screens.py.
+$(GEN)/front.6502: tools/screens.py tools/screen_options.py tools/st_frontend.py | build/zx02 $(VENV)
+	mkdir -p $(GEN)
+	$(PY) tools/screens.py $(GEN) build/zx02
+
+build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(LOGICDEPS)
 	baron -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
 
 # The game's disc (Phase 5, 3b): every track's play build (tools/all_tracks.sh, which checks their layout),

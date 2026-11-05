@@ -469,6 +469,16 @@ touches the build.
    back, before the next. Ten screens: title, high scores, lap records, credits, select, prepare, winner's circle,
    upgrades, initials, options. The credits are lower priority (Tom, 2026-11-04): if space looks tight the screen can go,
    its text moving to a README on the disc.
+   - **The title** (2026-11-05): MODE 2, the checked option (Tom, on a CRT: "may change my mind"). `tools/screens.py`'s `Looks` says how a
+     screen looks; `tools/screen_options.py` makes the option sheets and a viewer disc of them. MODE 1's sets were tried too,
+     black, red, yellow and blue by hand the best. The file `TRACKF` (`src/front.6502`) holds the front end's code, the wipe's
+     tables and the packed picture: loaded through the OS, copied to `FrontOrg`, `&A000` in the background's bank, and back
+     to `game_go` with no race. A track's load wipes it (`GmFront`), so it's loaded again before each title.
+     The picture's unpacked into the shadow screen and wiped into the main one. **The wipe** (`F_014E34`) is an 8 x 8 diamond:
+     2 bytes by a cell in either mode, so 16 byte masks a level, and a step skips the masks that haven't changed. In
+     54 fields with the unpacking, out in 28. Only the title has it so far: the rest cut, until they're pictures.
+     `attract_check` compares the picture byte for byte. `tools/suite.sh OUT quick` runs 8 of the 88 races: 10 minutes, for
+     the pictures alone.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
 10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.

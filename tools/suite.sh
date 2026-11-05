@@ -2,9 +2,12 @@
 # Every oracle the game has, one after another (the builds share build/sprint.*, so not in parallel), each
 # one's output in OUT/<name>.log and its exit status in OUT/verdicts.txt. Exit status 1 if any failed.
 #
-# Usage (from the repo root): tools/suite.sh OUT   (OUT outside the repository: the scratchpad or a temp dir)
+# Usage (from the repo root): tools/suite.sh OUT [quick]   (OUT outside the repository: the scratchpad or a temp dir)
+# quick: the races on the disc only one way round, 8 of 88: about 10 minutes, not 32. For changes to the front end's
+# pictures alone. Anything touching the race, the boot or the loads wants the whole suite.
 
-OUT=${1:?usage: tools/suite.sh OUT}
+OUT=${1:?usage: tools/suite.sh OUT [quick]}
+[ "$2" = quick ] && export ROTATIONS=0
 mkdir -p "$OUT"
 : > "$OUT/verdicts.txt"
 fail=0

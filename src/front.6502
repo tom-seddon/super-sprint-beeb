@@ -1,0 +1,187 @@
+\\ front.6502 - the front end's pictures (Phase 5, step 8): the file TRACKF, assembled to run at FrontOrg in the background's
+\\ bank, beside game.6502, loaded with the OS (load_track) into the main screen and copied up. The tables and each
+\\ picture, ZX02 packed, come from tools/screens.py, which says how each screen looks.
+\\
+\\ A picture's unpacked into the shadow screen and wiped into the main one, shown, as the ST's F_014E34 does between its
+\\ two screens: a diamond in every 8 x 8 pixels, opening over 8 steps of a few fields. A byte's mask depends only on
+\\ which of 2 cells across it's in and its line, so a step goes through the 16 masks and skips those that haven't changed.
+
+INCLUDE "../build/gen/front.6502"
+
+ZA_AUTO2 fp                             ; the screen, at a mask's first byte
+ZA_AUTO2 ft                             ; the wipe's table
+ZA_AUTO1 fm                             ; the mask
+ZA_AUTO1 fshadow                        ; ACCCON with the shadow screen written
+ZA_AUTO1 flevel                         ; the level
+ZA_AUTO1 fc                             ; the mask's number
+ZA_AUTO1 fstart                         ; the field the step began
+
+\\ The title: MODE 2, wiped in over the black the screen was left in. Outputs: GmMode2 1. A, X, Y corrupted.
+
+.front_title
+{
+    LDA #UlaMode2:STA &FE20             ; video ULA: control
+    LDX #15
+.palette
+    LDA PalMode2,X:STA &FE21            ; video ULA: palette
+    DEX
+    BPL palette
+    LDA #1:STA GmMode2
+    LDA acccon:ORA #AccX:STA &FE34      ; ACCCON: the shadow screen written
+    LDA #LO(TitlePic):STA zxsrc
+    LDA #HI(TitlePic):STA zxsrc+1
+    LDA #LO(PlayAddr):STA zxdst
+    LDA #HI(PlayAddr):STA zxdst+1
+    JSR front_unpack
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    LDA #LO(WipeMode2):STA ft
+    LDA #HI(WipeMode2):STA ft+1
+    JMP wipe_in
+}
+
+\\ Back from MODE 2: the picture wiped out, then MODE 1, the race's palette. Outputs: GmMode2 0. A, X, Y corrupted.
+
+.front_leave
+{
+    LDA #LO(WipeMode2):STA ft
+    LDA #HI(WipeMode2):STA ft+1
+    JSR wipe_out
+    LDA #UlaMode1:STA &FE20             ; video ULA: control
+    LDX #15
+.palette
+    LDA PalMode1,X:STA &FE21            ; video ULA: palette
+    DEX
+    BPL palette
+    STZ GmMode2
+    RTS
+}
+
+\\ The wipes: ft: the table. Each step takes at least the ST's 3 fields.
+
+.wipe_in
+{
+    LDA acccon:ORA #AccX:STA fshadow
+    LDA #6:STA flevel
+.step
+    LDA vsyncs:STA fstart
+    LDA flevel:ASL A:ASL A:ASL A:ASL A:STA fc
+    LDA #16:STA count
+.mask
+    LDY fc
+    LDA (ft),Y:STA fm
+    TYA:CLC:ADC #16:TAY
+    LDA (ft),Y:CMP fm:BEQ same          ; (the level after: the mask's the same)
+    JSR front_place
+    LDX acccon
+.page
+    LDY #0
+.byte
+    LDA fshadow:STA &FE34               ; ACCCON: the picture
+    LDA (fp),Y
+    AND fm
+    STX &FE34                           ; ACCCON: the screen shown
+    STA (fp),Y
+    TYA:CLC:ADC #16:TAY
+    CMP flimit:BNE byte
+    INC fp+1
+    DEC fpages
+    BEQ last
+    BPL page
+    BRA same
+.last
+    LDA #128:STA flimit                 ; (16,000 bytes: 62 pages and a half)
+    BRA page
+.same
+    INC fc
+    DEC count
+    BNE mask
+    JSR pace
+    DEC flevel
+    BPL step
+    RTS
+.count
+    SKIP 1
+}
+
+.wipe_out
+{
+    LDA #1:STA flevel
+.step
+    LDA vsyncs:STA fstart
+    LDA flevel:ASL A:ASL A:ASL A:ASL A:STA fc
+    LDA #16:STA count
+.mask
+    LDY fc
+    LDA (ft),Y:STA fm
+    TYA:SEC:SBC #16:TAY
+    LDA (ft),Y:CMP fm:BEQ same          ; (the level before)
+    JSR front_place
+.page
+    LDY #0
+.byte
+    LDA (fp),Y
+    AND fm
+    STA (fp),Y
+    TYA:CLC:ADC #16:TAY
+    CMP flimit:BNE byte
+    INC fp+1
+    DEC fpages
+    BEQ last
+    BPL page
+    BRA same
+.last
+    LDA #128:STA flimit
+    BRA page
+.same
+    INC fc
+    DEC count
+    BNE mask
+    JSR pace
+    INC flevel
+    LDA flevel:CMP #8:BNE step
+    RTS
+.count
+    SKIP 1
+}
+
+\\ fp at a mask's first byte in the play area: its line, and 8 on for the right cell. Inputs: fc. A corrupted.
+
+.front_place
+{
+    LDA fc:AND #15
+    CLC:ADC #LO(PlayAddr):STA fp
+    LDA #HI(PlayAddr):ADC #0:STA fp+1
+    STZ flimit
+    LDA #62:STA fpages
+    RTS
+}
+
+.pace
+{
+    LDA vsyncs:SEC:SBC fstart
+    CMP #3:BCC pace
+    RTS
+}
+
+.flimit                                 ; Y's end in a page: 0, after 16 steps, or 128
+    SKIP 1
+.fpages                                 ; pages left
+    SKIP 1
+
+.PalMode1                               ; (the loader's PalVals)
+    EQUB (0..15) * 16 + (PalPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)
+.PalMode2                               ; logical 0-7 the physical colours, 8-15 the same
+    EQUB (0..15) * 16 + (((0..15) AND 7) EOR 7)
+.WipeMode1
+    EQUB Mode1Wipe
+.WipeMode2
+    EQUB Mode2Wipe
+
+.front_unpack
+{
+    ZX02_DEPACKER
+}
+
+.TitlePic
+    INCBIN "../build/gen/title.zx02"
+.front_end

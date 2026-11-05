@@ -23,6 +23,7 @@ ScreenVTotal = 39                       ; character rows a field (R4 + 1): 312 l
 \\ The Video ULA: MODE 1's control register, and the palette (D1, option B): black, green, yellow, white
 
 UlaMode1 = &D8
+UlaMode2 = &F4
 PalPhys = {0, 2, 3, 7}                  ; logical 0-3's physical colours
 
 \\ ACCCON (&FE34): D, bit 0, the screen shown is shadow's; X, bit 2, the CPU's &3000-&7FFF is shadow's

@@ -136,9 +136,15 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     LDA #LO(TextCredits):LDX #HI(TextCredits):LDY #12:JSR say
     LDA #LO(325 - 256):LDX #HI(325):JSR wait_long
 .title
-    JSR say_clear
-    LDA #LO(TextAttract):LDX #HI(TextAttract):LDY #12:JSR say
+    LDA GmFront:BNE loaded              ; the pictures are in the background's bank, which each track's load wipes
+    LDA #'F' - '0':STA LoadWant
+    JMP load_go                         ; (back here through game_go)
+.loaded
+    JSR say_clear                       ; (the file landed in the screen)
+    JSR front_title
+.shown
     LDA #250:JSR wait
+    JSR front_leave
 .scores
     JSR say_clear
     LDA #LO(TextScores):LDX #HI(TextScores):LDY #12:JSR say
@@ -177,6 +183,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     STA GsWait
 .idle
     LDA LoadWant:BEQ @+                 ; (a test's race: tools/disc_races.mjs, load_check.mjs)
+    JSR mode1
     JMP load_go
 .@
     LDX #0
@@ -202,6 +209,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     RTS
 .game
     STX GsWho
+    JSR mode1
     JSR seed_once
     JSR load_game
     JSR select
@@ -215,6 +223,16 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     JSR save_game
     LDX GmTrack:INX:STX LoadWant
     JMP load_go
+}
+
+\\ Leaving the title for anything else.
+
+.mode1
+{
+    LDA GmMode2:BEQ done
+    JMP front_leave
+.done
+    RTS
 }
 
 \\ TOS seeds its generator from its 200 Hz clock, t << 16 | t, the first time it's used: here from the fields gone by

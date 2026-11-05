@@ -83,8 +83,35 @@
     LDA &FE34:AND #&30:STA acccon       ; ACCCON: the main screen shown and written
     STA &FE34
 
+    \\ the front end's file, TRACKF: copied up to where it runs, and back to the game (game_go) with no race
+
+    LDA LoadName+5:CMP #'F':BNE parts
+    LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
+    LDA #HI(TrackFileAddr):STA from+2   ; (its operands from the first page: every load)
+    LDA #HI(FrontOrg):STA into+2
+    LDX #HI(GameScratchOrg - FrontOrg)
+    LDY #0
+.from
+    LDA TrackFileAddr,Y                 ; self-modified: the page's high byte
+.into
+    STA FrontOrg,Y                      ; self-modified: the page's high byte
+    INY
+    BNE from
+    INC from+2
+    INC into+2
+    DEX
+    BNE from
+    LDA #1:STA GmFront
+    LDA #6:STA &FE00                    ; CRTC: R6
+    LDA #ScreenRows:STA &FE01           ; the screen's rows again
+    LDX #&FF:TXS
+    CLI
+    JMP game_go
+
     \\ each part unpacked into its place
 
+.parts
+    STZ GmFront
     LDA #LO(TrackFileAddr+1):STA part
     LDA #HI(TrackFileAddr+1):STA part+1
     LDX TrackFileAddr                   ; the parts

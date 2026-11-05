@@ -82,6 +82,7 @@ SECTION LowFree, org = LowFreeOrg, guard = LowFreeEnd, virtual = TRUE
 ENDSECTION
 
 GameOrg = &9000                         ; game.6502, in the background's bank between races: above ANDY
+FrontOrg = &A000                        ; front.6502, the file TRACKF, the same: code, tables and packed pictures
 GameScratchOrg = &B800                  ; and its variables
 SECTION GameScratch, org = GameScratchOrg, guard = &C000, virtual = TRUE
 ENDSECTION

@@ -509,3 +509,7 @@
   I'd read one palette from the Shifter for the whole screen; the ST changes palette down the screen on Timer B, in code
   the disassembler had left as data. The bands are recorded now, and checked against Hatari's own pictures. My first
   limit for that check, by the row, passed the very fault it was for; the mutant showed it, so it's a total now.
+- **Step 8, the title** (2026-11-05): first of ten, a screen at a time, each checked by Tom. Nine options on a viewer disc; he chose
+  MODE 2 (his idea), checked, on a CRT. In the game through a new file, `TRACKF`, with the wipe, which turned out to fit
+  the BBC's cells in either mode. **Mistake, mine**: moving attract_check's stop for the title broke two of its timings; the
+  suite said so.
