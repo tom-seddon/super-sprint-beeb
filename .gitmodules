@@ -4,9 +4,6 @@
 [submodule "rich/criticalmass"]
 	path = rich/criticalmass
 	url = https://github.com/waitingforvsync/criticalmass
-[submodule "rich/exolon-beeb"]
-	path = rich/exolon-beeb
-	url = https://github.com/waitingforvsync/exolon-beeb
 [submodule "rich/chasehq-beeb"]
 	path = rich/chasehq-beeb
 	url = https://github.com/waitingforvsync/chasehq-beeb

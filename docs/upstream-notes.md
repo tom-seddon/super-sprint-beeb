@@ -77,6 +77,6 @@ slower loads showed up there before anyone knew why. Tool gaps only:
 
 ## Checked, nothing to raise
 
-- **Rich's projects**: `teddyboy`, `chasehq-beeb` and `exolon-beeb` write DDRB `&0F`, but their OS loads are all in
+- **Rich's projects**: `teddyboy` and `chasehq-beeb` write DDRB `&0F`, but their OS loads are all in
   `boot.6502`, before the takeover in `entry.6502`, so it doesn't bite; Teddy Boy targets the Model B and knows
   about the flash (`src/boot.6502:102`). `portalc` and `criticalmass` write it too: their loads not read yet.
