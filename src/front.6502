@@ -1,6 +1,7 @@
 \\ front.6502 - the front end's pictures (Phase 5, step 8): the file TRACKF, assembled to run at FrontOrg in the background's
 \\ bank, beside game.6502, loaded with the OS (load_track) into the main screen and copied up. The tables and each
-\\ picture, ZX02 packed, come from tools/screens.py, which says how each screen looks.
+\\ picture, ZX02 packed, come from tools/screens.py, which says how each screen looks. Some of the pictures are in
+\\ FrontPics, in the same bank under ANDY after the erase's code (sprint.6502), so they're unpacked with ANDY out.
 \\
 \\ A picture's unpacked into the shadow screen and wiped into the main one, shown, as the ST's F_014E34 does between its
 \\ two screens: a diamond in every 8 x 8 pixels, opening over 8 steps of a few fields. A byte's mask depends only on
@@ -15,6 +16,19 @@ ZA_AUTO1 fshadow                        ; ACCCON with the shadow screen written
 ZA_AUTO1 flevel                         ; the level
 ZA_AUTO1 fc                             ; the mask's number
 ZA_AUTO1 fstart                         ; the field the step began
+ZA_AUTO2 fx                             ; the table's next glyph: its pixel across,
+ZA_AUTO1 fy                             ; and its line
+ZA_AUTO1 fglyph                         ; the glyph's first byte in the font
+ZA_AUTO1 fshift                         ; pixels into the screen's byte
+ZA_AUTO1 flines                         ; lines left
+ZA_AUTO2 fleft                          ; a line of the glyph, shifted: 16 bits
+ZA_AUTO2 fs                             ; the entry's digits or initials
+ZA_AUTO1 ftens                          ; the entry's number, in digits
+ZA_AUTO1 fones
+ZA_AUTO1 fcolumn                        ; Columns' next
+ZA_AUTO1 fentries                       ; entries left in the column
+ZA_AUTO1 fcolx                          ; the column's pixel across
+ZA_AUTO2 fnames                         ; the entry's initials
 
 \\ The title: MODE 2, wiped in over the black the screen was left in. Outputs: GmPicture 2. A, X, Y corrupted.
 
@@ -50,13 +64,173 @@ ZA_AUTO1 fstart                         ; the field the step began
 
 .front_show
 {
-    LDA acccon:ORA #AccX:STA &FE34      ; ACCCON: the shadow screen written
+    JSR front_shadow
+}
+
+\\ The shadow screen's picture wiped in. Inputs: GmPicture. A, X, Y corrupted.
+
+.front_wipe_in
+{
+    JSR front_wipe
+    JMP wipe_in
+}
+
+\\ zxsrc's picture unpacked into the shadow screen. A, X, Y corrupted.
+
+.front_shadow
+{
+    LDA acccon:ORA #AccX:STA fshadow:STA &FE34  ; ACCCON: the shadow screen written
+    LDA bankbg:STA &FE30                ; ROMSEL: ANDY out, for FrontPics
     LDA #LO(PlayAddr):STA zxdst
     LDA #HI(PlayAddr):STA zxdst+1
     JSR front_unpack
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: ANDY in
     LDA acccon:STA &FE34                ; ACCCON: the main screen written
-    JSR front_wipe
-    JMP wipe_in
+    RTS
+}
+
+\\ The high scores (F_0172EA): MODE 1, the frame, and the table over it as the ST places it. Outputs: GmPicture 1.
+\\ A, X, Y corrupted.
+
+.front_scores
+{
+    LDX #15
+.palette
+    LDA PalScores,X:STA &FE21           ; video ULA: palette
+    DEX
+    BPL palette
+    LDA #1:STA GmPicture
+    LDA #LO(ScoresPic):STA zxsrc
+    LDA #HI(ScoresPic):STA zxsrc+1
+    JSR front_shadow
+    LDA #LO(HiScores + 6):STA fs        ; (the first's unused)
+    LDA #HI(HiScores + 6):STA fs+1
+    LDA #LO(HiScores + 31 * 6 + 3):STA fnames
+    LDA #HI(HiScores + 31 * 6 + 3):STA fnames+1
+    STZ ftens
+    LDA #1:STA fones
+    STZ fcolumn
+.column
+    LDX fcolumn
+    LDA Columns,X:STA fcolx
+    LDA Columns+1,X:STA fy
+    LDA Columns+2,X:STA fentries
+.entry
+    JSR front_entry
+    LDA fy:CLC:ADC #7:STA fy
+    DEC fentries
+    BNE entry
+    LDA fcolumn:CLC:ADC #3:STA fcolumn
+    CMP #12:BNE column
+    JMP front_wipe_in
+.Columns                                ; each column's x, first line and entries
+    EQUB &7A, &33, 3, &1E, &76, 9, &7A, &76, 9, &D6, &76, 9
+}
+
+\\ F_0171B6: a high score's line, at fcolx and fy, in the text's colour, logical 3, so the frame's colour needn't
+\\ be known. The table's read with the main screen written, where it's kept up to date. fs, fnames and the number on.
+\\ A, X, Y corrupted.
+
+.front_entry
+{
+    LDA fcolx:STA fx
+    STZ fx+1
+    LDA ftens:BEQ units
+    JSR front_glyph
+.units
+    LDA #6:JSR front_across
+    LDA fones:JSR front_glyph
+    LDA #11:JSR front_across            ; (x + 17)
+    LDY #0
+.digit
+    PHY
+    LDA (fs),Y
+    JSR front_glyph
+    LDA #6:JSR front_across
+    PLY
+    INY
+    CPY #6:BNE digit
+    LDA #6:JSR front_across             ; (x + 59: 17 + 36 + 6)
+    LDY #0
+.initial
+    PHY
+    LDA (fnames),Y
+    JSR front_glyph
+    LDA #6:JSR front_across
+    PLY
+    INY
+    CPY #3:BNE initial
+    LDA fs:CLC:ADC #6:STA fs
+    BCC @+
+    INC fs+1
+.@
+    LDA fnames:CLC:ADC #3:STA fnames
+    BCC @+
+    INC fnames+1
+.@
+    INC fones
+    LDA fones:CMP #10:BNE done
+    STZ fones
+    INC ftens
+.done
+    RTS
+}
+
+\\ fx, A pixels on. A corrupted.
+
+.front_across
+{
+    CLC:ADC fx:STA fx
+    BCC done
+    INC fx+1
+.done
+    RTS
+}
+
+\\ F_016C7A: glyph A OR'd in at fx, fy on the shadow screen, the main screen written again after. fx kept; A, X, Y corrupted.
+
+.front_glyph
+{
+    STA fglyph:ASL A:ADC fglyph:ASL A:STA fglyph    ; (6 bytes each; C clear: the glyph's under 64)
+    LDA fx:AND #3:STA fshift
+    LDA fy:LSR A:LSR A:LSR A:TAX        ; (the play area's row)
+    LDA fx:AND #&FC:ASL A:STA fp
+    LDA fx+1:ROL A:STA fp+1
+    LDA fp:ADC RowLo,X:STA fp           ; (C clear from the ROL: fx+1's 0 or 1)
+    LDA fp+1:ADC RowHi,X:STA fp+1
+    LDA fy:AND #7:TAY
+    LDA #6:STA flines
+    LDA fshadow:STA &FE34               ; ACCCON: the shadow screen written
+.line
+    LDX fglyph
+    LDA SmallGlyphs,X:STA fleft
+    STZ fleft+1
+    LDX fshift:BEQ placed
+.shift
+    LSR fleft
+    ROR fleft+1
+    DEX
+    BNE shift
+.placed
+    LDX fleft
+    LDA PExpHi,X:ORA (fp),Y:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    LDA PExpLo,X:ORA (fp),Y:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    LDX fleft+1
+    LDA PExpHi,X:ORA (fp),Y:STA (fp),Y
+    TYA:SEC:SBC #15:TAY
+    CPY #8:BNE same
+    LDA fp:CLC:ADC #LO(640):STA fp      ; (the next row of cells)
+    LDA fp+1:ADC #HI(640):STA fp+1
+    LDY #0
+.same
+    INC fglyph
+    DEC flines
+    BNE line
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
 }
 
 \\ Back from a picture: wiped out, then MODE 1, the race's palette. Outputs: GmPicture 0. A, X, Y corrupted.
@@ -207,6 +381,10 @@ ZA_AUTO1 fstart                         ; the field the step began
     EQUB (0..15) * 16 + (((0..15) AND 7) EOR 7)
 .PalCredits
     EQUB (0..15) * 16 + (CreditsPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)
+.PalScores
+    EQUB (0..15) * 16 + (ScoresPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)
+.SmallGlyphs
+    EQUB SmallFont
 .WipeMode1
     EQUB Mode1Wipe
 .WipeMode2
@@ -219,6 +397,4 @@ ZA_AUTO1 fstart                         ; the field the step began
 
 .TitlePic
     INCBIN "../build/gen/title.zx02"
-.CreditsPic
-    INCBIN "../build/gen/credits.zx02"
 .front_end

@@ -110,10 +110,43 @@ TitleKRYB = {0: 'KKKK', 1: 'YYYY', 2: 'RRRR', 3: 'RRRY', 4: 'RYYR', 5: 'YYYY', 6
 TitleChecked = {**TitleFlat, 3: 'RY', 4: 'RY', 5: 'YR', 2: 'RK', 7: 'RK', 11: 'BC', 6: 'CB'}
 
 
+# The title's last line, redrawn (Tom, 2026-11-05: option C). The ST's letters are 5 pixels wide and MODE 2 has half its
+# pixels across, so they fill in even in solid yellow: 3 x 5 letters here (the M and the (c) 5 across), their rows 1 and 3
+# doubled, as a MODE 2 pixel is twice as wide as it's tall.
+LineFont = {'c': ('.###.', '#.#.#', '##..#', '#.#.#', '.###.'), '1': ('.#.', '##.', '.#.', '.#.', '###'),
+            '9': ('###', '#.#', '###', '..#', '###'), '8': ('###', '#.#', '###', '#.#', '###'), '6': ('###', '#..', '###', '#.#', '###'),
+            'A': ('###', '#.#', '###', '#.#', '#.#'), 'T': ('###', '.#.', '.#.', '.#.', '.#.'), 'R': ('##.', '#.#', '##.', '#.#', '#.#'),
+            'I': ('###', '.#.', '.#.', '.#.', '###'), 'G': ('###', '#..', '#.#', '#.#', '###'), 'M': ('#...#', '##.##', '#.#.#', '#...#', '#...#'),
+            'E': ('###', '#..', '##.', '#..', '###'), 'S': ('###', '#..', '###', '..#', '###'), ' ': ('..',) * 5}
+LineText = 'c 1986  ATARI  GAMES'
+LineLeft, LineTop, LineRight = 96, 192, 152      # (the ST's own line starts at MODE 2's pixel 98: only the S's tail is left of it)
+
+
+def title_line(lidx):
+    """(200, 160) colours, the ST's line taken out and this one drawn, in yellow."""
+    out = lidx.copy()
+    out[LineTop:, LineLeft:] = 0
+    x = LineRight - sum(len(LineFont[c][0]) + 1 for c in LineText) + 1
+    for c in LineText:
+        glyph = LineFont[c]
+        for y, row in enumerate((0, 1, 1, 2, 3, 3, 4)):
+            for i, bit in enumerate(glyph[row]):
+                if bit == '#':
+                    out[LineTop + y, x + i] = Order.index('Y')
+        x += len(glyph[0]) + 1
+    return out
+
+
 def CreditsFlat(c):
     """The credits in MODE 1: red and yellow as they are, everything blue or white the one colour. Checks on the darkest
     blue were tried: the letters are a pixel wide, and they break up."""
     return {0: 'KKKK', 8: 'RRRR', 9: 'YYYY', **{i: c * 4 for i in (6, 10, 11, 12, 15)}}
+
+
+def ScoresFlat(band, gold):
+    """The high scores' frame in MODE 1, flat: the background blue, band the magenta bands and the car's reds, gold the
+    edges, the car's yellows and greys and the white text, which is logical 3 (the game draws the table over the frame)."""
+    return {0: 'KKKK', 1: 'BBBB', **{i: band * 4 for i in (3, 5, 8, 9, 14)}, **{i: gold * 4 for i in (2, 4, 6, 7, 11, 13, 15)}}
 
 
 def mode2_bytes(lidx):
@@ -130,7 +163,8 @@ def mode2_rgb(lidx):
 
 
 Screens = {'title': lambda d: (T.decode_map(d, 8), F.shot('title')[1]['palette']),
-           'credits': lambda d: (stgfx.planar_to_indices(F.unrle(d, 0x2E9F6)[0], 320, 200), F.shot('credits')[1]['palette'])}
+           'credits': lambda d: (stgfx.planar_to_indices(F.unrle(d, 0x2E9F6)[0], 320, 200), F.shot('credits')[1]['palette']),
+           'scores': lambda d: (F.scores(F.first_dump()), F.shot('scores')[1]['palette'])}
 
 
 def main(name):
@@ -193,6 +227,9 @@ if __name__ == '__main__':
         options.insert(7, ('MODE 1 KRYB by hand', 1, 'KRYB', mode1_bytes(render(idx, TitleKRYB, 'KRYB'))))
     if want == 'credits':               # (by hand: the ranking goes by area, and it's the text that matters)
         options = [(f'MODE 1 K R Y {c}', 1, 'KRY' + c, mode1_bytes(render(idx, CreditsFlat(c), 'KRY' + c))) for c in 'CWMG']
+    if want == 'scores':                # (by hand: the text and the frame's edges want one colour, the bands another)
+        options = [(f'MODE 1 K B {b} {g}', 1, 'KB' + b + g, mode1_bytes(render(idx, ScoresFlat(b, g), 'KB' + b + g)))
+                   for b, g in ('MY', 'MW', 'RY', 'RW')]
     viewer(want, options)
     sheet = Image.new('RGB', (3 * 648, 2 * 424), (60, 60, 60))
     from PIL import ImageDraw

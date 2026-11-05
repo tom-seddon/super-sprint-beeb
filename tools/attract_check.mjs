@@ -3,8 +3,9 @@
 // the same demo (tools/st_trace_game.py's attract script). Nothing else tests demos back to back: what one leaves
 // behind (the generator, the coasting phase, the sparks' timers) goes into the next. The ST's waits are its screens'
 // F_0140F0 calls, 250, 250, 250, 150 and 325 fields; here a screen's drawing adds a few, so they're allowed
-// Slack, but for the title's, which adds its wipe out, and the wait after the demo, which adds the pictures' load.
-// The title's and the credits' pictures are compared byte for byte.
+// Slack, the high scores' with their wipe out, but for the title's, which adds a wipe out, an unpacking and a wipe in,
+// and the wait after the demo, which adds the pictures' load. The title, the high scores (table and all, against the
+// ST's as tools/st_frontend.py composes it) and the credits are compared byte for byte.
 //
 // Exit status: 1 if the order, a time, a track or the generator differs, else 0.
 //
@@ -15,7 +16,7 @@ import { bootDisc, cycles, ram, runToAny, symbols } from "./jsbeeb.mjs";
 
 const Demos = Number(process.argv[2] ?? 3), Slack = 8, Field = 39936;
 const Tracks = [0, 2, 6, 5, 1, 4, 7, 3];   // G_01D148, from track 1
-const Waits = { title: 250, scores: 250, records: 250, credits: 325 };
+const Waits = { title: 250, scores: 250 + 50, records: 250, credits: 325 };
 const { events } = JSON.parse(readFileSync("build/trace/game_attract.json"));
 
 // the numbers each demo drew, and the seed before the first
@@ -71,7 +72,7 @@ while (demo < Demos) {
     if (now !== want) say(`after ${before}: ${now}, not ${want}`);
     if (before in Waits && before !== "title" && before !== "credits" && Math.abs(fields - Waits[before]) > Slack) say(`${before}: ${fields} fields, the ST's ${Waits[before]}`);
     if (before !== "demo" && before !== "credits") console.log(`${before}: ${fields} fields`);
-    if (now === "title" || now === "credits") {     // the picture, wiped in whole, in its mode
+    if (now === "title" || now === "scores" || now === "credits") {     // the picture, wiped in whole, in its mode
         const want = readFileSync(`build/gen/${now}.bin`), got = ram(s, syms.PlayAddr, 16000);
         let diff = 0;
         for (let i = 0; i < 16000; i++) if (got[i] !== want[i]) diff++;

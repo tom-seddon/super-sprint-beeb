@@ -471,7 +471,8 @@ touches the build.
    its text moving to a README on the disc.
    - **The title** (2026-11-05): MODE 2, the checked option (Tom, on a CRT: "may change my mind"). `tools/screens.py`'s `Looks` says how a
      screen looks; `tools/screen_options.py` makes the option sheets and a viewer disc of them. MODE 1's sets were tried too,
-     black, red, yellow and blue by hand the best. The file `TRACKF` (`src/front.6502`) holds the front end's code, the wipe's
+     black, red, yellow and blue by hand the best. The last line, "(c) 1986 ATARI GAMES", is redrawn by hand in 3 x 7 letters (Tom: option C of
+     four; `title_line` in `tools/screen_options.py`), as the ST's fill in at MODE 2's width. The file `TRACKF` (`src/front.6502`) holds the front end's code, the wipe's
      tables and the packed picture: loaded through the OS, copied to `FrontOrg`, `&A000` in the background's bank, and back
      to `game_go` with no race. A track's load wipes it (`GmFront`), so it's loaded again before each title.
      The picture's unpacked into the shadow screen and wiped into the main one. **The wipe** (`F_014E34`) is an 8 x 8 diamond:
@@ -485,6 +486,13 @@ touches the build.
      TRACKF 520 bytes free. A demo's track wipes the pictures, so TRACKF now loads after the wait that follows a demo,
      before the credits, not before the title. `GmPicture` says which mode a picture's in, and the wipe follows it, MODE 1's
      table in use for the first time.
+   - **The high scores** (2026-11-05): MODE 1, as the 6-pixel font wants it: black, blue, magenta and yellow, flat, the ST's white
+     text and greys yellow; `build/viewer/scores.ssd` has that, white for yellow, and both with red for magenta. Only the frame's
+     packed (1,804 bytes); the game draws the table over it from `HiScores`, in the shadow screen, by `F_0171B6`'s places, so a new
+     score will show with nothing more. The text is logical 3, OR'd in, so the frame's colour needn't be known. TRACKF had no room,
+     so it's two parts now: the credits and this frame at `BgOrg`, in the background's bank under ANDY after the erase's code (45
+     bytes free), the rest at `FrontOrg` (1,740 free). They're unpacked with ANDY out. The MODE 1 wipe out takes 50 fields, the
+     title's 28. `attract_check` compares the whole screen with `tools/st_frontend.py`'s composition, table and all.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
 10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.

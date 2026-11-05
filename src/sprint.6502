@@ -104,6 +104,16 @@ ENDSECTION
 
 IF GenPlay
 SECTION FrontFile, filename = "TRACKF", load = &FFFF0000+TrackFileAddr
+    SECTION FrontPics, org = BgOrg, guard = FrontOrg    ; (after the erase, which stays: under ANDY, so read with it out)
+.CreditsPic
+        INCBIN "../build/gen/credits.zx02"
+.ScoresPic
+        INCBIN "../build/gen/scores.zx02"
+        ASSERT P% <= GameOrg, "the pictures under ANDY: they end at the game (the copy may pass it, as game_go follows)"
+        PRINT "the front end's pictures under ANDY: ", GameOrg - P%, " bytes free"
+        PADTO BgOrg + ((P% - BgOrg + &FF) AND &FF00)    ; (whole pages, for the load's copy)
+.front_pics_end
+    ENDSECTION
     SECTION FrontCode, org = FrontOrg, guard = GameScratchOrg, cmos = TRUE
         INCLUDE "front.6502"
         PRINT "the front end's file: ", GameScratchOrg - P%, " bytes free"

@@ -90,8 +90,22 @@
     LDA LoadName+5:CMP #'F':BNE parts
     LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
     LDA #HI(TrackFileAddr):STA from+2   ; (its operands from the first page: every load)
+    LDA #LO(BgOrg):STA into+1           ; (ANDY out: the part under it first, then the rest)
+    LDA #HI(BgOrg):STA into+2
+    LDX #HI(front_pics_end - BgOrg)
+    JSR front_copy
+    STZ into+1
     LDA #HI(FrontOrg):STA into+2
     LDX #HI(GameScratchOrg - FrontOrg)
+    JSR front_copy
+    LDA #1:STA GmFront
+    LDA #6:STA &FE00                    ; CRTC: R6
+    LDA #ScreenRows:STA &FE01           ; the screen's rows again
+    LDX #&FF:TXS
+    CLI
+    JMP game_go
+
+.front_copy                             ; X pages
     LDY #0
 .from
     LDA TrackFileAddr,Y                 ; self-modified: the page's high byte
@@ -102,13 +116,8 @@
     INC from+2
     INC into+2
     DEX
-    BNE from
-    LDA #1:STA GmFront
-    LDA #6:STA &FE00                    ; CRTC: R6
-    LDA #ScreenRows:STA &FE01           ; the screen's rows again
-    LDX #&FF:TXS
-    CLI
-    JMP game_go
+    BNE front_copy
+    RTS
 
     \\ each part unpacked into its place
 

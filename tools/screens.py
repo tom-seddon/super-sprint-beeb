@@ -20,8 +20,10 @@ from convert import PHYS, mode1_bytes
 Levels = [[0xFF] * 8, [0x7E, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7E], [0x3C, 0x7E, 0xFF, 0xFF, 0xFF, 0xFF, 0x7E, 0x3C],
           [0x18, 0x3C, 0x7E, 0xFF, 0xFF, 0x7E, 0x3C, 0x18], [0, 0x18, 0x3C, 0x7E, 0x7E, 0x3C, 0x18, 0],
           [0, 0, 0x18, 0x3C, 0x3C, 0x18, 0, 0], [0, 0, 0, 0x18, 0x18, 0, 0, 0], [0] * 8]
-Looks = {'title': dict(mode=2, table=O.TitleChecked),    # (Tom, 2026-11-04: option 7, MODE 2 checked; he may change his mind)
-         'credits': dict(mode=1, pal='KRYC', table=O.CreditsFlat('C'))}
+Looks = {'title': dict(mode=2, table=O.TitleChecked, over=O.title_line),    # (Tom, 2026-11-04: option 7, MODE 2 checked; he may change his mind)
+         'credits': dict(mode=1, pal='KRYC', table=O.CreditsFlat('C')),
+         'scores': dict(mode=1, pal='KBMY', table=O.ScoresFlat('M', 'Y'), blank=F.scores_frame)}
+Glyphs = 39                             # the small font's, as the tables use them: the digits, the letters, a space
 
 
 def mask1(n):
@@ -41,21 +43,35 @@ def table(mask):
     return out
 
 
+def bytes_of(idx, look):
+    if look['mode'] == 2:
+        return O.mode2_bytes(look['over'](O.mapped(idx, look['table'])))
+    return mode1_bytes(O.render(idx, look['table'], look['pal']))
+
+
 def picture(name):
+    """(The screen as it's shown, what's packed: without what the game draws over it.)"""
     look = Looks[name]
     idx = O.Screens[name](F.dat())[0]
-    if look['mode'] == 2:
-        return O.mode2_bytes(O.mapped(idx, look['table']))
-    return mode1_bytes(O.render(idx, look['table'], look['pal']))
+    shown = bytes_of(idx, look)
+    return shown, bytes_of(look['blank'](F.first_dump()), look) if 'blank' in look else shown
+
+
+def font():
+    """The small font (G_01D43C): 6 lines a glyph, of its 8 bytes."""
+    mem = F.first_dump()
+    return [mem[0x1D43C - F.Region + g * 8 + line] for g in range(Glyphs) for line in range(6)]
 
 
 def main(out, zx02):
     lines = ['\\\\ front.6502 - the front end\'s tables (tools/screens.py)', 'Mode1Wipe = {' + ', '.join(map(str, table(mask1))) + '}',
              'Mode2Wipe = {' + ', '.join(map(str, table(mask2))) + '}',
-             'CreditsPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['credits']['pal']) + '}']
+             'CreditsPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['credits']['pal']) + '}',
+             'ScoresPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['scores']['pal']) + '}',
+             'SmallFont = {' + ', '.join(map(str, font())) + '}']
     for name in Looks:
-        raw = picture(name)
-        open(f'{out}/{name}.bin', 'wb').write(raw)
+        shown, raw = picture(name)
+        open(f'{out}/{name}.bin', 'wb').write(shown)
         packed = dfs.compress(raw, exe=zx02, name=name)
         open(f'{out}/{name}.zx02', 'wb').write(packed)
         print(f'{name}: {len(packed):,} bytes packed')

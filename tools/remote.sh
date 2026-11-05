@@ -17,7 +17,7 @@ trap 'rm -f "$list"' EXIT
     for f in disc_races.sh disc_races.mjs game_check.mjs attract_check.mjs load_check.mjs jsbeeb.mjs logic_compare.mjs; do
         echo tools/$f
     done
-    echo build/game.ssd; echo build/game_slots.json; echo build/gen/title.bin; echo build/gen/credits.bin
+    echo build/game.ssd; echo build/game_slots.json; for f in title credits scores; do echo build/gen/$f.bin; done
     ls build/tracks/t?.json build/trace/logic_t?_r1.json build/trace/logic_t?_r2.json build/trace/logic_t?_r4.json \
        build/trace/logic_t?_r17.json build/trace/logic_t?_r50.json build/trace/logic_t?_h*.json build/trace/logic_t?_demo*.json \
        build/trace/game_*.json \

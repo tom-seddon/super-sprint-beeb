@@ -145,9 +145,16 @@ def frame(c, title, foot):
     c.small(c.text(foot), 0x64, 0xC0, 3, 15)
 
 
-def scores(mem):
+def scores_frame(mem):
+    """The high scores without the table."""
     c = Canvas(mem)
     frame(c, 0x1F344, 0x1F35E)
+    return c.px
+
+
+def scores(mem):
+    c = Canvas(mem)
+    c.px = scores_frame(mem)
     n = 1
     for i in range(3):
         c.entry(n, 0x7A, 0x33 + i * 7, 3, 15)
