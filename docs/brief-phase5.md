@@ -493,6 +493,10 @@ touches the build.
      so it's two parts now: the credits and this frame at `BgOrg`, in the background's bank under ANDY after the erase's code (45
      bytes free), the rest at `FrontOrg` (1,740 free). They're unpacked with ANDY out. The MODE 1 wipe out takes 50 fields, the
      title's 28. `attract_check` compares the whole screen with `tools/st_frontend.py`'s composition, table and all.
+   - **The lap records** (2026-11-05): the high scores' frame and colours. Only its heading differs, so `RecordsPic` is just those two cell
+     rows, unpacked over the frame (445 bytes; `tools/screens.py` stops if the frames differ anywhere else). "ALL TIME BESTS", "TRACK n",
+     the times and "SECS" are drawn by the high scores' glyph routine, the times live from `LapRecords` by `F_01BE60`'s sums, limit
+     99.9 and all. TRACKF has 1,015 bytes free at `FrontOrg`.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
 10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.

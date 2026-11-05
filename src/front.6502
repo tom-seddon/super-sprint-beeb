@@ -79,10 +79,16 @@ ZA_AUTO2 fnames                         ; the entry's initials
 
 .front_shadow
 {
-    LDA acccon:ORA #AccX:STA fshadow:STA &FE34  ; ACCCON: the shadow screen written
-    LDA bankbg:STA &FE30                ; ROMSEL: ANDY out, for FrontPics
     LDA #LO(PlayAddr):STA zxdst
     LDA #HI(PlayAddr):STA zxdst+1
+}
+
+\\ The same, at zxdst. A, X, Y corrupted.
+
+.front_shadow_at
+{
+    LDA acccon:ORA #AccX:STA fshadow:STA &FE34  ; ACCCON: the shadow screen written
+    LDA bankbg:STA &FE30                ; ROMSEL: ANDY out, for FrontPics
     JSR front_unpack
     LDA bankbg:ORA #RomselAndy
     STA &FE30                           ; ROMSEL: ANDY in
@@ -90,10 +96,10 @@ ZA_AUTO2 fnames                         ; the entry's initials
     RTS
 }
 
-\\ The high scores (F_0172EA): MODE 1, the frame, and the table over it as the ST places it. Outputs: GmPicture 1.
+\\ The high scores' and lap records' frame, in the shadow screen: MODE 1 in its palette. Outputs: GmPicture 1.
 \\ A, X, Y corrupted.
 
-.front_scores
+.front_frame
 {
     LDX #15
 .palette
@@ -103,7 +109,111 @@ ZA_AUTO2 fnames                         ; the entry's initials
     LDA #1:STA GmPicture
     LDA #LO(ScoresPic):STA zxsrc
     LDA #HI(ScoresPic):STA zxsrc+1
-    JSR front_shadow
+    JMP front_shadow
+}
+
+\\ The lap records (F_01BF34): the frame, its own heading over the high scores', and the table as the ST places it.
+\\ Outputs: GmPicture 1. A, X, Y corrupted.
+
+.front_records
+{
+    JSR front_frame
+    LDA #LO(RecordsPic):STA zxsrc
+    LDA #HI(RecordsPic):STA zxsrc+1
+    LDA #LO(PlayAddr + 3 * 640):STA zxdst
+    LDA #HI(PlayAddr + 3 * 640):STA zxdst+1
+    JSR front_shadow_at
+    LDA #&76:STA fx
+    STZ fx+1
+    LDA #&3C:STA fy
+    LDX #StrBests - Texts
+    JSR front_text
+    STZ fentries
+.track
+    LDA fentries:AND #3:TAX
+    LDA Lines,X:STA fy
+    LDA #&20
+    LDX fentries:CPX #4:BCC left
+    LDA #&20 + &94
+.left
+    STA fx
+    STZ fx+1
+    LDX #StrTrack - Texts
+    JSR front_text                      ; (x + 30)
+    LDA #6:JSR front_across
+    LDA fentries:INC A:JSR front_glyph
+    LDA #18:JSR front_across            ; (x + &36)
+    LDA fentries:ASL A:TAX
+    LDA LapRecords+1,X:STA fs
+    LDA LapRecords,X:STA fs+1
+    LDA fs:CMP #LO(999 * 5):LDA fs+1:SBC #HI(999 * 5):BCC seconds
+    LDA #LO(999 * 5):STA fs             ; (the ST's limit: 99.9)
+    LDA #HI(999 * 5):STA fs+1
+.seconds
+    LDX #2:JSR front_digit:BEQ tens
+    JSR front_glyph
+.tens
+    LDA #6:JSR front_across
+    LDX #1:JSR front_digit:JSR front_glyph
+    LDA #6:JSR front_across
+    LDA #10:JSR front_glyph             ; (the point)
+    LDA #6:JSR front_across
+    LDX #0:JSR front_digit:JSR front_glyph
+    LDA #12:JSR front_across            ; (x + &54)
+    LDX #StrSecs - Texts
+    JSR front_text
+    INC fentries
+    LDA fentries:CMP #8:BEQ shown
+    JMP track
+.shown
+    JMP front_wipe_in
+.Lines                                  ; each row's first line
+    EQUB &86, &92, &9E, &AA
+}
+
+\\ How many times step X (0-2: 5, 50, 500) goes into fs, the rest left there. Outputs: A, Z its digit. X kept, Y corrupted.
+
+.front_digit
+{
+    LDY #0
+.more
+    LDA fs:SEC:SBC StepLo,X:STA fglyph
+    LDA fs+1:SBC StepHi,X:BCC done
+    STA fs+1
+    LDA fglyph:STA fs
+    INY
+    BRA more
+.done
+    TYA
+    RTS
+.StepLo
+    EQUB LO(5), LO(50), LO(500)
+.StepHi
+    EQUB HI(5), HI(50), HI(500)
+}
+
+\\ The text at Texts + X, at fx, fy, each glyph 6 pixels on from the last, fx left past it. A, X, Y corrupted.
+
+.front_text
+{
+.next
+    LDA Texts,X:BMI done
+    PHX
+    JSR front_glyph
+    LDA #6:JSR front_across
+    PLX
+    INX
+    BRA next
+.done
+    RTS
+}
+
+\\ The high scores (F_0172EA): the frame, and the table over it as the ST places it. Outputs: GmPicture 1.
+\\ A, X, Y corrupted.
+
+.front_scores
+{
+    JSR front_frame
     LDA #LO(HiScores + 6):STA fs        ; (the first's unused)
     LDA #HI(HiScores + 6):STA fs+1
     LDA #LO(HiScores + 31 * 6 + 3):STA fnames
@@ -385,6 +495,13 @@ ZA_AUTO2 fnames                         ; the entry's initials
     EQUB (0..15) * 16 + (ScoresPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)
 .SmallGlyphs
     EQUB SmallFont
+.Texts
+.StrBests
+    EQUB BestsGlyphs
+.StrTrack
+    EQUB TrackGlyphs
+.StrSecs
+    EQUB SecsGlyphs
 .WipeMode1
     EQUB Mode1Wipe
 .WipeMode2
@@ -397,4 +514,6 @@ ZA_AUTO2 fnames                         ; the entry's initials
 
 .TitlePic
     INCBIN "../build/gen/title.zx02"
+.RecordsPic                             ; (the heading's cell rows)
+    INCBIN "../build/gen/records.zx02"
 .front_end

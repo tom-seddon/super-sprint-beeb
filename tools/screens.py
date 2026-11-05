@@ -22,7 +22,9 @@ Levels = [[0xFF] * 8, [0x7E, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7E], [0x3C, 0
           [0, 0, 0x18, 0x3C, 0x3C, 0x18, 0, 0], [0, 0, 0, 0x18, 0x18, 0, 0, 0], [0] * 8]
 Looks = {'title': dict(mode=2, table=O.TitleChecked, over=O.title_line),    # (Tom, 2026-11-04: option 7, MODE 2 checked; he may change his mind)
          'credits': dict(mode=1, pal='KRYC', table=O.CreditsFlat('C')),
-         'scores': dict(mode=1, pal='KBMY', table=O.ScoresFlat('M', 'Y'), blank=F.scores_frame)}
+         'scores': dict(mode=1, pal='KBMY', table=O.ScoresFlat('M', 'Y'), blank=F.scores_frame),
+         # (the high scores' frame but for the heading's cell rows, so only those are packed)
+         'records': dict(mode=1, pal='KBMY', table=O.ScoresFlat('M', 'Y'), blank=F.records_frame, rows=(3, 5))}
 Glyphs = 39                             # the small font's, as the tables use them: the digits, the letters, a space
 
 
@@ -54,7 +56,13 @@ def picture(name):
     look = Looks[name]
     idx = O.Screens[name](F.dat())[0]
     shown = bytes_of(idx, look)
-    return shown, bytes_of(look['blank'](F.first_dump()), look) if 'blank' in look else shown
+    raw = bytes_of(look['blank'](F.first_dump()), look) if 'blank' in look else shown
+    if 'rows' in look:
+        a, b = (r * 640 for r in look['rows'])
+        other = picture('scores')[1]
+        assert raw[:a] == other[:a] and raw[b:] == other[b:], f'{name}: the frame differs outside its rows'
+        raw = raw[a:b]
+    return shown, raw
 
 
 def font():
@@ -63,12 +71,19 @@ def font():
     return [mem[0x1D43C - F.Region + g * 8 + line] for g in range(Glyphs) for line in range(6)]
 
 
+def string(a):
+    """The string at a, as the small font's glyphs, ended by a byte with its top bit set."""
+    c = F.Canvas(F.first_dump())
+    return ', '.join(str(c.code(ch)) for ch in c.text(a)) + ', 255'
+
+
 def main(out, zx02):
     lines = ['\\\\ front.6502 - the front end\'s tables (tools/screens.py)', 'Mode1Wipe = {' + ', '.join(map(str, table(mask1))) + '}',
              'Mode2Wipe = {' + ', '.join(map(str, table(mask2))) + '}',
              'CreditsPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['credits']['pal']) + '}',
              'ScoresPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['scores']['pal']) + '}',
-             'SmallFont = {' + ', '.join(map(str, font())) + '}']
+             'SmallFont = {' + ', '.join(map(str, font())) + '}',
+             'BestsGlyphs = {' + string(0x1F766) + '}', 'TrackGlyphs = {' + string(0x1F776) + '}', 'SecsGlyphs = {' + string(0x1F77C) + '}']
     for name in Looks:
         shown, raw = picture(name)
         open(f'{out}/{name}.bin', 'wb').write(shown)

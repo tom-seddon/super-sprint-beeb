@@ -93,9 +93,12 @@ class Canvas:
             for j in range(6):
                 self.px[y + line, x + j] = c1 if b >> (7 - j) & 1 else c0
 
+    def code(self, ch):                 # a character's glyph
+        return (ch & 31) + 11 if ch > 0x40 else self.mem[0x1D118 - Region + (ch & 31)]
+
     def small(self, s, x, y, c0, c1):   # F_016BE8
         for ch in s:
-            self.glyph((ch & 31) + 11 if ch > 0x40 else self.mem[0x1D118 - Region + (ch & 31)], x, y, c0, c1)
+            self.glyph(self.code(ch), x, y, c0, c1)
             x += 6
 
     def big(self, s, c, x, y):          # F_016F4E, F_016EB8: 12 lines of a mask word and a data word, 11 pixels on
@@ -166,9 +169,16 @@ def scores(mem):
     return c.px
 
 
-def records(mem):
+def records_frame(mem):
+    """The lap records without the table."""
     c = Canvas(mem)
     frame(c, 0x1F736, 0x1F750)
+    return c.px
+
+
+def records(mem):
+    c = Canvas(mem)
+    c.px = records_frame(mem)
     c.small(c.text(0x1F766), 0x76, 0x3C, 3, 15)
     for n in range(8):
         x, y = n // 4 * 0x94 + 0x20, 0x86 + 12 * (n & 3)

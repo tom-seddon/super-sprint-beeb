@@ -164,7 +164,8 @@ def mode2_rgb(lidx):
 
 Screens = {'title': lambda d: (T.decode_map(d, 8), F.shot('title')[1]['palette']),
            'credits': lambda d: (stgfx.planar_to_indices(F.unrle(d, 0x2E9F6)[0], 320, 200), F.shot('credits')[1]['palette']),
-           'scores': lambda d: (F.scores(F.first_dump()), F.shot('scores')[1]['palette'])}
+           'scores': lambda d: (F.scores(F.first_dump()), F.shot('scores')[1]['palette']),
+           'records': lambda d: (F.records(F.first_dump()), F.shot('records')[1]['palette'])}
 
 
 def main(name):
