@@ -2,24 +2,30 @@
 # Every oracle the game has, one after another (the builds share build/sprint.*, so not in parallel), each
 # one's output in OUT/<name>.log and its exit status in OUT/verdicts.txt. Exit status 1 if any failed.
 #
+# The races on the disc, nine-tenths of the work, go to the machine REMOTE, by default agentbox (tools/remote.sh), as
+# soon as the disc's made, the rest running here meanwhile: about 7 minutes. `REMOTE= tools/suite.sh OUT` keeps it all
+# on this machine, the races last: about 38.
+#
 # Usage (from the repo root): tools/suite.sh OUT [quick]   (OUT outside the repository: the scratchpad or a temp dir)
-# quick: the races on the disc only one way round, 8 of 88: about 10 minutes, not 32. For changes to the front end's
-# pictures alone. Anything touching the race, the boot or the loads wants the whole suite.
+# quick: the races on the disc only one way round, 8 of 88. For changes to the front end's pictures alone, when the
+# races are on this machine: about 10 minutes. Anything touching the race, the boot or the loads wants the whole suite.
 
 OUT=${1:?usage: tools/suite.sh OUT [quick]}
 [ "$2" = quick ] && export ROTATIONS=0
+export REMOTE=${REMOTE-agentbox}
 mkdir -p "$OUT"
 : > "$OUT/verdicts.txt"
-fail=0
 run() {
     name=$1; shift
     start=$(date +%s)
     "$@" > "$OUT/$name.log" 2>&1
     status=$?
     echo "$name $status $(( $(date +%s) - start ))s" >> "$OUT/verdicts.txt"
-    [ $status -eq 0 ] || fail=1
 }
 
+run all_tracks tools/all_tracks.sh
+run game_disc sh -c 'make build/zx02 && .venv/bin/python tools/make_game.py build/tracks build/zx02 build/game.ssd'
+[ -n "$REMOTE" ] && run disc_races tools/disc_races.sh "$OUT/disc_races" &
 run st_frontend .venv/bin/python -P tools/st_frontend.py
 run st_screens .venv/bin/python -P tools/st_screens_check.py
 run logic_build make logic
@@ -40,11 +46,11 @@ run render_logic0 make check TRACE=logic0
 run sn_check node tools/sn_check.mjs
 run play_build make beeb TRACE=play
 run keys_check node tools/keys_check.mjs
-run all_tracks tools/all_tracks.sh
-run game_disc sh -c 'make build/zx02 && .venv/bin/python tools/make_game.py build/tracks build/zx02 build/game.ssd'
 run load_check node tools/load_check.mjs
 run game_check node tools/game_check.mjs
 run attract_check node tools/attract_check.mjs
-run disc_races tools/disc_races.sh "$OUT/disc_races"
+[ -n "$REMOTE" ] || run disc_races tools/disc_races.sh "$OUT/disc_races"
+wait
+fail=$(awk '$2 != 0 { bad = 1 } END { print bad + 0 }' "$OUT/verdicts.txt")
 echo "done $fail" >> "$OUT/verdicts.txt"
 exit $fail
