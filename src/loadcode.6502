@@ -17,8 +17,6 @@
     LDA SnQuiet,X:JSR sn_write          ; every channel silent
     DEX
     BPL quiet
-    LDA #6:STA &FE00                    ; CRTC: R6
-    LDA #1:STA &FE01                    ; only the HUD's row displayed: the play area's free for the file
     TSX:STX LoadStack
 
     \\ the OS given back its zero page, VIAs, vectors and paging (D7)
@@ -51,6 +49,8 @@
 .again
     JSR row_clear
     LDX #LoadingText - LoadTexts:JSR row_text
+    LDA #8:STA &FE00                    ; CRTC: R8
+    LDA #&C0:STA &FE01                  ; display on, cursor off (at the first load, it's been off since the boot)
     LDX #17                             ; OSFILE's block: the name, the load address (the host's), exec's
     LDA #0                              ; low byte 0 (the address given); OSFILE writes the catalogue's back,
 .block                                  ; so it's made again each time
@@ -85,22 +85,26 @@
     LDA &FE34:AND #&30:STA acccon       ; ACCCON: the main screen shown and written
     STA &FE34
 
-    \\ the front end's file, TRACKF: copied up to where it runs, and back to the game (game_go) with no race
+    \\ a picture file, TRACKF or TRACKP: copied up to where it's read, and back to the game (game_go) with no race
 
-    LDA LoadName+5:CMP #'F':BNE parts
+    LDA LoadName+5
+    CMP #'F':BEQ pictures
+    CMP #'P':BNE parts
+.pictures
+    STA GmFront
     LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
     LDA #HI(TrackFileAddr):STA from+2   ; (its operands from the first page: every load)
+    LDA GmFront:CMP #'P':BEQ high
     LDA #LO(BgOrg):STA into+1           ; (ANDY out: the part under it first, then the rest)
     LDA #HI(BgOrg):STA into+2
     LDX #HI(front_pics_end - BgOrg)
     JSR front_copy
+.high
     STZ into+1
-    LDA #HI(FrontOrg):STA into+2
-    LDX #HI(GameScratchOrg - FrontOrg)
+    LDA #HI(FrontPicOrg):STA into+2
+    LDX #HI(GameScratchOrg - FrontPicOrg)
     JSR front_copy
-    LDA #1:STA GmFront
-    LDA #6:STA &FE00                    ; CRTC: R6
-    LDA #ScreenRows:STA &FE01           ; the screen's rows again
+    JSR rows_back                       ; (say_clear turns the display on)
     LDX #&FF:TXS
     CLI
     JMP game_go
@@ -154,11 +158,19 @@
     \\ the race from the top, as at the takeover
 
     JSR clear_state
-    LDA #6:STA &FE00                    ; CRTC: R6
-    LDA #ScreenRows:STA &FE01           ; the screen's rows again (start turns the display on)
+    JSR rows_back                       ; (start turns the display on)
     LDX #&FF:TXS
     CLI
     JMP start
+
+    \\ The display off, its file still in the screen, then the screen's rows again
+
+.rows_back
+    LDA #8:STA &FE00                    ; CRTC: R8
+    LDA #&F0:STA &FE01                  ; display and cursor off
+    LDA #6:STA &FE00                    ; CRTC: R6
+    LDA #ScreenRows:STA &FE01
+    RTS
 
     \\ BRKV while the OS has the machine: a disc error. The stack as the load had it, the OS's message (after
     \\ the error's number, at &FD's pointer) in the HUD's row, and the load again on a key

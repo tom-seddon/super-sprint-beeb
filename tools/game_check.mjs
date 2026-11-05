@@ -3,7 +3,8 @@
 // the BBC's screens must ask as often and for the same car, and the state compared at every point the ST's was
 // dumped. A race isn't driven: the trace's result is put in at the frame the ST's was. At the race's return the
 // whole logic is compared (tools/logic_compare.mjs); at the other points the game's own state: who's playing,
-// wrenches, scores, upgrades, the race counter, the lap records, the generator.
+// wrenches, scores, upgrades, the race counter, the lap records, the generator. Prepare to race's screen is compared
+// with tools/screens.py's as it's shown and as it ends, a join's panel and all.
 //
 // Not yet: the initials (step 10), so their reads are skipped and the high scores aren't compared.
 //
@@ -112,6 +113,23 @@ async function play(name) {
         if (loud.length) say(`${where}: channels ${loud.join(", ")} still sounding`);
     }
 
+    // Prepare to race's screen, byte for byte: the picture, and each car's panel as it's playing or not (tools/screens.py)
+    const prepareAll = readFileSync("build/gen/prepare_all.bin"), prepareNone = readFileSync("build/gen/prepare_none.bin");
+    let screens = 0, joined = 0;
+    function screen(where) {
+        const got = ram(s, syms.PlayAddr, 16000), want = Buffer.from(prepareAll), Panels = [0, 27 * 8, 54 * 8, 80 * 8];
+        const playing = [0, 1, 2].map((c) => peek(syms.RcDrone + c) === 0);
+        for (let c = 0; c < 3; c++)
+            if (!playing[c]) for (let r = 0; r < 6; r++) prepareNone.copy(want, r * 640 + Panels[c], r * 640 + Panels[c], r * 640 + Panels[c + 1]);
+        let diff = 0;
+        for (let i = 0; i < 16000; i++) if (got[i] !== want[i]) diff++;
+        if (diff) say(`${where}: ${diff} bytes of the screen differ, ${playing.map(Number).join("")} playing`);
+        if (where === "prepare shown") shownPlaying = playing.join();
+        else if (playing.join() !== shownPlaying) joined++;
+        screens++;
+    }
+    let shownPlaying = "";
+
     // the race's result, as the ST's pokes
     function result(entries) {
         for (const [a, ...b] of entries) {
@@ -152,6 +170,7 @@ async function play(name) {
         ["circle", syms["game_resume.after_circle"], bankbg], ["upgrades", syms["game_resume.after_upgrades"], bankbg],
         ["prepare again", syms["game_resume.after_prepare"], bankbg], ["restored", syms["game_resume.restored"], bankbg],
         ["over", syms["game_resume.attract"], bankbg],
+        ["prepare shown", syms["prepare.shown"], bankbg], ["prepare over", syms["prepare.over"], bankbg],
     ];
     const byAddr = new Map(stops.map(([n, a, b]) => [a, n]));
     const list = stops.map(([, a, b]) => [a, b]);
@@ -185,7 +204,11 @@ async function play(name) {
             const st = raceSteps[ri];
             cpu.a = word(syms.LfFrame) === st.when[1] - Flips && abandons(st) ? 0x80 : 0;
         } else {
-            if (stop === "race" && peek(syms.GmStage) === 0) continue;
+            if (stop === "prepare shown" || stop === "prepare over") {
+                screen(stop);
+                continue;
+            }
+            if (stop === "race" && (peek(syms.GmStage) === 0 || peek(syms.GmBack))) continue;   // (GmBack: prepare's file loaded)
             const p = points[pi];
             if (p.name !== stop) { say(`at ${stop}, the ST's next point ${p.name}`); break; }
             eat();
@@ -202,7 +225,7 @@ async function play(name) {
     eat();
     if (read < front.length) say(`${front.length - read} reads left over`);
     const bad = wrong + wholly.wrong + noGates.wrong + only.wrong;
-    console.log(`${name}: ${bad ? `WRONG, ${bad} points` : `exact at ${pi - 1} points, ${read} reads`}`);
+    console.log(`${name}: ${bad ? `WRONG, ${bad} points` : `exact at ${pi - 1} points, ${read} reads, ${screens} screens, ${joined} with a join`}`);
     s.destroy?.();
     return bad ? 1 : 0;
 }

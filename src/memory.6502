@@ -82,8 +82,10 @@ SECTION LowFree, org = LowFreeOrg, guard = LowFreeEnd, virtual = TRUE
 ENDSECTION
 
 GameOrg = &9000                         ; game.6502, in the background's bank between races: above ANDY
-FrontOrg = &A000                        ; front.6502, the file TRACKF, the same: code, tables and more packed pictures
-GameScratchOrg = &B800                  ; and its variables
+FrontOrg = &A000                        ; front.6502, the same, copied there with it: code and tables
+FrontImage = &B700                      ; (its image, at the objects' bank's end, where every track leaves room)
+FrontPicOrg = FrontOrg + SwramEnd - FrontImage  ; the packed pictures of the file loaded, TRACKF or TRACKP
+GameScratchOrg = &B800                  ; and game.6502's variables
 SECTION GameScratch, org = GameScratchOrg, guard = &C000, virtual = TRUE
 ENDSECTION
 

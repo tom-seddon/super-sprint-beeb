@@ -149,6 +149,28 @@ def ScoresFlat(band, gold):
     return {0: 'KKKK', 1: 'BBBB', **{i: band * 4 for i in (3, 5, 8, 9, 14)}, **{i: gold * 4 for i in (2, 4, 6, 7, 11, 13, 15)}}
 
 
+# Prepare to race (Tom, 2026-11-05: MODE 1, the race's palette): each car's ST colours by part. The three are one drawing, but
+# not one colouring (docs/brief-phase5.md, step 8), and the middle panel is the bottom car's.
+PrepareCars = ((dict(solid=(6, 4), shade=(3, 5)), (slice(52, 112), slice(0, 160))),
+               (dict(solid=(6, 4, 10), shade=(3, 5, 9)), (slice(112, 200), slice(0, 320))),
+               (dict(solid=(1, 2, 10), shade=(9,)), (slice(52, 112), slice(160, 320))))
+PanelX = (0, 108, 216, 320)             # (panels by a byte's 4 pixels)
+
+
+def prepare(px, pal, colours, checks):
+    """px, F.prepare's picture, in logical colours: colours the cars', players 1-3, checks the checker's lighter squares."""
+    table = {i: 'KKKK' for i in range(16)}
+    table.update({12: checks, 15: 'WWWW', 7: 'WKKW'})
+    out = render(px, table, pal)
+    for (parts, area), c in zip(PrepareCars, colours):
+        car = {**table, **{i: c * 4 for i in parts['solid']}, **{i: c + 'KK' + c for i in parts['shade']}}
+        out[area] = render(px, car, pal)[area]
+    for i, c in enumerate(colours):
+        xs = slice(PanelX[i], PanelX[i + 1])
+        out[:52, xs] = render(px, {**table, i + 1: c * 4}, pal)[:52, xs]
+    return out
+
+
 def mode2_bytes(lidx):
     """(200, 160) colours 0-7 -> 16,000 bytes: 2 pixels a byte, the left's bits 7, 5, 3, 1, the right's 6, 4, 2, 0."""
     a = lidx.astype(np.uint8)

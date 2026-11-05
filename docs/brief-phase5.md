@@ -497,6 +497,14 @@ touches the build.
      rows, unpacked over the frame (445 bytes; `tools/screens.py` stops if the frames differ anywhere else). "ALL TIME BESTS", "TRACK n",
      the times and "SECS" are drawn by the high scores' glyph routine, the times live from `LapRecords` by `F_01BE60`'s sums, limit
      99.9 and all. TRACKF has 1,015 bytes free at `FrontOrg`.
+   - **Prepare to race** (2026-11-05): MODE 1 in the race's palette, so the cars are the ones you race, white, green and yellow (the middle
+     panel's the bottom car's), the checker dim green (Tom; `build/viewer/prepare.ssd` had six looks, MODE 2's letters filling in). His ideas for
+     later: a palette split, for the right colours and a fifth for the checks; an editable PNG. It's a game screen, and a race overwrites
+     the background's bank, so **the front end's code moved** to an image at the objects' bank's end (`FrontImage`, 2,304 bytes; 34 left
+     there on track 5), copied by `game_go` beside the game, and picture files hold only pictures. `TRACKP`, 2,803 bytes, is loaded
+     before each prepare, `save_game` before and `load_game` after, `GmBack` saying where to go on (one more load a race, to judge on a
+     Master). Each car's panel is a stream of its own, playing or not, unpacked under ANDY and copied in by rows, which covers a join. The
+     cars' flickering details are left out for now.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
 10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.

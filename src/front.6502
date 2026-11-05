@@ -1,5 +1,6 @@
-\\ front.6502 - the front end's pictures (Phase 5, step 8): the file TRACKF, assembled to run at FrontOrg in the background's
-\\ bank, beside game.6502, loaded with the OS (load_track) into the main screen and copied up. The tables and each
+\\ front.6502 - the front end's pictures (Phase 5, step 8): code and tables, kept as an image at the objects' bank's end and
+\\ copied by game_go to FrontOrg in the background's bank, beside game.6502. The pictures are files, loaded with the OS
+\\ (load_track) into the main screen and copied up: TRACKF the attract mode's, TRACKP prepare to race's. The tables and each
 \\ picture, ZX02 packed, come from tools/screens.py, which says how each screen looks. Some of the pictures are in
 \\ FrontPics, in the same bank under ANDY after the erase's code (sprint.6502), so they're unpacked with ANDY out.
 \\
@@ -29,6 +30,10 @@ ZA_AUTO1 fcolumn                        ; Columns' next
 ZA_AUTO1 fentries                       ; entries left in the column
 ZA_AUTO1 fcolx                          ; the column's pixel across
 ZA_AUTO2 fnames                         ; the entry's initials
+ZA_AUTO1 fpanel                         ; ACCCON for a panel's drawing
+
+PanelRows = 6                           ; prepare's cell rows of panels (tools/screens.py)
+PanelBuf = BgOrg                        ; a panel on its way to the screen, under ANDY (TRACKP has nothing there)
 
 \\ The title: MODE 2, wiped in over the black the screen was left in. Outputs: GmPicture 2. A, X, Y corrupted.
 
@@ -94,6 +99,91 @@ ZA_AUTO2 fnames                         ; the entry's initials
     STA &FE30                           ; ROMSEL: ANDY in
     LDA acccon:STA &FE34                ; ACCCON: the main screen written
     RTS
+}
+
+\\ Prepare to race (F_018776): MODE 1, the race's palette, the picture and each car's panel. Inputs: RcDrone.
+\\ Outputs: GmPicture 1. A, X, Y corrupted.
+
+.front_prepare
+{
+    JSR front_mode1
+    LDA #1:STA GmPicture
+    LDA #LO(PreparePic):STA zxsrc
+    LDA #HI(PreparePic):STA zxsrc+1
+    LDA #LO(PlayAddr + PanelRows * 640):STA zxdst
+    LDA #HI(PlayAddr + PanelRows * 640):STA zxdst+1
+    JSR front_shadow_at
+    LDA #2:STA fentries
+.car
+    LDX fentries
+    LDA fshadow:STA fpanel
+    JSR front_panel
+    DEC fentries
+    BPL car
+    JMP front_wipe_in
+}
+
+\\ F_0190D2 as a car joins: its panel on the screen shown. Inputs: X the car, RcDrone. A, X, Y corrupted.
+
+.front_join
+{
+    LDA acccon:STA fpanel
+}
+
+\\ Car X's panel, as RcDrone says, drawn with ACCCON as fpanel. A, X, Y corrupted.
+
+.front_panel
+{
+    TXA
+    LDY RcDrone,X:BEQ playing           ; (the race's state: read with ANDY in)
+    CLC:ADC #3
+.playing
+    TAY
+    LDA PanelLo,Y:STA zxsrc
+    LDA PanelHi,Y:STA zxsrc+1
+    LDA #LO(PanelBuf):STA zxdst
+    LDA #HI(PanelBuf):STA zxdst+1
+    LDA PanelFrom,X:STA fp
+    LDA PanelBytes,X:STA fleft
+    PHX
+    JSR front_shadow_at
+    PLX
+    LDA #HI(PlayAddr):STA fp+1
+    LDA fp:CLC:ADC #LO(PlayAddr):STA fp
+    LDA fp+1:ADC PanelPage,X:STA fp+1
+    LDA #LO(PanelBuf):STA fs
+    LDA #HI(PanelBuf):STA fs+1
+    LDA #PanelRows:STA flines
+    LDA bankbg:STA &FE30                ; ROMSEL: ANDY out, for the buffer
+    LDA fpanel:STA &FE34                ; ACCCON
+.row
+    LDY #0
+.byte
+    LDA (fs),Y:STA (fp),Y
+    INY
+    CPY fleft:BNE byte
+    TYA:CLC:ADC fs:STA fs
+    BCC @+
+    INC fs+1
+.@
+    LDA fp:CLC:ADC #LO(640):STA fp
+    LDA fp+1:ADC #HI(640):STA fp+1
+    DEC flines
+    BNE row
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: ANDY in
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
+.PanelLo
+    EQUB LO(PreparePanel0), LO(PreparePanel1), LO(PreparePanel2), LO(PreparePanel3), LO(PreparePanel4), LO(PreparePanel5)
+.PanelHi
+    EQUB HI(PreparePanel0), HI(PreparePanel1), HI(PreparePanel2), HI(PreparePanel3), HI(PreparePanel4), HI(PreparePanel5)
+.PanelFrom                              ; each panel's first byte across, in the row
+    EQUB LO(0), LO(27 * 8), LO(54 * 8)
+.PanelPage
+    EQUB HI(0), HI(27 * 8), HI(54 * 8)
+.PanelBytes                             ; and its bytes a cell row
+    EQUB 27 * 8, 27 * 8, 26 * 8
 }
 
 \\ The high scores' and lap records' frame, in the shadow screen: MODE 1 in its palette. Outputs: GmPicture 1.
@@ -349,13 +439,21 @@ ZA_AUTO2 fnames                         ; the entry's initials
 {
     JSR front_wipe
     JSR wipe_out
+    JSR front_mode1
+    STZ GmPicture
+    RTS
+}
+
+\\ MODE 1, the race's palette. A, X corrupted.
+
+.front_mode1
+{
     LDA #UlaMode1:STA &FE20             ; video ULA: control
     LDX #15
 .palette
     LDA PalMode1,X:STA &FE21            ; video ULA: palette
     DEX
     BPL palette
-    STZ GmPicture
     RTS
 }
 
@@ -512,8 +610,3 @@ ZA_AUTO2 fnames                         ; the entry's initials
     ZX02_DEPACKER
 }
 
-.TitlePic
-    INCBIN "../build/gen/title.zx02"
-.RecordsPic                             ; (the heading's cell rows)
-    INCBIN "../build/gen/records.zx02"
-.front_end

@@ -25,6 +25,8 @@ Looks = {'title': dict(mode=2, table=O.TitleChecked, over=O.title_line),    # (T
          'scores': dict(mode=1, pal='KBMY', table=O.ScoresFlat('M', 'Y'), blank=F.scores_frame),
          # (the high scores' frame but for the heading's cell rows, so only those are packed)
          'records': dict(mode=1, pal='KBMY', table=O.ScoresFlat('M', 'Y'), blank=F.records_frame, rows=(3, 5))}
+Prepare = dict(pal='KGYW', colours='WGY', checks='GKKG')    # (Tom, 2026-11-05: the race's palette, a dim green checker)
+PanelRows = 6                           # prepare's cell rows of panels
 Glyphs = 39                             # the small font's, as the tables use them: the digits, the letters, a space
 
 
@@ -71,6 +73,26 @@ def font():
     return [mem[0x1D43C - F.Region + g * 8 + line] for g in range(Glyphs) for line in range(6)]
 
 
+def prepare(out, zx02):
+    """Prepare to race: the picture from cell row PanelRows on as prepare.zx02, and each car's panel, its part of the rows above,
+    a cell row after another, playing and not: prepare_0-2 and prepare_3-5. prepare_all and prepare_none.bin are the screen
+    with all three playing and none, for tools/game_check.mjs."""
+    mem = F.first_dump()
+    full = [mode1_bytes(O.prepare(F.prepare(mem, (p, p, p)), **Prepare)) for p in (1, 0)]
+    assert full[0][PanelRows * 640:] == full[1][PanelRows * 640:], 'prepare: the panels reach below their rows'
+    open(f'{out}/prepare_all.bin', 'wb').write(full[0])
+    open(f'{out}/prepare_none.bin', 'wb').write(full[1])
+    streams = [('prepare', full[0][PanelRows * 640:])]
+    for state, screen in enumerate(full):
+        for car in range(3):
+            a, b = O.PanelX[car] * 2, O.PanelX[car + 1] * 2
+            streams.append((f'prepare_{state * 3 + car}', b''.join(screen[r * 640 + a:r * 640 + b] for r in range(PanelRows))))
+    for name, raw in streams:
+        packed = dfs.compress(raw, exe=zx02, name=name)
+        open(f'{out}/{name}.zx02', 'wb').write(packed)
+        print(f'{name}: {len(packed):,} bytes packed')
+
+
 def string(a):
     """The string at a, as the small font's glyphs, ended by a byte with its top bit set."""
     c = F.Canvas(F.first_dump())
@@ -90,6 +112,7 @@ def main(out, zx02):
         packed = dfs.compress(raw, exe=zx02, name=name)
         open(f'{out}/{name}.zx02', 'wb').write(packed)
         print(f'{name}: {len(packed):,} bytes packed')
+    prepare(out, zx02)
     open(f'{out}/front.6502', 'w').write('\n'.join(lines) + '\n')
 
 

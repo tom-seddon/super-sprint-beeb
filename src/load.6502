@@ -86,7 +86,9 @@ SECTION LowFree                         ; &0900-&0AFF, kept across loads (D26)
     SKIP 1
 .GmSeeded                               ; the generator's been seeded
     SKIP 1
-.GmFront                                ; the file TRACKF's in the background's bank (a track's load overwrites it)
+.GmFront                                ; the file in the background's bank: 'F', 'P' or 0 (a track's load overwrites it)
+    SKIP 1
+.GmBack                                 ; the way back to prepare to race after its file's load: 1 between races, 2 at the first
     SKIP 1
 .GmPicture                              ; a picture's on the screen: its mode, 1 or 2, or 0 none
     SKIP 1
@@ -114,13 +116,27 @@ ENDSECTION
     CLI
     LDA &FE34:AND #&30:STA acccon       ; ACCCON: the main screen shown and written
     STA &FE34
-    LDA #8:STA &FE00                    ; CRTC: R8
-    LDA #&C0:STA &FE01                  ; display on, cursor off
-    LDA #HI(game_image):STA from+2      ; (its operands from the first page: every time)
+    LDA acccon:ORA #AccX                ; (the page in transit in the shadow screen, not shown: a race's last frame
+    STA &FE34                           ; stays up, and after a load the display's off until the screen's clear: say_clear)
+    LDA banktrace:STA page+1            ; (its operands from the first page: every time)
+    LDA #LO(game_image):STA from+1
+    LDA #HI(game_image):STA from+2
     LDA #HI(GameOrg):STA into+2
     LDX #HI(game_end - game_image + &FF)
+    JSR copy_pages
+    LDA bankobj:STA page+1              ; and the front end's
+    LDA #LO(front_image):STA from+1
+    LDA #HI(front_image):STA from+2
+    LDA #HI(FrontOrg):STA into+2
+    LDX #HI(SwramEnd - FrontImage)
+    JSR copy_pages
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: the background's bank, ANDY in
+    JMP game_resume
+.copy_pages
 .page
-    LDA banktrace:STA &FE30             ; ROMSEL: the fourth bank, ANDY out: its first 4K
+    LDA #0:STA &FE30                    ; (self-modified: the bank) ROMSEL, ANDY out
     LDY #0
 .from
     LDA game_image,Y                    ; self-modified: the page's high byte
@@ -138,9 +154,7 @@ ENDSECTION
     INC into+2
     DEX
     BNE page
-    LDA bankbg:ORA #RomselAndy
-    STA &FE30                           ; ROMSEL: the background's bank, ANDY in
-    JMP game_resume
+    RTS
 }
 
 \\ A character of the MOS's font into FontBuf: at &B900 in ROM 15 from ASCII 32 (loadcode.6502), and game.6502's bank
@@ -182,6 +196,9 @@ ENDSECTION
     LDA LoadWant:BPL load
     JMP game_go
 .load
+    LDA inblank:BEQ load                ; only the HUD's row displayed, from now on: the load's code and the file land in
+    LDA #6:STA &FE00                    ; the play area. In the blank, or the CRTC, past the row, misses it and goes on
+    LDA #1:STA &FE01                    ; displaying past the screen's end. CRTC: R6
     LDA banktrace:STA &FE30             ; ROMSEL: the fourth bank, ANDY out: its first 4K
     LDA acccon:AND #&FF EOR AccX
     STA &FE34                           ; ACCCON: main RAM written

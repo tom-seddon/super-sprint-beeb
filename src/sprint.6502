@@ -98,7 +98,17 @@ SECTION ObjFile, filename = "SPRINTD", load = &FFFF0000+LoadAddr
         INCBIN "../build/gen/objects.bin"   ; (tools/gendata.py)
         ASSERT LO(ObjData) == 0, "the objects' bytes: from a page's start"
 .ObjSlotEnd
-        PRINT "the objects' bank: ", SwramEnd - P%, " bytes free"
+        IF GenPlay
+            PRINT "the objects' bank: ", FrontImage - P%, " bytes free"
+            PADTO FrontImage
+.front_image                            ; (the front end's code, copied to the background's bank to run: load.6502)
+            SECTION FrontCode, org = FrontOrg, guard = FrontPicOrg, cmos = TRUE
+                INCLUDE "front.6502"
+                PRINT "the front end's code: ", FrontPicOrg - P%, " bytes free"
+            ENDSECTION
+        ELSE
+            PRINT "the objects' bank: ", SwramEnd - P%, " bytes free"
+        ENDIF
     ENDSECTION
 ENDSECTION
 
@@ -114,9 +124,34 @@ SECTION FrontFile, filename = "TRACKF", load = &FFFF0000+TrackFileAddr
         PADTO BgOrg + ((P% - BgOrg + &FF) AND &FF00)    ; (whole pages, for the load's copy)
 .front_pics_end
     ENDSECTION
-    SECTION FrontCode, org = FrontOrg, guard = GameScratchOrg, cmos = TRUE
-        INCLUDE "front.6502"
+    SECTION FrontHigh, org = FrontPicOrg, guard = GameScratchOrg
+.TitlePic
+        INCBIN "../build/gen/title.zx02"
+.RecordsPic                             ; (the heading's cell rows)
+        INCBIN "../build/gen/records.zx02"
         PRINT "the front end's file: ", GameScratchOrg - P%, " bytes free"
+    ENDSECTION
+ENDSECTION
+
+\\ Prepare to race's: its picture and panels, loaded over the rest (a race has overwritten them anyway)
+
+SECTION PrepareFile, filename = "TRACKP", load = &FFFF0000+TrackFileAddr
+    SECTION PrepareHigh, org = FrontPicOrg, guard = GameScratchOrg
+.PreparePic
+        INCBIN "../build/gen/prepare.zx02"
+.PreparePanel0                          ; (the players')
+        INCBIN "../build/gen/prepare_0.zx02"
+.PreparePanel1
+        INCBIN "../build/gen/prepare_1.zx02"
+.PreparePanel2
+        INCBIN "../build/gen/prepare_2.zx02"
+.PreparePanel3                          ; (the drones')
+        INCBIN "../build/gen/prepare_3.zx02"
+.PreparePanel4
+        INCBIN "../build/gen/prepare_4.zx02"
+.PreparePanel5
+        INCBIN "../build/gen/prepare_5.zx02"
+        PRINT "prepare to race's file: ", GameScratchOrg - P%, " bytes free"
     ENDSECTION
 ENDSECTION
 ENDIF

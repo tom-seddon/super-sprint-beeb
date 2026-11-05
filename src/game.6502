@@ -99,13 +99,25 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 
 .game_resume
 {
+    LDA GmBack:BEQ arrived
+    JSR load_game                       ; (back from prepare's file: nothing's lost that isn't saved)
+    JSR prepare
+    LDA GmBack:STZ GmBack
+    CMP #2:BNE after_prepare
+    JMP prepared
+.arrived
     LDA GmStage:BEQ attract
     LDA GmAbandon:BNE attract           ; F10: straight back (the ST's F_0141B0, with no save)
     JSR circle
 .after_circle
     JSR upgrades
 .after_upgrades
-    JSR prepare
+    LDA #1
+.to_prepare                             ; A: GmBack. Its file comes first, a race having overwritten what was there
+    STA GmBack
+    JSR save_game
+    LDA #'P' - '0':STA LoadWant
+    JMP load_go                         ; (back here through game_go)
 .after_prepare
     JSR restore_scores
 .restored
@@ -123,14 +135,13 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     STZ GmStage
     STZ GmAbandon
     LDA GmDemo:BEQ title
-    LDA GmFront:BNE credits             ; (the demo's track wiped the pictures, so this is back from the load below)
+    LDA GmFront:CMP #'F':BEQ credits    ; (the demo's track wiped the pictures, so this is back from the load below)
 
     \\ F_013F68's loop, from the demo's end: a wait, the credits, a wait
 
     JSR save_game                       ; (the generator, the phase, the sparks and what the demo did to the cars)
     LDX GmDemoTrack:LDA NextTrack,X:STA GmDemoTrack
-    JSR say_clear
-    LDA #150:JSR wait
+    LDA #150:JSR wait                   ; (the race's last frame stays up, as on the ST)
     LDA #'F' - '0':STA LoadWant
     JMP load_go                         ; (back here through game_go)
 .credits
@@ -142,7 +153,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .credits_over
     JSR front_leave
 .title
-    LDA GmFront:BNE loaded              ; the pictures are in the background's bank, which each track's load wipes
+    LDA GmFront:CMP #'F':BEQ loaded     ; the pictures are in the background's bank, which each track's load wipes
     LDA #'F' - '0':STA LoadWant
     JMP load_go                         ; (back here through game_go)
 .loaded
@@ -223,7 +234,8 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .selected
     STZ GmRace
     LDA #1:STA GmStage
-    JSR prepare
+    LDA #2
+    JMP to_prepare
 .prepared
     STZ GmAbandon
 .race
@@ -419,8 +431,9 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 
 .prepare
 {
-    JSR say_clear
-    LDA #LO(TextPrepare):LDX #HI(TextPrepare):LDY #12:JSR say
+    JSR say_clear                       ; (the file landed in the screen)
+    JSR front_prepare
+.shown
     LDX #2
 .init
     LDA RcDrone,X:EOR #1:STA GsAnim,X
@@ -476,7 +489,9 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     CMP #63:BCS more                    ; (the ST's count above 250)
     LDA RcDrone:ORA RcDrone+1:ORA RcDrone+2:BNE more
 .done
-    JMP scores_kept
+    JSR scores_kept
+.over
+    JMP mode1
 .more
     JMP pass
 }
@@ -495,7 +510,9 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     LDA #1:STA GsAnim,X
     JSR blank_score
     JSR clear_upgrades
+    LDX GsJ
     STZ RcDrone,X
+    JSR front_join
 .next
     LDX GsJ
     INX
@@ -1104,6 +1121,8 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     INC row+2
     DEX
     BNE row
+    LDA #8:STA &FE00                    ; CRTC: R8
+    LDA #&C0:STA &FE01                  ; display on, cursor off (a file's load left it off)
     RTS
 }
 
@@ -1154,8 +1173,6 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     EQUS "Super Sprint: press fire", 0
 .TextSelect
     EQUS "Select a track", 0
-.TextPrepare
-    EQUS "Prepare to race", 0
 .TextCircle
     EQUS "Winner's circle", 0
 .TextUpgrade
