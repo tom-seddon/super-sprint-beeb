@@ -72,8 +72,8 @@ slower loads showed up there before anyone knew why. Tool gaps only:
   Master's shadow RAM and restoring the OS's ACCCON for a load inherits its D bit: with the OS showing shadow, the load
   showed the shadow screen, not the main one being written. jsbeeb's Master boots with D clear, so nothing there showed
   it; seen on Tom's Master (2026-11-05: old HUD row stuck, "Loading" unseen), reproduced by setting D in the saved value.
-  Why his had it set isn't confirmed (`*CONFIGURE SHADOW`, presumably). Worth a line in `gotchas.md`, and perhaps a way to
-  boot jsbeeb with that CMOS setting.
+  His had it set, he suspects, because the tool writing his disc selected MODE 135, shadow MODE 7, so any machine or
+  tool that boots in a shadow mode will do it. Worth a line in `gotchas.md`, and perhaps a way to boot jsbeeb that way.
 
 ## Checked, nothing to raise
 
