@@ -16,7 +16,7 @@ ZA_AUTO1 flevel                         ; the level
 ZA_AUTO1 fc                             ; the mask's number
 ZA_AUTO1 fstart                         ; the field the step began
 
-\\ The title: MODE 2, wiped in over the black the screen was left in. Outputs: GmMode2 1. A, X, Y corrupted.
+\\ The title: MODE 2, wiped in over the black the screen was left in. Outputs: GmPicture 2. A, X, Y corrupted.
 
 .front_title
 {
@@ -26,25 +26,44 @@ ZA_AUTO1 fstart                         ; the field the step began
     LDA PalMode2,X:STA &FE21            ; video ULA: palette
     DEX
     BPL palette
-    LDA #1:STA GmMode2
-    LDA acccon:ORA #AccX:STA &FE34      ; ACCCON: the shadow screen written
+    LDA #2:STA GmPicture
     LDA #LO(TitlePic):STA zxsrc
     LDA #HI(TitlePic):STA zxsrc+1
+    BRA front_show
+}
+
+\\ The credits: MODE 1 in the picture's own palette, the same. Outputs: GmPicture 1. A, X, Y corrupted.
+
+.front_credits
+{
+    LDX #15
+.palette
+    LDA PalCredits,X:STA &FE21          ; video ULA: palette
+    DEX
+    BPL palette
+    LDA #1:STA GmPicture
+    LDA #LO(CreditsPic):STA zxsrc
+    LDA #HI(CreditsPic):STA zxsrc+1
+}
+
+\\ zxsrc's picture unpacked into the shadow screen, and wiped in. Inputs: GmPicture. A, X, Y corrupted.
+
+.front_show
+{
+    LDA acccon:ORA #AccX:STA &FE34      ; ACCCON: the shadow screen written
     LDA #LO(PlayAddr):STA zxdst
     LDA #HI(PlayAddr):STA zxdst+1
     JSR front_unpack
     LDA acccon:STA &FE34                ; ACCCON: the main screen written
-    LDA #LO(WipeMode2):STA ft
-    LDA #HI(WipeMode2):STA ft+1
+    JSR front_wipe
     JMP wipe_in
 }
 
-\\ Back from MODE 2: the picture wiped out, then MODE 1, the race's palette. Outputs: GmMode2 0. A, X, Y corrupted.
+\\ Back from a picture: wiped out, then MODE 1, the race's palette. Outputs: GmPicture 0. A, X, Y corrupted.
 
 .front_leave
 {
-    LDA #LO(WipeMode2):STA ft
-    LDA #HI(WipeMode2):STA ft+1
+    JSR front_wipe
     JSR wipe_out
     LDA #UlaMode1:STA &FE20             ; video ULA: control
     LDX #15
@@ -52,7 +71,21 @@ ZA_AUTO1 fstart                         ; the field the step began
     LDA PalMode1,X:STA &FE21            ; video ULA: palette
     DEX
     BPL palette
-    STZ GmMode2
+    STZ GmPicture
+    RTS
+}
+
+\\ ft: the wipe for the picture's mode. Inputs: GmPicture. A corrupted.
+
+.front_wipe
+{
+    LDA GmPicture:CMP #2:BEQ two
+    LDA #LO(WipeMode1):STA ft
+    LDA #HI(WipeMode1):STA ft+1
+    RTS
+.two
+    LDA #LO(WipeMode2):STA ft
+    LDA #HI(WipeMode2):STA ft+1
     RTS
 }
 
@@ -172,6 +205,8 @@ ZA_AUTO1 fstart                         ; the field the step began
     EQUB (0..15) * 16 + (PalPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)
 .PalMode2                               ; logical 0-7 the physical colours, 8-15 the same
     EQUB (0..15) * 16 + (((0..15) AND 7) EOR 7)
+.PalCredits
+    EQUB (0..15) * 16 + (CreditsPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)
 .WipeMode1
     EQUB Mode1Wipe
 .WipeMode2
@@ -184,4 +219,6 @@ ZA_AUTO1 fstart                         ; the field the step began
 
 .TitlePic
     INCBIN "../build/gen/title.zx02"
+.CreditsPic
+    INCBIN "../build/gen/credits.zx02"
 .front_end

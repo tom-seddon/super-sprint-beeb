@@ -479,6 +479,12 @@ touches the build.
      54 fields with the unpacking, out in 28. Only the title has it so far: the rest cut, until they're pictures.
      `attract_check` compares the picture byte for byte. `tools/suite.sh OUT quick` runs 8 of the 88 races: 10 minutes, for
      the pictures alone.
+   - **The credits** (2026-11-05): MODE 1, 4 colours, as the letters are a pixel wide and MODE 2 would lose them: black, red,
+     yellow and cyan, every blue and the white flat cyan (`tools/screen_options.py`'s ranking has the same set first; Tom
+     agreed the flat look from a preview). Checks on the darkest blue broke the letters up. 1,863 bytes packed, which leaves
+     TRACKF 520 bytes free. A demo's track wipes the pictures, so TRACKF now loads after the wait that follows a demo,
+     before the credits, not before the title. `GmPicture` says which mode a picture's in, and the wipe follows it, MODE 1's
+     table in use for the first time.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
 10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.

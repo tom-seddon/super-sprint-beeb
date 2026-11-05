@@ -1,4 +1,4 @@
-"""The front end's pictures and tables for the game (Phase 5, step 8): build/gen/front.6502, the screens' modes, palettes and
+"""The front end's pictures and tables for the game (Phase 5, step 8): build/gen/front.6502, the screens' palettes and
 wipe masks, and each picture, as NAME.bin (the screen's 16,000 bytes) and NAME.zx02. A screen's look is Looks below:
 change it and rebuild.
 
@@ -14,12 +14,14 @@ import dfs
 import st_frontend as F
 import st_tracks as T
 import screen_options as O
+from convert import PHYS, mode1_bytes
 
 # G_01DD82's levels: a mask of 8 pixels a line, 8 lines. (Its first two are all set, and its last two clear)
 Levels = [[0xFF] * 8, [0x7E, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7E], [0x3C, 0x7E, 0xFF, 0xFF, 0xFF, 0xFF, 0x7E, 0x3C],
           [0x18, 0x3C, 0x7E, 0xFF, 0xFF, 0x7E, 0x3C, 0x18], [0, 0x18, 0x3C, 0x7E, 0x7E, 0x3C, 0x18, 0],
           [0, 0, 0x18, 0x3C, 0x3C, 0x18, 0, 0], [0, 0, 0, 0x18, 0x18, 0, 0, 0], [0] * 8]
-Looks = {'title': dict(mode=2, table=O.TitleChecked)}    # (Tom, 2026-11-04: option 7, MODE 2 checked; he may change his mind)
+Looks = {'title': dict(mode=2, table=O.TitleChecked),    # (Tom, 2026-11-04: option 7, MODE 2 checked; he may change his mind)
+         'credits': dict(mode=1, pal='KRYC', table=O.CreditsFlat('C'))}
 
 
 def mask1(n):
@@ -41,14 +43,16 @@ def table(mask):
 
 def picture(name):
     look = Looks[name]
-    idx = T.decode_map(F.dat(), 8)
-    assert look['mode'] == 2
-    return O.mode2_bytes(O.mapped(idx, look['table']))
+    idx = O.Screens[name](F.dat())[0]
+    if look['mode'] == 2:
+        return O.mode2_bytes(O.mapped(idx, look['table']))
+    return mode1_bytes(O.render(idx, look['table'], look['pal']))
 
 
 def main(out, zx02):
     lines = ['\\\\ front.6502 - the front end\'s tables (tools/screens.py)', 'Mode1Wipe = {' + ', '.join(map(str, table(mask1))) + '}',
-             'Mode2Wipe = {' + ', '.join(map(str, table(mask2))) + '}']
+             'Mode2Wipe = {' + ', '.join(map(str, table(mask2))) + '}',
+             'CreditsPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['credits']['pal']) + '}']
     for name in Looks:
         raw = picture(name)
         open(f'{out}/{name}.bin', 'wb').write(raw)

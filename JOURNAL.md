@@ -516,3 +516,10 @@
 - **Found on Tom's Master** (2026-11-05): the old score row stuck during a load, and "Loading" came late. His guess was right: the
   wrong screen shown. The load restored the OS's ACCCON whole, D and all, and his OS had the shadow screen showing, which
   jsbeeb's doesn't. Reproduced by setting D in `OsAcccon`; the load now keeps D and X clear, and `load_check` starts from that.
+- **The races on another machine** (2026-11-05): `tools/disc_races.sh`'s jobs run on `agentbox` by default (`tools/remote.sh`: rsync what they
+  read, 10GB once and about 1MB after, run them there, bring back logs and statuses); `REMOTE=` keeps them here. One rotation and the
+  silence race gave logs identical byte for byte on both machines, from the same disc. A corrupted model and an unreachable host each fail
+  the run. The suite sends them off as soon as the disc's made, so `all_tracks` and `game_disc` come first now. MEASURED: the races 1,961s here, 100s there;
+  the whole suite about 38 minutes, now 6m37s, nearly all of it the local oracles.
+- **Step 8, the credits** (2026-11-05): second of ten, MODE 1 in black, red, yellow and cyan. The load of `TRACKF` moved ahead of them,
+  since a demo's track wipes the pictures. `attract_check` compares the picture byte for byte, and its time is the ST's 325 fields exactly.

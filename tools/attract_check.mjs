@@ -3,7 +3,8 @@
 // the same demo (tools/st_trace_game.py's attract script). Nothing else tests demos back to back: what one leaves
 // behind (the generator, the coasting phase, the sparks' timers) goes into the next. The ST's waits are its screens'
 // F_0140F0 calls, 250, 250, 250, 150 and 325 fields; here a screen's drawing adds a few, so they're allowed
-// Slack, but for the title's, which adds its wipe (and its load comes before). Its picture's compared byte for byte.
+// Slack, but for the title's, which adds its wipe out, and the wait after the demo, which adds the pictures' load.
+// The title's and the credits' pictures are compared byte for byte.
 //
 // Exit status: 1 if the order, a time, a track or the generator differs, else 0.
 //
@@ -50,43 +51,38 @@ s.writeMemory(syms.GmSeeded, [1]);
 
 const peek = (a) => s.readMemory(a, 1)[0];
 const G = (n) => syms[`game_resume.${n}`];
-const stops = ["shown", "scores", "records", "demo", "credits"].map((n) => [G(n), bankbg]);
+const stops = ["shown", "scores", "records", "demo", "credits_shown"].map((n) => [G(n), bankbg]);
 const names = new Map(stops.map(([a], i) => [a, ["title", "scores", "records", "demo", "credits"][i]]));
-stops.push([G("title"), bankbg]);       // (the title's start, before its load and wipe: where the credits' time ends)
-names.set(G("title"), "load");
+stops.push([G("credits_over"), bankbg]);    // (the credits' wait over)
+names.set(G("credits_over"), "over");
 let bad = 0, seed = start, demo = 0, before = "title", t0 = cycles(s);   // (the boot's idle is in the title's wait)
 const say = (t) => { console.log(t); bad++; };
-let timed = false;
 const order = ["title", "scores", "records", "demo", "credits"];
 while (demo < Demos) {
     const now = names.get(await runToAny(s, stops, 400000000));
     const fields = Math.round((cycles(s) - t0) / Field);
     t0 = cycles(s);
-    if (now === "load") {
-        if (before === "credits" && !timed) {
-            if (Math.abs(fields - Waits.credits) > Slack) say(`credits: ${fields} fields, the ST's ${Waits.credits}`);
-            console.log(`credits: ${fields} fields`);
-            timed = true;
-        }
+    if (now === "over") {
+        if (Math.abs(fields - Waits.credits) > Slack) say(`credits: ${fields} fields, the ST's ${Waits.credits}`);
+        console.log(`credits: ${fields} fields`);
         continue;
     }
-    timed = false;
     const want = order[(order.indexOf(before) + 1) % order.length];
     if (now !== want) say(`after ${before}: ${now}, not ${want}`);
     if (before in Waits && before !== "title" && before !== "credits" && Math.abs(fields - Waits[before]) > Slack) say(`${before}: ${fields} fields, the ST's ${Waits[before]}`);
     if (before !== "demo" && before !== "credits") console.log(`${before}: ${fields} fields`);
-    if (now === "title") {          // the picture, wiped in whole, and MODE 2
-        const want = readFileSync("build/gen/title.bin"), got = ram(s, syms.PlayAddr, 16000);
+    if (now === "title" || now === "credits") {     // the picture, wiped in whole, in its mode
+        const want = readFileSync(`build/gen/${now}.bin`), got = ram(s, syms.PlayAddr, 16000);
         let diff = 0;
         for (let i = 0; i < 16000; i++) if (got[i] !== want[i]) diff++;
-        if (diff) say(`the title: ${diff} bytes differ`);
-        if (!peek(syms.GmMode2)) say("the title's not in MODE 2");
+        if (diff) say(`the ${now}: ${diff} bytes differ`);
+        if (peek(syms.GmPicture) !== (now === "title" ? 2 : 1)) say(`the ${now} in the wrong mode`);
     }
     if (now === "demo") {
         const track = peek(syms.GmDemoTrack);
         if (track !== Tracks[demo]) say(`demo ${demo}: track ${track + 1}, not ${Tracks[demo] + 1}`);
     }
-    if (now === "credits") {        // (the wait after the demo's gone by too: 150 fields, nothing drawn)
+    if (now === "credits") {        // (the wait after the demo's gone by too: 150 fields, nothing drawn, then the load)
         for (const v of drawn[demo]) seed = (seed * Mul + 1n) & 0xffffffffn;
         const got = BigInt(s.readMemory(syms.GmSeed, 4).reduce((a, b, i) => a + b * 2 ** (8 * i), 0));
         const ok = got === seed;
@@ -104,7 +100,7 @@ await runToAny(s, [[G("demo"), bankbg]], 400000000);
 for (let f = 0; f < 200; f++) await runToAny(s, [[syms["logic_frame.demo_fire"], banktrace]], 8000000);
 const at = s.readMemory(syms.LfFrame, 2), frame = at[0] | (at[1] << 8);
 s._machine.processor.a = 0x80;
-await runToAny(s, [[G("credits"), bankbg]], 400000000);
+await runToAny(s, [[G("credits_shown"), bankbg]], 400000000);
 if (frame > 210) say(`fire at frame ${frame}`); else console.log(`fire ended the demo at frame ${frame}`);
 
 console.log(bad ? `${bad} wrong` : `the attract mode's order and times right, ${Demos} demos' generator exact`);

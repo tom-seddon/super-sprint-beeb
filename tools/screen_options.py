@@ -110,6 +110,12 @@ TitleKRYB = {0: 'KKKK', 1: 'YYYY', 2: 'RRRR', 3: 'RRRY', 4: 'RYYR', 5: 'YYYY', 6
 TitleChecked = {**TitleFlat, 3: 'RY', 4: 'RY', 5: 'YR', 2: 'RK', 7: 'RK', 11: 'BC', 6: 'CB'}
 
 
+def CreditsFlat(c):
+    """The credits in MODE 1: red and yellow as they are, everything blue or white the one colour. Checks on the darkest
+    blue were tried: the letters are a pixel wide, and they break up."""
+    return {0: 'KKKK', 8: 'RRRR', 9: 'YYYY', **{i: c * 4 for i in (6, 10, 11, 12, 15)}}
+
+
 def mode2_bytes(lidx):
     """(200, 160) colours 0-7 -> 16,000 bytes: 2 pixels a byte, the left's bits 7, 5, 3, 1, the right's 6, 4, 2, 0."""
     a = lidx.astype(np.uint8)
@@ -123,7 +129,8 @@ def mode2_rgb(lidx):
     return np.array([BBC[c] for c in Order], np.uint8)[lidx].repeat(2, axis=1)
 
 
-Screens = {'title': lambda d: (T.decode_map(d, 8), F.shot('title')[1]['palette'])}
+Screens = {'title': lambda d: (T.decode_map(d, 8), F.shot('title')[1]['palette']),
+           'credits': lambda d: (stgfx.planar_to_indices(F.unrle(d, 0x2E9F6)[0], 320, 200), F.shot('credits')[1]['palette'])}
 
 
 def main(name):
@@ -184,6 +191,8 @@ if __name__ == '__main__':
         options[5:5] = [(f'MODE 2 {n}', 2, '', mode2_bytes(mapped(idx, tab))) for n, tab in (('flat', TitleFlat), ('checked', TitleChecked))]
     if want == 'title':
         options.insert(7, ('MODE 1 KRYB by hand', 1, 'KRYB', mode1_bytes(render(idx, TitleKRYB, 'KRYB'))))
+    if want == 'credits':               # (by hand: the ranking goes by area, and it's the text that matters)
+        options = [(f'MODE 1 K R Y {c}', 1, 'KRY' + c, mode1_bytes(render(idx, CreditsFlat(c), 'KRY' + c))) for c in 'CWMG']
     viewer(want, options)
     sheet = Image.new('RGB', (3 * 648, 2 * 424), (60, 60, 60))
     from PIL import ImageDraw

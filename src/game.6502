@@ -123,18 +123,24 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     STZ GmStage
     STZ GmAbandon
     LDA GmDemo:BEQ title
+    LDA GmFront:BNE credits             ; (the demo's track wiped the pictures, so this is back from the load below)
 
     \\ F_013F68's loop, from the demo's end: a wait, the credits, a wait
 
-    STZ GmDemo
     JSR save_game                       ; (the generator, the phase, the sparks and what the demo did to the cars)
     LDX GmDemoTrack:LDA NextTrack,X:STA GmDemoTrack
     JSR say_clear
     LDA #150:JSR wait
+    LDA #'F' - '0':STA LoadWant
+    JMP load_go                         ; (back here through game_go)
 .credits
-    JSR say_clear
-    LDA #LO(TextCredits):LDX #HI(TextCredits):LDY #12:JSR say
+    STZ GmDemo
+    JSR say_clear                       ; (the file landed in the screen)
+    JSR front_credits
+.credits_shown
     LDA #LO(325 - 256):LDX #HI(325):JSR wait_long
+.credits_over
+    JSR front_leave
 .title
     LDA GmFront:BNE loaded              ; the pictures are in the background's bank, which each track's load wipes
     LDA #'F' - '0':STA LoadWant
@@ -209,6 +215,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     RTS
 .game
     STX GsWho
+    STZ GmDemo                          ; (fire in the wait after a demo)
     JSR mode1
     JSR seed_once
     JSR load_game
@@ -225,11 +232,11 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     JMP load_go
 }
 
-\\ Leaving the title for anything else.
+\\ Leaving a picture for anything else.
 
 .mode1
 {
-    LDA GmMode2:BEQ done
+    LDA GmPicture:BEQ done
     JMP front_leave
 .done
     RTS
@@ -1149,8 +1156,6 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     EQUS "High scores", 0
 .TextRecords
     EQUS "Lap records", 0
-.TextCredits
-    EQUS "Credits", 0
 .TextSelect
     EQUS "Select a track", 0
 .TextPrepare

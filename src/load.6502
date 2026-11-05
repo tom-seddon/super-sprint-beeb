@@ -88,7 +88,7 @@ SECTION LowFree                         ; &0900-&0AFF, kept across loads (D26)
     SKIP 1
 .GmFront                                ; the file TRACKF's in the background's bank (a track's load overwrites it)
     SKIP 1
-.GmMode2                                ; the screen's in MODE 2
+.GmPicture                              ; a picture's on the screen: its mode, 1 or 2, or 0 none
     SKIP 1
 .GmFontStart
 .FontBuf                                ; a character from the MOS's font
