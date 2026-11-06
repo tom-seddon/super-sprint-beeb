@@ -42,7 +42,7 @@ const nameOf = (k) => { const n = table.get(k); return n < 32 ? words[n - 1] : S
 const named = { KeyQ: "Q", KeyA: "A", KeyZ: "Z", KeyP: "P", KeyL: "L", KeyM: "M", Digit1: "1", Digit5: "5", Digit0: "0", Space: "SPACE", Enter: "RETURN", Comma: ",", Period: ".", Slash: "/",
     ArrowLeft: "\x88", ArrowRight: "\x89", ArrowDown: "\x8a", ArrowUp: "\x8b", Tab: "TAB", CapsLock: "CAPS", ControlLeft: "CTRL", ShiftLeft: "SHIFT", Backspace: "DELETE", Semicolon: ";",
     Numpad0: "PAD 0", Numpad1: "PAD 1", Numpad2: "PAD 2", Numpad3: "PAD 3", Numpad4: "PAD 4", Numpad5: "PAD 5", Numpad6: "PAD 6", Numpad7: "PAD 7", Numpad8: "PAD 8", Numpad9: "PAD 9",
-    NumpadAdd: "PAD +", NumpadSubtract: "PAD -", NumpadMultiply: "PAD *", NumpadDivide: "PAD /", NumpadDecimal: "PAD .", NumpadEnter: "PADRET" };
+    NumpadAdd: "PAD +", NumpadSubtract: "PAD -", NumpadMultiply: "PAD *", NumpadDivide: "PAD /", NumpadDecimal: "PAD .", NumpadEnter: "PAD RET" };
 let keysSeen = 0;
 for (const [code, want] of Object.entries(named)) {
     s.keyDown(code);
@@ -64,8 +64,8 @@ const romFont = (() => {        // the MOS's font, from ROM 15
     return out;
 })();
 const expand = (n) => (n << 4) | n, Masks = [0xff, 0xff, 0xff, 0x0f, 0x0f, 0x0f, 0xf0, 0xf0, 0xf0];
-function field(slot, key, inverse) {    // the 96 bytes of a key's name
-    const out = new Uint8Array(96), name = key === undefined ? "" : nameOf(key), mask = Masks[slot];
+function field(slot, key, inverse) {    // the 112 bytes of a key's name
+    const out = new Uint8Array(112), name = key === undefined ? "" : nameOf(key), mask = Masks[slot];
     for (let i = 0; i < name.length; i++)
         for (let y = 0; y < 8; y++) {
             const g = romFont[name.charCodeAt(i)][y];

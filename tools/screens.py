@@ -99,7 +99,7 @@ def prepare(out, zx02):
 # a word from OptWords's list, or None if it can't be taken: the game's own keys.
 # The Master's keypad's numbers are Tom's, 2026-11-06.
 Pad = {0x7A: 'PAD 4', 0x7B: 'PAD 5', 0x7C: 'PAD 2', 0x6A: 'PAD 0', 0x6B: 'PAD 1', 0x6C: 'PAD 3', 0x5A: 'PAD #', 0x5B: 'PAD *', 0x5C: 'PAD ,', 0x4A: 'PAD /',
-       0x4B: 'PADDEL', 0x4C: 'PAD .', 0x3A: 'PAD +', 0x3B: 'PAD -', 0x3C: 'PADRET', 0x2A: 'PAD 8', 0x2B: 'PAD 9', 0x1A: 'PAD 6', 0x1B: 'PAD 7'}
+       0x4B: 'PAD DEL', 0x4C: 'PAD .', 0x3A: 'PAD +', 0x3B: 'PAD -', 0x3C: 'PAD RET', 0x2A: 'PAD 8', 0x2B: 'PAD 9', 0x1A: 'PAD 6', 0x1B: 'PAD 7'}
 Words = ('SHIFT', 'CTRL', 'CAPS', 'LOCK', 'RETURN', 'DELETE', 'TAB', 'SPACE', 'COPY') + tuple(Pad.values())
 Matrix = (('SHIFT', 'CTRL'),
           ('Q', '3', '4', '5', None, '8', None, '-', '^', 136),
