@@ -19,7 +19,12 @@ KeyPeriod = 103
 KeySlash = 104
 KeyEscape = 112
 KeyF0 = 32
+KeyF1 = 113
+KeyF2 = 114
+KeyF3 = 115
+KeyF4 = 20
 KeyF5 = 116
+KeyF9 = 119
 
 \\ Whether a key is held.
 \\
@@ -73,7 +78,9 @@ KeyF5 = 116
     RTS
 }
 
-.PlayerKeys                             ; each player's left, right, accelerate
+.SoundOff                               ; 1: nothing's sent to the chip (F9, in the options)
+    EQUB 0
+.PlayerKeys                             ; each player's left, right, accelerate (the options can change them)
     EQUB KeyQ, KeyW, KeyE
     EQUB KeyV, KeyB, KeyN
     EQUB KeyComma, KeyPeriod, KeySlash

@@ -154,6 +154,15 @@ SECTION PrepareFile, filename = "TRACKP", load = &FFFF0000+TrackFileAddr
         PRINT "prepare to race's file: ", GameScratchOrg - P%, " bytes free"
     ENDSECTION
 ENDSECTION
+
+\\ The options': its code too, read where it lands (nothing else needs it)
+
+SECTION OptionsFile, filename = "TRACKO", load = &FFFF0000+TrackFileAddr
+    SECTION OptionsHigh, org = FrontPicOrg, guard = GameScratchOrg, cmos = TRUE
+        INCLUDE "options.6502"
+        PRINT "the options' file: ", GameScratchOrg - P%, " bytes free"
+    ENDSECTION
+ENDSECTION
 ENDIF
 
 \\ SPRINT loads at &3000, below the OS's MODE 7 screen; its loader (entry.6502) runs from its end and copies

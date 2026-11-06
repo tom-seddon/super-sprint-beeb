@@ -505,6 +505,13 @@ touches the build.
      before each prepare, `save_game` before and `load_game` after, `GmBack` saying where to go on (one more load a race, to judge on a
      Master). Each car's panel is a stream of its own, playing or not, unpacked under ANDY and copied in by rows, which covers a join. The
      cars' flickering details are left out for now.
+   - **The options** (2026-11-06): F1 in any wait, keys and sound for now (Tom: joysticks later, D5). Prepare's picture, its own file `TRACKO`, code and all
+     (`src/options.6502`), so it costs prepare nothing; f0 goes back to the title, a load each way. Tom's ideas: F2-F4 ask for a car's keys again,
+     in `PlayerKeys`, which no load touches, refusing the game's own keys and those taken, Escape putting them back; each key's name
+     is in the BBC's font (Tom: only there, the wording's the small font's), arrows from its 136-139, and in inverse while held, so a
+     name lit with nobody pressing that key is a clash; and a warning when the nine keys can ghost, `tools/keys_ghost.py`'s model as a loop test,
+     once a car's keys are in. The keypad's keys are named PAD 4 and so on, their numbers Tom's. Lost at a reset until step 10's save, which
+     can hold them and the sound. A joystick could later be picked at the same prompt.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
 10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.

@@ -53,6 +53,9 @@ TimeStart = (StartLines - Margin - VsyncLate) * 64 - 2
     LDA #2:STA &FE4D                    ; IFR: CA1 cleared
     INC vsyncs
     IF GenLogic
+        IF GenPlay
+            LDA SoundOff:BNE notvsync   ; (F9, in the options)
+        ENDIF
         PHX:PHY
         JSR sound_irq                   ; the sound's field (sound.6502)
         PLY:PLX

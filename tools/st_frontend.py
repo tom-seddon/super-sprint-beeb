@@ -211,7 +211,7 @@ def prepare(mem, playing):
     c.fill(13, 0, 0, 20, 0x29)
     c.fill(13, 0, 0xB5, 20, 0x13)
     checker(c)
-    for car in range(3):
+    for car in range(3 if playing else 0):
         l2, col = 15 + 0x6B * car, car + 1
         if playing[car]:
             for a, x, y in ((0x1F422, 0x18, 3), (0x1F428, 9, 0xD), (0x1F434, 6, 0x17), (0x1F440, 0x24, 0x21)):
@@ -222,6 +222,26 @@ def prepare(mem, playing):
             c.small(c.text(0x1F454), l2 + 0x18, 3, 13, col)
             c.small(c.text(0x1F45A), l2 + 9, 0xD, 13, col)
             c.small(c.text(0x1F466), l2 + 6, 0x17, 13, col)
+    return c.px
+
+
+def canvas_on(px):
+    """A canvas over a picture already made."""
+    c = Canvas(first_dump())
+    c.px = px
+    return c
+
+
+def options_frame(mem, names):
+    """The options, as the BBC has them: prepare's picture, each car's name and its keys' labels, the function keys."""
+    c = Canvas(mem)
+    c.px = prepare(mem, None)
+    for car, name in enumerate(names):
+        x = (108 * car) + (107 - len(name) * 11) // 2
+        c.big(name, car + 1, x, 2)
+        for row, label in enumerate((b'left', b'right', b'accel')):
+            c.small(label, 108 * car + 6, 17 + row * 8, 13, car + 1)
+    c.small(b'f2 ' + names[0] + b' keys  f3 ' + names[1] + b' keys  f4 ' + names[2] + b' keys', 24, 184, 13, 15)
     return c.px
 
 

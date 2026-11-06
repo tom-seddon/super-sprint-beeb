@@ -45,6 +45,15 @@ a gap or a workaround looks like it isn't only this project's.
   writes; this is the reading side, and a port that owns ANDY and returns to the OS might want the warning. Which
   page it reads wasn't traced: to check before raising.
 
+### The rest of the key numbers, the Master's keypad's among them
+- **Found** (2026-11-06): `docs/hardware-facts.md` section 7 lists the letters, arrows and a few others, not the digits, most of the
+  punctuation, the function keys, or a Master's keypad. A key-redefining screen needs all of them, with a name for each.
+- **Checked**: the main keyboard's table is in `tools/screens.py`'s `Matrix`, the keypad's in its `Pad` (Tom's numbers: `&7A` 4, `&7B` 5,
+  `&7C` 2, `&6A` 0, `&6B` 1, `&6C` 3, `&5A` #, `&5B` *, `&5C` comma, `&4A` /, `&4B` Delete, `&4C` full stop, `&3A` +, `&3B` -, `&3C` Return,
+  `&2A` 8, `&2B` 9, `&1A` 6, `&1B` 7). Tom pressed them on a real Master's options screen, keypad and main keyboard, and each named itself.
+  jsbeeb's `keymap.js` has all 19 keypad keys at the same places, so it needs nothing.
+- **Could be**: the table added to section 7, with a line that numbers 2-9 are the keyboard's links and read as keys in a scan.
+
 ### Smaller
 - A self-patching copy loop that doesn't reset its operands works until it's run a second time (`shared_copy` and
   `load_go` here, 3c). Perhaps a line in `docs/gotchas.md`, if a port's loader is ever re-run.

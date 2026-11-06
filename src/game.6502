@@ -100,6 +100,12 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .game_resume
 {
     LDA GmBack:BEQ arrived
+    CMP #3:BNE back_prepare
+    STZ GmBack                          ; (back from the options' file)
+    JSR say_clear
+    JSR options_go
+    JMP attract
+.back_prepare
     JSR load_game                       ; (back from prepare's file: nothing's lost that isn't saved)
     JSR prepare
     LDA GmBack:STZ GmBack
@@ -194,7 +200,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     INC A:STA LoadWant
     JMP load_go
 
-    \\ F_0140F0: A fields gone by, any player's fire starting a game with that car. (F1's options: step 7's.)
+    \\ F_0140F0: A fields gone by, any player's fire starting a game with that car, and F1 the options, then the title.
 
 .wait
     STA GsWait
@@ -203,6 +209,13 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     JSR mode1
     JMP load_go
 .@
+    LDA #KeyF1:JSR key_down:BPL nooptions
+    JSR mode1
+    STZ GmDemo
+    LDA #3:STA GmBack
+    LDA #'O' - '0':STA LoadWant
+    JMP load_go                         ; (back here through game_go)
+.nooptions
     LDX #0
 .fire
     JSR game_read                       ; (X kept)

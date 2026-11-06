@@ -1,0 +1,422 @@
+\\ options.6502 - the options screen (F_0192A6, Phase 5, step 8): the file TRACKO, loaded when F1's pressed in a wait, and
+\\ read where it lands, at FrontPicOrg. Keys and sound for now (D5, D24); the ST steps each car through its devices.
+\\ Each car's three keys are named in the BBC's font (the small font has no punctuation) and shown in inverse while held,
+\\ so a name lit with nobody pressing that key is a clash. F2, F3 and F4 ask for a car's keys again, in PlayerKeys,
+\\ which no load touches. The wording's the small font's. The picture comes from tools/screens.py.
+
+OptRows = 3                             ; a car's keys
+OptSlots = 3 * OptRows
+OptFirstRow = 2                         ; the cell row of a car's first key
+OptNameCol = 10                         ; the name's byte across in the panel
+OptNameBytes = 6 * 16                   ; 6 characters, a field's bytes
+OptLineY = 192                          ; the status line: the last cell row
+OptLineAddr = PlayAddr + 24 * 640
+OptNodes = 8 + 13                       ; the matrix's rows and columns
+
+.options_go
+{
+    JSR front_mode1
+    LDA #1:STA GmPicture
+    LDA #LO(OptionsPic):STA zxsrc
+    LDA #HI(OptionsPic):STA zxsrc+1
+    JSR front_shadow
+    LDX #OptSlots - 1
+.name
+    STZ OptHeld,X
+    PHX
+    JSR opt_name
+    PLX
+    DEX
+    BPL name
+    JSR opt_status
+    JSR front_wipe_in
+    LDA acccon:STA fshadow              ; (from here on, it's the screen shown that's drawn on)
+}
+
+.options_shown
+{
+.loop
+    JSR opt_markers
+    LDA #KeyF0:JSR key_down:BMI leave
+    LDA #KeyF9:JSR key_down:BPL cars
+    LDA SoundOff:EOR #1:STA SoundOff
+    JSR opt_status
+    JSR opt_release
+.cars
+    LDX #2
+.car
+    LDA OptCarKeys,X:JSR key_down       ; (X kept)
+    BPL next
+    JSR opt_redefine
+    BRA again
+.next
+    DEX
+    BPL car
+.again
+    LDA #1:JSR fields
+    BRA loop
+.leave
+    JSR opt_release
+    JMP front_leave
+}
+
+\\ Every key's name shown in inverse while it's held. A, X, Y corrupted.
+
+.opt_markers
+{
+    LDX #OptSlots - 1
+.slot
+    LDA PlayerKeys,X:JSR key_down       ; (X kept)
+    CMP OptHeld,X:BEQ same
+    STA OptHeld,X
+    JSR opt_invert
+.same
+    DEX
+    BPL slot
+    RTS
+}
+
+\\ Car X's keys asked for again: Escape puts them back. No key's taken twice, and those of OptAll's with no name can't be
+\\ taken. A, X, Y corrupted.
+
+.opt_redefine
+{
+    STX OptCar
+    TXA:ASL A:ADC OptCar:STA OptFirst   ; (C clear)
+    TAX
+    LDY #0
+.save
+    LDA PlayerKeys,X:STA OptOld,Y
+    LDA #&FF:STA PlayerKeys,X           ; (no key: nothing's named)
+    STZ OptHeld,X
+    PHX:PHY
+    JSR opt_name
+    PLY:PLX
+    INX
+    INY
+    CPY #OptRows:BNE save
+    LDX #OptPrompt - OptTexts
+    JSR opt_line
+    JSR opt_release
+    LDA OptFirst:STA OptSlot
+.ask
+    LDX OptSlot
+    JSR opt_at
+    LDA #'?':JSR opt_char
+.scan
+    LDA #1:JSR fields
+    LDA #KeyEscape:JSR key_down:BMI cancel
+    JSR opt_find:BCC scan
+    LDX #OptSlots - 1
+.used
+    CMP PlayerKeys,X:BEQ taken
+    DEX
+    BPL used
+    LDX OptSlot
+    STA PlayerKeys,X
+    JSR opt_name
+    LDX #OptPrompt - OptTexts
+    JSR opt_line
+    JSR opt_release
+    INC OptSlot
+    LDA OptFirst:CLC:ADC #OptRows
+    CMP OptSlot:BNE ask
+    JMP opt_status
+.taken
+    LDX #OptUsed - OptTexts
+    JSR opt_line
+    JSR opt_release
+    BRA scan
+.cancel
+    LDX OptFirst
+    LDY #0
+.back
+    LDA OptOld,Y:STA PlayerKeys,X
+    PHX:PHY
+    JSR opt_name
+    PLY:PLX
+    INX
+    INY
+    CPY #OptRows:BNE back
+    JSR opt_release
+    JMP opt_status
+}
+
+\\ The key held that can be taken. Outputs: C set if there's one, A its number. X corrupted.
+
+.opt_find
+{
+    LDX #OptAll - 1
+.key
+    LDA OptNames,X:BEQ next
+    LDA OptNumbers,X:JSR key_down:BMI found
+.next
+    DEX
+    BPL key
+    CLC
+    RTS
+.found
+    LDA OptNumbers,X
+    SEC
+    RTS
+}
+
+\\ Back once every key's up. A, X corrupted.
+
+.opt_release
+{
+.wait
+    LDA #1:JSR fields
+    LDX #OptAll - 1
+.key
+    LDA OptNumbers,X:JSR key_down:BMI wait
+    DEX
+    BPL key
+    RTS
+}
+
+\\ Slot X's field's place in fp, its colour's mask in fleft. A corrupted.
+
+.opt_at
+{
+    LDA OptFieldLo,X:STA fp
+    LDA OptFieldHi,X:STA fp+1
+    LDA OptMasks,X:STA fleft
+    RTS
+}
+
+\\ Slot X's field in inverse, or back. X kept; A, Y corrupted.
+
+.opt_invert
+{
+    JSR opt_at
+    LDA fshadow:STA &FE34               ; ACCCON
+    LDY #OptNameBytes - 1
+.byte
+    LDA (fp),Y:EOR fleft:STA (fp),Y
+    DEY
+    CPY #&FF:BNE byte
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
+}
+
+\\ Slot X's field cleared, and its key's name in it (none if it has no key). A, X, Y corrupted.
+
+.opt_name
+{
+    JSR opt_at
+    LDA fshadow:STA &FE34               ; ACCCON
+    LDA #0
+    LDY #OptNameBytes - 1
+.clear
+    STA (fp),Y
+    DEY
+    CPY #&FF:BNE clear
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    LDA PlayerKeys,X
+    LDX #OptAll - 1
+.find
+    CMP OptNumbers,X:BEQ found
+    DEX
+    BPL find
+    RTS                                 ; (no key)
+.found
+    LDA OptNames,X
+    CMP #' ':BCS opt_char               ; (a character, or a word's number)
+    TAX
+    LDY #&FF
+.word
+    INY
+    LDA OptWords,Y:BNE word
+    DEX
+    BNE word
+.char
+    INY
+    LDA OptWords,Y:BEQ done
+    PHY
+    JSR opt_char
+    PLY
+    BRA char
+.done
+    RTS
+}
+
+\\ Character A at fp, in fleft's colour, and fp on. A, X, Y corrupted.
+
+.opt_char
+{
+    JSR font_char
+    LDA fshadow:STA &FE34               ; ACCCON
+    LDY #7
+.line
+    LDX FontBuf,Y
+    LDA PExpHi,X:AND fleft:STA (fp),Y
+    PHY
+    TYA:CLC:ADC #8:TAY
+    LDA PExpLo,X:AND fleft:STA (fp),Y
+    PLY
+    DEY
+    BPL line
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    LDA fp:CLC:ADC #16:STA fp
+    BCC done
+    INC fp+1
+.done
+    RTS
+}
+
+\\ The status line: the sound, the way out, and a warning if the keys can clash. A, X, Y corrupted.
+
+.opt_status
+{
+    LDX #OptSound - OptTexts
+    LDA SoundOff:BEQ on
+    LDX #OptSoundOff - OptTexts
+.on
+    JSR opt_line
+    JSR opt_clash:BCC done
+    LDX #OptClash - OptTexts
+    JMP opt_text
+.done
+    RTS
+}
+
+\\ The status line cleared and text X written on it. A, X, Y corrupted.
+
+.opt_line
+{
+    PHX
+    LDA #LO(OptLineAddr):STA fp
+    LDA #HI(OptLineAddr):STA fp+1
+    LDA fshadow:STA &FE34               ; ACCCON
+    LDX #5
+.part
+    LDY #127
+    LDA #0
+.byte
+    STA (fp),Y
+    DEY
+    BPL byte
+    LDA fp:CLC:ADC #128:STA fp
+    BCC @+
+    INC fp+1
+.@
+    DEX
+    BNE part
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    LDA #24:STA fx
+    STZ fx+1
+    LDA #OptLineY:STA fy
+    PLX
+}
+
+\\ Text X at fx, fy, and fx past it. A, X, Y corrupted.
+
+.opt_text
+{
+.next
+    LDA OptTexts,X:BMI done
+    PHX
+    JSR front_glyph
+    LDA #6:JSR front_across
+    PLX
+    INX
+    BRA next
+.done
+    RTS
+}
+
+\\ Whether the keys can ghost (tools/keys_ghost.py): the matrix's rows and columns are nodes, a key an edge between its two,
+\\ and held keys read another as held when its row and column are joined through them, so the nine keys are safe
+\\ if they make no loop. Outputs: C set if they do. A, X, Y corrupted.
+
+.opt_clash
+{
+    LDX #OptNodes - 1
+.node
+    TXA:STA OptParent,X
+    DEX
+    BPL node
+    LDY #OptSlots - 1
+.key
+    LDA PlayerKeys,Y
+    LSR A:LSR A:LSR A:LSR A:TAX         ; (a row, 0-7)
+    JSR find
+    STX fshift
+    LDA PlayerKeys,Y:AND #15:CLC:ADC #8:TAX ; (a column, 0-12: the nodes from 8)
+    JSR find
+    CPX fshift:BEQ loop
+    TXA
+    LDX fshift
+    STA OptParent,X
+    DEY
+    BPL key
+    CLC
+    RTS
+.loop
+    SEC
+    RTS
+.find                                   ; X's root
+    TXA
+    CMP OptParent,X:BEQ root
+    LDA OptParent,X:TAX
+    BRA find
+.root
+    RTS
+}
+
+.OptCarKeys                             ; f2, f3, f4
+    EQUB KeyF2, KeyF3, KeyF4
+.OptFieldLo                             ; each key's field, and its colour: the car's, logical 3, 1, 2
+    FOR car = 0..2
+        FOR row = 0..<OptRows
+            EQUB LO(PlayAddr + (OptFirstRow + row) * 640 + (car * 27 + OptNameCol) * 8)
+        NEXT
+    NEXT
+.OptFieldHi
+    FOR car = 0..2
+        FOR row = 0..<OptRows
+            EQUB HI(PlayAddr + (OptFirstRow + row) * 640 + (car * 27 + OptNameCol) * 8)
+        NEXT
+    NEXT
+.OptMasks
+    EQUB &FF, &FF, &FF, &0F, &0F, &0F, &F0, &F0, &F0
+
+\\ Every key, the Master's keypad's too: its number and its name, a character (136-139 the font's arrows), a word's number from 1,
+\\ or 0 if it can't be taken (the game's own keys). The keyboard's links, numbers 2-9, aren't keys.
+
+.OptNumbers
+    EQUB OptKeyNumbers
+OptAll = P% - OptNumbers
+.OptNames
+    EQUB OptKeyNames
+.OptWords
+    EQUB OptWordBytes                   ; (word 1 follows the first 0)
+
+.OptTexts
+.OptSound
+    EQUB OptTextOn
+.OptSoundOff
+    EQUB OptTextOff
+.OptClash
+    EQUB OptTextClash
+.OptPrompt
+    EQUB OptTextPrompt
+.OptUsed
+    EQUB OptTextUsed
+
+.OptCar                                 ; the car being asked about
+    SKIP 1
+.OptFirst                               ; its first slot
+    SKIP 1
+.OptSlot                                ; the slot being asked for
+    SKIP 1
+.OptOld                                 ; its keys as they were
+    SKIP OptRows
+.OptHeld                                ; each slot's key held: &80
+    SKIP OptSlots
+.OptParent                              ; opt_clash's nodes
+    SKIP OptNodes
+
+.OptionsPic
+    INCBIN "../build/gen/options.zx02"

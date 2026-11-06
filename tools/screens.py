@@ -26,6 +26,8 @@ Looks = {'title': dict(mode=2, table=O.TitleChecked, over=O.title_line),    # (T
          # (the high scores' frame but for the heading's cell rows, so only those are packed)
          'records': dict(mode=1, pal='KBMY', table=O.ScoresFlat('M', 'Y'), blank=F.records_frame, rows=(3, 5))}
 Prepare = dict(pal='KGYW', colours='WGY', checks='GKKG')    # (Tom, 2026-11-05: the race's palette, a dim green checker)
+Options = (b'white', b'green', b'yellow')    # (the cars as the BBC has them)
+OptionsOn, OptionsOff = b'f9 sound on   f0 exit   ', b'f9 sound off  f0 exit   '
 PanelRows = 6                           # prepare's cell rows of panels
 Glyphs = 39                             # the small font's, as the tables use them: the digits, the letters, a space
 
@@ -93,6 +95,33 @@ def prepare(out, zx02):
         print(f'{name}: {len(packed):,} bytes packed')
 
 
+# The options' keys of the main keyboard, numbers measured (tools/options_check.mjs): (number, name), the name a character,
+# a word from OptWords's list, or None if it can't be taken: the game's own keys.
+# The Master's keypad's numbers are Tom's, 2026-11-06.
+Pad = {0x7A: 'PAD 4', 0x7B: 'PAD 5', 0x7C: 'PAD 2', 0x6A: 'PAD 0', 0x6B: 'PAD 1', 0x6C: 'PAD 3', 0x5A: 'PAD #', 0x5B: 'PAD *', 0x5C: 'PAD ,', 0x4A: 'PAD /',
+       0x4B: 'PADDEL', 0x4C: 'PAD .', 0x3A: 'PAD +', 0x3B: 'PAD -', 0x3C: 'PADRET', 0x2A: 'PAD 8', 0x2B: 'PAD 9', 0x1A: 'PAD 6', 0x1B: 'PAD 7'}
+Words = ('SHIFT', 'CTRL', 'CAPS', 'LOCK', 'RETURN', 'DELETE', 'TAB', 'SPACE', 'COPY') + tuple(Pad.values())
+Matrix = (('SHIFT', 'CTRL'),
+          ('Q', '3', '4', '5', None, '8', None, '-', '^', 136),
+          (None, 'W', 'E', 'T', '7', 'I', '9', '0', '_', 138),
+          ('1', '2', 'D', 'R', '6', 'U', 'O', 'P', '[', 139),
+          ('CAPS', 'A', 'X', 'F', 'Y', 'J', 'K', '@', ':', 'RETURN'),
+          ('LOCK', 'S', 'C', 'G', 'H', 'N', 'L', ';', ']', 'DELETE'),
+          ('TAB', 'Z', 'SPACE', 'V', 'B', 'M', ',', '.', '/', 'COPY'),
+          (None, None, None, None, None, None, None, None, '\\', 137))
+
+
+def option_keys():
+    """[(number, its name's byte)]: a character, a word's number, or 0."""
+    code = lambda n: 0 if n is None else n if isinstance(n, int) else Words.index(n) + 1 if n in Words else ord(n)
+    return [(row * 16 + col, code(n)) for row, names in enumerate(Matrix) for col, n in enumerate(names)] + [(k, code(n)) for k, n in Pad.items()]
+
+
+def glyphs(s):
+    c = F.Canvas(F.first_dump())
+    return ', '.join(str(c.code(ch)) for ch in s) + ', 255'
+
+
 def string(a):
     """The string at a, as the small font's glyphs, ended by a byte with its top bit set."""
     c = F.Canvas(F.first_dump())
@@ -105,6 +134,12 @@ def main(out, zx02):
              'CreditsPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['credits']['pal']) + '}',
              'ScoresPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['scores']['pal']) + '}',
              'SmallFont = {' + ', '.join(map(str, font())) + '}',
+             'OptKeyNumbers = {' + ', '.join(str(k) for k, _ in option_keys()) + '}',
+             'OptKeyNames = {' + ', '.join(str(n) for _, n in option_keys()) + '}',
+             'OptWordBytes = {0, ' + ', '.join(str(b) for w in Words for b in w.encode() + b'\0') + '}',
+             'OptTextOn = {' + glyphs(OptionsOn) + '}', 'OptTextOff = {' + glyphs(OptionsOff) + '}',
+             'OptTextClash = {' + glyphs(b'keys may clash') + '}', 'OptTextPrompt = {' + glyphs(b'press the new keys   escape to cancel') + '}',
+             'OptTextUsed = {' + glyphs(b'that key is in use') + '}',
              'BestsGlyphs = {' + string(0x1F766) + '}', 'TrackGlyphs = {' + string(0x1F776) + '}', 'SecsGlyphs = {' + string(0x1F77C) + '}']
     for name in Looks:
         shown, raw = picture(name)
@@ -113,6 +148,15 @@ def main(out, zx02):
         open(f'{out}/{name}.zx02', 'wb').write(packed)
         print(f'{name}: {len(packed):,} bytes packed')
     prepare(out, zx02)
+    frame = mode1_bytes(O.prepare(F.options_frame(F.first_dump(), Options), **Prepare))
+    open(f'{out}/options.bin', 'wb').write(frame)
+    for name, line in (('on', OptionsOn), ('off', OptionsOff), ('clash', OptionsOn + b'keys may clash')):
+        px = F.options_frame(F.first_dump(), Options)
+        F.Canvas.small(F.canvas_on(px), line, 24, 192, 13, 15)
+        open(f'{out}/options_{name}.bin', 'wb').write(mode1_bytes(O.prepare(px, **Prepare))[24 * 640:])
+    packed = dfs.compress(frame, exe=zx02, name='options')
+    open(f'{out}/options.zx02', 'wb').write(packed)
+    print(f'options: {len(packed):,} bytes packed')
     open(f'{out}/front.6502', 'w').write('\n'.join(lines) + '\n')
 
 
