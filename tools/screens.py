@@ -11,7 +11,10 @@ import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'reference', 'beeb-port-kit', 'template', 'tools'))
 import dfs
+import numpy as np
 import st_frontend as F
+import st_screens as SS
+import stgfx
 import st_tracks as T
 import screen_options as O
 from convert import PHYS, mode1_bytes
@@ -28,6 +31,8 @@ Looks = {'title': dict(mode=2, table=O.TitleChecked, over=O.title_line),    # (T
 Prepare = dict(pal='KGYW', colours='WGY', checks='GKKG')    # (Tom, 2026-11-05: the race's palette, a dim green checker)
 Options = (b'white', b'green', b'yellow')    # (the cars as the BBC has them)
 OptionsOn, OptionsOff = b'f9 sound on   f0 exit   ', b'f9 sound off  f0 exit   '
+SelectRows = 4                          # the select screen's cell rows of panels
+SelectLevels = (0x1F5EC, 0x1F600, 0x1F614, 0x1F628)    # G_01D09C's strings
 PanelRows = 6                           # prepare's cell rows of panels
 Glyphs = 39                             # the small font's, as the tables use them: the digits, the letters, a space
 
@@ -117,6 +122,96 @@ def option_keys():
     return [(row * 16 + col, code(n)) for row, names in enumerate(Matrix) for col, n in enumerate(names)] + [(k, code(n)) for k, n in Pad.items()]
 
 
+def lines_of(screen, y, n):
+    """Lines y on of the screen's bytes, each its 80 bytes across."""
+    return bytes(screen[(l >> 3) * 640 + c * 8 + (l & 7)] for l in range(y, y + n) for c in range(80))
+
+
+def text_on(lidx, s, x, y, colour=3):
+    """The small font's text on logical colours, as front_glyph ORs it."""
+    c = F.Canvas(F.first_dump())
+    for ch in s:
+        off = 0x1D43C - F.Region + c.code(ch) * 8
+        for line in range(6):
+            for j in range(6):
+                if c.mem[off + line] >> (7 - j) & 1:
+                    lidx[y + line, x + j] = colour
+        x += 6
+
+
+def select_files(out, zx02):
+    """The select screen: select.zx02 the picture; select_0-2 and 3-5 the panels, playing and not; select_dial.zx02s the dial's 16
+    positions, each its own stream; and what tools/game_check.mjs compares: select.bin, select_all, select_none, select_dial.bin,
+    select_text.bin (\"SELECT TRACK\", then the seconds 0-5) and select_level.bin. Returns the tables' lines for front.6502."""
+    mem, pal = F.first_dump(), Prepare['pal']
+    d, event = F.dat(), F.shot('select1')[1]
+    frame = O.select_frame(SS.rgb(T.decode_map(d, 10), event), pal)
+    text_on(frame, b'select track', 0x7C, O.SelectText)
+    base = mode1_bytes(frame)
+    open(f'{out}/select.bin', 'wb').write(base)
+    streams = [('select', base)]
+    colours = [pal.index(c) for c in Prepare['colours']]
+    tops = []
+    for playing in ((1, 1, 1), (0, 0, 0)):
+        px, lidx = F.select_panels(mem, playing), np.zeros((200, 320), np.uint8)
+        for car in range(3):
+            lidx[px == car + 1] = colours[car]
+        tops.append(mode1_bytes(lidx))
+    for state, screen in enumerate(tops):
+        for car in range(3):
+            a, b = O.PanelX[car] * 2, O.PanelX[car + 1] * 2
+            streams.append((f'select_{state * 3 + car}', b''.join(screen[r * 640 + a:r * 640 + b] for r in range(SelectRows))))
+    open(f'{out}/select_all.bin', 'wb').write(tops[0][:SelectRows * 640])
+    open(f'{out}/select_none.bin', 'wb').write(tops[1][:SelectRows * 640])
+    for name, raw in streams:
+        packed = dfs.compress(raw, exe=zx02, name=name)
+        open(f'{out}/{name}.zx02', 'wb').write(packed)
+        print(f'{name}: {len(packed):,} bytes packed')
+    base5 = 0x3140 + 0x96
+    stored = [stgfx.planar_to_indices(d[base5 + i * 0x580:base5 + (i + 1) * 0x580], 64, 44) for i in range(5)]
+    positions = stored + [stored[3 - i][::-1] for i in range(4)]
+    positions = positions + [positions[7 - i][:, ::-1] for i in range(7)]
+    idx = F.shot('select1')[0]
+    dial, offsets, packed, frames = b'', [], b'', []
+    for p, f in enumerate(positions):
+        px = idx.copy()
+        px[97:141, 128:192] = f
+        rgb = SS.rgb(px, event)[97:141, 128:192]
+        lidx = np.zeros((200, 320), np.uint8)
+        lidx[O.SelectDial:O.SelectDial + 44, 128:192] = O.tiled(rgb, pal, O.SelectDial)
+        screen = mode1_bytes(lidx)
+        raw = bytes(screen[(l >> 3) * 640 + c * 8 + (l & 7)] for l in range(O.SelectDial, O.SelectDial + 44) for c in range(32, 48))
+        if 5 <= p <= 8:                 # (upside down, by the game)
+            offsets.append(offsets[8 - p])
+            raw = b''.join(frames[8 - p][l * 16:l * 16 + 16] for l in range(43, -1, -1))
+        else:
+            offsets.append(len(packed))
+            packed += dfs.compress(raw, exe=zx02, name=f'dial {p}')
+        frames.append(raw)
+        dial += raw
+    open(f'{out}/select_dial.bin', 'wb').write(dial)
+    open(f'{out}/select_dial.zx02s', 'wb').write(packed)
+    print(f'the dial: {len(packed):,} bytes packed')
+    c = F.Canvas(mem)
+    levels = [bytes(mem[a - F.Region:mem.index(0, a - F.Region)]) for a in SelectLevels]
+    text, at, glyph = b'', [], []
+    for s in levels:
+        lidx = np.zeros((200, 320), np.uint8)
+        text_on(lidx, s, 106, O.SelectLevel)
+        text += lines_of(mode1_bytes(lidx), O.SelectLevel, 6)
+        at.append(len(glyph))
+        glyph += [c.code(ch) for ch in s] + [255]
+    open(f'{out}/select_level.bin', 'wb').write(text)
+    band = b''
+    for s, x in [(b'select track', 0x7C)] + [(str(n).encode(), 0x9D) for n in range(6)]:
+        lidx = np.zeros((200, 320), np.uint8)
+        text_on(lidx, s, x, O.SelectText)
+        band += lines_of(mode1_bytes(lidx), O.SelectText, 6)
+    open(f'{out}/select_text.bin', 'wb').write(band)
+    return ['SelDialOffsets = {' + ', '.join(map(str, offsets)) + '}', 'SelLevelOffsets = {' + ', '.join(map(str, at)) + '}',
+            'SelLevelGlyphs = {' + ', '.join(map(str, glyph)) + '}']
+
+
 def glyphs(s):
     c = F.Canvas(F.first_dump())
     return ', '.join(str(c.code(ch)) for ch in s) + ', 255'
@@ -147,6 +242,7 @@ def main(out, zx02):
         packed = dfs.compress(raw, exe=zx02, name=name)
         open(f'{out}/{name}.zx02', 'wb').write(packed)
         print(f'{name}: {len(packed):,} bytes packed')
+    lines += select_files(out, zx02)
     prepare(out, zx02)
     frame = mode1_bytes(O.prepare(F.options_frame(F.first_dump(), Options), **Prepare))
     open(f'{out}/options.bin', 'wb').write(frame)

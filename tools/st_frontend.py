@@ -225,6 +225,20 @@ def prepare(mem, playing):
     return c.px
 
 
+def select_panels(mem, playing):
+    """F_019FB6 and F_01A062: the select screen's panels, above its tracks (playing: which cars 0-2 are)."""
+    c = Canvas(mem)
+    for car in range(3):
+        l2, col = 15 + 0x6B * car, car + 1
+        if playing[car]:
+            c.big(c.text(0x1F680), col, l2, 3)
+            c.big(c.text(0x1F688), col, l2, 0x14)
+        else:
+            for a, x, y in ((0x1F690, 0x18, 3), (0x1F696, 9, 0xF), (0x1F6A2, 0x12, 0x1B)):
+                c.small(c.text(a), l2 + x, y, 0, col)
+    return c.px
+
+
 def canvas_on(px):
     """A canvas over a picture already made."""
     c = Canvas(first_dump())

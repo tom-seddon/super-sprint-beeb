@@ -155,6 +155,34 @@ SECTION PrepareFile, filename = "TRACKP", load = &FFFF0000+TrackFileAddr
     ENDSECTION
 ENDSECTION
 
+\\ The select screen's: the same shape as TRACKF's, its code read where it lands
+
+SECTION SelectFile, filename = "TRACKS", load = &FFFF0000+TrackFileAddr
+    SECTION SelectLow, org = BgOrg, guard = FrontOrg
+.SelectPic
+        INCBIN "../build/gen/select.zx02"
+.SelPanel0                              ; (the players')
+        INCBIN "../build/gen/select_0.zx02"
+.SelPanel1
+        INCBIN "../build/gen/select_1.zx02"
+.SelPanel2
+        INCBIN "../build/gen/select_2.zx02"
+.SelPanel3                              ; (the drones')
+        INCBIN "../build/gen/select_3.zx02"
+.SelPanel4
+        INCBIN "../build/gen/select_4.zx02"
+.SelPanel5
+        INCBIN "../build/gen/select_5.zx02"
+        ASSERT P% <= GameOrg, "the select screen's picture under ANDY: it ends at the game"
+        PRINT "the select screen's part under ANDY: ", GameOrg - P%, " bytes free"
+        PADTO front_pics_end
+    ENDSECTION
+    SECTION SelectHigh, org = FrontPicOrg, guard = GameScratchOrg, cmos = TRUE
+        INCLUDE "select.6502"
+        PRINT "the select screen's file: ", GameScratchOrg - P%, " bytes free"
+    ENDSECTION
+ENDSECTION
+
 \\ The options': its code too, read where it lands (nothing else needs it)
 
 SECTION OptionsFile, filename = "TRACKO", load = &FFFF0000+TrackFileAddr

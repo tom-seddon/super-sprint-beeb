@@ -4,7 +4,7 @@
 // dumped. A race isn't driven: the trace's result is put in at the frame the ST's was. At the race's return the
 // whole logic is compared (tools/logic_compare.mjs); at the other points the game's own state: who's playing,
 // wrenches, scores, upgrades, the race counter, the lap records, the generator. Prepare to race's screen is compared
-// with tools/screens.py's as it's shown and as it ends, a join's panel and all.
+// with tools/screens.py's as it's shown and as it ends, a join's panel and all, and so is the select's.
 //
 // Not yet: the initials (step 10), so their reads are skipped and the high scores aren't compared.
 //
@@ -130,6 +130,47 @@ async function play(name) {
     }
     let shownPlaying = "";
 
+    // The select screen's, the same: the picture, the panels, the dial, the rectangle, the difficulty, the seconds (tools/screens.py)
+    const G = (f) => readFileSync(`build/gen/select${f}`);
+    const sel = { base: G(".bin"), all: G("_all.bin"), none: G("_none.bin"), dial: G("_dial.bin"), text: G("_text.bin"), level: G("_level.bin") };
+    const lineAt = (y) => (y >> 3) * 640 + (y & 7);
+    const Rects = [[28, 34, 87], [53, 34, 87], [53, 88, 141], [53, 145, 199], [28, 145, 199], [3, 145, 199], [3, 88, 141], [3, 34, 87]];
+    let dials = new Set();
+    function selectScreen(where) {
+        const want = Buffer.from(sel.base), Panels = [0, 27 * 8, 54 * 8, 80 * 8];
+        const dial = peek(syms.SelShown), level = peek(syms.SelLevel), digit = peek(syms.SelDigit), track = peek(syms.SelTrack);
+        dials.add(dial);
+        if (dial >> 1 !== track || dial >> 2 !== level) say(`${where}: dial ${dial}, track ${track}, level ${level}`);
+        for (let c = 0; c < 3; c++) {
+            const from = peek(syms.RcDrone + c) ? sel.none : sel.all;
+            for (let r = 0; r < 4; r++) from.copy(want, r * 640 + Panels[c], r * 640 + Panels[c], r * 640 + Panels[c + 1]);
+        }
+        const band = digit === 255 ? 0 : digit + 1;
+        for (let l = 0; l < 6; l++)
+            for (let c = 26; c < 56; c++) {     // (the rows of tracks either side share these lines)
+                want[lineAt(89 + l) + c * 8] = sel.text[band * 480 + l * 80 + c];
+                want[lineAt(139 + l) + c * 8] = sel.level[level * 480 + l * 80 + c];
+            }
+        for (let l = 0; l < 44; l++) for (let c = 0; c < 16; c++) want[lineAt(94 + l) + (32 + c) * 8] = sel.dial[dial * 704 + l * 16 + c];
+        const [col, top, bottom] = Rects[track];
+        for (let y = top; y <= bottom; y++) {
+            const edge = y < top + 2 || y > bottom - 2, at = lineAt(y) + col * 8;
+            want[at] ^= 0x30;
+            if (edge) for (let c = 1; c <= 22; c++) want[at + c * 8] ^= 0xf0;
+            else want[at + 22 * 8] ^= 0x30;
+        }
+        const got = ram(s, syms.PlayAddr, 16000);
+        let diff = 0;
+        for (let i = 0; i < 16000; i++) if (got[i] !== want[i]) diff++;
+        if (diff) say(`${where}: ${diff} bytes of the screen differ (dial ${dial}, digit ${digit})`);
+        if (diff && process.env.SHOWDIFF) {
+            const rows = {};
+            for (let i = 0; i < 16000; i++) if (got[i] !== want[i]) { const y = Math.floor(i / 640) * 8 + (i & 7), c = (i % 640) >> 3; (rows[y] ??= []).push(`${c}:${got[i].toString(16)}/${want[i].toString(16)}`); }
+            console.log(rows);
+        }
+        screens++;
+    }
+
     // the race's result, as the ST's pokes
     function result(entries) {
         for (const [a, ...b] of entries) {
@@ -171,6 +212,7 @@ async function play(name) {
         ["prepare again", syms["game_resume.after_prepare"], bankbg], ["restored", syms["game_resume.restored"], bankbg],
         ["over", syms["game_resume.attract"], bankbg],
         ["prepare shown", syms["prepare.shown"], bankbg], ["prepare over", syms["prepare.over"], bankbg],
+        ["select shown", syms["select.shown"], bankbg], ["select over", syms["select.done"], bankbg],
     ];
     const byAddr = new Map(stops.map(([n, a, b]) => [a, n]));
     const list = stops.map(([, a, b]) => [a, b]);
@@ -206,6 +248,10 @@ async function play(name) {
         } else {
             if (stop === "prepare shown" || stop === "prepare over") {
                 screen(stop);
+                continue;
+            }
+            if (stop === "select shown" || stop === "select over") {
+                selectScreen(stop);
                 continue;
             }
             if (stop === "race" && (peek(syms.GmStage) === 0 || peek(syms.GmBack))) continue;   // (GmBack: prepare's file loaded)

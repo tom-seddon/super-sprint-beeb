@@ -31,9 +31,9 @@ ZA_AUTO1 fentries                       ; entries left in the column
 ZA_AUTO1 fcolx                          ; the column's pixel across
 ZA_AUTO2 fnames                         ; the entry's initials
 ZA_AUTO1 fpanel                         ; ACCCON for a panel's drawing
+ZA_AUTO1 frows                          ; a panel's cell rows
 
 PanelRows = 6                           ; prepare's cell rows of panels (tools/screens.py)
-PanelBuf = BgOrg                        ; a panel on its way to the screen, under ANDY (TRACKP has nothing there)
 
 \\ The title: MODE 2, wiped in over the black the screen was left in. Outputs: GmPicture 2. A, X, Y corrupted.
 
@@ -141,8 +141,20 @@ PanelBuf = BgOrg                        ; a panel on its way to the screen, unde
     TAY
     LDA PanelLo,Y:STA zxsrc
     LDA PanelHi,Y:STA zxsrc+1
-    LDA #LO(PanelBuf):STA zxdst
-    LDA #HI(PanelBuf):STA zxdst+1
+    LDA #PanelRows:STA frows
+    BRA front_block
+.PanelLo
+    EQUB LO(PreparePanel0), LO(PreparePanel1), LO(PreparePanel2), LO(PreparePanel3), LO(PreparePanel4), LO(PreparePanel5)
+.PanelHi
+    EQUB HI(PreparePanel0), HI(PreparePanel1), HI(PreparePanel2), HI(PreparePanel3), HI(PreparePanel4), HI(PreparePanel5)
+}
+
+\\ The panel at zxsrc, frows cell rows of car X's part of the screen, drawn with ACCCON as fpanel. A, X, Y corrupted.
+
+.front_block
+{
+    LDA #LO(FrontBuf):STA zxdst
+    LDA #HI(FrontBuf):STA zxdst+1
     LDA PanelFrom,X:STA fp
     LDA PanelBytes,X:STA fleft
     PHX
@@ -151,10 +163,9 @@ PanelBuf = BgOrg                        ; a panel on its way to the screen, unde
     LDA #HI(PlayAddr):STA fp+1
     LDA fp:CLC:ADC #LO(PlayAddr):STA fp
     LDA fp+1:ADC PanelPage,X:STA fp+1
-    LDA #LO(PanelBuf):STA fs
-    LDA #HI(PanelBuf):STA fs+1
-    LDA #PanelRows:STA flines
-    LDA bankbg:STA &FE30                ; ROMSEL: ANDY out, for the buffer
+    LDA #LO(FrontBuf):STA fs
+    LDA #HI(FrontBuf):STA fs+1
+    LDA frows:STA flines
     LDA fpanel:STA &FE34                ; ACCCON
 .row
     LDY #0
@@ -170,14 +181,8 @@ PanelBuf = BgOrg                        ; a panel on its way to the screen, unde
     LDA fp+1:ADC #HI(640):STA fp+1
     DEC flines
     BNE row
-    LDA bankbg:ORA #RomselAndy
-    STA &FE30                           ; ROMSEL: ANDY in
     LDA acccon:STA &FE34                ; ACCCON: the main screen written
     RTS
-.PanelLo
-    EQUB LO(PreparePanel0), LO(PreparePanel1), LO(PreparePanel2), LO(PreparePanel3), LO(PreparePanel4), LO(PreparePanel5)
-.PanelHi
-    EQUB HI(PreparePanel0), HI(PreparePanel1), HI(PreparePanel2), HI(PreparePanel3), HI(PreparePanel4), HI(PreparePanel5)
 .PanelFrom                              ; each panel's first byte across, in the row
     EQUB LO(0), LO(27 * 8), LO(54 * 8)
 .PanelPage

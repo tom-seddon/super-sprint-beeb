@@ -1,0 +1,296 @@
+\\ select.6502 - the select screen (F_0198B6, Phase 5, step 8): the file TRACKS, loaded as a game starts and read where it
+\\ lands, at FrontPicOrg, its picture in the background's bank under ANDY. The ST's rows of tracks are moved up a little
+\\ (tools/screen_options.py), so a rectangle fits round the track chosen, where the ST changes its palette (Tom's). The dial's
+\\ 16 positions are packed one by one, each car's panel as prepare's, playing and not. game.6502 does what the ST does; this draws it.
+
+SelDialY = 94                           ; the dial's first line, its 44 lines 16 bytes across from SelDialCol
+SelDialCol = 32
+SelDialLines = 44
+SelTextY = 89                           ; "SELECT TRACK", and the seconds left there later
+SelLevelY = 139                         ; the difficulty
+SelPanelRows = 4                        ; a panel's cell rows
+SelRectCols = 22                        ; a rectangle's bytes across, past its first
+
+\\ The screen, as RcDrone and GsDial say. A, X, Y corrupted.
+
+.select_show
+{
+    JSR front_mode1
+    LDA #1:STA GmPicture
+    LDA #LO(SelectPic):STA zxsrc
+    LDA #HI(SelectPic):STA zxsrc+1
+    JSR front_shadow
+    LDA #&FF
+    STA SelShown:STA SelTrack:STA SelLevel:STA SelDigit
+    LDA fshadow:STA fpanel
+    LDX #2
+.car
+    STX SelCar
+    JSR sel_panel
+    LDX SelCar
+    DEX
+    BPL car
+    JSR select_dial
+    JSR front_wipe_in
+    LDA acccon:STA fshadow              ; (from here on, it's the screen shown that's drawn on)
+    RTS
+}
+
+\\ Car X has joined: its panel again. A, X, Y corrupted.
+
+.select_join
+{
+    LDA acccon:STA fpanel
+}
+
+\\ Car X's panel, as RcDrone says, drawn with ACCCON as fpanel. A, X, Y corrupted.
+
+.sel_panel
+{
+    TXA
+    LDY RcDrone,X:BEQ playing
+    CLC:ADC #3
+.playing
+    TAY
+    LDA SelPanelLo,Y:STA zxsrc
+    LDA SelPanelHi,Y:STA zxsrc+1
+    LDA #SelPanelRows:STA frows
+    JMP front_block
+}
+
+\\ The dial, the rectangle and the difficulty, whichever GsDial has changed. A, X, Y corrupted.
+
+.select_dial
+{
+    LDA GsDial:CMP SelShown:BEQ same
+    STA SelShown
+    JSR sel_frame
+.same
+    LDA GsDial:LSR A:CMP SelTrack:BEQ done
+    LDX SelTrack:BMI first              ; (the rectangle's off while the difficulty's cleared, which reaches its edge)
+    JSR sel_rect
+.first
+    JSR sel_level
+    LDA GsDial:LSR A:STA SelTrack
+    TAX
+    JMP sel_rect
+.done
+    RTS
+}
+
+\\ The difficulty, if it's changed. A, X, Y corrupted.
+
+.sel_level
+{
+    LDA GsDial:LSR A:LSR A:CMP SelLevel:BEQ done
+    STA SelLevel
+    LDA #SelLevelY:STA fy
+    LDA #26:LDX #28:JSR sel_clear
+    LDA #106:STA fx
+    STZ fx+1
+    LDX SelLevel
+    LDA SelLevelAt,X:TAX
+.char
+    LDA SelTexts,X:BMI done
+    PHX
+    JSR front_glyph
+    LDA #6:JSR front_across
+    PLX
+    INX
+    BRA char
+.done
+    RTS
+}
+
+\\ With under 300 of the ST's count left, the seconds where "SELECT TRACK" was. Inputs: GsCount. A, X, Y corrupted.
+
+.select_tick
+{
+    LDA GsCount:CMP #101:BCS done       ; (the ST's count is GsCount * 3 - 2)
+    LDX #0
+.next
+    CMP SelSeconds,X:BCC got
+    INX
+    CPX #5:BNE next
+.got
+    CPX SelDigit:BEQ done
+    STX SelDigit
+    LDA #SelTextY:STA fy
+    LDA #31:LDX #19:JSR sel_clear
+    LDA #&9D:STA fx
+    STZ fx+1
+    LDA SelDigit:JMP front_glyph
+.done
+    RTS
+.SelSeconds                             ; where (GsCount * 3 - 2) DIV 50 goes up
+    EQUB 18, 34, 51, 68, 84
+}
+
+\\ Dial position A, from its packed frame: positions 5-8 are 3-0 upside down, as on the ST. A, X, Y corrupted.
+
+.sel_frame
+{
+    TAX
+    LDA SelDialLo,X:STA zxsrc
+    LDA SelDialHi,X:STA zxsrc+1
+    LDA #LO(FrontBuf):STA zxdst:STA fs
+    LDA #HI(FrontBuf):STA zxdst+1:STA fs+1
+    LDA fshadow:PHA
+    JSR front_shadow_at                 ; (this sets fshadow to the shadow screen's)
+    PLA:STA fshadow
+    STA &FE34                           ; ACCCON
+    LDY #1
+    LDX #SelDialY
+    LDA SelShown
+    CMP #5:BCC down
+    CMP #9:BCS down
+    LDY #&FF
+    LDX #SelDialY + SelDialLines - 1
+.down
+    STY SelEnd
+    STX fy
+    LDA #SelDialLines:STA flines
+.line
+    LDA #SelDialCol:JSR sel_line
+    LDX #16
+    LDY #0
+.byte
+    LDA (fs):STA (fp),Y
+    INC fs
+    BNE @+
+    INC fs+1
+.@
+    TYA:CLC:ADC #8:TAY
+    DEX
+    BNE byte
+    LDA fy:CLC:ADC SelEnd:STA fy
+    DEC flines
+    BNE line
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
+}
+
+\\ The rectangle round track X, drawn or taken away: yellow's logical 2, and 2 pixels thick, on the right of its first byte.
+\\ A, X, Y corrupted.
+
+.sel_rect
+{
+    LDA RectCol,X:STA SelCol
+    LDA RectBottom,X:STA SelEnd
+    LDA RectTop,X:STA fy
+    LDA fshadow:STA &FE34               ; ACCCON
+    JSR across
+    INC fy
+    JSR across
+.side
+    INC fy
+    LDA SelCol:JSR sel_line
+    LDY #0
+    LDA (fp),Y:EOR #&30:STA (fp),Y
+    LDY #SelRectCols * 8
+    LDA (fp),Y:EOR #&30:STA (fp),Y
+    LDA fy:INC A:INC A:CMP SelEnd:BNE side
+    INC fy
+    JSR across
+    INC fy
+    JSR across
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
+.across
+    LDA SelCol:JSR sel_line
+    LDY #0
+    LDA (fp),Y:EOR #&30:STA (fp),Y
+    LDX #SelRectCols
+.byte
+    TYA:CLC:ADC #8:TAY
+    LDA (fp),Y:EOR #&F0:STA (fp),Y
+    DEX
+    BNE byte
+    RTS
+.RectCol                                ; by track, clockwise from the top
+    EQUB 28, 53, 53, 53, 28, 3, 3, 3
+.RectTop
+    EQUB 34, 34, 88, 145, 145, 145, 88, 34
+.RectBottom
+    EQUB 87, 87, 141, 199, 199, 199, 141, 87
+}
+
+\\ Line fy's byte A across, in fp. A, X corrupted.
+
+.sel_line
+{
+    STZ fp+1
+    ASL A:ROL fp+1
+    ASL A:ROL fp+1
+    ASL A:ROL fp+1
+    STA fp
+    LDA fy:LSR A:LSR A:LSR A:TAX
+    LDA fy:AND #7:CLC:ADC fp
+    BCC @+
+    INC fp+1
+    CLC
+.@
+    ADC RowLo,X:STA fp
+    LDA fp+1:ADC RowHi,X:STA fp+1
+    RTS
+}
+
+\\ 6 lines from fy cleared, X bytes from byte A. fy kept; A, X, Y corrupted.
+
+.sel_clear
+{
+    STA SelCol
+    STX SelCar
+    LDA fy:PHA
+    LDA fshadow:STA &FE34               ; ACCCON
+    LDA #6:STA flines
+.line
+    LDA SelCol:JSR sel_line
+    LDX SelCar
+    LDY #0
+.byte
+    LDA #0:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    DEX
+    BNE byte
+    INC fy
+    DEC flines
+    BNE line
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    PLA:STA fy
+    RTS
+}
+
+.SelCar                                 ; scratch
+    SKIP 1
+.SelCol
+    SKIP 1
+.SelEnd
+    SKIP 1
+.SelShown                               ; the dial as shown,
+    SKIP 1
+.SelTrack                               ; the track with a rectangle round it,
+    SKIP 1
+.SelLevel                               ; the difficulty,
+    SKIP 1
+.SelDigit                               ; and the seconds (&FF: "SELECT TRACK")
+    SKIP 1
+
+.SelPanelLo
+    EQUB LO(SelPanel0), LO(SelPanel1), LO(SelPanel2), LO(SelPanel3), LO(SelPanel4), LO(SelPanel5)
+.SelPanelHi
+    EQUB HI(SelPanel0), HI(SelPanel1), HI(SelPanel2), HI(SelPanel3), HI(SelPanel4), HI(SelPanel5)
+.SelDialLo
+    FOR n = 0..15
+        EQUB LO(SelDial0 + SelDialOffsets[n])
+    NEXT
+.SelDialHi
+    FOR n = 0..15
+        EQUB HI(SelDial0 + SelDialOffsets[n])
+    NEXT
+.SelLevelAt
+    EQUB SelLevelOffsets
+.SelTexts
+    EQUB SelLevelGlyphs
+.SelDial0
+    INCBIN "../build/gen/select_dial.zx02s"

@@ -10,6 +10,8 @@
 \\ scores are in Shared (GameScratch is the bank's too).
 
 SECTION GameScratch
+.FrontBuf                               ; a panel or a dial's frame on its way to the screen (prepare's panels the biggest)
+    SKIP 1296
 .GsPlace                                ; each car's place, 0-3
     SKIP 4
 .GsOrder                                ; the cars by place
@@ -100,6 +102,12 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .game_resume
 {
     LDA GmBack:BEQ arrived
+    CMP #4:BNE back_options
+    STZ GmBack                          ; (back from the select screen's file)
+    JSR load_game
+    JSR select
+    JMP selected
+.back_options
     CMP #3:BNE back_prepare
     STZ GmBack                          ; (back from the options' file)
     JSR say_clear
@@ -242,8 +250,9 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     STZ GmDemo                          ; (fire in the wait after a demo)
     JSR mode1
     JSR seed_once
-    JSR load_game
-    JSR select
+    LDA #4:STA GmBack                   ; (load_game after it, the generator with the rest)
+    LDA #'S' - '0':STA LoadWant
+    JMP load_go                         ; (back here through game_go)
 .selected
     STZ GmRace
     LDA #1:STA GmStage
@@ -377,8 +386,9 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     BPL car
     LDX GsWho:STZ RcDrone,X
     STZ GsDial:STZ GsMove:STZ GsLast
-    JSR say_clear
-    LDA #LO(TextSelect):LDX #HI(TextSelect):LDY #12:JSR say
+    JSR say_clear                       ; (the file landed in the screen)
+    JSR select_show
+.shown
     LDA #167:STA GsCount                ; 499 down by 3 a pass, while above 0
 .pass
     LDX GsWho:JSR game_read:STA GsKey
@@ -393,8 +403,8 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     AND #1:BNE @+
     STZ GsMove
 .@
-    LDA GsDial:LSR A:CLC:ADC #'1':STA TextTrack+6
-    LDA #LO(TextTrack):LDX #HI(TextTrack):LDY #14:JSR say
+    JSR select_dial
+    JSR select_tick
     LDA #2:JSR fields
     LDA GsDial:LSR A:LSR A:CMP GsLast:BEQ same
     STA GsLast                          ; (its new wording takes the third field's place)
@@ -416,7 +426,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     BPL wrench
     LDA GsDial:LSR A:STA GmTrack
 .done
-    RTS
+    JMP mode1
 }
 
 \\ F_019F38: any drone among cars 0-2 pressing fire joins.
@@ -431,6 +441,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     LDX GsCar
     AND #&80:BEQ next
     STZ RcDrone,X
+    JSR select_join
 .next
     LDX GsCar
     INX
@@ -1184,14 +1195,10 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 
 .TextAttract
     EQUS "Super Sprint: press fire", 0
-.TextSelect
-    EQUS "Select a track", 0
 .TextCircle
     EQUS "Winner's circle", 0
 .TextUpgrade
     EQUS "Upgrades", 0
-.TextTrack
-    EQUS "Track 1", 0
 .UpgradeTextsLo                         ; by G_01D03C's number
     EQUB LO(TextTraction), LO(TextTop), LO(TextTurbo), LO(TextScore)
 .UpgradeTextsHi

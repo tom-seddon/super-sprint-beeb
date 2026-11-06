@@ -171,6 +171,36 @@ def prepare(px, pal, colours, checks):
     return out
 
 
+# The select screen (Tom, 2026-11-06): the race's palette and its dithered road, the rows moved up to leave room for a rectangle
+# round the track chosen. The ST's colours as it shows them, by RGB, as its palette bands say.
+SelectDial, SelectText, SelectLevel = 94, 89, 139
+SelectTiles = {(109, 109, 109): 'WKKW', (73, 73, 73): 'WKKK', (255, 255, 255): 'WWWW', (73, 109, 255): 'WWWW', (255, 255, 109): 'YYYY', (73, 109, 146): 'WKKK',
+               (36, 182, 109): 'GGGG', (255, 0, 36): 'GGGG', (182, 182, 182): 'WKKW', (182, 219, 255): 'WWWW', (0, 0, 0): 'KKKK'}
+
+
+def tiled(rgb, pal, top=0):
+    """(h, w, 3) ST colours to logical colours, the tiles' phase as on the screen, from line top."""
+    h, w = rgb.shape[:2]
+    yy, xx = np.mgrid[top:top + h, 0:w]
+    ph = (xx & 1) + 2 * (yy & 1)
+    out = np.zeros((h, w), np.uint8)
+    for c, tile in SelectTiles.items():
+        m = (rgb == c).all(2)
+        for k in range(4):
+            out[m & (ph == k)] = pal.index(tile[k])
+    return out
+
+
+def select_frame(rgb, pal):
+    """The map as the ST shows it, in logical colours, the rows moved: the top row up 1, the middle's sides 3, the bottom row 2."""
+    new = np.zeros_like(rgb)
+    new[37:86] = rgb[38:87]
+    new[91:139, :110] = rgb[94:142, :110]
+    new[91:139, 215:] = rgb[94:142, 215:]
+    new[148:198] = rgb[150:200]
+    return tiled(new, pal)
+
+
 def mode2_bytes(lidx):
     """(200, 160) colours 0-7 -> 16,000 bytes: 2 pixels a byte, the left's bits 7, 5, 3, 1, the right's 6, 4, 2, 0."""
     a = lidx.astype(np.uint8)

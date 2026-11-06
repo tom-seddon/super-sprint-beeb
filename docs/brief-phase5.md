@@ -512,6 +512,11 @@ touches the build.
      name lit with nobody pressing that key is a clash; and a warning when the nine keys can ghost, `tools/keys_ghost.py`'s model as a loop test,
      once a car's keys are in. The keypad's keys are named PAD 4 and so on, their numbers Tom's. Lost at a reset until step 10's save, which
      can hold them and the sound. A joystick could later be picked at the same prompt.
+   - **The select screen** (2026-11-06): the race's palette, its dithered road (Tom's choice over green), in `TRACKS`, loaded as a game starts, its own
+     code in `src/select.6502`. Where the ST changes the chosen track's palette a 2-pixel yellow rectangle goes round it (Tom's idea), drawn and taken
+     away by EOR; the rows of tracks move up 1 to 3 lines for it. The dial's 16 positions are packed one by one but for 5-8, 3-0 upside down, as
+     the ST stores them (229 bytes each; all 16 didn't fit). The panels are prepare's way, the difficulty and the seconds the small font, live. The
+     rectangle's steady, though the ST's highlight wasn't on in every capture. 379 bytes left in the file's high part, 213 under ANDY.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
 10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.

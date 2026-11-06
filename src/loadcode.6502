@@ -85,17 +85,20 @@
     LDA &FE34:AND #&30:STA acccon       ; ACCCON: the main screen shown and written
     STA &FE34
 
-    \\ a picture file, TRACKF, TRACKP or TRACKO: copied up to where it's read, and back to the game (game_go) with no race
+    \\ a picture file, TRACKF, TRACKS, TRACKP or TRACKO: copied up to where it's read, and back to the game (game_go) with no race
 
     LDA LoadName+5
     CMP #'F':BEQ pictures
+    CMP #'S':BEQ pictures
     CMP #'P':BEQ pictures
     CMP #'O':BNE parts
 .pictures
     STA GmFront
     LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
     LDA #HI(TrackFileAddr):STA from+2   ; (its operands from the first page: every load)
-    LDA GmFront:CMP #'F':BNE high
+    LDA GmFront:CMP #'F':BEQ low
+    CMP #'S':BNE high
+.low
     LDA #LO(BgOrg):STA into+1           ; (ANDY out: the part under it first, then the rest)
     LDA #HI(BgOrg):STA into+2
     LDX #HI(front_pics_end - BgOrg)
