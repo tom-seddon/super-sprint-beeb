@@ -382,7 +382,7 @@ touches the build.
    - **What step 6 needs that the docs didn't say** (`docs/st-logic.md` §9, corrected):
      - `G_01EBC2` is a signed word: a drone winning race 0 takes it to -1, then back to 0. `GmRace` (a byte, 0-50) must
        allow for it.
-     - The upgrades' timer running out buys what the dial's on, as fire would.
+     - The upgrades' timer running out buys what the dial's on, as fire would. (The BBC has no limit: D27.)
      - The winner's circle draws 17 or 18 random numbers, so it moves the next race's seed, and F5 changes how many.
        F5 made no real difference to the circle's length: what it shortens is unread.
      - `F_017A42` (initials) runs at the end of every prepare, not only when there's an entry.
@@ -517,6 +517,20 @@ touches the build.
      away by EOR; the rows of tracks move up 1 to 3 lines for it. The dial's 16 positions are packed one by one but for 5-8, 3-0 upside down, as
      the ST stores them (229 bytes each; all 16 didn't fit). The panels are prepare's way, the difficulty and the seconds the small font, live. The
      rectangle's steady, though the ST's highlight wasn't on in every capture. 379 bytes left in the file's high part, 213 under ANDY.
+   - **The upgrades** (2026-11-06): prepare's palette and dim green checks, in `TRACKU`, its own code in `src/upgrades.6502`, loaded after the circle only when a
+     player has 4 wrenches (one more load between those races, none otherwise). `F_01A130`'s picture is composed by `tools/st_frontend.py`, 0 pixels from all three
+     captures outside the HUD, the dial and the seconds. The ST lights a box by palette, each box a plane of its own; the BBC's four colours are all in use, so a box is lit by
+     EOR through 39 rectangles, the top left box's, the others mirrored as the game draws them. The white car can't be lit white, so its boxes and bought levels are yellow
+     (Tom: looks good, in jsbeeb). The level lines sit on black bars, and "TAKEN" clears its own, as small coloured text is lost on the checks. The panels are drawn live: names, the
+     wrench, the ST's HUD digits (`G_01DF4E`'s first set, a byte a line), comma and laps, by EOR. The dial is 5 stored positions, packed:
+     5-8 upside down as on the select, and 9-15 turned round, on a black ground the width of what any position lights, so no frame reaches a box and none needs a mask. **Mistake,
+     the placeholder's**: a pass is 3 fields, not 2 (`F_01A844`'s Vsync is the third), so its time was 6.3 seconds, not 9.5; a pass now paces itself from its start, so the dial's unpacking
+     hides in it: every pass is 3 fields, moving or not. **No time limit** (Tom, D27): the screen waits for fire, and the seconds are gone. **Flicker** (Tom, in jsbeeb): figures were taken away and drawn
+     again at each payment, so the display caught them gone. A figure's now changed in one pass, its old glyph and new EOR'd together, and only if it's changed. `tools/upgrades_check.mjs`, in the suite, pokes the circle's end and
+     compares every pass with `tools/upgrades_model.mjs`, which plots the text itself: 382 screens, all 16 positions, full boxes, "TAKEN", a score bought, 171 passes waited. It watches every write to the panels while paying: no pixel
+     that ends as it began may be written any other way (24 payments; a build that erases and redraws fails all 24). Seen to fail too: a box mirrored wrong, the dial's span, the lit colour.
+     `game_check` compares the traced games' screens the same way, giving fire at the ST's time's end, and `flash_check` now goes through this load. 779 bytes left in the file's high part, 357 under ANDY. `tools/wrench_disc.py`
+     makes a copy of the disc that starts every game with 8 wrenches, for trying it by hand. The tune and the "ding" are step 9's; the dial's pointer isn't in the car's colour, as the select's.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
 10. **High scores** (D23): initials entry and the tables; saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.

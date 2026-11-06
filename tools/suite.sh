@@ -48,7 +48,7 @@ run play_build make beeb TRACE=play
 run keys_check node tools/keys_check.mjs
 [ -n "$REMOTE" ] || run disc_races tools/disc_races.sh "$OUT/disc_races"
 wait
-for c in game_check attract_check flash_check options_check select_check load_check; do            # (each on its own line, as the disc's jobs left it)
+for c in game_check attract_check flash_check options_check select_check upgrades_check load_check; do            # (each on its own line, as the disc's jobs left it)
     status=$(cat "$OUT/disc_races/$c.status" 2>/dev/null)
     echo "$c ${status:-missing}" >> "$OUT/verdicts.txt"
 done

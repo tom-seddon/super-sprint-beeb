@@ -85,7 +85,7 @@ SelRectCols = 22                        ; a rectangle's bytes across, past its f
     LDA GsDial:LSR A:LSR A:CMP SelLevel:BEQ done
     STA SelLevel
     LDA #SelLevelY:STA fy
-    LDA #26:LDX #28:JSR sel_clear
+    LDA #26:LDX #28:JSR front_clear
     LDA #106:STA fx
     STZ fx+1
     LDX SelLevel
@@ -116,7 +116,7 @@ SelRectCols = 22                        ; a rectangle's bytes across, past its f
     CPX SelDigit:BEQ done
     STX SelDigit
     LDA #SelTextY:STA fy
-    LDA #31:LDX #19:JSR sel_clear
+    LDA #31:LDX #19:JSR front_clear
     LDA #&9D:STA fx
     STZ fx+1
     LDA SelDigit:JMP front_glyph
@@ -151,7 +151,7 @@ SelRectCols = 22                        ; a rectangle's bytes across, past its f
     STX fy
     LDA #SelDialLines:STA flines
 .line
-    LDA #SelDialCol:JSR sel_line
+    LDA #SelDialCol:JSR front_line
     LDX #16
     LDY #0
 .byte
@@ -184,7 +184,7 @@ SelRectCols = 22                        ; a rectangle's bytes across, past its f
     JSR across
 .side
     INC fy
-    LDA SelCol:JSR sel_line
+    LDA SelCol:JSR front_line
     LDY #0
     LDA (fp),Y:EOR #&30:STA (fp),Y
     LDY #SelRectCols * 8
@@ -197,7 +197,7 @@ SelRectCols = 22                        ; a rectangle's bytes across, past its f
     LDA acccon:STA &FE34                ; ACCCON: the main screen written
     RTS
 .across
-    LDA SelCol:JSR sel_line
+    LDA SelCol:JSR front_line
     LDY #0
     LDA (fp),Y:EOR #&30:STA (fp),Y
     LDX #SelRectCols
@@ -213,52 +213,6 @@ SelRectCols = 22                        ; a rectangle's bytes across, past its f
     EQUB 34, 34, 88, 145, 145, 145, 88, 34
 .RectBottom
     EQUB 87, 87, 141, 199, 199, 199, 141, 87
-}
-
-\\ Line fy's byte A across, in fp. A, X corrupted.
-
-.sel_line
-{
-    STZ fp+1
-    ASL A:ROL fp+1
-    ASL A:ROL fp+1
-    ASL A:ROL fp+1
-    STA fp
-    LDA fy:LSR A:LSR A:LSR A:TAX
-    LDA fy:AND #7:CLC:ADC fp
-    BCC @+
-    INC fp+1
-    CLC
-.@
-    ADC RowLo,X:STA fp
-    LDA fp+1:ADC RowHi,X:STA fp+1
-    RTS
-}
-
-\\ 6 lines from fy cleared, X bytes from byte A. fy kept; A, X, Y corrupted.
-
-.sel_clear
-{
-    STA SelCol
-    STX SelCar
-    LDA fy:PHA
-    LDA fshadow:STA &FE34               ; ACCCON
-    LDA #6:STA flines
-.line
-    LDA SelCol:JSR sel_line
-    LDX SelCar
-    LDY #0
-.byte
-    LDA #0:STA (fp),Y
-    TYA:CLC:ADC #8:TAY
-    DEX
-    BNE byte
-    INC fy
-    DEC flines
-    BNE line
-    LDA acccon:STA &FE34                ; ACCCON: the main screen written
-    PLA:STA fy
-    RTS
 }
 
 .SelCar                                 ; scratch

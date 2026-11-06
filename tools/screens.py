@@ -139,6 +139,49 @@ def text_on(lidx, s, x, y, colour=3):
         x += 6
 
 
+def mirror(raw):
+    """A dial's position, each line's 16 bytes the other way round, and the pixels in each."""
+    flip = lambda n: int(f'{n:04b}'[::-1], 2)
+    rev = lambda b: flip(b >> 4) << 4 | flip(b & 15)
+    return b''.join(bytes(rev(b) for b in raw[l * 16:l * 16 + 16][::-1]) for l in range(44))
+
+
+def dial_files(out, zx02, name, top, mirrored=False):
+    """The dial's 16 positions at line top, 16 bytes across from byte 32, each its own stream but for 5-8, which the game turns upside
+    down, and if mirrored, 9-15, which it turns round: NAME.zx02s, and NAME.bin for the checks. Returns (each position's offset, the
+    positions unpacked)."""
+    d, event, pal = F.dat(), F.shot('select1')[1], Prepare['pal']
+    base5 = 0x3140 + 0x96
+    stored = [stgfx.planar_to_indices(d[base5 + i * 0x580:base5 + (i + 1) * 0x580], 64, 44) for i in range(5)]
+    positions = stored + [stored[3 - i][::-1] for i in range(4)]
+    positions = positions + [positions[7 - i][:, ::-1] for i in range(7)]
+    idx = F.shot('select1')[0]
+    dial, offsets, packed, frames = b'', [], b'', []
+    for p, f in enumerate(positions):
+        px = idx.copy()
+        px[97:141, 128:192] = f
+        rgb = SS.rgb(px, event)[97:141, 128:192]
+        lidx = np.zeros((200, 320), np.uint8)
+        lidx[top:top + 44, 128:192] = O.tiled(rgb, pal, top)
+        screen = mode1_bytes(lidx)
+        raw = bytes(screen[(l >> 3) * 640 + c * 8 + (l & 7)] for l in range(top, top + 44) for c in range(32, 48))
+        if 5 <= p <= 8:                 # (upside down, by the game)
+            offsets.append(offsets[8 - p])
+            raw = b''.join(frames[8 - p][l * 16:l * 16 + 16] for l in range(43, -1, -1))
+        elif mirrored and p > 8:
+            offsets.append(offsets[16 - p])
+            raw = mirror(frames[16 - p])
+        else:
+            offsets.append(len(packed))
+            packed += dfs.compress(raw, exe=zx02, name=f'dial {p}')
+        frames.append(raw)
+        dial += raw
+    open(f'{out}/{name}.bin', 'wb').write(dial)
+    open(f'{out}/{name}.zx02s', 'wb').write(packed)
+    print(f'{name}: {len(packed):,} bytes packed')
+    return offsets, frames
+
+
 def select_files(out, zx02):
     """The select screen: select.zx02 the picture; select_0-2 and 3-5 the panels, playing and not; select_dial.zx02s the dial's 16
     positions, each its own stream; and what tools/game_check.mjs compares: select.bin, select_all, select_none, select_dial.bin,
@@ -167,31 +210,7 @@ def select_files(out, zx02):
         packed = dfs.compress(raw, exe=zx02, name=name)
         open(f'{out}/{name}.zx02', 'wb').write(packed)
         print(f'{name}: {len(packed):,} bytes packed')
-    base5 = 0x3140 + 0x96
-    stored = [stgfx.planar_to_indices(d[base5 + i * 0x580:base5 + (i + 1) * 0x580], 64, 44) for i in range(5)]
-    positions = stored + [stored[3 - i][::-1] for i in range(4)]
-    positions = positions + [positions[7 - i][:, ::-1] for i in range(7)]
-    idx = F.shot('select1')[0]
-    dial, offsets, packed, frames = b'', [], b'', []
-    for p, f in enumerate(positions):
-        px = idx.copy()
-        px[97:141, 128:192] = f
-        rgb = SS.rgb(px, event)[97:141, 128:192]
-        lidx = np.zeros((200, 320), np.uint8)
-        lidx[O.SelectDial:O.SelectDial + 44, 128:192] = O.tiled(rgb, pal, O.SelectDial)
-        screen = mode1_bytes(lidx)
-        raw = bytes(screen[(l >> 3) * 640 + c * 8 + (l & 7)] for l in range(O.SelectDial, O.SelectDial + 44) for c in range(32, 48))
-        if 5 <= p <= 8:                 # (upside down, by the game)
-            offsets.append(offsets[8 - p])
-            raw = b''.join(frames[8 - p][l * 16:l * 16 + 16] for l in range(43, -1, -1))
-        else:
-            offsets.append(len(packed))
-            packed += dfs.compress(raw, exe=zx02, name=f'dial {p}')
-        frames.append(raw)
-        dial += raw
-    open(f'{out}/select_dial.bin', 'wb').write(dial)
-    open(f'{out}/select_dial.zx02s', 'wb').write(packed)
-    print(f'the dial: {len(packed):,} bytes packed')
+    offsets = dial_files(out, zx02, 'select_dial', O.SelectDial)[0]
     c = F.Canvas(mem)
     levels = [bytes(mem[a - F.Region:mem.index(0, a - F.Region)]) for a in SelectLevels]
     text, at, glyph = b'', [], []
@@ -210,6 +229,111 @@ def select_files(out, zx02):
     open(f'{out}/select_text.bin', 'wb').write(band)
     return ['SelDialOffsets = {' + ', '.join(map(str, offsets)) + '}', 'SelLevelOffsets = {' + ', '.join(map(str, at)) + '}',
             'SelLevelGlyphs = {' + ', '.join(map(str, glyph)) + '}']
+
+
+UpDial = 99                             # the dial's first line, the ST's
+UpRows = 8                              # the cell rows of a car's heading stream: the labels and the heading
+UpPanelX = (0, 108, 216)                # each panel's first pixel
+UpLapX = 86                             # "LAP", into a panel
+UpMaxRun = 31                           # a rectangle's bytes across: Y, 8 a byte
+
+
+def upgrade_font(mem):
+    """The ST's HUD digits (`G_01DF4E`'s first set), a byte a line: their ink, 8 pixels wide, moved left a pixel; then its comma (`F_01603C`
+    ORs one into a digit's mask, measured off the capture) and the wrench, as two 6-pixel halves (the sprites at `G_01EBDC` + &6F00)."""
+    d = F.dat()
+    out = []
+    for g in range(10):
+        for line in range(11):
+            v = d[0x286BE + g * 0x2C + line * 4] << 8 | d[0x286BE + g * 0x2C + line * 4 + 1]
+            assert v & 0x807F == 0, f'digit {g}: its ink past 8 pixels'
+            out.append(v >> 7 & 255)
+    out += [0] * 7 + [0xC0, 0xC0, 0x40, 0x80]
+    idx = F.shot('upgrade0')[0]
+    wrench = [[int(idx[y, x] not in (0, 13)) for x in range(51, 63)] for y in range(5)]
+    for half in (0, 6):
+        out += [sum(b << (7 - i) for i, b in enumerate(row[half:half + 6])) for row in wrench] + [0] * 6
+    return out + [0] * 11               # (a blank, for a figure that wasn't there)
+
+
+def box_rects(box):
+    """The top left box's bytes as rectangles of one mask: [(first byte across, bytes, line, lines, mask)]. The game holds only these:
+    the other three boxes are their mirrors."""
+    nib = {}
+    for y, x in zip(*np.nonzero(box)):
+        nib[(y, x >> 2)] = nib.get((y, x >> 2), 0) | 8 >> (x & 3)
+    runs = []
+    for (y, col) in sorted(nib):
+        last = runs[-1] if runs else None
+        if last and last[2] == y and last[0] + last[1] == col and last[4] == nib[(y, col)] and last[1] < UpMaxRun:
+            last[1] += 1
+        else:
+            runs.append([col, 1, y, 1, nib[(y, col)]])
+    rects = []
+    for r in runs:
+        for q in rects:
+            if q[0] == r[0] and q[1] == r[1] and q[4] == r[4] and q[2] + q[3] == r[2]:
+                q[3] += 1
+                break
+        else:
+            rects.append(r)
+    return [(*r[:4], r[4] * 0x11) for r in rects]
+
+
+def upgrades_files(out, zx02):
+    """The upgrades (F_01A130): upgrades.zx02 the screen below the heading, upgrades_h0-2 each car's rows above it, the dial's positions,
+    and what tools/upgrades_model.mjs builds on: upgrades_all.bin, each car's whole screen with no levels, upgrades_box.bin the
+    boxes' pixels, 4 screens of byte masks, and upgrades_font.bin, the small font then the digits. Returns the tables' lines for front.6502."""
+    mem, pal = F.first_dump(), Prepare['pal']
+    choose = F.c_text(mem, 0x1F6C8)
+    box = F.upgrade_boxes(F.Canvas(mem))
+    offsets, frames = dial_files(out, zx02, 'upgrades_dial', UpDial, mirrored=True)
+    lit = [[c for c in range(16) if any(f[l * 16 + c] for f in frames)] for l in range(44)]
+    span = [list(range(s[0], s[-1] + 1)) if s else [] for s in lit]
+    screens = []
+    for car, name in enumerate(Options):
+        lidx = O.upgrades(F.upgrades(mem, ((name + b' car', 30), (choose, 45)), colour=6, bars=True), pal, Prepare['checks'], car)
+        for panel in range(3):
+            text_on(lidx, b'lap', UpPanelX[panel] + UpLapX, 0, pal.index('WGY'[panel]))
+        screens.append(bytearray(mode1_bytes(lidx)))
+    for l, cols in enumerate(span):     # the dial's ground: black, so 16 frames can do for every picture, and none reach a box
+        for c in cols:
+            at = ((UpDial + l) >> 3) * 640 + (32 + c) * 8 + ((UpDial + l) & 7)
+            assert not box[UpDial + l, 128 + c * 4:132 + c * 4].any(), 'the dial reaches a box'
+            for s in screens:
+                s[at] = 0
+    assert all(s[UpRows * 640:] == screens[0][UpRows * 640:] for s in screens), 'upgrades: the cars differ below the heading'
+    streams = [('upgrades', bytes(screens[0][UpRows * 640:]))] + [(f'upgrades_h{car}', bytes(screens[car][:UpRows * 640])) for car in range(3)]
+    for name, raw in streams:
+        packed = dfs.compress(raw, exe=zx02, name=name)
+        open(f'{out}/{name}.zx02', 'wb').write(packed)
+        print(f'{name}: {len(packed):,} bytes packed')
+    open(f'{out}/upgrades_all.bin', 'wb').write(b''.join(map(bytes, screens)))
+    masks = b''
+    for n in (2, 8, 4, 1):              # in the dial's order, G_01D02E's
+        lidx = np.where(box == n, 3, 0).astype(np.uint8)
+        masks += mode1_bytes(lidx)
+    open(f'{out}/upgrades_box.bin', 'wb').write(masks)
+    font_bytes = upgrade_font(mem)
+    open(f'{out}/upgrades_font.bin', 'wb').write(bytes(font() + font_bytes))
+    rects = box_rects(box == 1)
+    print(f'the box: {len(rects)} rectangles')
+    assert len(rects) < 256
+    c = F.Canvas(mem)
+    code = lambda s: [c.code(ch) for ch in s] + [255]
+    names = [code(n + b' car') for n in Options] + [code(b'drone')]
+    at, text = [], []
+    for n in names:
+        at.append(len(text))
+        text += n
+    taken = len(text)
+    text += code(c.text(0x1F730))
+    return ['UpDialOffsets = {' + ', '.join(map(str, offsets)) + '}',
+            'UpDialFirst = {' + ', '.join(str(s[0] if s else 0) for s in span) + '}', 'UpDialBytes = {' + ', '.join(str(len(s)) for s in span) + '}',
+            'UpFont = {' + ', '.join(map(str, font_bytes)) + '}',
+            'UpNameAt = {' + ', '.join(map(str, at)) + '}', f'UpTaken = {taken}', 'UpTextGlyphs = {' + ', '.join(map(str, text)) + '}',
+            f'UpRectCount = {len(rects)}'] + [f'UpRect{n} = {{' + ', '.join(str(r[i]) for r in rects) + '}'
+                                              for i, n in enumerate(('Col', 'Bytes', 'Line', 'Lines', 'Nibble'))]
 
 
 def glyphs(s):
@@ -243,6 +367,7 @@ def main(out, zx02):
         open(f'{out}/{name}.zx02', 'wb').write(packed)
         print(f'{name}: {len(packed):,} bytes packed')
     lines += select_files(out, zx02)
+    lines += upgrades_files(out, zx02)
     prepare(out, zx02)
     frame = mode1_bytes(O.prepare(F.options_frame(F.first_dump(), Options), **Prepare))
     open(f'{out}/options.bin', 'wb').write(frame)

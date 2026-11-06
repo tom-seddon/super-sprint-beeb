@@ -15,6 +15,7 @@
 import { readFileSync } from "node:fs";
 import { bootDisc, ram, runToAny, symbols } from "./jsbeeb.mjs";
 import { comparer, PerCar, Race } from "./logic_compare.mjs";
+import { screen as upgrades } from "./upgrades_model.mjs";
 
 const games = process.argv.length > 2 ? process.argv.slice(2) : ["three", "alone", "rejoin"];
 const Region = 0x1c722;
@@ -171,6 +172,25 @@ async function play(name) {
         screens++;
     }
 
+    // The upgrades', the same, from tools/upgrades_model.mjs: the panels, the levels as they were when the screen was drawn, the dial,
+    // the box lit, the seconds and the figures paid for
+    let upLevels, upScreens = 0, upReads = -1;
+    function upgradeScreen(where) {
+        const car = peek(syms.GsCar), n = [0, 1, 2];
+        if (where === "upgrade shown") upLevels = [syms.RcTraction, syms.RcTopUp, syms.RcTurbo].map((a) => peek(a + car));
+        const want = upgrades({
+            car, drone: n.map((c) => peek(syms.RcDrone + c)), wrench: n.map((c) => peek(syms.RcWrench + c)),
+            score: n.map((c) => [...s.readMemory(syms.RcScore + c * 6, 6)]), laps: n.map((c) => peek(syms.RcLaps + c)),
+            level: upLevels, dial: peek(syms.UpShown), lit: [...s.readMemory(syms.UpLit, 4)],
+        });
+        const got = ram(s, syms.PlayAddr, 16000);
+        let diff = 0;
+        for (let i = 0; i < 16000; i++) if (got[i] !== want[i]) diff++;
+        if (diff) say(`${where}: ${diff} bytes of the screen differ (car ${car})`);
+        screens++;
+        upScreens++;
+    }
+
     // the race's result, as the ST's pokes
     function result(entries) {
         for (const [a, ...b] of entries) {
@@ -213,6 +233,7 @@ async function play(name) {
         ["over", syms["game_resume.attract"], bankbg],
         ["prepare shown", syms["prepare.shown"], bankbg], ["prepare over", syms["prepare.over"], bankbg],
         ["select shown", syms["select.shown"], bankbg], ["select over", syms["select.done"], bankbg],
+        ["upgrade shown", syms["upgrade.shown"], bankbg], ["upgrade over", syms["upgrade.over"], bankbg],
     ];
     const byAddr = new Map(stops.map(([n, a, b]) => [a, n]));
     const list = stops.map(([, a, b]) => [a, b]);
@@ -230,6 +251,7 @@ async function play(name) {
             if (read >= front.length) { say(`the reads ran out (car ${car})`); break; }
             if (CarOf[e.device] !== car) { say(`read ${read}, from &${e.from.toString(16)}: ST car ${CarOf[e.device]}, BBC car ${car}`); break; }
             cpu.a = e.value;
+            if (upReads >= 0 && ++upReads === 158) cpu.a |= 0x80;   // (the ST's time running out is fire here: the BBC has no limit, D27)
             read++;
         } else if (stop === "esc") {
             eat();
@@ -254,6 +276,11 @@ async function play(name) {
                 selectScreen(stop);
                 continue;
             }
+            if (stop === "upgrade shown" || stop === "upgrade over") {
+                upgradeScreen(stop);
+                upReads = stop === "upgrade shown" ? 0 : -1;
+                continue;
+            }
             if (stop === "race" && (peek(syms.GmStage) === 0 || peek(syms.GmBack))) continue;   // (GmBack: prepare's file loaded)
             const p = points[pi];
             if (p.name !== stop) { say(`at ${stop}, the ST's next point ${p.name}`); break; }
@@ -271,7 +298,7 @@ async function play(name) {
     eat();
     if (read < front.length) say(`${front.length - read} reads left over`);
     const bad = wrong + wholly.wrong + noGates.wrong + only.wrong;
-    console.log(`${name}: ${bad ? `WRONG, ${bad} points` : `exact at ${pi - 1} points, ${read} reads, ${screens} screens, ${joined} with a join`}`);
+    console.log(`${name}: ${bad ? `WRONG, ${bad} points` : `exact at ${pi - 1} points, ${read} reads, ${screens} screens, ${upScreens} of them the upgrades', ${joined} with a join`}`);
     s.destroy?.();
     return bad ? 1 : 0;
 }

@@ -792,7 +792,7 @@ that car (`F_0141B0(car)`). Either skips back to the title afterwards.
    down into a drone, which loses its wrenches and upgrades. A human must finish ahead of every drone; a lone human
    against 3 drones must win.
 5. **Upgrades** `F_01A0D6` / `F_01A130(car)`: for each human with 4 or more wrenches. A dial picks one of: higher top
-   speed, increase score, turbo acceleration, super traction (`G_01D03C` = {1, 3, 2, 0}); about 9.5 s, fire to pick. When the time runs out, what the dial's on is bought all the same (traced: 4 wrenches gone, a level gained).
+   speed, increase score, turbo acceleration, super traction (`G_01D03C` = {1, 3, 2, 0}); 158 passes of 3 fields (`F_010214(2)`, then `F_01A844`'s Vsync), so 9.5 s, fire to pick. When the time runs out, what the dial's on is bought all the same (traced: 4 wrenches gone, a level gained).
    Each purchase costs 4 wrenches and adds 1 level (up to 5); "increase score" adds 3,000 points instead.
 6. Prepare to race again (rejoins, high scores), then `F_01BBAA` restores the drones' running scores for display.
 7. Next track `G_01D138[track]`; race counter `G_01EBC2` + 1, at most 50.

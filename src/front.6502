@@ -1,6 +1,6 @@
 \\ front.6502 - the front end's pictures (Phase 5, step 8): code and tables, kept as an image at the objects' bank's end and
 \\ copied by game_go to FrontOrg in the background's bank, beside game.6502. The pictures are files, loaded with the OS
-\\ (load_track) into the main screen and copied up: TRACKF the attract mode's, TRACKP prepare to race's. The tables and each
+\\ (load_track) into the main screen and copied up: TRACKF the attract mode's, TRACKP prepare to race's, and others that hold their own code. The tables and each
 \\ picture, ZX02 packed, come from tools/screens.py, which says how each screen looks. Some of the pictures are in
 \\ FrontPics, in the same bank under ANDY after the erase's code (sprint.6502), so they're unpacked with ANDY out.
 \\
@@ -435,6 +435,52 @@ PanelRows = 6                           ; prepare's cell rows of panels (tools/s
     DEC flines
     BNE line
     LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
+}
+
+\\ Line fy's byte A across, in fp. A, X corrupted.
+
+.front_line
+{
+    STZ fp+1
+    ASL A:ROL fp+1
+    ASL A:ROL fp+1
+    ASL A:ROL fp+1
+    STA fp
+    LDA fy:LSR A:LSR A:LSR A:TAX
+    LDA fy:AND #7:CLC:ADC fp
+    BCC @+
+    INC fp+1
+    CLC
+.@
+    ADC RowLo,X:STA fp
+    LDA fp+1:ADC RowHi,X:STA fp+1
+    RTS
+}
+
+\\ 6 lines from fy cleared, X bytes from byte A, on the screen fshadow says. fy kept; A, X, Y corrupted.
+
+.front_clear
+{
+    STA fcolx
+    STX fc
+    LDA fy:PHA
+    LDA fshadow:STA &FE34               ; ACCCON
+    LDA #6:STA flines
+.line
+    LDA fcolx:JSR front_line
+    LDX fc
+    LDY #0
+.byte
+    LDA #0:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    DEX
+    BNE byte
+    INC fy
+    DEC flines
+    BNE line
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    PLA:STA fy
     RTS
 }
 

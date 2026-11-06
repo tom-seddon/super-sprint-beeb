@@ -259,9 +259,60 @@ def options_frame(mem, names):
     return c.px
 
 
+def upgrade_boxes(c):
+    """F_016AF2, F_016A6C, F_016A44: the top left box, in the plane it's drawn in, then F_016B76 and F_016BB8, which mirror it into the
+    other three planes: each box a colour of its own, 1, 2, 4 and 8, so a palette entry lights it."""
+    p = np.zeros((200, 320), np.uint8)
+    for x, y, n in ((6, 0x3F, 0x35), (0x96, 0x3F, 0x1E)):
+        p[y:y + n, x:x + 3] = 1
+    for x, y, n in ((6, 0x3F, 0x93), (6, 0x71, 0x79)):
+        p[y:y + 3, x:x + n] = 1
+    for line in range(25):
+        for g in range(3):
+            w = c.d[0x3140 + (line * 3 + g) * 2] << 8 | c.d[0x3140 + (line * 3 + g) * 2 + 1]
+            for j in range(16):
+                p[91 + line, 112 + g * 16 + j] = w >> (15 - j) & 1
+    p[63:116, 160:] = p[63:116, :160][:, ::-1] * 2
+    p[126:179] = p[63:116][::-1] * 4
+    return p
+
+
+UpgradeText = ((0x1F6E4, 14, 74), (0x1F6EA, 14, 89), (0x1F6F4, 206, 74), (0x1F6FC, 206, 89), (0x1F706, 14, 137), (0x1F70C, 14, 152),
+               (0x1F71A, 206, 137), (0x1F724, 206, 152))
+UpgradeLevels = ((14, 105), (206, 105), (14, 168))      # traction, top speed, turbo: F_01A99E's "level" and its digits
+
+
+def upgrades(mem, heading=(), levels=(0, 0, 0), colour=6, bars=False):
+    """F_01A130's picture but for the HUD and the dial: heading the (text, y) lines in colour, levels each upgrade's; bars puts each
+    level's line on a bar of colour 13 (the BBC's: small coloured text is lost on the checks)."""
+    c = Canvas(mem)
+    c.fill(13, 0, 0, 20, 0x29)
+    c.fill(13, 0, 0xB5, 20, 0x13)
+    c.px[:] = np.where(upgrade_boxes(c) > 0, upgrade_boxes(c), c.px)
+    for (x, y), level in zip(UpgradeLevels, levels):
+        ground = 13 if bars else 0
+        if bars:
+            c.px[y:y + 6, x:x + 90] = 13
+        c.small(c.text(0x1F72A), x, y, ground, 15)
+        for n in range(1, 6):
+            c.glyph(n, x + 24 + n * 12, y, ground, 15 if n > level else colour)
+        if level == 5:
+            c.small(c.text(0x1F730), x + 30, y - 38, 0, colour)
+    checker(c)
+    for s, y in heading:
+        c.big(s, colour, (320 - len(s) * 11) // 2 if y == 30 else 12, y)
+    for a, x, y in UpgradeText:
+        c.big(c.text(a), 15, x, y)
+    return c.px
+
+
 def first_dump():
     t = json.load(open(os.path.join(ROOT, 'build/st_screens/screens.json')))
     return bytes.fromhex(next(e for e in t['events'] if e['kind'] == 'point')['mem'])
+
+
+def c_text(mem, a):
+    return Canvas(mem).text(a)
 
 
 def main():
@@ -287,6 +338,17 @@ def main():
         ok = n <= limit and (box is None or where is None or (where[0] >= box[0] and where[1] >= box[1] and where[2] <= box[2] and where[3] <= box[3]))
         bad += not ok
         print(f'{name}: {n} pixels differ{f" in {where}" if n else ""}{"" if ok else ": WRONG"}')
+    # the upgrades (F_01A130), but for the HUD, the dial and the seconds, which are the game's: the boxes in the planes they're drawn in
+    for shot_name in ('upgrade0', 'upgrade1', 'upgrade2'):
+        want, e = shot(shot_name)
+        idx = upgrades(mem, ((b'blue car', 30), (c_text(mem, 0x1F6C8), 45)))
+        idx[:41] = want[:41]
+        idx[99:143, 128:192] = want[99:143, 128:192]
+        idx[184:195, 155:171] = want[184:195, 155:171]
+        n, where = diff(idx, want)
+        Image.fromarray(S.rgb(idx, e)).resize((640, 400), Image.NEAREST).save(os.path.join(ROOT, f'build/st_screens/dec_{shot_name}.png'))
+        bad += n > 0
+        print(f'{shot_name}: {n} pixels differ{f" in {where}" if n else ""}{"" if not n else ": WRONG"}')
     print(f'{bad} wrong' if bad else 'every picture as the ST drew it')
     sys.exit(1 if bad else 0)
 

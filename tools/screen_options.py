@@ -201,6 +201,17 @@ def select_frame(rgb, pal):
     return tiled(new, pal)
 
 
+# The upgrades (Tom's to judge): prepare's palette and checks. A car's own colour goes on what's the ST's colour 6, its heading and its
+# seconds; a box, lit or full, and a level bought want a colour that isn't white, so the white car's are yellow.
+UpgradeTable = {**{i: 'KKKK' for i in range(16)}, 15: 'WWWW', 1: 'WWWW', 2: 'WWWW', 4: 'WWWW', 8: 'WWWW'}
+UpgradeLit = 'YGY'
+
+
+def upgrades(px, pal, checks, car):
+    """px, F.upgrades's picture, in logical colours, the ST's colour 6 car's."""
+    return render(px, {**UpgradeTable, 12: checks, 6: 'WGY'[car] * 4}, pal)
+
+
 def mode2_bytes(lidx):
     """(200, 160) colours 0-7 -> 16,000 bytes: 2 pixels a byte, the left's bits 7, 5, 3, 1, the right's 6, 4, 2, 0."""
     a = lidx.astype(np.uint8)

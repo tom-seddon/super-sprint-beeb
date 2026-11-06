@@ -86,9 +86,9 @@ SECTION LowFree                         ; &0900-&0AFF, kept across loads (D26)
     SKIP 1
 .GmSeeded                               ; the generator's been seeded
     SKIP 1
-.GmFront                                ; the file in the background's bank: 'F', 'P' or 0 (a track's load overwrites it)
+.GmFront                                ; the file in the background's bank: 'F', 'S', 'U', 'P', 'O' or 0 (a track's load overwrites it)
     SKIP 1
-.GmBack                                 ; the way back after a file's load: prepare to race 1 between races, 2 at the first; 3 options, 4 select
+.GmBack                                 ; the way back after a file's load: prepare to race 1 between races, 2 at the first; 3 options, 4 select, 5 upgrades
     SKIP 1
 .GmPicture                              ; a picture's on the screen: its mode, 1 or 2, or 0 none
     SKIP 1

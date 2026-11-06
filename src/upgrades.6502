@@ -1,0 +1,622 @@
+\\ upgrades.6502 - the upgrades (F_01A130, Phase 5, step 8): the file TRACKU, loaded after the circle when a player has 4 wrenches, and read
+\\ where it lands, at FrontPicOrg, its pictures in the background's bank under ANDY. The picture's in two streams, a car's rows and the rest;
+\\ the game's state is drawn over it, in the ST's digits and the small font, by EOR. A figure that changes is changed in one go, its old glyph
+\\ and its new EOR'd together, and only if it's changed: taken away and drawn again, the display catches it between the two.
+\\
+\\ The ST lights a box by its palette, each in a plane of its own. The BBC's four colours are all in use, so a box is lit by EOR, through
+\\ UpRect's rectangles: the top left box's bytes, the other three by mirroring them. game.6502 does what the ST does; this draws it.
+
+UpDialY = 99                            ; the dial's first line, its 44 lines 16 bytes across from UpDialCol
+UpDialCol = 32
+UpDialLines = 44
+UpHeadRows = 8                          ; the rows of a car's stream (tools/screens.py)
+UpScoreY = 7                            ; the panels' second line of text
+UpMirrorSum = 80                        ; a rectangle mirrored: across, this less its first and bytes
+UpFlipSum = 242                         ; and down, this less its first and lines (F_016BB8: line 115 onto 126)
+UpComma = 10                            ; UpFontData's glyphs after the digits
+UpWrench = 11
+UpBlank = 13
+UpBig = 11                              ; lines a glyph there
+UpSmallBlank = 38                       ; the small font's space
+
+\\ The screen for car GsCar, the dial at GsDial. Outputs: GmPicture 1. A, X, Y corrupted.
+
+.upgrade_show
+{
+    JSR front_mode1
+    LDA #1:STA GmPicture
+    LDA #LO(UpgradesPic):STA zxsrc
+    LDA #HI(UpgradesPic):STA zxsrc+1
+    LDA #LO(PlayAddr + UpHeadRows * 640):STA zxdst
+    LDA #HI(PlayAddr + UpHeadRows * 640):STA zxdst+1
+    JSR front_shadow_at
+    LDX GsCar
+    LDA UpHeadLo,X:STA zxsrc
+    LDA UpHeadHi,X:STA zxsrc+1
+    LDA #LO(PlayAddr):STA zxdst
+    LDA #HI(PlayAddr):STA zxdst+1
+    JSR front_shadow_at
+    LDA #&FF:STA UpShown
+    STZ UpHold
+    LDX #17                             ; (nothing's shown: every figure's first drawing is a change)
+.blank
+    LDA #&80:STA UpSeen,X
+    DEX
+    BPL blank
+    LDA #UpSmallBlank
+    STA UpCounted:STA UpCounted+1:STA UpCounted+2
+    LDX GsCar
+    LDA UpLitMasks,X:STA UpFlash
+    LDX #2
+.panel
+    STX UpCar
+    JSR up_panel
+    LDX UpCar
+    DEX
+    BPL panel
+    LDX #2
+.level
+    STX UpNow
+    JSR up_levels
+    LDX UpNow
+    DEX
+    BPL level
+    LDX #3                              ; (the boxes as they start: full ones lit)
+.box
+    STX UpNow
+    STZ UpLit,X
+    LDA UpFull,X:BEQ next
+    STA UpLit,X
+    JSR up_flip
+.next
+    LDX UpNow
+    DEX
+    BPL box
+    JSR up_dial
+    JSR front_wipe_in
+    LDA acccon:STA fshadow              ; (from here on, it's the screen shown that's drawn on)
+    RTS
+}
+
+\\ A pass of the loop, F_01A844: the box the dial's on flashing, unless it's full, and the dial as it is. The ST's seconds aren't here:
+\\ the choice waits for fire (D27). Inputs: GsDial. A, X, Y corrupted.
+
+.upgrade_pass
+{
+    JSR up_boxes
+    JMP up_dial
+}
+
+\\ F_01A778: what the dial's on is chosen, its box lit and steady. A, X, Y corrupted.
+
+.upgrade_chosen
+{
+    LDA #1:STA UpHold
+    JMP up_boxes
+}
+
+\\ Car GsCar's wrenches and score brought up to date. A, X, Y corrupted.
+
+.upgrade_figures
+{
+    LDA GsCar:STA UpCar
+    JSR up_count
+    JMP up_score
+}
+
+\\ F_01A844 and F_01A778's boxes. Inputs: GsDial, UpHold: 0 flashing, 1 steady. A, X, Y corrupted.
+
+.up_boxes
+{
+    LDA GsDial:LSR A:LSR A:STA UpOn
+    LDX #3
+.box
+    STX UpNow
+    LDA UpFull,X
+    CPX UpOn:BNE set
+    ORA UpHold:BNE set                  ; (full or chosen: lit)
+    LDA UpLit,X:EOR #1
+.set
+    CMP UpLit,X:BEQ next
+    STA UpLit,X
+    JSR up_flip
+.next
+    LDX UpNow
+    DEX
+    BPL box
+    RTS
+}
+
+\\ Box X's outline lit or put back: its rectangles' pixels EOR'd by UpFlash. A, X, Y corrupted.
+
+.up_flip
+{
+    LDA UpSideways,X:STA UpMirror
+    LDA UpUpward,X:STA UpFlip
+    LDA fshadow:STA &FE34               ; ACCCON
+    LDX #UpRectCount - 1
+.rect
+    STX UpRect
+    LDA UpRectBytesTab,X:STA UpWide
+    LDA UpRectLinesTab,X:STA UpHigh
+    LDA UpRectColTab,X
+    BIT UpMirror:BPL across
+    EOR #&FF:SEC:ADC #UpMirrorSum       ; (the sum, less its first byte)
+    SEC:SBC UpWide
+.across
+    STA UpFirst
+    LDA UpRectLineTab,X
+    BIT UpFlip:BPL down
+    EOR #&FF:SEC:ADC #UpFlipSum
+    SEC:SBC UpHigh
+.down
+    STA fy
+    LDA UpRectMaskTab,X
+    BIT UpMirror:BPL mask
+    JSR up_reverse
+.mask
+    AND UpFlash:STA UpEor
+.line
+    LDA UpFirst:JSR front_line
+    LDY #0
+    LDX UpWide
+.byte
+    LDA (fp),Y:EOR UpEor:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    DEX
+    BNE byte
+    INC fy
+    DEC UpHigh
+    BNE line
+    LDX UpRect
+    DEX
+    BPL rect
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
+.UpSideways                             ; by the dial's quarter: top right, bottom right, bottom left, top left
+    EQUB &FF, &FF, 0, 0
+.UpUpward
+    EQUB 0, &FF, &FF, 0
+}
+
+\\ A byte's two halves of 4 pixels, each the other way round. X corrupted.
+
+.up_reverse
+{
+    PHA
+    AND #15:TAX
+    LDA UpReversed,X:AND #&0F:STA UpTemp
+    PLA
+    LSR A:LSR A:LSR A:LSR A:TAX
+    LDA UpReversed,X:AND #&F0
+    ORA UpTemp
+    RTS
+}
+
+\\ The dial at GsDial, if it's moved: a position from its packed frame, 5-11 upside down and 9-15 turned round. Only the bytes that some
+\\ position has lit are written (UpDialFirst), so the boxes are safe. A, X, Y corrupted.
+
+.up_dial
+{
+    LDA GsDial:CMP UpShown:BNE moved
+    RTS
+.moved
+    STA UpShown
+    TAX
+    LDA UpDialLo,X:STA zxsrc
+    LDA UpDialHi,X:STA zxsrc+1
+    LDA #LO(FrontBuf):STA zxdst
+    LDA #HI(FrontBuf):STA zxdst+1
+    LDA fshadow:PHA
+    JSR front_shadow_at                 ; (this sets fshadow to the shadow screen's)
+    PLA:STA fshadow
+    STA &FE34                           ; ACCCON
+    STZ UpMirror
+    LDA UpShown:CMP #9:BCC round
+    LDA #&80:STA UpMirror
+.round
+    LDA #LO(FrontBuf):STA fs            ; (first line, and 16 bytes a line down)
+    LDA #HI(FrontBuf):STA fs+1
+    LDA #16:STA UpStep
+    STZ UpStep+1
+    LDA UpShown
+    CMP #5:BCC down
+    CMP #12:BCS down
+    LDA #LO(FrontBuf + 43 * 16):STA fs  ; (last line, and 16 bytes a line up)
+    LDA #HI(FrontBuf + 43 * 16):STA fs+1
+    LDA #LO(-16):STA UpStep
+    LDA #HI(-16):STA UpStep+1
+.down
+    LDA #UpDialY:STA fy
+    STZ UpNow
+.line
+    LDX UpNow
+    LDA UpDialBytesTab,X:BEQ next
+    STA UpWide
+    LDA UpDialFirstTab,X:STA UpFirst
+    CLC:ADC #UpDialCol
+    JSR front_line
+    LDA UpFirst
+    BIT UpMirror:BPL byte0
+    EOR #15                             ; (from the line's other end)
+.byte0
+    TAY
+.byte
+    LDA (fs),Y
+    BIT UpMirror:BPL plain
+    JSR up_reverse
+    DEY
+    DEY
+.plain
+    INY
+    STA (fp)
+    LDA fp:CLC:ADC #8:STA fp
+    BCC @+
+    INC fp+1
+.@
+    DEC UpWide
+    BNE byte
+.next
+    LDA fs:CLC:ADC UpStep:STA fs
+    LDA fs+1:ADC UpStep+1:STA fs+1
+    INC fy
+    INC UpNow
+    LDA UpNow:CMP #UpDialLines:BNE line
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
+}
+
+\\ Upgrade X's line (0 traction, 1 top speed, 2 turbo), for car GsCar: the levels bought lit, and "TAKEN" if there are no more. Notes
+\\ UpFull. A, X, Y corrupted.
+
+.up_levels
+{
+    LDY GsCar
+    TXA:BNE @+
+    LDA RcTraction,Y
+    BRA got
+.@
+    DEC A:BNE @+
+    LDA RcTopUp,Y
+    BRA got
+.@
+    LDA RcTurbo,Y
+.got
+    STA UpLevel
+    LDY UpBoxOf,X
+    CMP #5:LDA #0:ROL A:STA UpFull,Y    ; (full: lit from the start)
+    STZ UpFull+1                        ; (the score's is never full)
+    LDA UpLineY,X:STA fy
+    LDA UpFlash:STA UpColour
+    LDA UpLineX,X:CLC:ADC #24:STA fx
+    STZ fx+1
+    LDA #1:STA UpEach
+.digit
+    LDA UpEach:CMP UpLevel:BEQ lit:BCS over
+.lit
+    LDA #12:JSR front_across
+    LDA UpEach:JSR up_small
+    INC UpEach
+    BRA digit
+.over
+    LDA UpLevel:CMP #5:BNE done
+    LDX UpNow
+    LDA UpLineY,X:SEC:SBC #38:STA fy
+    LDA UpLineX,X:CLC:ADC #30:STA fx
+    STZ fx+1
+    LSR A:LSR A                         ; (its first byte across)
+    LDX #8:JSR front_clear
+    LDX GsCar
+    LDA UpLitColours,X:STA UpColour
+    LDX #UpTaken
+    JMP up_text
+.done
+    RTS
+}
+
+\\ Car X's panel: its name or "DRONE", wrenches if it's a player's, score and laps. A, X, Y corrupted.
+
+.up_panel
+{
+    LDA UpCarMasks,X:STA UpColour
+    STZ fy
+    LDA #2:JSR up_at
+    LDY UpCar
+    LDA RcDrone,Y:BEQ player
+    LDY #3
+.player
+    LDX UpNameTab,Y
+    JSR up_text
+    LDY UpCar
+    LDA RcDrone,Y:BNE drone
+    LDA #64:JSR up_at
+    LDA #UpWrench:JSR up_big
+    LDA #6:JSR front_across
+    LDA #UpWrench + 1:JSR up_big
+    JSR up_count
+.drone
+    JSR up_score
+    LDA #90:JSR up_at
+    LDA #UpScoreY:STA fy
+    LDX UpCar
+    LDA RcLaps,X
+    JMP up_big
+}
+
+\\ Car UpCar's wrenches, 9 at most, as F_014C8C's sprites have them, if they've changed. A, X, Y corrupted.
+
+.up_count
+{
+    LDX UpCar
+    LDA UpCarMasks,X:STA UpColour
+    STZ fy
+    LDA #77:JSR up_at
+    LDX UpCar
+    LDA RcWrench,X:CMP #10:BCC @+
+    LDA #9
+.@
+    CMP UpCounted,X:BEQ same
+    LDY UpCounted,X:STA UpCounted,X
+    PHY
+    PLX
+    JMP up_small_over
+.same
+    RTS
+}
+
+\\ Car UpCar's score, as F_01603C places its digits, 10 pixels apart, 14 past the thousands' comma: those that have changed. A, X, Y
+\\ corrupted.
+
+.up_score
+{
+    LDX UpCar
+    LDA UpCarMasks,X:STA UpColour
+    LDA #UpScoreY:STA fy
+    LDA #2:JSR up_at
+    LDA UpCar:ASL A:STA UpTemp:ASL A:ADC UpTemp:STA UpAt  ; (car * 6; C clear)
+    STZ UpEach
+.digit
+    LDY UpAt
+    LDA RcScore,Y:CMP UpSeen,Y:BEQ same
+    STA UpNew
+    LDX UpSeen,Y:STX UpOld
+    STA UpSeen,Y
+    TXA:BPL @+
+    LDX #UpBlank
+.@
+    LDA UpNew:BPL @+
+    LDA #UpBlank
+.@
+    JSR up_big_over
+    LDA UpEach:CMP #2:BNE same
+    LDA UpNew:EOR UpOld:BPL same        ; (the comma comes and goes with its digit)
+    LDA #10:JSR front_across
+    LDA #UpComma:JSR up_big
+    LDA #4
+    BRA on
+.same
+    LDA UpEach:CMP #2:BNE ten
+    LDA #14
+    BRA on
+.ten
+    LDA #10
+.on
+    JSR front_across
+    INC UpAt
+    INC UpEach
+    LDA UpEach:CMP #6:BNE digit
+    RTS
+}
+
+\\ fx: A pixels into car UpCar's panel. A, X corrupted.
+
+.up_at
+{
+    LDX UpCar
+    CLC:ADC UpPanelX,X:STA fx
+    LDA #0:ROL A:STA fx+1
+    RTS
+}
+
+\\ The small font's text at UpTexts + X, at fx, fy, in UpColour. A, X, Y corrupted.
+
+.up_text
+{
+.next
+    LDA UpTexts,X:BMI done
+    PHX
+    JSR up_small
+    LDA #6:JSR front_across
+    PLX
+    INX
+    BRA next
+.done
+    RTS
+}
+
+\\ Glyph A of the ST's digits, or the small font, EOR'd in at fx, fy on the screen fshadow says, in UpColour's bits. up_big_over and
+\\ up_small_over put it in glyph X's place, each pixel changed once or not at all. fx kept; A, X, Y corrupted.
+
+.up_big
+    LDX #UpBlank
+
+.up_big_over
+{
+    STA fglyph:ASL A:ASL A:ADC fglyph:ASL A:ADC fglyph:STA fglyph   ; (11 bytes each; C clear: the glyph's under 16)
+    STX UpOther
+    TXA:ASL A:ASL A:ADC UpOther:ASL A:ADC UpOther:STA UpOther
+    LDA #UpBig:STA flines
+    LDA #LO(UpFontData)
+    STA up_glyph.font+1:STA up_glyph.other+1
+    LDA #HI(UpFontData)
+    STA up_glyph.font+2:STA up_glyph.other+2
+    BRA up_glyph
+}
+
+.up_small
+    LDX #UpSmallBlank
+
+.up_small_over
+{
+    STA fglyph:ASL A:ADC fglyph:ASL A:STA fglyph    ; (6 bytes each; C clear: the glyph's under 64)
+    STX UpOther
+    TXA:ASL A:ADC UpOther:ASL A:STA UpOther
+    LDA #6:STA flines
+    LDA #LO(SmallGlyphs)
+    STA up_glyph.font+1:STA up_glyph.other+1
+    LDA #HI(SmallGlyphs)
+    STA up_glyph.font+2:STA up_glyph.other+2
+}
+
+.up_glyph
+{
+    LDA fx:AND #3:STA fshift
+    LDA fy:LSR A:LSR A:LSR A:TAX        ; (the play area's row)
+    LDA fx:AND #&FC:ASL A:STA fp
+    LDA fx+1:ROL A:STA fp+1
+    LDA fp:ADC RowLo,X:STA fp           ; (C clear from the ROL: fx+1's 0 or 1)
+    LDA fp+1:ADC RowHi,X:STA fp+1
+    LDA fy:AND #7:TAY
+    LDA fshadow:STA &FE34               ; ACCCON
+.line
+    LDX fglyph
+.font
+    LDA SmallGlyphs,X                   ; self-modified: the font
+    LDX UpOther
+.other
+    EOR SmallGlyphs,X                   ; self-modified: the same
+    STA fleft
+    STZ fleft+1
+    LDX fshift:BEQ placed
+.shift
+    LSR fleft
+    ROR fleft+1
+    DEX
+    BNE shift
+.placed
+    LDX fleft
+    LDA PExpHi,X:AND UpColour:EOR (fp),Y:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    LDA PExpLo,X:AND UpColour:EOR (fp),Y:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    LDX fleft+1
+    LDA PExpHi,X:AND UpColour:EOR (fp),Y:STA (fp),Y
+    TYA:SEC:SBC #15:TAY
+    CPY #8:BNE same
+    LDA fp:CLC:ADC #LO(640):STA fp      ; (the next row of cells)
+    LDA fp+1:ADC #HI(640):STA fp+1
+    LDY #0
+.same
+    INC fglyph
+    INC UpOther
+    DEC flines
+    BNE line
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
+}
+
+.UpNow                                  ; scratch
+    SKIP 1
+.UpCar
+    SKIP 1
+.UpEach
+    SKIP 1
+.UpAt
+    SKIP 1
+.UpTemp
+    SKIP 1
+.UpRect
+    SKIP 1
+.UpWide
+    SKIP 1
+.UpHigh
+    SKIP 1
+.UpFirst
+    SKIP 1
+.UpEor
+    SKIP 1
+.UpMirror
+    SKIP 1
+.UpFlip
+    SKIP 1
+.UpStep
+    SKIP 2
+.UpLevel
+    SKIP 1
+.UpColour                               ; what's drawn: a colour's bits in a byte
+    SKIP 1
+.UpFlash                                ; what lights a white pixel: white EOR the lit colour's bits
+    SKIP 1
+.UpHold                                 ; 1 what's chosen stays lit
+    SKIP 1
+.UpOn                                   ; the box the dial's on
+    SKIP 1
+.UpShown                                ; the dial as shown,
+    SKIP 1
+.UpSeen                                 ; each car's score,
+    SKIP 18
+.UpCounted                              ; and wrenches
+    SKIP 3
+.UpOther                                ; the glyph being replaced
+    SKIP 1
+.UpNew                                  ; a digit, as it's becoming,
+    SKIP 1
+.UpOld                                  ; and as it was
+    SKIP 1
+.UpFull                                 ; each box, by the dial's quarter: 1 full,
+    SKIP 4
+.UpLit                                  ; and 1 lit
+    SKIP 4
+
+.UpHeadLo
+    EQUB LO(UpHead0), LO(UpHead1), LO(UpHead2)
+.UpHeadHi
+    EQUB HI(UpHead0), HI(UpHead1), HI(UpHead2)
+.UpCarMasks                             ; each car's colour's bits: white, green, yellow
+    EQUB &FF, &0F, &F0
+.UpLitColours                           ; a lit box's and a level's: the white car's yellow
+    EQUB &F0, &0F, &F0
+.UpLitMasks                             ; and those from white
+    EQUB &0F, &F0, &0F
+.UpPanelX
+    EQUB 0, 108, 216
+.UpNameTab
+    EQUB UpNameAt
+.UpBoxOf                                ; each upgrade's box, by the dial's quarter (G_01D016)
+    EQUB 3, 0, 2
+.UpLineX                                ; each upgrade's line (F_01A99E)
+    EQUB 14, 206, 14
+.UpLineY
+    EQUB 105, 105, 168
+.UpReversed                             ; 4 pixels the other way round, in a byte's left half, and its right
+    FOR n = 0..15
+        EQUB ((n AND 1) * 8 + (n AND 2) * 2 + (n AND 4) DIV 2 + (n AND 8) DIV 8) * 17
+    NEXT
+.UpRectColTab
+    EQUB UpRectCol
+.UpRectBytesTab
+    EQUB UpRectBytes
+.UpRectLineTab
+    EQUB UpRectLine
+.UpRectLinesTab
+    EQUB UpRectLines
+.UpRectMaskTab
+    EQUB UpRectNibble
+.UpDialFirstTab
+    EQUB UpDialFirst
+.UpDialBytesTab
+    EQUB UpDialBytes
+.UpDialLo
+    FOR n = 0..15
+        EQUB LO(UpDial0 + UpDialOffsets[n])
+    NEXT
+.UpDialHi
+    FOR n = 0..15
+        EQUB HI(UpDial0 + UpDialOffsets[n])
+    NEXT
+.UpTexts
+    EQUB UpTextGlyphs
+.UpFontData
+    EQUB UpFont
+.UpDial0
+    INCBIN "../build/gen/upgrades_dial.zx02s"

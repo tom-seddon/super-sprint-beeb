@@ -54,7 +54,7 @@ Each mask is 1 bit a pixel, 40 bytes a line, 200 lines.
 | `&CD56` | 80,000 | `G_01EDEA` | **Maps and tiles**: 10 bytes of header, 11 maps from `&CD60` (`G_01EDEE`), then the four tile sets |
 | `&205D6` | 30,000 | `G_01EBDC` | **Object sprites** (catalogue below) |
 | `&27B06` | 3,000 | `G_01D30A` | Road outlines, as line segments and fill seeds, per track |
-| `&286BE` | 3,520 | `G_01DF4E` | Not decoded |
+| `&286BE` | 3,520 | `G_01DF4E` | The HUD's digits: 44 bytes each, a data word and a mask word a line, 11 lines, then the same shifted for the score's places (the first set's enough for `tools/screens.py`) |
 | `&2947E` | 2,000 | `G_01F228` | Prepare's flickering details on the cars (below) |
 | `&29C4E` | 12,300 | `G_01F220` | The winner's circle's figure, 12 frames (below) |
 | `&2CC5A` | 480 | `G_01F21C` | The winner's circle's sparkles, 6 frames (below) |
@@ -79,7 +79,7 @@ Every screen was captured from Hatari as its raw memory and palette (`tools/game
 | Prepare to race | RLE cars, two bands, the checker, panels (below) | 68-161 pixels, all the cars' flickering details |
 | Winner's circle | map 9, then the HUD, the bonuses, the figure, the sparkles | map alone: 3,715 pixels, all overlays; not composed |
 | Select | map 10, then panels and the dial | map alone: 2,453 pixels, all overlays; not composed |
-| Upgrades | no picture: the checker and HUD as prepare's, the boxes (`F_016A44`, `F_016AF2`, `F_016A6C`, `F_016B76`, `F_016BB8`), text, the dial | not composed |
+| Upgrades | no picture: the checker and HUD as prepare's, the boxes (`F_016A44`, `F_016AF2`, `F_016A6C`, `F_016B76`, `F_016BB8`), text, the dial | **exact** but for the HUD, dial and seconds (`upgrades`): the boxes are the top left's mirrored into a plane each, so colours 2, 8, 4 and 1 by the dial's quarter, and a palette entry lights one |
 | Initials entry | prepare's picture, text in a panel (`F_017A42`) | not composed |
 | Options | prepare's picture, each car's control in its panel (`F_0192A6`) | not composed |
 

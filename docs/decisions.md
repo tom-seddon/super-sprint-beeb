@@ -374,3 +374,9 @@ ANFS (MasterANFS), the logon refused ("No directory") and the pattern intact. AD
 MasterADFS reached no prompt without a disc): Phase 5's step 11 tries the real loader on each. `&0800`-`&08FF`
 and `&0B00`-`&0DFF` stay the OS's. (`&0400`-`&07FF`, the language's workspace, was already the game's: the car
 plotter's tables.)
+
+### D27. The upgrades have no time limit: Decided (2026-11-06)
+Departs from D19, which has the game around the race bit-exact with the ST. The ST's choice runs out after 158 passes, 9.5 seconds, and buys what the dial's on.
+Tom, 2026-11-06, trying the screen: "there's a timeout, that it'd be nice to remove. It makes sense for an arcade game, but not so much for home computer".
+So: the screen waits for fire, and the seconds are gone. A pass stays the ST's 3 fields, for the dial and the flashing. Nothing else moves: the ST's time running out and fire do the
+same thing, so `tools/game_check.mjs` gives fire at the traced game's 158th read, and that game stays exact. Only this screen: the select's countdown and prepare's wait are as they were.

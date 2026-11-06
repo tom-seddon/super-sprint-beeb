@@ -183,6 +183,28 @@ SECTION SelectFile, filename = "TRACKS", load = &FFFF0000+TrackFileAddr
     ENDSECTION
 ENDSECTION
 
+\\ The upgrades': the same shape
+
+SECTION UpgradesFile, filename = "TRACKU", load = &FFFF0000+TrackFileAddr
+    SECTION UpgradesLow, org = BgOrg, guard = FrontOrg
+.UpgradesPic
+        INCBIN "../build/gen/upgrades.zx02"
+.UpHead0
+        INCBIN "../build/gen/upgrades_h0.zx02"
+.UpHead1
+        INCBIN "../build/gen/upgrades_h1.zx02"
+.UpHead2
+        INCBIN "../build/gen/upgrades_h2.zx02"
+        ASSERT P% <= GameOrg, "the upgrades' pictures under ANDY: they end at the game"
+        PRINT "the upgrades' part under ANDY: ", GameOrg - P%, " bytes free"
+        PADTO front_pics_end
+    ENDSECTION
+    SECTION UpgradesHigh, org = FrontPicOrg, guard = GameScratchOrg, cmos = TRUE
+        INCLUDE "upgrades.6502"
+        PRINT "the upgrades' file: ", GameScratchOrg - P%, " bytes free"
+    ENDSECTION
+ENDSECTION
+
 \\ The options': its code too, read where it lands (nothing else needs it)
 
 SECTION OptionsFile, filename = "TRACKO", load = &FFFF0000+TrackFileAddr
