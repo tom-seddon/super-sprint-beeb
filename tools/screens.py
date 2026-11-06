@@ -347,6 +347,121 @@ def string(a):
     return ', '.join(str(c.code(ch)) for ch in c.text(a)) + ', 255'
 
 
+CircleHud = 22                          # the winner's circle: lines the panels have, black
+CircleFig = (40, 144, 12, 32)           # the figure's first byte across, line, bytes and lines
+CircleKinds = (3, 3, 3, 7)              # frames of each kind: 3 * kind + frame on the ST, the last with 7
+CircleChunk = 1296                      # FrontBuf: the most of a car's masks at once
+CircleSplit = 13                        # the picture's first stream's cell rows: each must fit under ANDY, to be unpacked into the shadow screen
+
+
+def cells(raw, col, cols, y, lines):
+    """cols bytes from byte col across, on lines lines from y, a line at a time, out of a screen's cell order."""
+    return b''.join(bytes(raw[(l >> 3) * 640 + c * 8 + (l & 7)] for c in range(col, col + cols)) for l in range(y, y + lines))
+
+
+def nibbles(row):
+    """8 pixels of 0 or 1: the two bytes of a mask."""
+    n = [sum(int(b) << (3 - i) for i, b in enumerate(row[h:h + 4])) * 17 for h in (0, 4)]
+    return n
+
+
+def circle_files(out, zx02):
+    """The winner's circle: circle_0 and circle_1.zx02 the picture, in two, the cars' colours left black; circle_streams.zx02s each car's masks in chunks FrontBuf
+    can hold, then each kind's figure, its frames and their masks. A mask is the screen's bytes, its right half the bodywork and its left the sides.
+    And what tools/circle_model.mjs builds on: circle.bin, circle_class.bin, circle_figure.bin, circle_figure_class.bin, circle_sparkle.bin, circle_junk.bin. Returns front.6502's lines."""
+    mem, pal, d = F.first_dump(), Prepare['pal'], F.dat()
+    idx, event = T.decode_map(d, 9), F.shot('circle1')[1]
+    place, part = F.circle_parts(idx)
+    lidx = O.circle(SS.rgb(idx, event), pal)
+    lidx[place >= 0] = 0
+    lidx[:CircleHud] = 0
+    for panel in range(3):
+        text_on(lidx, b'lap', UpPanelX[panel] + UpLapX, 0, pal.index('WGY'[panel]))
+    word = lambda a, n: [int.from_bytes(mem[a - F.Region + i * 2:a - F.Region + i * 2 + 2], 'big', signed=True) for i in range(n)]
+    px, py, ground = word(0x1CFCE, 4), word(0x1CFC6, 4), word(0x1CFBE, 4)
+    assert word(0x1CFDE, 4) == px == word(0x1CFEE, 4) and word(0x1CFD6, 4) == [y + 8 for y in py] and word(0x1CFE6, 4) == [y + 16 for y in py]
+    assert word(0x1CFFE, 4) == [x - 36 for x in px] == word(0x1D00E, 4)
+    inks = []
+    for p in range(4):                  # the figures are EOR'd, so what's under them has to be flat
+        block = lidx[py[p]:py[p] + 22, px[p] - 36:px[p] + 24]
+        words = [block[l:l + 6, x:x + 24] for l in (8, 16) for x in (0, 36)] + [block[0:6, 36:60]]
+        flats = {int(w.flat[0]) for w in words}
+        assert len(flats) == 1 and all((w == w.flat[0]).all() for w in words), f'circle: the ground under place {p}\'s figures'
+        inks.append((0, 0x0F, 0xF0, 0xFF)[flats.pop()])
+    picture_bytes = mode1_bytes(lidx)
+    classes = np.where((place >= 0) & (part == 3), 1, np.where((place >= 0) & (part == 1), 2, 0)).astype(np.uint8)
+    class_bytes = mode1_bytes(classes)
+    open(f'{out}/circle.bin', 'wb').write(picture_bytes)
+    open(f'{out}/circle_class.bin', 'wb').write(class_bytes)
+    packed = [dfs.compress(raw, exe=zx02, name='circle') for raw in (picture_bytes[:CircleSplit * 640], picture_bytes[CircleSplit * 640:])]
+    for n, stream in enumerate(packed):
+        open(f'{out}/circle_{n}.zx02', 'wb').write(stream)
+    print(f'circle: {" and ".join(f"{len(p):,}" for p in packed)} bytes packed')
+    streams, chunks = [], []
+    for p in range(4):
+        ys, xs = np.nonzero((classes > 0) & (place == p))
+        col, cols = xs.min() >> 2, (xs.max() >> 2) - (xs.min() >> 2) + 1
+        y, end = ys.min(), ys.max() + 1
+        each = -(-(end - y) // -(-(end - y) * cols // CircleChunk))
+        while y < end:
+            lines = min(each, end - y)
+            streams.append(cells(class_bytes, col, cols, y, lines))
+            chunks.append((p, col, cols, y, lines))
+            y += lines
+    bands = SS.bands(event)
+    ink3 = np.array(stgfx.palette_from_words(bands[3][1]), np.uint8)
+    col, y, cols, lines = CircleFig
+    figure, figure_class, first = b'', b'', 0
+    for kind, n in enumerate(CircleKinds):
+        base, cls = b'', b''
+        for f in range(first, first + n):
+            frame = F.circle_frame(d, f)
+            whole, parts = np.zeros((200, 320), np.uint8), np.zeros((200, 320), np.uint8)
+            look = O.circle(ink3[frame], pal, y, col * 4)
+            look[(frame >= 7) & (frame <= 9)] = 0
+            whole[y:y + lines, col * 4:(col + cols) * 4] = look
+            parts[y:y + lines, col * 4:(col + cols) * 4] = np.where(frame == 9, 1, np.where(frame == 7, 2, 0))
+            base += cells(mode1_bytes(whole), col, cols, y, lines)
+            cls += cells(mode1_bytes(parts), col, cols, y, lines)
+        first += n
+        streams += [base, cls]
+        figure += base
+        figure_class += cls
+    open(f'{out}/circle_figure.bin', 'wb').write(figure)
+    open(f'{out}/circle_figure_class.bin', 'wb').write(figure_class)
+    joined, offsets = b'', []
+    for n, raw in enumerate(streams):
+        offsets.append(len(joined))
+        joined += dfs.compress(raw, exe=zx02, name=f'circle stream {n}')
+    open(f'{out}/circle_streams.zx02s', 'wb').write(joined)
+    print(f'the circle\'s masks and figure: {len(joined):,} bytes packed, {len(chunks)} chunks')
+    ink1 = np.array(stgfx.palette_from_words(bands[1][1]), np.uint8)
+    sparkles = []
+    for n in range(6):
+        px8, keep = F.circle_sparkle(d, n)
+        keep[px8 > 0] = 0               # (the ST ORs these with what's under them, which only its colours' numbers make sense of)
+        for line in range(8):
+            ink = [0 if c in (0, 8, 9) else pal.index(O.CircleTiles[tuple(int(v) for v in ink1[c])][0]) for c in px8[line]]
+            lo = [v & 1 for v in ink]
+            hi = [v >> 1 for v in ink]
+            data = [(a & 0xF0) | (b & 0x0F) for a, b in zip(nibbles(hi), nibbles(lo))]
+            sparkles += data + nibbles(keep[line]) + nibbles(px8[line] == 9)
+    open(f'{out}/circle_sparkle.bin', 'wb').write(bytes(sparkles))
+    junk = [b & 0xFC for k in range(1, 10) for b in mem[0x1D43C - F.Region + (256 - k) * 8:][:6]]
+    open(f'{out}/circle_junk.bin', 'wb').write(bytes(junk))
+    hold = [v for k in range(4) for v in word(0x1CEDE + 26 * k, 13)]
+    steps = [v & 255 for k in range(4) for v in word(0x1CF46 + 26 * k, 13)]
+    col_of = lambda i: ', '.join(str(c[i]) for c in chunks)
+    lst = lambda v: ', '.join(map(str, v))
+    return [ f'CircleSplit = {CircleSplit}', f'CirclePages0 = {(len(packed[0]) + 255) // 256}', f'CirclePages1 = {(len(packed[1]) + 255) // 256}', f'CircleStreams = {len(streams)}', f'CircleChunks = {len(chunks)}',
+            'CircleOffsets = {' + lst(offsets) + '}', 'CircleChunkPlace = {' + col_of(0) + '}', 'CircleChunkCol = {' + col_of(1) + '}',
+            'CircleChunkBytes = {' + col_of(2) + '}', 'CircleChunkLine = {' + col_of(3) + '}', 'CircleChunkLines = {' + col_of(4) + '}',
+            'CircleInk = {' + lst(inks) + '}', 'CirclePlaceX = {' + lst(px) + '}', 'CirclePlaceY = {' + lst(py) + '}',
+            'CircleSparkY = {' + lst(word(0x1CE9E, 16)) + '}', 'CircleSparkX = {' + lst(word(0x1CEBE, 16)) + '}',
+            'CircleSparkles = {' + lst(sparkles) + '}', 'CircleHold = {' + lst(hold) + '}', 'CircleSteps = {' + lst(steps) + '}',
+            'CircleJunk = {' + lst(junk) + '}', 'CircleKindFrames = {' + lst(CircleKinds) + '}']
+
+
 def main(out, zx02):
     lines = ['\\\\ front.6502 - the front end\'s tables (tools/screens.py)', 'Mode1Wipe = {' + ', '.join(map(str, table(mask1))) + '}',
              'Mode2Wipe = {' + ', '.join(map(str, table(mask2))) + '}',
@@ -368,6 +483,7 @@ def main(out, zx02):
         print(f'{name}: {len(packed):,} bytes packed')
     lines += select_files(out, zx02)
     lines += upgrades_files(out, zx02)
+    lines += circle_files(out, zx02)
     prepare(out, zx02)
     frame = mode1_bytes(O.prepare(F.options_frame(F.first_dump(), Options), **Prepare))
     open(f'{out}/options.bin', 'wb').write(frame)

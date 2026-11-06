@@ -1,0 +1,626 @@
+\\ circle.6502 - the winner's circle (F_01AC1C, Phase 5, step 8): the file TRACKC, loaded when a race ends. Its code's copied up to FrontPicOrg; the
+\\ picture, the cars' masks and the figure stay where the load left them in the main screen, the display off, and are read from there to make the
+\\ screen in the shadow one (the file's too big to copy up, and only the screen needs them). game.6502 does what the ST does; this draws it.
+\\
+\\ The ST colours each place's car by palette, and second and third share a band. So the picture has the cars' sides and bodywork black, and each
+\\ car's masks paint them in as the race came out. The figure stands on the fourth car, so its frames have masks too, painted once as the screen's
+\\ made: CiFrames holds the frames of the one kind wanted, under ANDY, where a race's pictures aren't needed.
+
+CiFrames = BgOrg                        ; the kind's frames, painted
+CiFigCol = 40                           ; the figure: its first byte across, line, bytes across and lines
+CiFigY = 144
+CiFigBytes = 12
+CiFigLines = 32
+CiFrameBytes = CiFigBytes * CiFigLines
+CiSparks = 16
+CiSparkLine = 6                         ; a sparkle's line, bytes: what's drawn, what's kept, the flag; each left and right
+CiSparkFrame = 8 * CiSparkLine
+CiTimeX = 36                            ; a time, left of a place's figures
+CiPoint = 10                            ; the small font's point
+CiStepsEach = 13                        ; G_01CEDE and G_01CF46's entries a kind
+ASSERT CiFigBytes * CiFigLines * 7 <= GameOrg - BgOrg
+ASSERT CirclePages0 * 256 <= GameOrg - BgOrg AND CirclePages1 * 256 <= GameOrg - BgOrg
+ASSERT CircleScratch + CiFrameBytes * 7 <= &8000
+
+\\ The screen, as GsOrder, GsKind, GsSpark, the lap times and RcDrone say, wiped in. The load left the display off and the main screen as it was.
+\\ Outputs: GmPicture 1. A, X, Y corrupted.
+
+.circle_show
+{
+    JSR front_mode1
+    LDA #1:STA GmPicture
+    JSR ci_picture
+    JSR ci_cars
+    JSR ci_figures
+    LDX #11
+.digit
+    STZ CiDigits,X:STZ CiDigits+12,X:STZ CiDigits+24,X
+    DEX
+    BPL digit
+    JSR up_panels
+    LDX #3
+.car
+    STX GsCar
+    JSR ci_words
+    LDX GsCar
+    DEX
+    BPL car
+    LDA #0:JSR ci_frame
+    JSR say_clear
+    JSR front_wipe_in
+    LDA acccon:STA fshadow              ; (from here on, it's the screen shown that's drawn on)
+    STZ CiStep
+    LDA #2:STA CiThird                  ; (200 MOD 3)
+    LDY GsKind
+    LDX CiKindStart,Y:STX CiAt
+    LDA CiHold,X:STA CiLeft
+    LDA CiSteps,X:STA CiShown
+    JSR ci_backs
+    JMP ci_sparks
+}
+
+\\ The picture into the shadow screen. Reading the main screen and writing the shadow one at the same address can't be done together, so each of its
+\\ two streams goes under ANDY first, a page at a time, and is unpacked from there. A, X, Y corrupted.
+
+.ci_picture
+{
+    LDA #LO(CirclePic):STA fs
+    LDA #HI(CirclePic):STA fs+1
+    LDA #LO(PlayAddr):STA zxdst
+    LDA #HI(PlayAddr):STA zxdst+1
+    LDX #CirclePages0:JSR ci_stream
+    LDA #LO(CirclePic2):STA fs
+    LDA #HI(CirclePic2):STA fs+1
+    LDA #LO(PlayAddr + CircleSplit * 640):STA zxdst
+    LDA #HI(PlayAddr + CircleSplit * 640):STA zxdst+1
+    LDX #CirclePages1
+}
+
+\\ X pages at fs, a stream, unpacked to zxdst in the shadow screen. A, X, Y corrupted.
+
+.ci_stream
+{
+    LDA bankbg:STA &FE30                ; ROMSEL: ANDY out
+    LDA #LO(BgOrg):STA fp:STA zxsrc
+    LDA #HI(BgOrg):STA fp+1:STA zxsrc+1
+.page
+    LDY #0
+.byte
+    LDA (fs),Y:STA (fp),Y
+    INY
+    BNE byte
+    INC fs+1
+    INC fp+1
+    DEX
+    BNE page
+    JMP front_shadow_at                 ; (ANDY in again)
+}
+
+\\ Each car's sides and bodywork painted on the picture in the shadow screen. A, X, Y corrupted.
+
+.ci_cars
+{
+    LDA #8:STA CiStride
+    LDX #CircleChunks - 1
+.chunk
+    STX CiNow
+    LDA CiStreamLo,X:STA zxsrc
+    LDA CiStreamHi,X:STA zxsrc+1
+    LDA #LO(FrontBuf):STA zxdst
+    LDA #HI(FrontBuf):STA zxdst+1
+    JSR front_unpack
+    LDX CiNow
+    LDA CiChunkPlaces,X:JSR ci_look
+    LDX CiNow
+    LDA CiChunkBytes,X:STA CiWide
+    LDA CiChunkLine,X:STA fy
+    LDA CiChunkLines,X:STA CiHigh
+    LDA #LO(FrontBuf):STA fs
+    LDA #HI(FrontBuf):STA fs+1
+    LDA acccon:ORA #AccX:STA &FE34      ; ACCCON: the shadow screen written
+.line
+    LDX CiNow
+    LDA CiChunkCols,X:JSR front_line
+    JSR ci_line
+    INC fy
+    DEC CiHigh
+    BNE line
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    LDX CiNow
+    DEX
+    BPL chunk
+    RTS
+}
+
+\\ The figure's frames for GsKind unpacked to CiFrames and painted for the car in fourth place. A, X, Y corrupted.
+
+.ci_figures
+{
+    LDA GsKind:ASL A:CLC:ADC #CircleChunks:TAX
+    STX CiNow
+    LDA bankbg:STA &FE30                ; ROMSEL: ANDY out, for CiFrames
+    LDA CiStreamLo,X:STA zxsrc
+    LDA CiStreamHi,X:STA zxsrc+1
+    LDA #LO(CiFrames):STA zxdst
+    LDA #HI(CiFrames):STA zxdst+1
+    JSR front_unpack
+    LDX CiNow
+    LDA CiStreamLo+1,X:STA zxsrc
+    LDA CiStreamHi+1,X:STA zxsrc+1
+    LDA #LO(CircleScratch):STA zxdst
+    LDA #HI(CircleScratch):STA zxdst+1
+    JSR front_unpack
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: ANDY in, for the race's state
+    LDA #3:JSR ci_look
+    LDA bankbg:STA &FE30                ; ROMSEL: ANDY out
+    LDA #1:STA CiStride
+    LDA #CiFigBytes:STA CiWide
+    LDX GsKind
+    LDA CiKindLines,X:STA CiHigh
+    LDA #LO(CiFrames):STA fp
+    LDA #HI(CiFrames):STA fp+1
+    LDA #LO(CircleScratch):STA fs
+    LDA #HI(CircleScratch):STA fs+1
+.line
+    JSR ci_line
+    DEC CiHigh
+    BNE line
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: ANDY in
+    RTS
+}
+
+\\ The colours of the car in place A, into CiBody and CiSides: G_01DC18's rows, a drone-driven car with a black body. A, X corrupted.
+
+.ci_look
+{
+    TAX
+    LDA GsOrder,X:TAX
+    LDA UpCarMasks3,X:STA CiSides
+    LDY RcDrone,X:BEQ player
+    LDA #0
+.player
+    STA CiBody
+    RTS
+}
+
+\\ A line of masks at fs, CiWide bytes, painted on at fp, each CiStride on from the last: fs left past them, fp past what's painted. A, X, Y corrupted.
+
+.ci_line
+{
+    LDY #0
+.byte
+    LDA (fs),Y:BEQ next
+    PHA
+    AND #15:TAX
+    LDA CiNibble,X:AND CiBody:STA CiTemp
+    PLA
+    LSR A:LSR A:LSR A:LSR A:TAX
+    LDA CiNibble,X:AND CiSides:ORA CiTemp
+    ORA (fp):STA (fp)
+.next
+    LDA fp:CLC:ADC CiStride:STA fp
+    BCC @+
+    INC fp+1
+.@
+    INY
+    CPY CiWide:BNE byte
+    TYA:CLC:ADC fs:STA fs
+    BCC @+
+    INC fs+1
+.@
+    RTS
+}
+
+\\ Frame A of the kind on the screen fshadow says. A, X, Y corrupted.
+
+.ci_frame
+{
+    TAX
+    LDA #LO(CiFrames):STA fs
+    LDA #HI(CiFrames):STA fs+1
+    INX
+.on
+    DEX
+    BEQ there
+    LDA fs:CLC:ADC #LO(CiFrameBytes):STA fs
+    LDA fs+1:ADC #HI(CiFrameBytes):STA fs+1
+    BRA on
+.there
+    LDA bankbg:STA &FE30                ; ROMSEL: ANDY out, for CiFrames
+    LDA fshadow:STA &FE34               ; ACCCON
+    LDA #CiFigY:STA fy
+.line
+    LDA #CiFigCol:JSR front_line
+    LDY #0
+.byte
+    LDA (fs),Y:STA (fp)
+    LDA fp:CLC:ADC #8:STA fp
+    BCC @+
+    INC fp+1
+.@
+    INY
+    CPY #CiFigBytes:BNE byte
+    TYA:CLC:ADC fs:STA fs
+    BCC @+
+    INC fs+1
+.@
+    INC fy
+    LDA fy:CMP #CiFigY + CiFigLines:BNE line
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: ANDY in
+    RTS
+}
+
+\\ What stays of car GsCar's place: the times, F_01BC74's, and the last 0 of each bonus. A, X, Y corrupted.
+
+.ci_words
+{
+    LDA #0:JSR ci_at
+    LDA #18:JSR front_across
+    LDA #0:JSR up_small
+    LDA #1:JSR ci_at
+    LDA #18:JSR front_across
+    LDA #0:JSR up_small
+    LDA #2:JSR ci_at
+    LDA #18:JSR front_across
+    LDA #0:JSR up_small
+    LDX GsCar
+    LDA GsAvgLapLo,X:STA GsU
+    LDA GsAvgLapHi,X:STA GsU+1
+    LDA #1:JSR ci_time
+    LDX GsCar
+    LDA GsBestLapLo,X:STA GsU
+    LDA GsBestLapHi,X:STA GsU+1
+    LDA #2
+}
+
+\\ F_01BC74: GsU's frames, signed, in seconds, on line A of car GsCar's place. A digit of a time below 0 is negative: the ST takes it as a glyph, far
+\\ past the font, whatever's there, so CiJunk has what was. A, X, Y corrupted.
+
+.ci_time
+{
+    JSR ci_at
+    LDA fx:SEC:SBC #CiTimeX:STA fx
+    LDA fx+1:SBC #0:STA fx+1
+    STZ CiNegative
+    LDA GsU+1:BPL plus
+    DEC CiNegative
+    SEC:LDA #0:SBC GsU:STA GsU
+    LDA #0:SBC GsU+1:STA GsU+1
+.plus
+    LDA #5:JSR div16
+    LDA CiNegative:BNE capped
+    LDA GsU:CMP #LO(1000):LDA GsU+1:SBC #HI(1000):BCC capped
+    LDA #LO(999):STA GsU                ; (the ST's limit: 99.9)
+    LDA #HI(999):STA GsU+1
+.capped
+    LDA #10:JSR div16:STA CiOnes
+    LDA #10:JSR div16:STA CiTens        ; (GsU: the hundreds)
+    LDA CiNegative:BNE tens
+    LDA GsU:BEQ tens
+    JSR up_small
+.tens
+    LDA #6:JSR front_across
+    LDA CiTens:JSR ci_signed
+    LDA #6:JSR front_across
+    LDA #CiPoint:JSR up_small
+    LDA #6:JSR front_across
+    LDA CiOnes
+}
+
+\\ Digit A, negative if CiNegative says so. A, X, Y corrupted.
+
+.ci_signed
+{
+    LDX CiNegative:BEQ plain
+    TAX:BEQ plain                       ; (0 has no sign)
+    DEC A
+    STA fglyph:ASL A:ADC fglyph:ASL A:STA fglyph    ; (6 bytes each; C clear)
+    LDA #UpSmallBlank * 6:STA UpOther
+    LDA #6:STA flines
+    LDA #LO(CiJunk):STA up_glyph.font+1
+    LDA #HI(CiJunk):STA up_glyph.font+2
+    LDA #LO(SmallGlyphs):STA up_glyph.other+1
+    LDA #HI(SmallGlyphs):STA up_glyph.other+2
+    JMP up_glyph
+.plain
+    JMP up_small
+}
+
+\\ fx, fy and UpColour for line A of car GsCar's place: 0 the place's bonus, 1 the average lap's, 2 the best lap's. A, X corrupted.
+
+.ci_at
+{
+    ASL A:ASL A:ASL A
+    LDX GsCar
+    LDY GsPlace,X
+    CLC:ADC CiPlaceY,Y:STA fy
+    LDA CiPlaceXLo,Y:STA fx
+    LDA CiPlaceXHi,Y:STA fx+1
+    LDA CiInks,Y:STA UpColour
+    RTS
+}
+
+\\ F_01BD40 as a bonus counts up, on the screen shown: 10 more in line A of car GsCar's place, each digit that changes changed in one go. A figure's
+\\ digits are CiDigits's three a line, thousands first, the last 0 being drawn already; none is shown till it or one before it isn't 0. A, X, Y corrupted.
+
+.circle_ten
+{
+    PHA
+    JSR ci_at
+    LDA #12:JSR front_across
+    PLA
+    STA CiTemp
+    LDA GsCar:ASL A:ASL A:ASL A:ADC GsCar   ; (a car's 9; C clear)
+    ADC CiTemp:ADC CiTemp:ADC CiTemp:ADC #2 ; (a line's 3, and the last digit)
+    STA CiNow
+    LDA #2:STA CiPos
+.digit
+    LDX CiNow
+    LDY CiDigits,X
+    TYA:INC A:CMP #10:BNE @+
+    LDA #0
+.@
+    STA CiDigits,X:STA CiNew
+    TYA:BNE old                         ; (not 0: it was shown)
+    LDY CiPos
+.above
+    DEY
+    BMI blank
+    DEX
+    LDA CiDigits,X:BEQ above
+    LDA #0                              ; (a 0 after a digit)
+    BRA old
+.blank
+    LDA #UpSmallBlank
+.old
+    TAX
+    LDA CiNew:JSR up_small_over
+    LDA CiNew:BNE done                  ; (a 0 has carried)
+    LDA fx:SEC:SBC #6:STA fx
+    LDA fx+1:SBC #0:STA fx+1
+    DEC CiNow
+    DEC CiPos
+    BPL digit
+.done
+    RTS
+}
+
+\\ The three scores as they are: those digits that have changed. A, X, Y corrupted.
+
+.circle_scores
+{
+    LDA #2:STA UpCar
+.car
+    JSR up_score
+    DEC UpCar
+    BPL car
+    RTS
+}
+
+\\ A field of the celebration: the figure's frame by G_01CEDE and G_01CF46, the sparkles a frame on every third. A, X, Y corrupted.
+
+.circle_field
+{
+    DEC CiLeft:BNE same
+    INC CiStep
+    JSR ci_stepped
+    CMP #&FF:BNE @+
+    STZ CiStep
+.@
+    CMP #&FE:BNE @+
+    DEC CiStep
+.@
+    JSR ci_stepped
+    LDA CiHold,X:STA CiLeft
+    LDA CiSteps,X
+    CMP CiShown:BEQ same
+    STA CiShown
+    JSR ci_frame
+.same
+    DEC CiThird:BPL done
+    LDA #2:STA CiThird
+    LDX #CiSparks - 1
+.spark
+    LDA GsSpark,X:INC A:CMP #6:BNE @+
+    LDA #0
+.@
+    STA GsSpark,X
+    DEX
+    BPL spark
+    JMP ci_sparks
+.done
+    RTS
+}
+
+\\ X: the kind's step's entry in the tables; A its frame. Y corrupted.
+
+.ci_stepped
+{
+    LDY GsKind
+    LDA CiKindStart,Y:CLC:ADC CiStep:TAX
+    LDA CiSteps,X
+    RTS
+}
+
+\\ What's under each sparkle, kept: the screen shown, as the ST's G_01F23C. A, X, Y corrupted.
+
+.ci_backs
+{
+    LDA #LO(CiBack):STA fs
+    LDA #HI(CiBack):STA fs+1
+    LDX #CiSparks - 1
+.spark
+    STX CiNow
+    LDA CiSparkYs,X:STA fy
+    LDA #8:STA CiHigh
+.line
+    LDX CiNow
+    LDA CiSparkXs,X:ASL A:JSR front_line
+    LDY #0
+    LDA (fp),Y:STA (fs)
+    LDY #8
+    LDA (fp),Y
+    LDY #1
+    STA (fs),Y
+    LDA fs:CLC:ADC #2:STA fs
+    BCC @+
+    INC fs+1
+.@
+    INC fy
+    DEC CiHigh
+    BNE line
+    LDX CiNow
+    DEX
+    BPL spark
+    RTS
+}
+
+\\ The sparkles at GsSpark's frames (F_01BDCE) on the screen shown, each flag in the winner's bodywork, as the ST's palette has it. A, X, Y corrupted.
+
+.ci_sparks
+{
+    LDA #0:JSR ci_look                  ; (CiBody: the winner's)
+    LDA #LO(CiBack):STA fs
+    LDA #HI(CiBack):STA fs+1
+    LDX #CiSparks - 1
+.spark
+    STX CiNow
+    LDA CiSparkYs,X:STA fy
+    LDA #LO(CiSparkData):STA ft
+    LDA #HI(CiSparkData):STA ft+1
+    LDY GsSpark,X:BEQ first
+.frames
+    LDA ft:CLC:ADC #CiSparkFrame:STA ft
+    BCC @+
+    INC ft+1
+.@
+    DEY
+    BNE frames
+.first
+    LDA #8:STA CiHigh
+.line
+    LDX CiNow
+    LDA CiSparkXs,X:ASL A:JSR front_line
+    LDY #0:JSR half:STA (fp)
+    LDY #1:JSR half
+    LDY #8:STA (fp),Y
+    LDA fs:CLC:ADC #2:STA fs
+    BCC @+
+    INC fs+1
+.@
+    LDA ft:CLC:ADC #CiSparkLine:STA ft
+    BCC @+
+    INC ft+1
+.@
+    INC fy
+    DEC CiHigh
+    BNE line
+    LDX CiNow
+    DEX
+    BPL spark
+    RTS
+
+    \\ Y: 0 the left byte, 1 the right. Outputs: A: what's under it and the sparkle, Y corrupted.
+.half
+    LDA (fs),Y
+    INY:INY
+    AND (ft),Y
+    DEY:DEY
+    ORA (ft),Y
+    STA CiTemp
+    INY:INY:INY:INY
+    LDA (ft),Y
+    AND CiBody
+    ORA CiTemp
+    RTS
+}
+
+.CiNow                                  ; scratch
+    SKIP 1
+.CiWide
+    SKIP 1
+.CiHigh
+    SKIP 1
+.CiStride                               ; a mask's bytes apart where they're painted
+    SKIP 1
+.CiTemp
+    SKIP 1
+.CiBody                                 ; a colour's bits: the car's bodywork,
+    SKIP 1
+.CiSides                                ; and its sides
+    SKIP 1
+.CiNegative                             ; &FF a time below 0
+    SKIP 1
+.CiTens
+    SKIP 1
+.CiOnes
+    SKIP 1
+.CiPos                                  ; a digit's place in its figure,
+    SKIP 1
+.CiNew                                  ; and what it's becoming
+    SKIP 1
+.CiStep                                 ; the celebration: the figure's step,
+    SKIP 1
+.CiAt
+    SKIP 1
+.CiLeft                                 ; fields left at it,
+    SKIP 1
+.CiShown                                ; the frame shown,
+    SKIP 1
+.CiThird                                ; and fields to the sparkles' next
+    SKIP 1
+.CiDigits                               ; each car's lines' figures
+    SKIP 36
+.CiBack
+    SKIP CiSparks * 16
+
+.UpCarMasks3                            ; each car's colour's bits: car 3 black
+    EQUB &FF, &0F, &F0, 0
+.CiNibble                               ; 4 pixels' mask to a byte's two halves
+    EQUB (0..15) * 17
+.CiStreamLo
+    FOR n = 0..CircleStreams - 1
+        EQUB LO(CircleData + CircleOffsets[n])
+    NEXT
+.CiStreamHi
+    FOR n = 0..CircleStreams - 1
+        EQUB HI(CircleData + CircleOffsets[n])
+    NEXT
+.CiChunkPlaces
+    EQUB CircleChunkPlace
+.CiChunkCols
+    EQUB CircleChunkCol
+.CiChunkBytes
+    EQUB CircleChunkBytes
+.CiChunkLine
+    EQUB CircleChunkLine
+.CiChunkLines
+    EQUB CircleChunkLines
+.CiKindLines                            ; each kind's lines of frames
+    EQUB CircleKindFrames * CiFigLines
+.CiKindStart
+    EQUB (0..3) * CiStepsEach
+.CiHold
+    EQUB CircleHold
+.CiSteps
+    EQUB CircleSteps
+.CiInks
+    EQUB CircleInk
+.CiPlaceXLo
+    EQUB LO(CirclePlaceX)
+.CiPlaceXHi
+    EQUB HI(CirclePlaceX)
+.CiPlaceY
+    EQUB CirclePlaceY
+.CiSparkYs
+    EQUB CircleSparkY
+.CiSparkXs
+    EQUB CircleSparkX
+.CiJunk
+    EQUB CircleJunk
+.CiSparkData
+    EQUB CircleSparkles

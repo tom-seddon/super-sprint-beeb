@@ -85,12 +85,13 @@
     LDA &FE34:AND #&30:STA acccon       ; ACCCON: the main screen shown and written
     STA &FE34
 
-    \\ a picture file, TRACKF, TRACKS, TRACKU, TRACKP or TRACKO: copied up to where it's read, and back to the game (game_go) with no race
+    \\ a picture file, TRACKF, TRACKS, TRACKU, TRACKC, TRACKP or TRACKO: copied up to where it's read, and back to the game (game_go) with no race
 
     LDA LoadName+5
     CMP #'F':BEQ pictures
     CMP #'S':BEQ pictures
     CMP #'U':BEQ pictures
+    CMP #'C':BEQ pictures
     CMP #'P':BEQ pictures
     CMP #'O':BNE parts
 .pictures

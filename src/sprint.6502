@@ -200,8 +200,35 @@ SECTION UpgradesFile, filename = "TRACKU", load = &FFFF0000+TrackFileAddr
         PADTO front_pics_end
     ENDSECTION
     SECTION UpgradesHigh, org = FrontPicOrg, guard = GameScratchOrg, cmos = TRUE
+        INCLUDE "panels.6502"
         INCLUDE "upgrades.6502"
         PRINT "the upgrades' file: ", GameScratchOrg - P%, " bytes free"
+    ENDSECTION
+ENDSECTION
+
+\\ The winner's circle's: only its code goes up, as a race has left nowhere else; what's only needed to make the screen stays where it's landed,
+\\ in the main screen, and is read from there before the screen's cleared
+
+CircleScratch = &7500                   ; the main screen past the file: the figure's masks on their way
+
+SECTION CircleFile, filename = "TRACKC", load = &FFFF0000+TrackFileAddr
+    SECTION CircleHigh, org = FrontPicOrg, guard = GameScratchOrg, cmos = TRUE
+.circle_file
+{
+        INCLUDE "panels.6502"
+        INCLUDE "circle.6502"
+}
+        PRINT "the circle's code: ", GameScratchOrg - P%, " bytes free"
+        PADTO GameScratchOrg
+    ENDSECTION
+    SECTION CircleMain, org = TrackFileAddr + GameScratchOrg - FrontPicOrg, guard = CircleScratch
+.CirclePic
+        INCBIN "../build/gen/circle_0.zx02"
+.CirclePic2
+        INCBIN "../build/gen/circle_1.zx02"
+.CircleData
+        INCBIN "../build/gen/circle_streams.zx02s"
+        PRINT "the circle's file in the screen: ", CircleScratch - P%, " bytes free"
     ENDSECTION
 ENDSECTION
 

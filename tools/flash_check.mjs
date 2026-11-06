@@ -1,5 +1,5 @@
 // The screen around a load, field by field, as shown (Phase 5, step 8): build/game.ssd left to run from the title through a
-// demo to the credits, then fire, the select, the upgrades (the circle's end poked, a player with 4 wrenches), prepare to race and a
+// demo to the credits, then fire, the select, the circle and the upgrades (a race's end poked, a player with 4 wrenches), prepare to race and a
 // race's start. Every load lands its file in the main
 // screen, so the display has to hide it: nothing may be lit outside the screen's own lines at any time, and from a load's
 // start (a frame's grace, for the one being shown) to the next picture's wipe or the race's first frame, nothing below
@@ -51,8 +51,9 @@ for (let left = Field; ;) {
             if (!upgraded) {
                 upgraded = true;
                 s.writeMemory(syms.RcWrench, [4]);
+                s.writeMemory(syms.RcLaps, [4, 0, 0, 0]);       // (ahead of the drones, or it'd be out, and no upgrades)
                 s.writeMemory(syms.GmStage, [1]);
-                cpu.pc = G("after_circle");
+                cpu.pc = G("arrived");
             }
         }
         else if (hit.address === got) {
@@ -76,5 +77,6 @@ for (let left = Field; ;) {
     if (field > 20000) { say("never reached a race"); break; }
 }
 if (!upgraded) say("the upgrades never reached");
+if (loads < 7) say(`only ${loads} loads: the circle's and the upgrades' should both be among them`);
 console.log(bad ? `${bad} fields wrong` : `${field} fields, ${loads} loads, ${seen} fields looked at in them: nothing to see`);
 process.exit(bad ? 1 : 0);

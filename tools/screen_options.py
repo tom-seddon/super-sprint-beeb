@@ -212,6 +212,31 @@ def upgrades(px, pal, checks, car):
     return render(px, {**UpgradeTable, 12: checks, 6: 'WGY'[car] * 4}, pal)
 
 
+# The winner's circle (Proposed; Tom's to judge): the ground flat white and the last panel flat yellow, for the words, with the crowd in green
+# and yellow on the dim checks. (Each ST colour as circle1's bands show it. The cars' own colours aren't here: F.circle_parts has them.)
+CircleTiles = {(0, 0, 0): 'KKKK', (0, 73, 255): 'WWWW', (36, 182, 219): 'KKKK', (73, 73, 182): 'GKKG', (109, 36, 182): 'GKKG', (109, 109, 109): 'WKKW',
+               (146, 0, 36): 'GGGG', (146, 146, 146): 'WKKW', (146, 219, 219): 'WWWW', (182, 0, 0): 'KKKK', (182, 73, 182): 'GGGG', (182, 109, 36): 'YKKY',
+               (182, 146, 0): 'KKKK', (182, 182, 182): 'WKKW', (182, 219, 109): 'WWWW', (182, 219, 255): 'WWWW', (219, 219, 109): 'YYYY', (219, 255, 255): 'WWWW',
+               (255, 0, 0): 'YYYY', (255, 0, 109): 'WWWW', (255, 219, 109): 'YYYY', (255, 255, 0): 'YYYY', (255, 255, 36): 'YYYY', (255, 255, 109): 'WWWW',
+               (255, 255, 182): 'YYYY', (255, 255, 255): 'WWWW'}
+
+
+def circle(rgb, pal, top=0, left=0):
+    """(h, w, 3) ST colours to logical colours by CircleTiles, the tiles' phase as on the screen, from line top and pixel left."""
+    h, w = rgb.shape[:2]
+    yy, xx = np.mgrid[top:top + h, left:left + w]
+    ph = (xx & 1) + 2 * (yy & 1)
+    out = np.zeros((h, w), np.uint8)
+    seen = np.zeros((h, w), bool)
+    for c, tile in CircleTiles.items():
+        m = (rgb == c).all(2)
+        seen |= m
+        for k in range(4):
+            out[m & (ph == k)] = pal.index(tile[k])
+    assert seen.all(), f'circle: a colour with no tile: {rgb[~seen][0]}'
+    return out
+
+
 def mode2_bytes(lidx):
     """(200, 160) colours 0-7 -> 16,000 bytes: 2 pixels a byte, the left's bits 7, 5, 3, 1, the right's 6, 4, 2, 0."""
     a = lidx.astype(np.uint8)

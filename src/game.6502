@@ -34,6 +34,18 @@ SECTION GameScratch
     SKIP 4
 .GsAvgHi
     SKIP 4
+.GsAvgLapLo                             ; the average lap, in frames,
+    SKIP 4
+.GsAvgLapHi
+    SKIP 4
+.GsBestLapLo                            ; and the best
+    SKIP 4
+.GsBestLapHi
+    SKIP 4
+.GsKind                                 ; the celebration's kind, 0-3,
+    SKIP 1
+.GsSpark                                ; and each sparkle's frame
+    SKIP 16
 .GsSaved                                ; G_01DF52: the scores as the circle ended, for the drones' to come back
     SKIP 24
 .GsWasDrone                             ; G_01DF6A: who was a drone then
@@ -102,6 +114,12 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .game_resume
 {
     LDA GmBack:BEQ arrived
+    CMP #6:BNE back_upgrades
+    STZ GmBack                          ; (back from the circle's file)
+    JSR load_game
+    JSR circle
+    BRA after_circle
+.back_upgrades
     CMP #5:BNE back_select
     STZ GmBack                          ; (back from the upgrades' file)
     JSR load_game
@@ -128,7 +146,10 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .arrived
     LDA GmStage:BEQ attract
     LDA GmAbandon:BNE attract           ; F10: straight back (the ST's F_0141B0, with no save)
-    JSR circle
+    JSR circle_sums
+    LDA #6
+    LDX #'C' - '0'
+    BRA to_file
 .after_circle
     LDX #2
 .player                                 ; (the upgrades' file only for a player who'll see it)
@@ -632,14 +653,11 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     RTS
 }
 
-\\ The winner's circle, F_01AC1C: the lap times, the order, the race counter if a drone won, the bonuses counted up, a
-\\ lap record, the celebration's random numbers and time, then the elimination.
+\\ The winner's circle, F_01AC1C, before its file's loaded, as a load keeps GameScratch: the lap times, the order, the race counter if a drone won, the
+\\ bonuses, a lap record and the celebration's random numbers. A, X, Y corrupted.
 
-.circle
+.circle_sums
 {
-    JSR say_clear
-    LDA #LO(TextCircle):LDX #HI(TextCircle):LDY #12:JSR say
-
     \\ each lap's end frame to its length
 
     LDX #15
@@ -740,27 +758,42 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     DEX
     BPL car
 
-    \\ the celebration's random numbers, which move the next race's seed: its kind unless F5, the tune, 16 sparkles
+    \\ the celebration's random numbers, which move the next race's seed: its kind (F5's the last), the tune, 16 sparkles
 
+    LDA #3:STA GsKind
     JSR game_f5:BMI nokind
     LDA #16:JSR random
+    AND #3:STA GsKind
 .nokind
     LDA #5:JSR random
-    LDA #16:STA GsN
+    LDX #15
 .spark
+    STX GsN
     LDA #6:JSR random
-    DEC GsN
-    BNE spark
+    LDX GsN
+    STA GsSpark,X
+    DEX
+    BPL spark
+    RTS
+}
+
+\\ The rest, with its file in: the screen, the bonuses counted up, the celebration, the elimination. A, X, Y corrupted.
+
+.circle
+{
+    JSR circle_file.circle_show
 
     \\ the bonuses counted up, 10 at a time, a pass of 2 fields; then 200 fields of the celebration
 
 .count
+    LDA vsyncs:STA fstart
     STZ GsAny
     LDX #3
 .each
     STX GsCar
     LDA GsPlacePtsLo,X:ORA GsPlacePtsHi,X:BEQ noplace
     JSR ten_off
+    LDA #0:JSR circle_file.circle_ten
 .noplace
     LDX GsCar
     LDA GsBestLo,X:ORA GsBestHi,X:BEQ nobest
@@ -769,6 +802,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     DEC GsBestHi,X
 .@
     JSR ten
+    LDA #2:JSR circle_file.circle_ten
 .nobest
     LDX GsCar
     LDA GsAvgLo,X:ORA GsAvgHi,X:BEQ noavg
@@ -777,15 +811,26 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     DEC GsAvgHi,X
 .@
     JSR ten
+    LDA #1:JSR circle_file.circle_ten
 .noavg
     LDX GsCar
     DEX
     BPL each
-    LDA #2:JSR fields
+    JSR circle_file.circle_scores
+.pass
+    LDA vsyncs:SEC:SBC fstart
+    CMP #2:BCC pass
+.passed
     LDA GsAny:BEQ counted
     JMP count
 .counted
-    LDA #200:JSR fields
+    LDA #200:STA GsCount
+.party
+    LDA #1:JSR fields
+    JSR circle_file.circle_field
+    DEC GsCount
+    BNE party
+.partied
 
     \\ F_01BB0C: the scores kept, and the drones' blanked for the screens to come
 
@@ -829,8 +874,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .@
     DEX
     BPL drone
-.done
-    RTS
+    JMP mode1
 
 \\ the place's points: 10 fewer, and 10 added
 .ten_off
@@ -896,6 +940,10 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     LDA #0:SBC GsU+1:STA GsU+1
 .@
     LDX GsCar
+    LDA GsU:STA GsAvgLapLo,X
+    LDA GsU+1:STA GsAvgLapHi,X
+    LDA GsT:STA GsBestLapLo,X
+    LDA GsT+1:STA GsBestLapHi,X
     LDA RcDrone,X:BNE norecord
     LDA GmTrack:ASL A:TAY               ; (big-endian, as the file has them)
     LDA GsT:CMP LapRecords+1,Y
@@ -1210,5 +1258,3 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 
 .TextAttract
     EQUS "Super Sprint: press fire", 0
-.TextCircle
-    EQUS "Winner's circle", 0

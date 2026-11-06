@@ -15,6 +15,7 @@
 import { readFileSync } from "node:fs";
 import { bootDisc, ram, runToAny, symbols } from "./jsbeeb.mjs";
 import { comparer, PerCar, Race } from "./logic_compare.mjs";
+import { bonus, First, screen as circle } from "./circle_model.mjs";
 import { screen as upgrades } from "./upgrades_model.mjs";
 
 const games = process.argv.length > 2 ? process.argv.slice(2) : ["three", "alone", "rejoin"];
@@ -191,6 +192,27 @@ async function play(name) {
         upScreens++;
     }
 
+    // The circle's, from tools/circle_model.mjs, as shown and as it ends. The order, the laps and the kind are the race's, which the points check.
+    let circleScreens = 0, circleCounted = false;
+    function circleScreen(where, counted) {
+        const n = [0, 1, 2], all = [0, 1, 2, 3], order = [...s.readMemory(syms.GsOrder, 4)];
+        const s16 = (lo, hi, car) => (peek(hi + car) << 24 | peek(lo + car) << 16) >> 16;
+        const avg = all.map((c) => s16(syms.GsAvgLapLo, syms.GsAvgLapHi, c)), best = all.map((c) => s16(syms.GsBestLapLo, syms.GsBestLapHi, c));
+        const track = peek(syms.GmTrack), kind = peek(syms.GsKind);
+        const want = circle({
+            order, drone: [...s.readMemory(syms.RcDrone, 4)], avg, best, wrench: n.map((c) => peek(syms.RcWrench + c)),
+            score: n.map((c) => [...s.readMemory(syms.RcScore + c * 6, 6)]), laps: n.map((c) => peek(syms.RcLaps + c)),
+            shown: all.map((c) => counted ? [[1000, 500, 250, 0][order.indexOf(c)], bonus(avg[c], track), bonus(best[c], track)] : [0, 0, 0]),
+            frame: First[kind] + peek(syms["circle_file.CiShown"]), spark: [...s.readMemory(syms.GsSpark, 16)],
+        });
+        const got = ram(s, syms.PlayAddr, 16000);
+        let diff = 0;
+        for (let i = 0; i < 16000; i++) if (got[i] !== want[i]) diff++;
+        if (diff) say(`${where}: ${diff} bytes of the screen differ`);
+        screens++;
+        circleScreens++;
+    }
+
     // the race's result, as the ST's pokes
     function result(entries) {
         for (const [a, ...b] of entries) {
@@ -234,6 +256,7 @@ async function play(name) {
         ["prepare shown", syms["prepare.shown"], bankbg], ["prepare over", syms["prepare.over"], bankbg],
         ["select shown", syms["select.shown"], bankbg], ["select over", syms["select.done"], bankbg],
         ["upgrade shown", syms["upgrade.shown"], bankbg], ["upgrade over", syms["upgrade.over"], bankbg],
+        ["circle pass", syms["circle.count"], bankbg], ["circle over", syms["circle.partied"], bankbg],
     ];
     const byAddr = new Map(stops.map(([n, a, b]) => [a, n]));
     const list = stops.map(([, a, b]) => [a, b]);
@@ -276,6 +299,16 @@ async function play(name) {
                 selectScreen(stop);
                 continue;
             }
+            if (stop === "circle pass") {
+                if (!circleCounted) circleScreen("circle shown", false);
+                circleCounted = true;
+                continue;
+            }
+            if (stop === "circle over") {
+                circleScreen("circle over", true);
+                circleCounted = false;
+                continue;
+            }
             if (stop === "upgrade shown" || stop === "upgrade over") {
                 upgradeScreen(stop);
                 upReads = stop === "upgrade shown" ? 0 : -1;
@@ -298,7 +331,7 @@ async function play(name) {
     eat();
     if (read < front.length) say(`${front.length - read} reads left over`);
     const bad = wrong + wholly.wrong + noGates.wrong + only.wrong;
-    console.log(`${name}: ${bad ? `WRONG, ${bad} points` : `exact at ${pi - 1} points, ${read} reads, ${screens} screens, ${upScreens} of them the upgrades', ${joined} with a join`}`);
+    console.log(`${name}: ${bad ? `WRONG, ${bad} points` : `exact at ${pi - 1} points, ${read} reads, ${screens} screens, ${upScreens} of them the upgrades', ${circleScreens} the circle's, ${joined} with a join`}`);
     s.destroy?.();
     return bad ? 1 : 0;
 }

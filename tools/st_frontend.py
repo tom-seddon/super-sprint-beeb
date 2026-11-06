@@ -306,6 +306,71 @@ def upgrades(mem, heading=(), levels=(0, 0, 0), colour=6, bars=False):
     return c.px
 
 
+CircleBelow = 44                        # the capture's third car's best lap, less than 0: tenths, found by trying them
+CircleBands = (18, 74, 140)             # the winner's circle's bands' first lines
+CirclePlaces = ((1, 7), (2, 7), (2, 10), (3, 7))    # each place's band and first of its three palette entries (G_01CFAE, G_01CFB6)
+
+
+def circle_parts(idx):
+    """(place, part), both (200, 320): which place's car a pixel of map 9 is in, -1 none, and which of its three entries: 1 the sides and
+    front spoiler, 2 the edges and heading, 3 the bodywork and rear spoiler."""
+    y = np.arange(200)[:, None] * np.ones((1, 320), int)
+    band = sum((y >= b).astype(int) for b in CircleBands)
+    place, part = np.full((200, 320), -1), np.zeros((200, 320), int)
+    for p, (b, e) in enumerate(CirclePlaces):
+        for k in range(3):
+            m = (band == b) & (idx == e + k)
+            place[m], part[m] = p, k + 1
+    return place, part
+
+
+def circle_frame(d, n):
+    """The figure's frame n (F_01BC36): (32, 48) indices."""
+    return stgfx.planar_to_indices(d[0x29C4E + n * 0x300:0x29C4E + (n + 1) * 0x300], 48, 32)
+
+
+def circle_sparkle(d, n):
+    """A sparkle's frame n (F_01BDCE): (8, 8) indices, and what's kept of what's under it, 1 kept."""
+    px, keep = np.zeros((8, 8), np.uint8), np.zeros((8, 8), np.uint8)
+    for line in range(8):
+        row = d[0x2CC5A + n * 80 + line * 10:][:10]
+        for j in range(8):
+            px[line, j] = sum((row[p * 2] >> (7 - j) & 1) << p for p in range(4))
+            keep[line, j] = row[8] >> (7 - j) & 1
+    return px, keep
+
+
+def circle(mem, frame, figures, times):
+    """The winner's circle as F_01AC1C draws it over map 9, but for the HUD and the sparkles. frame: the figure's. figures: each place's three bonuses
+    so far; times: each place's average and best laps in tenths of a second, F_01BC74's value."""
+    import st_tracks as T
+    word = lambda a, n: [int.from_bytes(mem[a - Region + i * 2:a - Region + i * 2 + 2], 'big', signed=True) for i in range(n)]
+    px = T.decode_map(dat(), 9).copy()
+    px[144:176, 160:208] = circle_frame(dat(), frame)
+    c = canvas_on(px)
+    ground = word(0x1CFBE, 4)
+    rows = ((0x1CFCE, 0x1CFC6), (0x1CFDE, 0x1CFD6), (0x1CFEE, 0x1CFE6))
+    for place in range(4):
+        for (ax, ay), v in zip(rows, figures[place]):      # F_01BD40: 3 figures, no leading 0s; and the last 0
+            x, y = word(ax, 4)[place], word(ay, 4)[place]
+            on = 0
+            for i, d in enumerate((v // 1000, v // 100 % 10, v // 10 % 10)):
+                on += d
+                if on:
+                    c.glyph(d, x + i * 6, y, ground[place], 0)
+            c.glyph(0, x + 18, y, ground[place], 0)
+        for (ax, ay), v in zip(((0x1CFFE, 0x1CFF6), (0x1D00E, 0x1D006)), times[place]):     # F_01BC74
+            x, y = word(ax, 4)[place], word(ay, 4)[place]
+            v = min(v, 999)
+            if v > 99:
+                c.glyph(v // 100, x, y, ground[place], 0)
+            trunc = lambda a, b: abs(a) // b * (1 if a >= 0 else -1)
+            c.glyph(trunc(v, 10) % 10 if v >= 0 else -(abs(v) // 10 % 10), x + 6, y, ground[place], 0)
+            c.glyph(10, x + 12, y, ground[place], 0)
+            c.glyph(v % 10 if v >= 0 else -(abs(v) % 10), x + 18, y, ground[place], 0)
+    return px
+
+
 def first_dump():
     t = json.load(open(os.path.join(ROOT, 'build/st_screens/screens.json')))
     return bytes.fromhex(next(e for e in t['events'] if e['kind'] == 'point')['mem'])
@@ -338,6 +403,19 @@ def main():
         ok = n <= limit and (box is None or where is None or (where[0] >= box[0] and where[1] >= box[1] and where[2] <= box[2] and where[3] <= box[3]))
         bad += not ok
         print(f'{name}: {n} pixels differ{f" in {where}" if n else ""}{"" if ok else ": WRONG"}')
+    # the circle (F_01AC1C), but for the HUD and the sparkles, which are the game's. The figures and times are read off the capture: the third's best
+    # lap was below 0, which the ST's digits show from past the font.
+    word = lambda a, n: [int.from_bytes(mem[a - Region + i * 2:a - Region + i * 2 + 2], 'big', signed=True) for i in range(n)]
+    for shot_name, frame, figures in (('circle0', 3, ((410, 410, 410), (410, 410, 410), (250, 410, 410), (0, 400, 410))),
+                                      ('circle1', 4, ((1000, 530, 550), (500, 500, 510), (250, 850, 1570), (0, 400, 430)))):
+        want, e = shot(shot_name)
+        idx = circle(mem, frame, figures, ((62, 60), (69, 68), (0, -CircleBelow), (90, 84)))
+        idx[:22] = want[:22]
+        for x, y in zip(word(0x1CEBE, 16), word(0x1CE9E, 16)):
+            idx[y:y + 8, x * 8:x * 8 + 8] = want[y:y + 8, x * 8:x * 8 + 8]
+        n, where = diff(idx, want)
+        bad += n > 0
+        print(f'{shot_name}: {n} pixels differ{f" in {where}" if n else ""} outside the HUD and sparkles{": WRONG" if n else ""}')
     # the upgrades (F_01A130), but for the HUD, the dial and the seconds, which are the game's: the boxes in the planes they're drawn in
     for shot_name in ('upgrade0', 'upgrade1', 'upgrade2'):
         want, e = shot(shot_name)

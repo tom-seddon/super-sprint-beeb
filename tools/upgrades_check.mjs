@@ -108,7 +108,7 @@ for (const c of Cases) {
             if (shots) writeFileSync(`${shots}/up${shot++}.png`, await s.screenshotActive({ scale: 2 }));
         } else if (at === got) {
             if (cpu.x !== car) { cpu.a = 0; continue; }
-            const field = peek(syms.vsyncs), gone = (field - lastField) & 255;
+            const field = peek(syms.fstart), gone = (field - lastField) & 255;  // (a pass's start: the read can fall either side of a field's end)
             if (passes > 1) {           // (the first's from the screen's wipe)
                 if (gone < 3) say(`${c.name}, pass ${passes}: ${gone} fields`);
                 longest = Math.max(longest, gone);

@@ -56,7 +56,7 @@ Each mask is 1 bit a pixel, 40 bytes a line, 200 lines.
 | `&27B06` | 3,000 | `G_01D30A` | Road outlines, as line segments and fill seeds, per track |
 | `&286BE` | 3,520 | `G_01DF4E` | The HUD's digits: 44 bytes each, a data word and a mask word a line, 11 lines, then the same shifted for the score's places (the first set's enough for `tools/screens.py`) |
 | `&2947E` | 2,000 | `G_01F228` | Prepare's flickering details on the cars (below) |
-| `&29C4E` | 12,300 | `G_01F220` | The winner's circle's figure, 12 frames (below) |
+| `&29C4E` | 12,300 | `G_01F220` | The winner's circle's figure, 16 frames (below) |
 | `&2CC5A` | 480 | `G_01F21C` | The winner's circle's sparkles, 6 frames (below) |
 | `&2CE3A` | 7,100 | `G_01E2A6` | Not decoded |
 | `&2E9F6` | 8,000 | `G_01F218` | The credits, RLE (below) |
@@ -77,7 +77,7 @@ Every screen was captured from Hatari as its raw memory and palette (`tools/game
 | High scores | composed (below), the table from `G_01D382` and `G_01D324` | **exact** |
 | Lap records | the same frame, the times from `G_01D314` | **exact** |
 | Prepare to race | RLE cars, two bands, the checker, panels (below) | 68-161 pixels, all the cars' flickering details |
-| Winner's circle | map 9, then the HUD, the bonuses, the figure, the sparkles | map alone: 3,715 pixels, all overlays; not composed |
+| Winner's circle | map 9, then the HUD, the bonuses, the figure, the sparkles | **exact** but for the HUD and sparkles (`circle`), both captures, the figures read off them: the figure's frames 3 and 4 |
 | Select | map 10, then panels and the dial | map alone: 2,453 pixels, all overlays; not composed |
 | Upgrades | no picture: the checker and HUD as prepare's, the boxes (`F_016A44`, `F_016AF2`, `F_016A6C`, `F_016B76`, `F_016BB8`), text, the dial | **exact** but for the HUD, dial and seconds (`upgrades`): the boxes are the top left's mirrored into a plane each, so colours 2, 8, 4 and 1 by the dial's quarter, and a palette entry lights one |
 | Initials entry | prepare's picture, text in a panel (`F_017A42`) | not composed |
@@ -143,7 +143,16 @@ being glyphs 0-9. Big (`F_016EB8`, `G_01D594`), 12 lines of a mask word and a da
 5-8 are 3-0 flipped vertically (`F_017078`), 9-15 are 7-1 flipped horizontally (`F_0170B4`).
 
 **The figure** (`F_01BC36`): 48 x 32 frames of `&300` bytes, `(3 * kind + frame) * &300` from `G_01F220`, at x 160 (group 10) line
-144, kind the celebration's 0-3. **The sparkles** (`F_01BDCE`): 6 frames of 80 bytes, 8 pixels wide: 8 lines of 10 bytes, a byte a plane at 0, 2, 4 and 6, the mask at 8.
+144, kind the celebration's 0-3. 16 frames: kinds 0-2 have 3 and kind 3 has 7 (F5's, and a random number's 1 in 4). It stands on the fourth car, so its pixels use that car's
+palette entries 7-9. Each kind's frames and how long each lasts are `G_01CF46` and `G_01CEDE`, 13 words a kind: -1 starts again and -2 stays on the frame before.
+**The sparkles** (`F_01BDCE`): 6 frames of 80 bytes, 8 pixels wide: 8 lines of 10 bytes, a byte a plane at 0, 2, 4 and 6, the mask at 8. They're 16 of the crowd waving
+flags, at byte `G_01CEBE` line `G_01CE9E`, a frame on every third field: the flag is palette entry 9, so it's the winner's colour, and a hand entry 5. They're
+drawn after the wipe, in both screens, and only move in the celebration.
+
+**The circle's figures** (`F_01BD40`, `F_01BC74`). A place's bonuses are at `G_01CFCE`, `G_01CFDE`, `G_01CFEE` across, its lines `G_01CFC6`, `G_01CFD6`, `G_01CFE6` down, on ground
+`G_01CFBE`, black ink, opaque. A bonus is 3 digits, no leading 0s, with a last 0 drawn once. A time is frames / 5 at 36 pixels to the left, limit 99.9, a third digit only over 9.9.
+**A time can be below 0**, as the capture's third place's was (its average 0.0 suggests a lap counted with no end frame, so a lap of minus the one before; not traced further). Then each digit is negative, taken as a glyph number, and `F_016C7A`'s `AND #&FF`
+reads it from past the font (`G_01D43C` + (256 - n) * 8), which is the "-.-" of the capture's third place: -4.4 by trying every value, only that (and 1,000s more) matching.
 
 **The flickering details** (`F_017766`, from `G_01F228`): `F_017898`, 7 lines, frames of `&40`; `F_01784A`, 1 line, frames of `&10`, at
 `+&100`; `F_0178DE`, frames of `&F0`, at `+&130`.

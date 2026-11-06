@@ -11,19 +11,22 @@ const Small = 0, Big = 39 * 6, Comma = 10, Wrench = 11, White = 3, Bars = [[14, 
 const PanelX = [0, 108, 216], Colour = [3, 1, 2], Lit = [2, 1, 2], BoxOf = [3, 0, 2];
 export const place = (x, y) => (y >> 3) * 640 + (x >> 2) * 8 + (y & 7);
 
-export function screen(st) {
-    const out = Buffer.from(all.subarray(st.car * 16000, (st.car + 1) * 16000));
+// What plots text on the screen out.
+export function plotter(out) {
     const pixel = (x, y, c) => {
         const at = place(x, y), n = x & 3, keep = 0x88 >> n;
         out[at] = (out[at] & ~keep) | (c & 2 ? 0x80 >> n : 0) | (c & 1 ? 8 >> n : 0);
     };
-    const glyph = (off, lines, x, y, c) => {
-        for (let l = 0; l < lines; l++)
-            for (let j = 0; j < 8; j++) if (font[off + l] >> (7 - j) & 1) pixel(x + j, y + l, c);
-    };
+    const bits = (rows, x, y, c) => rows.forEach((b, l) => { for (let j = 0; j < 8; j++) if (b >> (7 - j) & 1) pixel(x + j, y + l, c); });
+    const glyph = (off, lines, x, y, c) => bits([...font.subarray(off, off + lines)], x, y, c);
     const small = (g, x, y, c) => glyph(Small + g * 6, 6, x, y, c), big = (g, x, y, c) => glyph(Big + g * 11, 11, x, y, c);
     const code = (ch) => ch === " " ? 38 : (ch.charCodeAt(0) & 31) + 11;
     const text = (s, x, y, c) => { for (const ch of s) { small(code(ch), x, y, c); x += 6; } };
+    return { pixel, bits, small, big, text };
+}
+
+// The three cars' panels. st: { drone[3], wrench[3], score[3] (6 bytes each), laps[3] }
+export function panels({ small, big, text }, st) {
     for (let car = 0; car < 3; car++) {
         const x = PanelX[car], c = Colour[car];
         text(st.drone[car] ? "drone" : ["white car", "green car", "yellow car"][car], x + 2, 0, c);
@@ -40,6 +43,12 @@ export function screen(st) {
         });
         big(st.laps[car], x + 90, 7, c);
     }
+}
+
+export function screen(st) {
+    const out = Buffer.from(all.subarray(st.car * 16000, (st.car + 1) * 16000));
+    const p = plotter(out), { small, text } = p;
+    panels(p, st);
     const lit = Lit[st.car];
     Bars.forEach(([x, y], u) => {
         for (let n = 1; n <= st.level[u]; n++) small(n, x + 24 + n * 12, y, lit);
