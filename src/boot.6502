@@ -33,7 +33,7 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     CPX #3:BCS master                   ; 3 on: a Master's
     BRK
     EQUB 0
-    EQUS "Super Sprint needs a Master 128", 0
+    EQUS "Super Sprint needs a Master 128 or Compact", 0
     ZA_UNREACHABLE                      ; the BRK doesn't come back
 .master
 

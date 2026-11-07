@@ -488,7 +488,6 @@ PanelRows = 6                           ; prepare's cell rows of panels (tools/s
 
 .front_parked_upgrades
 {
-    LDA #'U':STA GmFront
     LDA bankobj:STA game_go.page+1
     LDA #HI(ParkUpgrades):STA game_go.from+2
     LDA #LO(BgOrg):STA game_go.into+1
@@ -505,7 +504,6 @@ PanelRows = 6                           ; prepare's cell rows of panels (tools/s
 
 .front_parked_prepare
 {
-    LDA #'P':STA GmFront
     LDA bankcars:STA game_go.page+1
     LDA #HI(ParkPrepare):STA game_go.from+2
     LDA #HI(FrontPicOrg):STA game_go.into+2

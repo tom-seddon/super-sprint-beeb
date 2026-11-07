@@ -1,6 +1,6 @@
 # Super Sprint → BBC Micro
 
-Use the `beeb-baron` skill for all 6502, with one exception: the game targets the Master 128 only, so 65C12
+Use the `beeb-baron` skill for all 6502, with one exception: the game targets the Master 128 and Compact only (D4, D33), so 65C12
 (CMOS) opcodes are allowed, in sections with `cmos = TRUE` (D4 in `docs/decisions.md`). The skill's NMOS-only
 rule doesn't apply here.
 
@@ -29,16 +29,16 @@ Baron 0.6 is on the PATH as `baron`; don't build it from `rich/baron`.
 them as advice; where they differ, this project's own way holds: decisions in `docs/decisions.md` (Proposed
 until Tom agrees), the plan in `docs/plan.md` (where the port stands and the next phase), work done in `JOURNAL.md`, the renderer
 in `docs/renderer.md`, a phase's work in its brief (`docs/brief-*.md`).
-The kit also aims at the Model B (NMOS 6502, `nmos.6502`); this game is the Master 128's only, CMOS opcodes
-allowed (D4, above).
+The kit also aims at the Model B (NMOS 6502, `nmos.6502`); this game is the Master 128's and Compact's only, CMOS
+opcodes allowed (D4, above).
 
 What the skills look up, for this project:
-- **Target**: BBC Master 128 only (jsbeeb `create_machine` model `Master`), 65C12. Two screens, main and
+- **Target**: BBC Master 128 and Master Compact (D33; jsbeeb `create_machine` model `Master`, as it has no Compact), 65C12. Two screens, main and
   shadow RAM at `&3F00`-`&7FFF`; ACCCON `&FE34` D (bit 0) the one shown, X (bit 2) the one the CPU sees at
   `&3000`-`&7FFF`, `&3000`-`&3EFF` included (ScreenVars). Four sideways RAM banks. The game hooks IRQ1V
   (the System VIA's vsync, and its T1 and T2 timing the flip into the blank, D17) and leaves the OS's memory alone (D7) but `&0900`-`&0AFF` (D26) and ANDY, which holds mask B and the
   logic's state (D15).
-- **The game's disc**: `make game` makes `build/game.ssd` (track 1's play build and a packed file per track, loaded between races: `src/load.6502`); `node tools/load_check.mjs` proves every track's load. As a race ends the circle's, upgrades' and prepare's files are read as one load (D31), two of them kept in track slots. The game around the race is `src/game.6502`, copied into the background's bank at `&9000` when a race ends (`game_go`), so nothing it references may be in another bank. The pictures' code is `src/front.6502`, an image at the objects' bank's end, copied to `&A000` there too; the pictures are files, loaded and copied in beside it (`TRACKF` the attract mode's, `TRACKS` the select screen's, `TRACKU` the upgrades', `TRACKC` the winner's circle's, `TRACKP` prepare to race's, `TRACKO` the options': the last, `TRACKS`, `TRACKU` and `TRACKC` hold their own code, `src/options.6502`, `src/select.6502`, `src/upgrades.6502`, `src/circle.6502`, the last two with `src/panels.6502`, and `TRACKP` holds `src/initials.6502`), and a screen's look is `tools/screens.py`'s `Looks`.
+- **The game's disc**: two, the same files (D32): `tools/adfs_disc.py` copies `build/game.ssd` to the ADFS L disc `build/game.adl`, its files split over both sides. `make game` makes both, `build/game.ssd` (track 1's play build and a packed file per track, loaded between races: `src/load.6502`); `node tools/load_check.mjs` proves every track's load. As a race ends the circle's, upgrades' and prepare's files are read as one load (D31), two of them kept in track slots. The game around the race is `src/game.6502`, copied into the background's bank at `&9000` when a race ends (`game_go`), so nothing it references may be in another bank. The pictures' code is `src/front.6502`, an image at the objects' bank's end, copied to `&A000` there too; the pictures are files, loaded and copied in beside it (`TRACKF` the attract mode's, `TRACKS` the select screen's, `TRACKU` the upgrades', `TRACKC` the winner's circle's, `TRACKP` prepare to race's, `TRACKO` the options': the last, `TRACKS`, `TRACKU` and `TRACKC` hold their own code, `src/options.6502`, `src/select.6502`, `src/upgrades.6502`, `src/circle.6502`, the last two with `src/panels.6502`, and `TRACKP` holds `src/initials.6502`), and a screen's look is `tools/screens.py`'s `Looks`.
 - **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes
   `build/sprint.ssd`, the listing `build/sprint.lst` (each bank's free bytes are printed in it) and the
   symbols `build/sprint.json` (Baron's `--symbols`). No `-D` flags.

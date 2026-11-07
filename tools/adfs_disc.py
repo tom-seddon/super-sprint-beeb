@@ -1,16 +1,24 @@
-"""build/game.ssd's files as an ADFS M disc, build/game.adf, for a load's time on ADFS and step 11's trials: 320K on one side, so sectors are in order in
-the image, the files in the root in the order the DFS disc has them, !BOOT run by SHIFT-BREAK (*OPT 4,2). The game's loads go through OSFILE and name no
-filing system, so nothing else differs.
+"""build/game.ssd's files as the game's ADFS disc, build/game.adl (D32), the files in the root, !BOOT run by SHIFT-BREAK
+(*OPT 4,2). The game's loads go through OSFILE and name no filing system or directory, so nothing else differs.
 
-Usage: adfs_disc.py [IN] [OUT]   (default build/game.ssd, build/game.adf)
+ADFS L, 640K on two sides (Tom: double-sided drives can be assumed). ADFS numbers side 0's sectors first, tracks 0 to 79, then side 1's
+(seen in jsbeeb: logical sector 22 read from side 0's track 1), so files end to end would fill side 0's first 44
+tracks. Here they're split between the sides instead, each side's from its track 0, so the head travels about half
+as far: side 1 has the attract mode's and options' pictures, then the boot's files, read only once; side 0 the
+rest. jsbeeb's .adl image keeps the two sides' tracks interleaved, track 0 of side 0, then of side 1, and so on.
+A *COPY to another disc puts the files end to end again: it works, but the layout's gone (*BACKUP keeps it).
+
+Usage: adfs_disc.py [IN] [OUT]   (default build/game.ssd, build/game.adl; `make game` runs it)
 """
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'reference', 'beeb-port-kit', 'template', 'tools'))
 import dfs
 
-Sectors = 1280                          # 80 tracks of 16 sectors
+Track = 16                              # sectors a track
+SideSectors = 80 * Track                # a side's: 80 tracks
 Root = 2                                # the root directory: 5 sectors
 First = 7
+Side1 = ['TRACKF', 'TRACKS', 'TRACKO', '!BOOT', 'SPRINT', 'SPRINTA', 'SPRINTB', 'SPRINTC', 'SPRINTD']   # side 1's, in order
 
 
 def checksum(sector):
@@ -28,25 +36,33 @@ def address(a):
     return a | 0xFFFC0000 if a >> 16 & 3 == 3 else a
 
 
-def main(src='build/game.ssd', out='build/game.adf'):
+def main(src='build/game.ssd', out='build/game.adl'):
+    sides = 2
+    sectors = sides * SideSectors
     img = dfs.read_image(src)
-    disc = bytearray(Sectors * 256)
-    at, entries = First, []
-    for name, f in img.files.items():
+    logical = bytearray(sectors * 256)
+    runs = [[First, SideSectors], [SideSectors, 2 * SideSectors]]   # each side's next free sector and its end
+    names = [n for n in img.files if n not in Side1] + [n for n in Side1 if n in img.files]
+    entries = []
+    for name in names:
+        f = img.files[name]
+        run = runs[1 if name in Side1 else 0]
+        at = run[0]
+        logical[at * 256:at * 256 + len(f.data)] = f.data
+        run[0] += (len(f.data) + 255) // 256
+        assert run[0] <= run[1], f'{name}: no room'
         entries.append((name, f, at))
-        n = (len(f.data) + 255) // 256
-        disc[at * 256:at * 256 + len(f.data)] = f.data
-        at += n
-    assert len(entries) <= 47 and at < Sectors
-    # the free space map: one run, from the end of the files
-    disc[0:3] = at.to_bytes(3, 'little')
-    disc[0xFC:0xFF] = Sectors.to_bytes(3, 'little')
-    disc[0x100:0x103] = (Sectors - at).to_bytes(3, 'little')
-    disc[0x1FB:0x1FD] = (0x5350).to_bytes(2, 'little')  # the disc's id
-    disc[0x1FD] = 2                                     # *OPT 4,2
-    disc[0x1FE] = 3                                     # one run: the list's end
-    disc[0xFF] = checksum(disc[0:256])
-    disc[0x1FF] = checksum(disc[256:512])
+    assert len(entries) <= 47
+    # the free space map: a run from the end of each side's files
+    for i, (at, end) in enumerate(runs):
+        logical[i * 3:i * 3 + 3] = at.to_bytes(3, 'little')
+        logical[0x100 + i * 3:0x103 + i * 3] = (end - at).to_bytes(3, 'little')
+    logical[0xFC:0xFF] = sectors.to_bytes(3, 'little')
+    logical[0x1FB:0x1FD] = (0x5350).to_bytes(2, 'little')  # the disc's id
+    logical[0x1FD] = 2                                     # *OPT 4,2
+    logical[0x1FE] = 3 * len(runs)                         # the list's end
+    logical[0xFF] = checksum(logical[0:256])
+    logical[0x1FF] = checksum(logical[256:512])
     # the root: "Hugo", 26 bytes an entry in name order, then its tail
     d = bytearray(1280)
     d[1:5] = b'Hugo'
@@ -65,9 +81,17 @@ def main(src='build/game.ssd', out='build/game.adf'):
     d[0x4D6:0x4D9] = Root.to_bytes(3, 'little')
     d[0x4D9:0x4E5] = b'Super Sprint'
     d[0x4FB:0x4FF] = b'Hugo'
-    disc[Root * 256:Root * 256 + 1280] = d
+    logical[Root * 256:Root * 256 + 1280] = d
+    # the image: the sides' tracks interleaved, as jsbeeb's .adl
+    disc = bytearray(len(logical))
+    for n in range(sectors):
+        side, rest = divmod(n, SideSectors)
+        track, sector = divmod(rest, Track)
+        p = (track * sides + side) * Track + sector
+        disc[p * 256:p * 256 + 256] = logical[n * 256:n * 256 + 256]
     open(out, 'wb').write(disc)
-    print(f'{out}: {len(entries)} files, {at} sectors of {Sectors}')
+    used = ', '.join(f'side {i} to track {(at - i * SideSectors - 1) // Track}' for i, (at, _) in enumerate(runs))
+    print(f'{out}: {len(entries)} files, {used}')
 
 
 if __name__ == '__main__':

@@ -201,6 +201,7 @@ build/zx02: $(ZX02SRC)/compress.c $(ZX02SRC)/memory.c $(ZX02SRC)/optimize.c $(ZX
 game: build/zx02 | $(VENV)
 	tools/all_tracks.sh
 	$(PY) tools/make_game.py build/tracks build/zx02 build/game.ssd
+	$(PY) tools/adfs_disc.py build/game.ssd build/game.adl
 
 # The model each frame's play area is checked against, and the check.
 CUETRACE = $(if $(filter --logic,$(GENFLAGS)),$(LOGICTRACE))

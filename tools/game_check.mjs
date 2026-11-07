@@ -12,7 +12,7 @@
 // Usage (from the repo root, after make game): node tools/game_check.mjs [GAMES]   (default three alone rejoin)
 
 import { readFileSync } from "node:fs";
-import { bootDisc, ram, runToAny, symbols } from "./jsbeeb.mjs";
+import { bootDisc, fileGate, ram, runToAny, symbols } from "./jsbeeb.mjs";
 import { comparer, PerCar, Race } from "./logic_compare.mjs";
 import { bonus, First, screen as circle } from "./circle_model.mjs";
 import { screen as initials } from "./initials_model.mjs";
@@ -270,26 +270,25 @@ async function play(name) {
         }
     };
     const stops = [
-        ["game_read", syms["game_read.got"], bankbg], ["esc", syms["game_esc.got"], bankbg], ["f5", syms["game_f5.got"], bankbg],
-        ["played", syms["logic_frame.played"], banktrace], ["abandon", syms["logic_frame.abandon"], banktrace],
-        ["race", syms.game_resume, bankbg], ["select", syms["game_resume.selected"], bankbg], ["prepare", syms["game_resume.prepared"], bankbg],
-        ["circle", syms["game_resume.after_circle"], bankbg], ["upgrades", syms["game_resume.after_upgrades"], bankbg],
-        ["prepare again", syms["game_resume.after_prepare"], bankbg], ["restored", syms["game_resume.restored"], bankbg],
-        ["over", syms["game_resume.attract"], bankbg],
-        ["prepare shown", syms["prepare.shown"], bankbg], ["prepare over", syms["prepare.over"], bankbg],
-        ["select shown", syms["select.shown"], bankbg], ["select over", syms["select.done"], bankbg],
-        ["upgrade shown", syms["upgrade.shown"], bankbg], ["upgrade over", syms["upgrade.over"], bankbg],
-        ["initials shown", syms["initials.shown"], bankbg], ["initials none", syms["initials.nobody"], bankbg], ["initials over", syms["initials.over"], bankbg],
-        ["circle pass", syms["circle_file.circle.count"], bankbg], ["circle fire", syms["game_fire.got"], bankbg], ["circle over", syms["circle_file.circle.partied"], bankbg],
+        ["game_read", "game_read.got", bankbg], ["esc", "game_esc.got", bankbg], ["f5", "game_f5.got", bankbg],
+        ["played", "logic_frame.played", banktrace], ["abandon", "logic_frame.abandon", banktrace],
+        ["race", "game_resume", bankbg], ["select", "game_resume.selected", bankbg], ["prepare", "game_resume.prepared", bankbg],
+        ["circle", "game_resume.after_circle", bankbg], ["upgrades", "game_resume.after_upgrades", bankbg],
+        ["prepare again", "game_resume.after_prepare", bankbg], ["restored", "game_resume.restored", bankbg],
+        ["over", "game_resume.attract", bankbg],
+        ["prepare shown", "prepare.shown", bankbg], ["prepare over", "prepare.over", bankbg],
+        ["select shown", "select.shown", bankbg], ["select over", "select.done", bankbg],
+        ["upgrade shown", "upgrade.shown", bankbg], ["upgrade over", "upgrade.over", bankbg],
+        ["initials shown", "initials.shown", bankbg], ["initials none", "initials.nobody", bankbg], ["initials over", "initials.over", bankbg],
+        ["circle pass", "circle_file.circle.count", bankbg], ["circle fire", "game_fire.got", bankbg], ["circle over", "circle_file.circle.partied", bankbg],
     ];
-    const byAddr = new Map(stops.map(([n, a, b]) => [a, n]));
-    // (the screens' files run at the same addresses, so a stop in one counts only with that file in)
-    const InFile = { "select shown": "S", "select over": "S", "upgrade shown": "U", "upgrade over": "U", "circle pass": "C", "circle over": "C" };
-    const list = stops.map(([, a, b]) => [a, b]);
+    const byAddr = new Map(stops.map(([n, l]) => [syms[l], n]));
+    // (the screens' files run at the same addresses, so a stop in one only with its own bytes there)
+    const list = stops.map(([, l, b]) => [syms[l], b, fileGate("build/tracks/t0.json", "build/game.ssd", l)]);
+    if (process.env.GATES) stops.forEach(([n], i) => list[i][2] && console.error(`${n}: ${list[i][2]}`));
     for (;;) {
         const at = await runToAny(s, list, 2000000000);
         const stop = byAddr.get(at);
-        if (InFile[stop] && String.fromCharCode(peek(syms.GmFront)) !== InFile[stop]) continue;
         if (stop === "game_read") {
             const car = cpu.x;
             if (!started) {

@@ -59,15 +59,18 @@ a gap or a workaround looks like it isn't only this project's.
   refuses an ungated one in `&8000`-`&BFFF`, after Stryker's Run's false failures. That doesn't reach overlays:
   here the screens' files are all loaded to `&A900` in the same bank, so paging can't tell them apart. A stop in
   the circle's file also fired at the same address in the upgrades' or prepare's. `tools/game_check.mjs`, which
-  doesn't use the kit's harness, stops anyway and then looks at `GmFront` to see whether the stop counts. Any
-  port with loaded overlays meets this, and only a check with a stop in more than one of them would show it.
+  doesn't use the kit's harness, first stopped anyway and then looked at `GmFront`, a byte the game keeps, to see
+  whether the stop counted. Any port with loaded overlays meets this, and only a check with a stop in more than one
+  of them would show it.
 - **In the kit**: the gate's comment names "your overlay addresses" for the filing system during boot only.
   Neither `docs/verification.md` nor `harness.mjs` mentions jsbeeb's breakpoint conditions.
-- **Could be**: a third gate beside the paging: the bytes at the label are the bytes the build assembled there,
-  taken from the file's own build, as a `?PC = ...` condition (tried, see jsbeeb below) or in `gate()`. It needs
-  nothing from the game. A byte the game keeps naming its overlay works too, as here, but it's code in the game
-  for the check's sake: `LDA #'U':STA GmFront` and `LDA #'P':STA GmFront` in `src/front.6502`, 10 bytes, are read
-  by nothing but `game_check`. Bytes need choosing where two files happen to match; not built here yet.
+- **Done here since** (2026-11-07): `fileGate` in `tools/jsbeeb.mjs` finds the label's section and file in the
+  symbols, reads the file's bytes off the disc, and returns a jsbeeb condition on the bytes at `PC`: four, or more
+  until they differ from every other file loaded to the same address that covers it (16 at most, or it throws).
+  It needs nothing from the game: two stores the game made only for the check (`LDA #'U':STA GmFront` and the
+  same for `'P'`, 10 bytes of the front end's code) went.
+- **Could be**: a third gate in `harness.mjs` beside the paging, from the same idea: the bytes the build
+  assembled at the label, as a condition or in `gate()`.
 
 ### Smaller
 - A self-patching copy loop that doesn't reset its operands works until it's run a second time (`shared_copy` and
