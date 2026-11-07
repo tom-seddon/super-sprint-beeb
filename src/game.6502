@@ -162,9 +162,9 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 
     \\ one load for all that comes before the next race: prepare's file, the upgrades' if anyone may buy, then the circle's (loadcode.6502)
 
-    LDY #1
+    LDY #'C'
     JSR any_wrenches:BCC @+
-    INY
+    LDY #'U'
 .@
     STY GmChain
     LDA #6
@@ -175,12 +175,12 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     JSR front_parked_upgrades
     JSR upgrades
 .after_upgrades
+    LDA #1
+.prepare_kept                           ; A: GmBack. Prepare's file was kept in the load before
+    STA GmBack
     JSR front_parked_prepare
     JSR save_game
-    LDA #1:STA GmBack
     JMP back_prepare
-.to_prepare
-    LDX #'P' - '0'
 .to_file                                ; A: GmBack, X: the file. It comes first, a race having overwritten what was there
     STA GmBack
     STX LoadWant
@@ -305,13 +305,14 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     JSR mode1
     JSR seed_once
     LDA #4:STA GmBack                   ; (load_game after it, the generator with the rest)
-    LDA #'S' - '0':STA LoadWant
+    LDA #'S':STA GmChain                ; (one load: prepare's file kept, then the select's, loadcode.6502)
+    LDA #'P' - '0':STA LoadWant
     JMP load_go                         ; (back here through game_go)
 .selected
     STZ GmRace
     LDA #1:STA GmStage
     LDA #2
-    JMP to_prepare
+    JMP prepare_kept
 .prepared
     STZ GmAbandon
 .race

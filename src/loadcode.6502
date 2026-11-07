@@ -67,7 +67,7 @@
     JSR &FFDD                           ; OSFILE: load (A = &FF)
     LDA GmChain:BEQ last
 
-    \\ one of a race's end's files: kept in a bank, and the next read while the motor's still turning, which is most of what a load costs
+    \\ prepare's or the upgrades' file: kept in a bank, and the next read while the motor's still turning, which is most of what a load costs
 
     SEI                                 ; (the OS mustn't see its ROM gone)
     LDA #HI(TrackFileAddr):STA park+2   ; (its operands from the first page: every load)
@@ -93,13 +93,13 @@
     BNE park
     LDA OsRom:STA &FE30                 ; ROMSEL: the OS's ROM
     CLI
-    LDA LoadName+5:CMP #'U':BEQ circle
-    LDA GmChain:CMP #2:BNE circle
-    LDA #'U'
-    BRA named
+    LDA LoadName+5:CMP #'U':BEQ circle  ; (the circle's after the upgrades')
+    LDA GmChain:CMP #'U':BEQ named      ; (more to keep)
+    BRA last_file
 .circle
-    STZ GmChain
     LDA #'C'
+.last_file
+    STZ GmChain
 .named
     STA LoadName+5
     JMP another

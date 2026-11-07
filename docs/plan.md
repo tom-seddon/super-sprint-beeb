@@ -224,6 +224,11 @@ adds the logic.
 - Left open, not urgent (Tom, 2026-11-03): the joysticks (D5); three players on the keys waits on a
   three-person playtest, with D12's check on a real BBC; D16's helicopter chop kept for now, perhaps
   another sound later.
+- For later (Tom, 2026-11-07): does the game build from a fresh clone? Found in passing: a `git worktree` of `HEAD`
+  stopped at `make game`'s first step, as the ZX02 compressor's source is in the kit's submodule
+  (`reference/beeb-port-kit`), not checked out there. Not looked at further: whether a clone with its submodules
+  builds both discs, or needs what only this machine's `build/` holds (the ST's traces, made in Hatari).
+  The kit's `beeb-portable-build` skill is the check for it.
 - Room, the play build (track 1, `docs/memory-map.md`): main RAM's code 103 bytes free, the fourth bank
   1,828, ANDY 1,496, Shared 1,146, the cars' bank 2,245, the objects' 7,273. The tightest tracks are in
   `docs/brief-room-2026-11-02.md` and `tools/all_tracks.sh`. Main RAM is the binding region for Phase 5: 780 bytes free after Phase 5's room hunt, and `&0900`-`&0AFF` (D26).

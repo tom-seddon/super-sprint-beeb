@@ -403,6 +403,9 @@ Tom, 2026-11-07: "I think it'd be better to have 1 load (even if it's slightly l
 So: they stay three files, read back to back while the OS has the machine, under one "Loading", so the motor needn't spin up again (`src/loadcode.6502`, `GmChain`). Prepare's is kept in the cars' bank at `ParkPrepare` and the upgrades' in the objects' bank at `ParkUpgrades`, both in track slots only a track's load writes, and copied to where they run when wanted (`front_parked_*`). The circle's comes last and stays where it lands. The upgrades' is only read if a player has 4 wrenches as the race ends. On the disc those three come first, then the tracks, next to the catalogue DFS goes back to. A race's load stays separate, as it overwrites the bank the screens run from.
 Between races, a load's start to the track's first frame, in jsbeeb: DFS 9.7 s to 7.2, or 12.4 to 8.2 with the upgrades; ADFS 7.6 and 9.0.
 Tom, 2026-11-07, on his Master: "The updated disk is much better".
+Then, Tom, 2026-11-07: "there are still 3 loads when first entering the game: one for the track select screen, one for the prepare screen, then one for the race itself. Could the track select and prepare be folded into one load?"
+So fire on the title reads prepare's file, kept at `ParkPrepare` as after a race, then the select's, in one load (`GmChain` now the letter of the file after prepare's: 'S', 'U' or 'C'). The select always ends in prepare, and touches neither the cars' bank nor the slot. In jsbeeb, fire to the race's first frame with fire pressed at once: 3 loads, 8.50 s of loading, to 2 loads, 6.99 s; 24.54 s to 23.01 in all.
+Tom, 2026-11-07, on his Master: "I think it's an improvement. Even if jsbeeb says it's slower, it feels better to have one longer load than two short ones."
 
 ### D32. An ADFS disc as well: Decided (2026-11-07)
 Adds to D22, which chose one 80-track DFS disc to be copied as it is to the other filing systems.
