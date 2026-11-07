@@ -1,6 +1,6 @@
 \\ circle.6502 - the winner's circle (F_01AC1C, Phase 5, step 8): the file TRACKC, loaded when a race ends. Its code's copied up to FrontPicOrg; the
 \\ picture, the cars' masks and the figure stay where the load left them in the main screen, the display off, and are read from there to make the
-\\ screen in the shadow one (the file's too big to copy up, and only the screen needs them). game.6502 does what the ST does; this draws it.
+\\ screen in the shadow one (the file's too big to copy up, and only the screen needs them). game.6502 works the race's result out before the load, and this does the rest.
 \\
 \\ The ST colours each place's car by palette, and second and third share a band. So the picture has the cars' sides and bodywork black, and each
 \\ car's masks paint them in as the race came out. The figure stands on the fourth car, so its frames have masks too, painted once as the screen's
@@ -21,6 +21,120 @@ CiStepsEach = 13                        ; G_01CEDE and G_01CF46's entries a kind
 ASSERT CiFigBytes * CiFigLines * 7 <= GameOrg - BgOrg
 ASSERT CirclePages0 * 256 <= GameOrg - BgOrg AND CirclePages1 * 256 <= GameOrg - BgOrg
 ASSERT CircleScratch + CiFrameBytes * 7 <= &8000
+
+\\ The rest, with its file in: the screen, the bonuses counted up, the celebration, the elimination. A, X, Y corrupted.
+
+.circle
+{
+    JSR circle_show
+
+    \\ the bonuses counted up, 10 at a time, a pass of 2 fields; then the celebration, the ST's 200 fields here until a player's fire (D28)
+
+.count
+    LDA vsyncs:STA fstart
+    STZ GsAny
+    LDX #3
+.each
+    STX GsCar
+    LDA GsPlacePtsLo,X:ORA GsPlacePtsHi,X:BEQ noplace
+    JSR ten_off
+    LDA #0:JSR circle_ten
+.noplace
+    LDX GsCar
+    LDA GsBestLo,X:ORA GsBestHi,X:BEQ nobest
+    SEC:LDA GsBestLo,X:SBC #10:STA GsBestLo,X
+    BCS @+
+    DEC GsBestHi,X
+.@
+    JSR ten
+    LDA #2:JSR circle_ten
+.nobest
+    LDX GsCar
+    LDA GsAvgLo,X:ORA GsAvgHi,X:BEQ noavg
+    SEC:LDA GsAvgLo,X:SBC #10:STA GsAvgLo,X
+    BCS @+
+    DEC GsAvgHi,X
+.@
+    JSR ten
+    LDA #1:JSR circle_ten
+.noavg
+    LDX GsCar
+    DEX
+    BPL each
+    JSR circle_scores
+.pass
+    LDA vsyncs:SEC:SBC fstart
+    CMP #2:BCC pass
+.passed
+    LDA GsAny:BEQ counted
+    JMP count
+.counted                                ; (GsAny: 0 till no fire's held, as accelerate may be, from the race)
+.party
+    LDA #1:JSR fields
+    JSR circle_field
+    JSR game_fire:BMI held
+    LDA #1:STA GsAny
+    BRA party
+.held
+    LDA GsAny:BEQ party
+.partied
+
+    \\ F_01BB0C: the scores kept, and the drones' blanked for the screens to come
+
+    LDX #23
+.save
+    LDA RcScore,X:STA GsSaved,X
+    DEX
+    BPL save
+    LDX #3
+.flag
+    LDA RcDrone,X:STA GsWasDrone,X
+    BEQ @+
+    JSR blank_score
+.@
+    DEX
+    BPL flag
+
+    \\ the elimination: from the first drone in the order, every car behind it a drone too
+
+    LDY #0
+.find
+    LDX GsOrder,Y
+    LDA RcDrone,X:BNE found
+    INY
+    CPY #3:BNE find
+    BRA eliminated
+.found
+    LDX GsOrder,Y
+    LDA #1:STA RcDrone,X
+    INY
+    CPY #4:BNE found
+.eliminated
+
+    \\ the drones among cars 0-2 lose their wrenches and upgrades
+
+    LDX #2
+.drone
+    LDA RcDrone,X:BEQ @+
+    STZ RcWrench,X
+    JSR clear_upgrades
+.@
+    DEX
+    BPL drone
+    JMP mode1
+
+\\ the place's points: 10 fewer, and 10 added
+.ten_off
+    SEC:LDA GsPlacePtsLo,X:SBC #10:STA GsPlacePtsLo,X
+    BCS ten
+    DEC GsPlacePtsHi,X
+.ten
+    LDA #1:STA GsAny
+    LDX GsCar
+    LDA #LO(Tens):STA score_add.add
+    LDA #HI(Tens):STA score_add.add+1
+    JMP score_add
+}
 
 \\ The screen, as GsOrder, GsKind, GsSpark, the lap times and RcDrone say, wiped in. The load left the display off and the main screen as it was.
 \\ Outputs: GmPicture 1. A, X, Y corrupted.

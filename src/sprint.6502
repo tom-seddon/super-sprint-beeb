@@ -136,7 +136,8 @@ ENDSECTION
 \\ Prepare to race's: its picture and panels, loaded over the rest (a race has overwritten them anyway)
 
 SECTION PrepareFile, filename = "TRACKP", load = &FFFF0000+TrackFileAddr
-    SECTION PrepareHigh, org = FrontPicOrg, guard = GameScratchOrg
+    SECTION PrepareHigh, org = FrontPicOrg, guard = GameScratchOrg, cmos = TRUE
+        INCLUDE "initials.6502"
 .PreparePic
         INCBIN "../build/gen/prepare.zx02"
 .PreparePanel0                          ; (the players')
@@ -269,6 +270,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
 .HiFile                                 ; SSPRINT.HSC: 31 entries of 6 digits (the first unused), their initials,
                 INCBIN "../orig/st/SSPRINT.HSC"     ; and each track's lap record, big-endian: changed by game.6502
 HiScores = HiFile
+HiNames = HiFile + 31 * 6
 LapRecords = HiFile + 279
             ENDIF
 .SharedEnd

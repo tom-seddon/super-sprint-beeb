@@ -34,6 +34,24 @@ SECTION GameScratch
     SKIP 4
 .GsAvgHi
     SKIP 4
+.GsInState                              ; the initials, for each car: 0 game over, 1 entering, 2 nothing, 3 finished,
+    SKIP 3
+.GsInRank                               ; its place in the table,
+    SKIP 3
+.GsInPos                                ; its position in the 3 letters,
+    SKIP 3
+.GsInHeld                               ; 1 fire's not been let go,
+    SKIP 3
+.GsInLast                               ; its keys as last seen,
+    SKIP 3
+.GsInWait                               ; reads till a held key repeats,
+    SKIP 3
+.GsInNew                                ; (keys newly down)
+    SKIP 1
+.GsInShown                              ; the letter there on the screen, 27 none,
+    SKIP 3
+.GsInLetter                             ; and the letters, 1-26, 27 a space
+    SKIP 9
 .GsAvgLapLo                             ; the average lap, in frames,
     SKIP 4
 .GsAvgLapHi
@@ -117,7 +135,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     CMP #6:BNE back_upgrades
     STZ GmBack                          ; (back from the circle's file)
     JSR load_game
-    JSR circle
+    JSR circle_file.circle
     BRA after_circle
 .back_upgrades
     CMP #5:BNE back_select
@@ -551,8 +569,8 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     CMP #63:BCS more                    ; (the ST's count above 250)
     LDA RcDrone:ORA RcDrone+1:ORA RcDrone+2:BNE more
 .done
-    JSR scores_kept
 .over
+    JSR initials
     JMP mode1
 .more
     JMP pass
@@ -582,23 +600,328 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     RTS
 }
 
-\\ F_017A42, but for the entries (step 10): a drone's score that isn't in the table is blanked, one that is stays.
+\\ F_017A42, as prepare to race ends: for each drone among the players, its panel cleared if it's no score, "GAME OVER" if it's not in the table, or
+\\ initials to enter if it is. Those entries go on together, a car read every third pass of 2 fields, with no time limit (D29), and a key's press taken
+\\ at once, between those reads (D30). A, X, Y corrupted.
 
-.scores_kept
+.initials
 {
+    JSR initials_font
     LDX #0
-.car
+.rank
     STX GsCar
-    LDA RcDrone,X:BEQ next
-    JSR score_sum:BEQ next              ; (no score: nothing to do)
-    JSR table_rank:BNE next             ; (in the table: its entry's step 10's)
+    STZ GsInRank,X
+    LDA RcDrone,X:BNE drone
+    LDA #2
+    BRA state
+.drone
+    JSR score_sum:BNE scored
+    LDA #3
+    BRA state
+.scored
+    JSR table_rank
     LDX GsCar
-    JSR blank_score
+    STA GsInRank,X
+    CMP #1:LDA #0:ROL A                 ; (1 if it has a place)
+    STA GsInState,X
+    BEQ next
+    JSR table_insert
+    BRA next
+.state
+    STA GsInState,X
 .next
     LDX GsCar
     INX
-    CPX #3:BNE car
+    CPX #3:BNE rank
+
+    STZ GsAny
+    LDX #0
+.panel
+    STX GsCar
+    LDA GsInState,X
+    CMP #3:BNE scoreless
+    LDA #2:STA GsInState,X
+    JSR initials_blank
+    BRA panelled
+.scoreless
+    CMP #0:BNE entry
+    JSR initials_over
+    LDX GsCar
+    JSR blank_score
+    BRA panelled
+.entry
+    CMP #1:BNE panelled
+    JSR initials_entry
+    LDA #1:STA GsAny
+.panelled
+    LDX GsCar
+    INX
+    CPX #3:BNE panel
+    LDA GsAny:BNE entries
+.nobody
     LDA #101:JMP fields                 ; (a flip and 100 fields)
+
+.entries
+    LDX #2
+.start
+    STX GsCar
+    STZ GsInPos,X
+    STZ GsInWait,X
+    JSR game_raw                        ; (what's held already isn't a press; X kept)
+    STA GsInLast,X
+    ASL A:LDA #0:ROL A:STA GsInHeld,X
+    TXA:ASL A:ADC GsCar:TAY             ; (C clear: car * 3)
+    LDA #1
+    STA GsInLetter,Y:STA GsInLetter+1,Y:STA GsInLetter+2,Y
+    LDA #27:STA GsInShown,X
+    LDA GsInState,X:CMP #1:BNE waiting
+    JSR show_letter
+.waiting
+    LDX GsCar
+    DEX
+    BPL start
+    LDA #1:JSR fields                   ; (a flip)
+.shown
+    STZ GsCar
+.pass
+    LDX GsCar
+    LDA GsInState,X:CMP #1:BEQ entering
+    JSR in_field
+    JMP passed
+.entering
+    JSR game_read                       ; (X kept)
+    STA GsKey
+    ORA GsInLast,X:STA GsInLast,X       ; (what's read here is no press later)
+    LDA GsInWait,X:BEQ step
+    DEC GsInWait,X                      ; (a key just pressed: not repeating yet)
+    BRA moved
+.step
+    LDA GsKey:JSR letter_step
+.moved
+    JSR in_field
+    LDX GsCar
+    LDA GsInState,X:CMP #1:BNE passed   ; (finished by a press in that field)
+    JSR show_letter
+    LDX GsCar
+    LDA GsKey:BMI fire
+    LDA GsInLast,X:BMI passed           ; (pressed since)
+    STZ GsInHeld,X
+    BRA passed
+.fire
+    LDA GsInHeld,X:BNE passed
+    JSR letter_fire
+.passed
+    JSR in_field
+    LDX GsCar
+    INX
+    CPX #3:BNE @+
+    LDX #0
+.@
+    STX GsCar
+    LDX #2
+.anyone
+    LDA GsInState,X:CMP #1:BEQ more
+    DEX
+    BPL anyone
+    BRA ended
+.more
+    JMP pass
+
+    \\ F_018184: what's entered
+
+.ended
+    LDA acccon:ORA #AccX:JSR store
+    LDA acccon:JSR store
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+.over
+    RTS
+
+    \\ A: ACCCON. The entries put where that puts them.
+.store
+    STA &FE34
+    LDX #2
+.car
+    LDA GsInRank,X:BEQ skip
+    LDA GsInState,X:CMP #1:BEQ stored
+    CMP #3:BNE skip
+.stored
+    LDA GsInRank,X:STA GsN
+    ASL A:ADC GsN:TAY                   ; (C clear: 3 an entry)
+    STX GsN
+    TXA:ASL A:ADC GsN:STA GsT           ; (C clear: car * 3)
+    PHX
+    LDX GsT
+    LDA #3:STA GsU
+.initial
+    LDA GsInLetter,X:CLC:ADC #11:STA HiNames,Y
+    INX
+    INY
+    DEC GsU
+    BNE initial
+    PLX
+.skip
+    DEX
+    BPL car
+    RTS
+}
+
+\\ A field of the entry, and any key pressed in it acted on at once: the ST reads a car's keys every 6 fields, so a tap could wait that long or be missed
+\\ (D30). A held key then waits InRepeat reads before those go on repeating it. A, X, Y corrupted; GsCar kept.
+
+InRepeat = 4
+
+.in_field
+{
+    LDA #1:JSR fields
+    LDA GsCar:PHA
+    LDX #2
+.car
+    STX GsCar
+    LDA GsInState,X:CMP #1:BNE next
+    JSR game_raw                        ; (X kept)
+    TAY
+    EOR GsInLast,X
+    STA GsN
+    TYA
+    STA GsInLast,X
+    AND GsN                             ; (what's newly down)
+    STA GsInNew
+    AND #12:BEQ nomove
+    JSR letter_step
+    LDX GsCar
+    LDA #InRepeat:STA GsInWait,X
+    JSR show_letter
+    LDX GsCar
+.nomove
+    LDA GsInNew:BPL next
+    JSR letter_fire
+    LDA GsInState,X:CMP #1:BNE next
+    JSR show_letter
+.next
+    LDX GsCar
+    DEX
+    BPL car
+    PLA:STA GsCar
+    RTS
+}
+
+\\ Car X's letter moved as A's bits say, 4 left, 8 right, wrapping through the space. A, Y corrupted, X kept.
+
+.letter_step
+{
+    PHA
+    JSR letter_at
+    PLA
+    BIT #4:BEQ notleft
+    LDA GsInLetter,Y:DEC A:BNE @+
+    LDA #27
+.@
+    STA GsInLetter,Y
+    RTS
+.notleft
+    BIT #8:BEQ done
+    LDA GsInLetter,Y:INC A:CMP #28:BNE @+
+    LDA #1
+.@
+    STA GsInLetter,Y
+.done
+    RTS
+}
+
+\\ Car X's letter taken, and on to the next, or finished. A corrupted, X kept.
+
+.letter_fire
+{
+    LDA #1:STA GsInHeld,X
+    LDA #27:STA GsInShown,X             ; (nothing's there yet at the next position)
+    INC GsInPos,X
+    LDA GsInPos,X:CMP #3:BNE done
+    LDA #3:STA GsInState,X
+.done
+    RTS
+}
+
+\\ Car X's letter, now at its position. Outputs: Y: its place in GsInLetter. A corrupted, X kept.
+
+.letter_at
+{
+    TXA:ASL A:STA GsN
+    TXA:CLC:ADC GsN:ADC GsInPos,X:TAY   ; (car * 3 + the position; C clear)
+    RTS
+}
+
+\\ Car X's letter on the screen as it is, if it's changed; X the same as GsCar. A, X, Y corrupted.
+
+.show_letter
+{
+    JSR letter_at
+    LDA GsInLetter,Y
+    CMP GsInShown,X:BEQ same
+    LDY GsInShown,X
+    STA GsInShown,X
+    PHY
+    PLX
+    JMP initials_letter
+.same
+    RTS
+}
+
+\\ F_0181C8: car GsCar's score into the table at GsInRank, the entries below it down one, and the earlier cars' places moved to match: one at the
+\\ end goes. A, X, Y corrupted.
+
+.table_insert
+{
+    LDA acccon:ORA #AccX:JSR insert     ; in the shadow screen's copy of Shared,
+    LDA acccon:JSR insert               ; and the main screen's
+    LDX GsCar
+    LDA GsInRank,X:STA GsN
+    DEX
+    BMI done
+.before
+    LDA GsInState,X:CMP #1:BNE next
+    LDA GsInRank,X:CMP GsN:BCC next
+    CMP #30:BNE down
+    STZ GsInRank,X
+    STZ GsInState,X
+    BRA next
+.down
+    INC GsInRank,X
+.next
+    DEX
+    BPL before
+.done
+    RTS
+
+    \\ A: ACCCON. The entry made where that puts it.
+.insert
+    STA &FE34
+    LDX GsCar
+    LDA GsInRank,X:STA GsU
+    ASL A:ADC GsU:STA GsU+1             ; (C clear: 3 an entry,
+    ASL A:STA GsT                       ; 6 a score)
+    LDA GsU:CMP #30:BEQ place
+    LDY #30 * 6 - 1
+.digits
+    LDA HiScores,Y:STA HiScores+6,Y
+    DEY
+    CPY GsT:BCS digits
+    LDY #30 * 3 - 1
+.names
+    LDA HiNames,Y:STA HiNames+3,Y
+    DEY
+    CPY GsU+1:BCS names
+.place
+    LDA GsCar:ASL A:STA GsN:ASL A:ADC GsN:TAX   ; (C clear: car * 6)
+    LDY GsT
+    LDA #6:STA GsN
+.digit
+    LDA RcScore,X:AND #&7F:STA HiScores,Y
+    INX
+    INY
+    DEC GsN
+    BNE digit
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
 }
 
 \\ F_018406: a car's digits added up. Inputs: X: the car. Outputs: A, Z. X preserved.
@@ -777,120 +1100,6 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     RTS
 }
 
-\\ The rest, with its file in: the screen, the bonuses counted up, the celebration, the elimination. A, X, Y corrupted.
-
-.circle
-{
-    JSR circle_file.circle_show
-
-    \\ the bonuses counted up, 10 at a time, a pass of 2 fields; then the celebration, the ST's 200 fields here until a player's fire (D28)
-
-.count
-    LDA vsyncs:STA fstart
-    STZ GsAny
-    LDX #3
-.each
-    STX GsCar
-    LDA GsPlacePtsLo,X:ORA GsPlacePtsHi,X:BEQ noplace
-    JSR ten_off
-    LDA #0:JSR circle_file.circle_ten
-.noplace
-    LDX GsCar
-    LDA GsBestLo,X:ORA GsBestHi,X:BEQ nobest
-    SEC:LDA GsBestLo,X:SBC #10:STA GsBestLo,X
-    BCS @+
-    DEC GsBestHi,X
-.@
-    JSR ten
-    LDA #2:JSR circle_file.circle_ten
-.nobest
-    LDX GsCar
-    LDA GsAvgLo,X:ORA GsAvgHi,X:BEQ noavg
-    SEC:LDA GsAvgLo,X:SBC #10:STA GsAvgLo,X
-    BCS @+
-    DEC GsAvgHi,X
-.@
-    JSR ten
-    LDA #1:JSR circle_file.circle_ten
-.noavg
-    LDX GsCar
-    DEX
-    BPL each
-    JSR circle_file.circle_scores
-.pass
-    LDA vsyncs:SEC:SBC fstart
-    CMP #2:BCC pass
-.passed
-    LDA GsAny:BEQ counted
-    JMP count
-.counted                                ; (GsAny: 0 till no fire's held, as accelerate may be, from the race)
-.party
-    LDA #1:JSR fields
-    JSR circle_file.circle_field
-    JSR game_fire:BMI held
-    LDA #1:STA GsAny
-    BRA party
-.held
-    LDA GsAny:BEQ party
-.partied
-
-    \\ F_01BB0C: the scores kept, and the drones' blanked for the screens to come
-
-    LDX #23
-.save
-    LDA RcScore,X:STA GsSaved,X
-    DEX
-    BPL save
-    LDX #3
-.flag
-    LDA RcDrone,X:STA GsWasDrone,X
-    BEQ @+
-    JSR blank_score
-.@
-    DEX
-    BPL flag
-
-    \\ the elimination: from the first drone in the order, every car behind it a drone too
-
-    LDY #0
-.find
-    LDX GsOrder,Y
-    LDA RcDrone,X:BNE found
-    INY
-    CPY #3:BNE find
-    BRA eliminated
-.found
-    LDX GsOrder,Y
-    LDA #1:STA RcDrone,X
-    INY
-    CPY #4:BNE found
-.eliminated
-
-    \\ the drones among cars 0-2 lose their wrenches and upgrades
-
-    LDX #2
-.drone
-    LDA RcDrone,X:BEQ @+
-    STZ RcWrench,X
-    JSR clear_upgrades
-.@
-    DEX
-    BPL drone
-    JMP mode1
-
-\\ the place's points: 10 fewer, and 10 added
-.ten_off
-    SEC:LDA GsPlacePtsLo,X:SBC #10:STA GsPlacePtsLo,X
-    BCS ten
-    DEC GsPlacePtsHi,X
-.ten
-    LDA #1:STA GsAny
-    LDX GsCar
-    LDA #LO(Tens):STA score_add.add
-    LDA #HI(Tens):STA score_add.add+1
-    JMP score_add
-}
-
 \\ A car's lap times to its bonuses, and a human's lap record.
 \\ Inputs: GsCar, GsPlace. Outputs: GsPlacePts, GsBest, GsAvg, LapRecord; RcLapTime if it has no laps.
 
@@ -1045,90 +1254,6 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .PlacePtsHi
     EQUB HI(1000), HI(500), HI(250), 0
 
-\\ The upgrades, F_01A0D6, F_01A130: each human with 4 wrenches or more picks one on a dial, for 4 wrenches. The ST's time limit,
-\\ 158 passes, is gone (D27): the choice waits for fire. A pass is the ST's 3 fields, F_01A844's Vsync the third.
-
-.upgrades
-{
-    LDX #0
-.car
-    STX GsCar
-    LDA RcWrench,X:CMP #4:BCC next
-    LDA RcDrone,X:BNE next
-    JSR upgrade
-.next
-    LDX GsCar
-    INX
-    CPX #3:BNE car
-    JMP mode1
-}
-
-.upgrade
-{
-    JSR mode1                           ; (the last car's screen)
-    JSR say_clear                       ; (the file landed in the screen)
-    LDA #2:STA GsDial
-    JSR upgrade_show
-.shown
-    STZ GsMove
-.pass
-    LDA vsyncs:STA fstart               ; (the drawing inside the pass: a dial moving takes most of it)
-    LDX GsCar:JSR game_read:STA GsKey
-    BIT #4:BEQ notleft
-    LDA #&FF:STA GsMove
-    BRA moved
-.notleft
-    BIT #8:BEQ moved
-    LDA #1:STA GsMove
-.moved
-    LDA GsDial:CLC:ADC GsMove:AND #15:STA GsDial
-    AND #3:CMP #2:BNE @+
-    STZ GsMove
-.@
-    JSR upgrade_pass
-    JSR pace
-    LDA GsKey:BPL pass
-    JSR upgrade_chosen
-.chosen
-    LDA GsDial:LSR A:LSR A:TAY
-    LDA UpgradeOrder,Y:STA GsN
-    LDX GsCar
-    CMP #0:BNE notraction
-    LDA RcTraction,X:CMP #5:BCS bought
-    INC RcTraction,X
-    BRA bought
-.notraction
-    CMP #1:BNE notop
-    LDA RcTopUp,X:CMP #5:BCS bought
-    INC RcTopUp,X
-    BRA bought
-.notop
-    CMP #2:BNE noturbo
-    LDA RcTurbo,X:CMP #5:BCS bought
-    INC RcTurbo,X
-    BRA bought
-.noturbo
-    LDA GmScoreUp,X:CMP #5:BCS bought
-    INC GmScoreUp,X
-.bought
-    LDA #4:STA GsCount
-.pay
-    LDA GsN:CMP #3:BNE nopoints
-    LDX GsCar
-    LDA #LO(Seven50):STA score_add.add
-    LDA #HI(Seven50):STA score_add.add+1
-    JSR score_add
-.nopoints
-    LDX GsCar
-    DEC RcWrench,X
-    JSR upgrade_figures
-    LDA #20:JSR fields
-    DEC GsCount
-    BNE pay
-.over
-    RTS
-}
-
 \\ F_01BBAA: a car that was a drone at the circle's end and still is gets its running score back.
 
 .restore_scores
@@ -1160,6 +1285,18 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     LDA RcInput,X
 .got                         ; (tools/game_check.mjs gives the traced read here)
     TAY                                 ; (N by it)
+    RTS
+}
+
+\\ Car X's keys as they are, between the reads the ST makes. Outputs: A. X kept, Y corrupted.
+
+.game_raw
+{
+    PHX
+    JSR read_players
+    PLX
+    LDA RcInput,X
+.got                         ; (a check gives its own here: the ST has no such read)
     RTS
 }
 

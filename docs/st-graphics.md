@@ -80,7 +80,7 @@ Every screen was captured from Hatari as its raw memory and palette (`tools/game
 | Winner's circle | map 9, then the HUD, the bonuses, the figure, the sparkles | **exact** but for the HUD and sparkles (`circle`), both captures, the figures read off them: the figure's frames 3 and 4 |
 | Select | map 10, then panels and the dial | map alone: 2,453 pixels, all overlays; not composed |
 | Upgrades | no picture: the checker and HUD as prepare's, the boxes (`F_016A44`, `F_016AF2`, `F_016A6C`, `F_016B76`, `F_016BB8`), text, the dial | **exact** but for the HUD, dial and seconds (`upgrades`): the boxes are the top left's mirrored into a plane each, so colours 2, 8, 4 and 1 by the dial's quarter, and a palette entry lights one |
-| Initials entry | prepare's picture, text in a panel (`F_017A42`) | not composed |
+| Initials entry | prepare's picture, text in a panel (`F_017A42`) | panels **exact** (`initials`), both captures; the rest is prepare's |
 | Options | prepare's picture, each car's control in its panel (`F_0192A6`) | not composed |
 
 The ones not composed are text and shapes over decoded pictures, through the routines below: step 8 draws them, and

@@ -4,9 +4,8 @@
 // dumped. A race isn't driven: the trace's result is put in at the frame the ST's was. At the race's return the
 // whole logic is compared (tools/logic_compare.mjs); at the other points the game's own state: who's playing,
 // wrenches, scores, upgrades, the race counter, the lap records, the generator. Prepare to race's screen is compared
-// with tools/screens.py's as it's shown and as it ends, a join's panel and all, and so is the select's.
-//
-// Not yet: the initials (step 10), so their reads are skipped and the high scores aren't compared.
+// with tools/screens.py's as it's shown and as it ends, a join's panel and all, and so is the select's. The initials' reads are played too, and the
+// high score table compared.
 //
 // Exit status: 1 if any game differs, or reads are left over or run out, else 0.
 //
@@ -16,13 +15,14 @@ import { readFileSync } from "node:fs";
 import { bootDisc, ram, runToAny, symbols } from "./jsbeeb.mjs";
 import { comparer, PerCar, Race } from "./logic_compare.mjs";
 import { bonus, First, screen as circle } from "./circle_model.mjs";
+import { screen as initials } from "./initials_model.mjs";
 import { screen as upgrades } from "./upgrades_model.mjs";
 
 const games = process.argv.length > 2 ? process.argv.slice(2) : ["three", "alone", "rejoin"];
 const Region = 0x1c722;
 const Keys = 0x1dfd4, Esc = Keys + 1, F5 = Keys + 0x3f, F10 = Keys + 0x44;
 const CarOf = { 0: 0, 2: 1, 3: 2 };     // G_01DFCC's devices
-const inRace = (pc) => pc >= 0xdc4c && pc < 0xe66a, inInitials = (pc) => pc >= 0x17a42 && pc < 0x18184;
+const inRace = (pc) => pc >= 0xdc4c && pc < 0xe66a;
 const Flips = 16;                       // flips from the race's entry to its frame 0: the step's flip N is frame N - this
 const Game = ["drone", "wrench", "score0", "score1", "score2", "score3", "score4", "score5", "seed"];
 
@@ -57,7 +57,7 @@ async function play(name) {
             for (let i = 0; i < bytes.length; i++) mem[Region + i] = bytes[i];
             points.push({ name: e.name, mem, random: drawn, bytes });
             drawn = [];
-        } else if (e.kind === "input" && !inRace(e.from) && !inInitials(e.from)) front.push(e);
+        } else if (e.kind === "input" && !inRace(e.from)) front.push(e);
         else if (e.kind === "step") front.push(e);
     }
     let pi = 1;                         // (the game's start is only the seed's)
@@ -103,6 +103,11 @@ async function play(name) {
         for (let t = 0; t < 8; t++) {
             const a = st(0x1d314 + 2 * t), b = (peek(syms.LapRecords + 2 * t) << 8) | peek(syms.LapRecords + 2 * t + 1);
             if (a !== b) say(`${p.name}: track ${t + 1}'s record ST ${a}, BBC ${b}`);
+        }
+        for (let e = 1; e < 31; e++) {
+            const a = m.subarray(0x1d382 - Region + e * 6, 0x1d382 - Region + e * 6 + 6).join(), b = [...s.readMemory(syms.HiScores + e * 6, 6)].join();
+            const c = m.subarray(0x1d324 - Region + e * 3, 0x1d324 - Region + e * 3 + 3).join(), d = [...s.readMemory(syms.HiNames + e * 3, 3)].join();
+            if (a !== b || c !== d) say(`${p.name}: high score ${e} ST ${a} ${c}, BBC ${b} ${d}`);
         }
     }
 
@@ -213,6 +218,24 @@ async function play(name) {
         circleScreens++;
     }
 
+    // The initials', from tools/initials_model.mjs: the panels as they start and end.
+    let initialsScreens = 0;
+    function initialsScreen(where) {
+        const n = [0, 1, 2], st = [...s.readMemory(syms.GsInState, 3)], rank = [...s.readMemory(syms.GsInRank, 3)], pos = [...s.readMemory(syms.GsInPos, 3)];
+        const letter = [...s.readMemory(syms.GsInLetter, 9)], drone = n.map((c) => peek(syms.RcDrone + c));
+        const entered = n.map((c) => rank[c] && (st[c] === 1 || st[c] === 3));
+        const want = initials({
+            drone, rank, panel: n.map((c) => !drone[c] ? "player" : entered[c] ? "entry" : st[c] === 0 ? "over" : "blank"),
+            letters: n.map((c) => entered[c] ? letter.slice(c * 3, c * 3 + 3).slice(0, pos[c] + (where === "initials shown" ? 1 : 0)) : []),
+        });
+        const got = ram(s, syms.PlayAddr, 16000);
+        let diff = 0;
+        for (let i = 0; i < 16000; i++) if (got[i] !== want[i]) diff++;
+        if (diff) say(`${where}: ${diff} bytes of the screen differ`);
+        screens++;
+        initialsScreens++;
+    }
+
     // the race's result, as the ST's pokes
     function result(entries) {
         for (const [a, ...b] of entries) {
@@ -256,7 +279,8 @@ async function play(name) {
         ["prepare shown", syms["prepare.shown"], bankbg], ["prepare over", syms["prepare.over"], bankbg],
         ["select shown", syms["select.shown"], bankbg], ["select over", syms["select.done"], bankbg],
         ["upgrade shown", syms["upgrade.shown"], bankbg], ["upgrade over", syms["upgrade.over"], bankbg],
-        ["circle pass", syms["circle.count"], bankbg], ["circle fire", syms["game_fire.got"], bankbg], ["circle over", syms["circle.partied"], bankbg],
+        ["initials shown", syms["initials.shown"], bankbg], ["initials none", syms["initials.nobody"], bankbg], ["initials over", syms["initials.over"], bankbg],
+        ["circle pass", syms["circle_file.circle.count"], bankbg], ["circle fire", syms["game_fire.got"], bankbg], ["circle over", syms["circle_file.circle.partied"], bankbg],
     ];
     const byAddr = new Map(stops.map(([n, a, b]) => [a, n]));
     const list = stops.map(([, a, b]) => [a, b]);
@@ -299,6 +323,10 @@ async function play(name) {
                 selectScreen(stop);
                 continue;
             }
+            if (stop === "initials shown" || stop === "initials none" || stop === "initials over") {
+                initialsScreen(stop);
+                continue;
+            }
             if (stop === "circle fire") {               // (the ST's celebration's 200 fields, then fire: the BBC waits, D28)
                 cpu.a = ++circleFields >= 200 ? 0x80 : 0;
                 continue;
@@ -336,7 +364,7 @@ async function play(name) {
     eat();
     if (read < front.length) say(`${front.length - read} reads left over`);
     const bad = wrong + wholly.wrong + noGates.wrong + only.wrong;
-    console.log(`${name}: ${bad ? `WRONG, ${bad} points` : `exact at ${pi - 1} points, ${read} reads, ${screens} screens, ${upScreens} of them the upgrades', ${circleScreens} the circle's, ${joined} with a join`}`);
+    console.log(`${name}: ${bad ? `WRONG, ${bad} points` : `exact at ${pi - 1} points, ${read} reads, ${screens} screens, ${upScreens} of them the upgrades', ${circleScreens} the circle's, ${initialsScreens} the initials', ${joined} with a join`}`);
     s.destroy?.();
     return bad ? 1 : 0;
 }

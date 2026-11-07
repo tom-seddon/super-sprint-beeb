@@ -1,0 +1,278 @@
+\\ initials.6502 - the initials' panels (F_017A42, Phase 5, step 8), part of prepare to race's file, as they're drawn over that screen when it ends:
+\\ a panel's words cleared, "GAME OVER", or the entry's words and its letters. All on the screen shown, in the car's colour; a letter that
+\\ changes is changed in one go, its old glyph and its new EOR'd together. game.6502 does what the ST does; this draws it.
+
+InTop = 3                               ; the words' first line in a panel, and the two after
+InSecond = 13
+InThird = 23
+InPanelBytes = 26
+InLetterX = 22                          ; a letter, across from the panel's left; 11 pixels each
+InLetterY = 28
+InBigLines = 10                         ; a big letter's lines, from its second
+InSpace = 38                            ; the small font's
+ASSERT InBigLines * 2 == 20
+
+\\ The big font unpacked, for the screen's letters: the panels are done with FrontBuf. A, X, Y corrupted.
+
+.initials_font
+{
+    LDA #LO(InBigPacked):STA zxsrc
+    LDA #HI(InBigPacked):STA zxsrc+1
+    LDA #LO(FrontBuf):STA zxdst
+    LDA #HI(FrontBuf):STA zxdst+1
+    JMP front_unpack
+}
+
+\\ F_018452: car GsCar's words cleared. A, X, Y corrupted.
+
+.initials_blank
+{
+    LDA acccon:STA fshadow              ; (front_clear's screen: the one shown)
+    LDA #InTop:STA fy
+    JSR clear
+    LDA #InSecond:STA fy
+    JSR clear
+    LDA #InThird:STA fy
+.clear
+    LDY GsCar
+    LDA InPanelCols,Y
+    LDX #InPanelBytes
+    JMP front_clear
+}
+
+\\ F_01850C: "GAME OVER" in car GsCar's panel. A, X, Y corrupted.
+
+.initials_over
+{
+    JSR initials_blank
+    LDA #16:LDY #2:JSR in_at
+    LDX #InGameAt:JSR in_word
+    LDA #16:LDY #19:JSR in_at
+    LDX #InOverAt
+}
+
+\\ The big letters at InWords + X at fx, fy, 11 pixels on each. A, X, Y corrupted.
+
+.in_word
+{
+.next
+    LDA InWords,X:BMI done
+    PHX
+    LDX #27
+    JSR in_big
+    LDA #11:JSR front_across
+    PLX
+    INX
+    BRA next
+.done
+    RTS
+}
+
+\\ F_01860A: the entry's words in car GsCar's panel, for place GsInRank. A, X, Y corrupted.
+
+.initials_entry
+{
+    JSR initials_blank
+    LDA #24:LDY #3:JSR in_at
+    LDX #InEnterAt:JSR in_text
+    LDA #15:LDY #11:JSR in_at
+    LDX #InInitialsAt:JSR in_text
+    LDA #6:LDY #19:JSR in_at
+    LDX #InPositionAt:JSR in_text
+    LDA #60:LDY #19:JSR in_at
+    LDX GsCar
+    LDA GsInRank,X
+    LDX #&FF
+    SEC
+.tens
+    INX
+    SBC #10
+    BCS tens
+    ADC #10                             ; (the units)
+    PHA
+    TXA:BEQ units                       ; (nothing's drawn for no tens)
+    LDX #InSpace
+    JSR in_small
+.units
+    LDA #6:JSR front_across
+    PLA
+    LDX #InSpace
+    JMP in_small
+}
+
+\\ F_016EB8: at car GsCar's position GsInPos, A the letter becoming, X the one that was, as the ST numbers them, 27 none. A, X, Y corrupted.
+
+.initials_letter
+{
+    PHA
+    PHX
+    LDY GsCar
+    LDA GsInPos,Y:STA fglyph
+    ASL A:ASL A:ADC fglyph:ASL A:ADC fglyph ; (11 each; C clear)
+    CLC:ADC #InLetterX
+    LDY #InLetterY
+    JSR in_at
+    PLX
+    PLA
+    JMP in_big
+}
+
+\\ fx, fy: A across from car GsCar's panel's left, on line Y, and InInk its colour. A, X corrupted.
+
+.in_at
+{
+    LDX GsCar
+    STY fy
+    CLC:ADC InLeftLo,X:STA fx
+    LDA InLeftHi,X:ADC #0:STA fx+1
+    LDA InInks,X:STA InInk
+    RTS
+}
+
+\\ The small font's text at InWords + X at fx, fy, 6 pixels on each. A, X, Y corrupted.
+
+.in_text
+{
+.next
+    LDA InWords,X:BMI done
+    PHX
+    LDX #InSpace
+    JSR in_small
+    LDA #6:JSR front_across
+    PLX
+    INX
+    BRA next
+.done
+    RTS
+}
+
+\\ The small font's glyph A at fx, fy, where glyph X was. fx kept; A, X, Y corrupted.
+
+.in_small
+{
+    STA fglyph:ASL A:ADC fglyph:ASL A:STA fglyph    ; (6 bytes each; C clear)
+    STX InOther
+    TXA:ASL A:ADC InOther:ASL A:STA InOther
+    JSR in_begin
+    LDA #6:STA flines
+.line
+    LDX fglyph
+    LDA SmallGlyphs,X
+    LDX InOther
+    EOR SmallGlyphs,X
+    STA fleft
+    STZ fleft+1
+    JSR in_row
+    INC fglyph
+    INC InOther
+    DEC flines
+    BNE line
+    RTS
+}
+
+\\ Big letter A at fx, fy, where X was, each as the ST numbers them. fx kept; A, X, Y corrupted.
+
+.in_big
+{
+    PHX
+    JSR glyph
+    LDA fs:STA ft
+    LDA fs+1:STA ft+1
+    PLA
+    JSR glyph
+    LDA fy:PHA
+    INC fy                              ; (the first line's clear)
+    JSR in_begin
+    PLA:STA fy
+    LDA #InBigLines:STA flines
+    STZ fglyph
+.line
+    LDY fglyph
+    LDA (fs),Y:EOR (ft),Y:STA fleft
+    INY
+    LDA (fs),Y:EOR (ft),Y:STA fleft+1
+    INY
+    STY fglyph
+    JSR in_row
+    DEC flines
+    BNE line
+    RTS
+
+    \\ fs: letter A's first byte, 20 a letter
+.glyph
+    DEC A
+    STA fs
+    STZ fs+1
+    ASL A:ASL A:ADC fs                  ; (5 each; C clear: under 52)
+    STA fs
+    ASL fs:ROL fs+1
+    ASL fs:ROL fs+1
+    LDA fs:CLC:ADC #LO(FrontBuf):STA fs
+    LDA fs+1:ADC #HI(FrontBuf):STA fs+1
+    RTS
+}
+
+\\ fp and InLine for what's drawn at fx, fy; fshift. A, X corrupted.
+
+.in_begin
+{
+    LDA fx:AND #3:STA fshift
+    LDA fy:LSR A:LSR A:LSR A:TAX        ; (the play area's row)
+    LDA fx:AND #&FC:ASL A:STA fp
+    LDA fx+1:ROL A:STA fp+1
+    LDA fp:ADC RowLo,X:STA fp           ; (C clear from the ROL: fx+1's 0 or 1)
+    LDA fp+1:ADC RowHi,X:STA fp+1
+    LDA fy:AND #7:STA InLine
+    RTS
+}
+
+\\ A line of pixels, fleft, EOR'd in by InInk at fp's line InLine, which moves on. A, X, Y corrupted.
+
+.in_row
+{
+    LDX fshift:BEQ placed
+.shift
+    LSR fleft
+    ROR fleft+1
+    DEX
+    BNE shift
+.placed
+    LDY InLine
+    LDX fleft
+    LDA PExpHi,X:AND InInk:EOR (fp),Y:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    LDA PExpLo,X:AND InInk:EOR (fp),Y:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    LDX fleft+1
+    LDA PExpHi,X:AND InInk:EOR (fp),Y:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    LDA PExpLo,X:AND InInk:EOR (fp),Y:STA (fp),Y
+    TYA:SEC:SBC #23:TAY
+    CPY #8:BNE same
+    LDA fp:CLC:ADC #LO(640):STA fp      ; (the next row of cells)
+    LDA fp+1:ADC #HI(640):STA fp+1
+    LDY #0
+.same
+    STY InLine
+    RTS
+}
+
+.InInk                                  ; a colour's bits
+    SKIP 1
+.InOther                                ; the glyph being replaced
+    SKIP 1
+.InLine                                 ; the line in the cell
+    SKIP 1
+
+.InPanelCols
+    EQUB 0, 27, 54
+.InLeftLo                               ; each panel's left: F_01860A's 15 + 107 * car
+    EQUB LO(15), LO(122), LO(229)
+.InLeftHi
+    EQUB 0, 0, 0
+.InInks                                 ; each car's colour's bits: white, green, yellow
+    EQUB &FF, &0F, &F0
+.InWords
+    EQUB InWordGlyphs
+.InBigPacked
+    INCBIN "../build/gen/initials_big.zx02"

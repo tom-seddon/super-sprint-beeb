@@ -371,6 +371,21 @@ def circle(mem, frame, figures, times):
     return px
 
 
+def initials(mem, playing, car, rank, letters):
+    """F_017A42's entry over prepare's picture: F_01860A's words in car's panel for place rank, letters as F_016EB8 draws them."""
+    px = prepare(mem, playing)
+    c = canvas_on(px)
+    l2, col = 15 + 0x6B * car, car + 1
+    for a, x, y in ((0x1F3C0, 9, 13), (0x1F3CC, 6, 23), (0x1F3D8, 36, 33), (0x1F3DA, 24, 3), (0x1F3E0, 15, 11), (0x1F3EA, 6, 19)):
+        c.small(c.text(a), l2 + x, y, 13, col)
+    if rank > 9:
+        c.glyph(rank // 10, l2 + 60, 19, 13, col)
+    c.glyph(rank % 10, l2 + 66, 19, 13, col)
+    for i, ch in enumerate(letters):
+        c.big(bytes([ch]), col, 37 + 0x6B * car + 11 * i, 28)
+    return px
+
+
 def first_dump():
     t = json.load(open(os.path.join(ROOT, 'build/st_screens/screens.json')))
     return bytes.fromhex(next(e for e in t['events'] if e['kind'] == 'point')['mem'])
@@ -416,6 +431,13 @@ def main():
         n, where = diff(idx, want)
         bad += n > 0
         print(f'{shot_name}: {n} pixels differ{f" in {where}" if n else ""} outside the HUD and sparkles{": WRONG" if n else ""}')
+    # the initials (F_017A42) in the panels, the rest being prepare's
+    for shot_name, letters in (('initials0', b'A'), ('initials1', b'BA')):
+        want, e = shot(shot_name)
+        idx = initials(mem, (1, 1, 0), 2, 3, letters)
+        n, where = diff(idx[:41], want[:41])
+        bad += n > 0
+        print(f'{shot_name}: {n} pixels differ{f" in {where}" if n else ""} in the panels{": WRONG" if n else ""}')
     # the upgrades (F_01A130), but for the HUD, the dial and the seconds, which are the game's: the boxes in the planes they're drawn in
     for shot_name in ('upgrade0', 'upgrade1', 'upgrade2'):
         want, e = shot(shot_name)

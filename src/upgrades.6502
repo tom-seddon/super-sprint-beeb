@@ -4,7 +4,7 @@
 \\ and its new EOR'd together, and only if it's changed: taken away and drawn again, the display catches it between the two.
 \\
 \\ The ST lights a box by its palette, each in a plane of its own. The BBC's four colours are all in use, so a box is lit by EOR, through
-\\ UpRect's rectangles: the top left box's bytes, the other three by mirroring them. game.6502 does what the ST does; this draws it.
+\\ UpRect's rectangles: the top left box's bytes, the other three by mirroring them.
 
 UpDialY = 99                            ; the dial's first line, its 44 lines 16 bytes across from UpDialCol
 UpDialCol = 32
@@ -12,6 +12,90 @@ UpDialLines = 44
 UpHeadRows = 8                          ; the rows of a car's stream (tools/screens.py)
 UpMirrorSum = 80                        ; a rectangle mirrored: across, this less its first and bytes
 UpFlipSum = 242                         ; and down, this less its first and lines (F_016BB8: line 115 onto 126)
+
+\\ The upgrades, F_01A0D6, F_01A130: each human with 4 wrenches or more picks one on a dial, for 4 wrenches. The ST's time limit,
+\\ 158 passes, is gone (D27): the choice waits for fire. A pass is the ST's 3 fields, F_01A844's Vsync the third.
+
+.upgrades
+{
+    LDX #0
+.car
+    STX GsCar
+    LDA RcWrench,X:CMP #4:BCC next
+    LDA RcDrone,X:BNE next
+    JSR upgrade
+.next
+    LDX GsCar
+    INX
+    CPX #3:BNE car
+    JMP mode1
+}
+
+.upgrade
+{
+    JSR mode1                           ; (the last car's screen)
+    JSR say_clear                       ; (the file landed in the screen)
+    LDA #2:STA GsDial
+    JSR upgrade_show
+.shown
+    STZ GsMove
+.pass
+    LDA vsyncs:STA fstart               ; (the drawing inside the pass: a dial moving takes most of it)
+    LDX GsCar:JSR game_read:STA GsKey
+    BIT #4:BEQ notleft
+    LDA #&FF:STA GsMove
+    BRA moved
+.notleft
+    BIT #8:BEQ moved
+    LDA #1:STA GsMove
+.moved
+    LDA GsDial:CLC:ADC GsMove:AND #15:STA GsDial
+    AND #3:CMP #2:BNE @+
+    STZ GsMove
+.@
+    JSR upgrade_pass
+    JSR pace
+    LDA GsKey:BPL pass
+    JSR upgrade_chosen
+.chosen
+    LDA GsDial:LSR A:LSR A:TAY
+    LDA UpgradeOrder,Y:STA GsN
+    LDX GsCar
+    CMP #0:BNE notraction
+    LDA RcTraction,X:CMP #5:BCS bought
+    INC RcTraction,X
+    BRA bought
+.notraction
+    CMP #1:BNE notop
+    LDA RcTopUp,X:CMP #5:BCS bought
+    INC RcTopUp,X
+    BRA bought
+.notop
+    CMP #2:BNE noturbo
+    LDA RcTurbo,X:CMP #5:BCS bought
+    INC RcTurbo,X
+    BRA bought
+.noturbo
+    LDA GmScoreUp,X:CMP #5:BCS bought
+    INC GmScoreUp,X
+.bought
+    LDA #4:STA GsCount
+.pay
+    LDA GsN:CMP #3:BNE nopoints
+    LDX GsCar
+    LDA #LO(Seven50):STA score_add.add
+    LDA #HI(Seven50):STA score_add.add+1
+    JSR score_add
+.nopoints
+    LDX GsCar
+    DEC RcWrench,X
+    JSR upgrade_figures
+    LDA #20:JSR fields
+    DEC GsCount
+    BNE pay
+.over
+    RTS
+}
 
 \\ The screen for car GsCar, the dial at GsDial. Outputs: GmPicture 1. A, X, Y corrupted.
 

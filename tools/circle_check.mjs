@@ -60,7 +60,7 @@ function poke(c) {
 }
 
 const G = (n) => syms[`circle_file.${n}`];
-const stops = [[syms.circle, bankbg], [syms["circle.count"], bankbg], [syms["circle.passed"], bankbg], [syms["circle.party"], bankbg], [syms["circle.partied"], bankbg],
+const stops = [[syms["circle_file.circle"], bankbg], [syms["circle_file.circle.count"], bankbg], [syms["circle_file.circle.passed"], bankbg], [syms["circle_file.circle.party"], bankbg], [syms["circle_file.circle.partied"], bankbg],
     [syms["game_fire.got"], bankbg], [syms["game_resume.after_circle"], bankbg]];
 let screens = 0, shot = 0, fieldsSeen = 0, passesSeen = 0, longest = 0;
 const compare = (where, st) => {
@@ -94,7 +94,7 @@ for (const c of Cases) {
     for (; ;) {
         const at = await runToAny(s, stops, 2000000000);
         if (at === syms["game_resume.after_circle"]) break;
-        if (at === syms.circle) {
+        if (at === syms["circle_file.circle"]) {
             // the file's in, the sums done: the kind as this case wants it
             s.writeMemory(syms.GsKind, [c.kind]);
             const order = peeks(syms.GsOrder, 4);
@@ -106,7 +106,7 @@ for (const c of Cases) {
                 order, drone: peeks(syms.RcDrone, 4), avg: want.map((w) => w.avg), best: want.map((w) => w.best), shown: [0, 1, 2, 3].map(() => [0, 0, 0]),
                 wrench: peeks(syms.RcWrench, 3), score: [0, 1, 2].map((n) => digits(c.score[n])), laps: peeks(syms.RcLaps, 3), frame: First[c.kind], spark,
             };
-        } else if (at === syms["circle.count"]) {
+        } else if (at === syms["circle_file.circle.count"]) {
             stepped(`${c.name}, pass ${passes}`);
             if (!passes) {
                 compare(`${c.name}, shown`, st);
@@ -115,14 +115,14 @@ for (const c of Cases) {
             const f = peek(syms.vsyncs);
             if (passes > 1 && ((f - lastField) & 255) !== 2) say(`${c.name}, pass ${passes}: ${(f - lastField) & 255} fields`);
             lastField = f;
-        } else if (at === syms["circle.passed"]) {
+        } else if (at === syms["circle_file.circle.passed"]) {
             passes++;
             passesSeen++;
             for (let car = 0; car < 4; car++) for (let l = 0; l < 3; l++) st.shown[car][l] = Math.min(want[car].points[l], passes * 10);
             st.score = [0, 1, 2].map((n) => digits(c.score[n] + st.shown[n].reduce((a, b) => a + b, 0)));
             compare(`${c.name}, pass ${passes}`, st);
             if (shots && passes === 20) writeFileSync(`${shots}/circle${shot++}.png`, await s.screenshotActive({ scale: 2 }));
-        } else if (at === syms["circle.party"]) {
+        } else if (at === syms["circle_file.circle.party"]) {
             if (!field) {
                 step = null;
                 stepNo = 0;
@@ -146,7 +146,7 @@ for (const c of Cases) {
         } else if (at === syms["game_fire.got"]) {
             cpu.a = reads < (c.held ?? 0) || reads >= c.press ? 0x80 : 0;
             reads++;
-        } else if (at === syms["circle.partied"]) {
+        } else if (at === syms["circle_file.circle.partied"]) {
             if (field !== c.press + 1) say(`${c.name}: over after ${field} fields, fire at ${c.press}`);
             longest = Math.max(longest, field);
             if (shots) writeFileSync(`${shots}/circle${shot++}.png`, await s.screenshotActive({ scale: 2 }));

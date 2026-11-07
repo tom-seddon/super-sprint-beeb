@@ -800,7 +800,11 @@ that car (`F_0141B0(car)`). Either skips back to the title afterwards.
 
 **High scores.** `SSPRINT.HSC`, 295 bytes: 31 x 6 BCD score digits (entry 0 unused), 31 x 3 initials (letter code
 + &0B; codes 1-26 letters, 27 space), 8 big-endian lap records in frames. Initials are entered with left, right
-and accelerate, 30 s.
+and accelerate, 30 s. `F_017A42` runs at the end of every prepare, for each car 0-2 that's a drone then: no score, its panel's cleared; a score
+under the table, "GAME OVER" and its score blanked; otherwise it takes the best place it beats, the entries below moved down at once, and any earlier car
+below it moved down too, the 30th losing its entry. Those entries go on together: a pass of 2 fields each, a car read every third (so every 6 fields, left
+and right repeating when held), fire one press a letter, the letter starting at A, left of A a space. The time's seconds show from 9, and what's entered when it
+ends is kept. It ends early when nobody's entering.
 
 **Traced** (`tools/st_trace_game.py`, `docs/brief-phase5.md` step 5). F5 is read once, at `&1B492`, just before the
 celebration, so a press waits in its byte until then. It takes the other branch there (`G_01CF2E`/`30` 10 not 30, one

@@ -462,6 +462,33 @@ def circle_files(out, zx02):
             'CircleJunk = {' + lst(junk) + '}', 'CircleKindFrames = {' + lst(CircleKinds) + '}']
 
 
+def initials_files(out, zx02):
+    """The initials (F_017A42): the big font, each letter's 10 lines of 2 bytes, and a none: initials_big.zx02, and initials_big.bin for
+    tools/initials_model.mjs. Returns the tables' lines for front.6502."""
+    mem = F.first_dump()
+    big = []
+    for g in range(26):
+        off = 0x1D594 - F.Region + g * 0x30
+        rows = [mem[off + l * 4 + 2:off + l * 4 + 4] for l in range(12)]
+        assert not any(rows[0]) and not any(rows[11]), 'a big letter past its 10 lines'
+        assert all(not r[1] & 7 for r in rows), 'a big letter too wide to shift 3'
+        big += [b for r in rows[1:11] for b in r]
+    big += [0] * 20
+    open(f'{out}/initials_big.bin', 'wb').write(bytes(big))
+    packed = dfs.compress(bytes(big), exe=zx02, name='initials_big')
+    open(f'{out}/initials_big.zx02', 'wb').write(packed)
+    print(f'the big font: {len(packed):,} bytes packed')
+    c = F.Canvas(mem)
+    small = lambda a: [c.code(ch) for ch in c.text(a)] + [255]
+    letters = lambda a: [ch & 31 for ch in c.text(a)] + [255]
+    words = [('InEnterAt', small(0x1F3DA)), ('InInitialsAt', small(0x1F3E0)), ('InPositionAt', small(0x1F3EA)), ('InGameAt', letters(0x1F3B4)), ('InOverAt', letters(0x1F3BA))]
+    at, text = [], []
+    for name, w in words:
+        at.append(f'{name} = {len(text)}')
+        text += w
+    return at + ['InWordGlyphs = {' + ', '.join(map(str, text)) + '}']
+
+
 def main(out, zx02):
     lines = ['\\\\ front.6502 - the front end\'s tables (tools/screens.py)', 'Mode1Wipe = {' + ', '.join(map(str, table(mask1))) + '}',
              'Mode2Wipe = {' + ', '.join(map(str, table(mask2))) + '}',
@@ -484,6 +511,7 @@ def main(out, zx02):
     lines += select_files(out, zx02)
     lines += upgrades_files(out, zx02)
     lines += circle_files(out, zx02)
+    lines += initials_files(out, zx02)
     prepare(out, zx02)
     frame = mode1_bytes(O.prepare(F.options_frame(F.first_dump(), Options), **Prepare))
     open(f'{out}/options.bin', 'wb').write(frame)

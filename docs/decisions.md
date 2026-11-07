@@ -386,3 +386,13 @@ Departs from D19, as D27 does. The ST's circle ends 200 fields after its count, 
 Tom, 2026-11-06, trying the screen: "The winner's circle screen disappears quite quickly. Like the upgrades screen, this probably makes sense for the arcade machine, but less so here. I think it should wait for a keypress."
 So: after the count the celebration runs until a player's fire, the key that moves every other screen on, and fire already held doesn't count until it's let go, as accelerate may be held from the race. Nothing else moves: the celebration draws no random numbers, so `tools/game_check.mjs` gives fire at the ST's 200th field and the traced games stay exact.
 No prompt on the screen (Tom, 2026-11-07: "I think it's fine without a prompt.").
+
+### D29. The initials have no time limit: Decided (2026-11-07)
+Departs from D19, as D27 and D28 do. The ST's entry ends after 30 seconds, its last 9 counted down on the screen, keeping what's entered by then.
+Asked whether the initials should keep the limit, Tom, 2026-11-07: "Remove the limit".
+So: the entry goes on until every car entering has its three letters, and the seconds are gone. Nothing else moves: a car's read every third pass of 2 fields, as on the ST.
+
+### D30. The initials take a key's press at once: Decided (2026-11-07)
+Departs from D19. The ST reads a car's keys every 6 fields, so a press waits up to 120 ms, and a shorter tap can be missed. Held, a letter moves on at each read, 8 a second.
+Tom, 2026-11-07, trying the screen: "The keys don't feel very responsive though - it's as if there's a slight delay before the initial press takes effect, meaning you have to hold the key down for a few frames. You should be able to select a different letter with just a brief tap."
+So: the keys are looked at every field as well, and a key newly down acts in that field, one step or one letter taken. A held key then waits 4 of the ST's reads, 24 fields, before they go on repeating it, or a tap at the ST's rate would often move two letters. The next position's letter shows at once too, and fire held as the entry starts isn't a press. The ST's reads are all still made, in order, so `tools/game_check.mjs` plays them as before: its keys are only ever seen there, and the traced entries stay exact.
