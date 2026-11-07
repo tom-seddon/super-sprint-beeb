@@ -783,7 +783,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 {
     JSR circle_file.circle_show
 
-    \\ the bonuses counted up, 10 at a time, a pass of 2 fields; then 200 fields of the celebration
+    \\ the bonuses counted up, 10 at a time, a pass of 2 fields; then the celebration, the ST's 200 fields here until a player's fire (D28)
 
 .count
     LDA vsyncs:STA fstart
@@ -823,13 +823,15 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .passed
     LDA GsAny:BEQ counted
     JMP count
-.counted
-    LDA #200:STA GsCount
+.counted                                ; (GsAny: 0 till no fire's held, as accelerate may be, from the race)
 .party
     LDA #1:JSR fields
     JSR circle_file.circle_field
-    DEC GsCount
-    BNE party
+    JSR game_fire:BMI held
+    LDA #1:STA GsAny
+    BRA party
+.held
+    LDA GsAny:BEQ party
 .partied
 
     \\ F_01BB0C: the scores kept, and the drones' blanked for the screens to come
@@ -1158,6 +1160,18 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     LDA RcInput,X
 .got                         ; (tools/game_check.mjs gives the traced read here)
     TAY                                 ; (N by it)
+    RTS
+}
+
+\\ Any player's fire, held. Outputs: N set if so. A, X, Y corrupted.
+
+.game_fire
+{
+    JSR read_players
+    LDA RcInput:ORA RcInput+1:ORA RcInput+2
+    AND #&80
+.got                         ; (a check gives its own here: the ST has no such read)
+    TAY
     RTS
 }
 

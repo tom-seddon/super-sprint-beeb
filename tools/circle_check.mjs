@@ -1,7 +1,8 @@
 // The winner's circle (F_01AC1C, step 8): build/game.ssd, a game started and a race's end reached by pokes with results chosen to try each part of the
 // screen, compared byte for byte with tools/circle_model.mjs as it's shown, after every pass of the count and at every field of the celebration:
 // each car in each place, drones, all four kinds of figure, a time below 0, an ST limit. It watches every write to the screen while counting: no pixel
-// that ends as it began may be written any other way. game_check sees the screens of the traced games.
+// that ends as it began may be written any other way. The celebration waits for a player's fire, past the ST's 200 fields, and fire still held from the
+// race doesn't count (D28). game_check sees the screens of the traced games.
 //
 // Exit status: 1 if a screen's wrong, else 0.
 //
@@ -30,10 +31,10 @@ const digits = (n) => [...String(n).padStart(6, " ")].map((c) => c === " " ? 0x8
 const number = (d) => Number(d.map((c) => c & 0x80 ? 0 : c).join(""));
 // each car's laps done, lap end frames, checkpoint and stripes: places by them
 const Cases = [
-    { name: "white first", track: 0, kind: 0, drone: [0, 0, 0, 1], laps: [4, 3, 2, 1], ends: [[200, 420, 640, 860], [260, 520, 800, 0], [300, 620, 0, 0], [500, 0, 0, 0]], score: [1250, 1250, 73150], frames: 1200 },
-    { name: "the drone wins", track: 3, kind: 1, drone: [1, 0, 1, 1], laps: [2, 3, 1, 4], ends: [[300, 640, 0, 0], [250, 500, 780, 0], [700, 0, 0, 0], [200, 400, 600, 800]], score: [0, 990990, 120], frames: 900 },
-    { name: "yellow first, green last", track: 7, kind: 2, drone: [0, 0, 0, 1], laps: [3, 0, 4, 2], ends: [[100, 200, 300, 0], [0, 0, 0, 0], [240, 480, 720, 960], [220, 440, 0, 0]], score: [5, 700, 12345], frames: 1100 },
-    { name: "a time below 0", track: 5, kind: 3, drone: [0, 1, 0, 1], laps: [4, 2, 3, 1], ends: [[150, 310, 470, 630], [320, 0, 0, 0], [20000, 40000, 60000, 0], [400, 0, 0, 0]], score: [0, 0, 0], frames: 1000 },
+    { name: "white first", track: 0, press: 200, kind: 0, drone: [0, 0, 0, 1], laps: [4, 3, 2, 1], ends: [[200, 420, 640, 860], [260, 520, 800, 0], [300, 620, 0, 0], [500, 0, 0, 0]], score: [1250, 1250, 73150], frames: 1200 },
+    { name: "the drone wins", track: 3, held: 5, press: 300, kind: 1, drone: [1, 0, 1, 1], laps: [2, 3, 1, 4], ends: [[300, 640, 0, 0], [250, 500, 780, 0], [700, 0, 0, 0], [200, 400, 600, 800]], score: [0, 990990, 120], frames: 900 },
+    { name: "yellow first, green last", track: 7, held: 250, press: 260, kind: 2, drone: [0, 0, 0, 1], laps: [3, 0, 4, 2], ends: [[100, 200, 300, 0], [0, 0, 0, 0], [240, 480, 720, 960], [220, 440, 0, 0]], score: [5, 700, 12345], frames: 1100 },
+    { name: "a time below 0", track: 5, press: 1, kind: 3, drone: [0, 1, 0, 1], laps: [4, 2, 3, 1], ends: [[150, 310, 470, 630], [320, 0, 0, 0], [20000, 40000, 60000, 0], [400, 0, 0, 0]], score: [0, 0, 0], frames: 1000 },
 ];
 
 function poke(c) {
@@ -60,7 +61,7 @@ function poke(c) {
 
 const G = (n) => syms[`circle_file.${n}`];
 const stops = [[syms.circle, bankbg], [syms["circle.count"], bankbg], [syms["circle.passed"], bankbg], [syms["circle.party"], bankbg], [syms["circle.partied"], bankbg],
-    [syms["game_resume.after_circle"], bankbg]];
+    [syms["game_fire.got"], bankbg], [syms["game_resume.after_circle"], bankbg]];
 let screens = 0, shot = 0, fieldsSeen = 0, passesSeen = 0, longest = 0;
 const compare = (where, st) => {
     const want = screen(st), have = ram(s, syms.PlayAddr, 16000);
@@ -89,7 +90,7 @@ function stepped(where) {
 for (const c of Cases) {
     poke(c);
     cpu.pc = syms["game_resume.arrived"];
-    let st = null, want, passes = 0, lastField = 0, field = 0, spark, stepNo = 0, left = 0;
+    let st = null, want, passes = 0, lastField = 0, field = 0, spark, stepNo = 0, left = 0, reads = 0;
     for (; ;) {
         const at = await runToAny(s, stops, 2000000000);
         if (at === syms["game_resume.after_circle"]) break;
@@ -142,11 +143,16 @@ for (const c of Cases) {
                 fieldsSeen++;
             }
             field++;
+        } else if (at === syms["game_fire.got"]) {
+            cpu.a = reads < (c.held ?? 0) || reads >= c.press ? 0x80 : 0;
+            reads++;
         } else if (at === syms["circle.partied"]) {
-            if (field !== 200) say(`${c.name}: ${field} fields`);
+            if (field !== c.press + 1) say(`${c.name}: over after ${field} fields, fire at ${c.press}`);
+            longest = Math.max(longest, field);
             if (shots) writeFileSync(`${shots}/circle${shot++}.png`, await s.screenshotActive({ scale: 2 }));
         }
     }
 }
-console.log(bad ? `${bad} wrong` : `${screens} screens of the circle right: ${passesSeen} passes of 2 fields, ${fieldsSeen} fields of the celebration, ${steps} steps of the count with no flicker`);
+if (longest <= 200) say(`it never waited past the ST's 200 fields: ${longest}`);
+console.log(bad ? `${bad} wrong` : `${screens} screens of the circle right: ${passesSeen} passes of 2 fields, ${fieldsSeen} fields of the celebration, up to ${longest}, ended by fire, ${steps} steps of the count with no flicker`);
 process.exit(bad ? 1 : 0);

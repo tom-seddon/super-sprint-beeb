@@ -193,7 +193,7 @@ async function play(name) {
     }
 
     // The circle's, from tools/circle_model.mjs, as shown and as it ends. The order, the laps and the kind are the race's, which the points check.
-    let circleScreens = 0, circleCounted = false;
+    let circleScreens = 0, circleCounted = false, circleFields = 0;
     function circleScreen(where, counted) {
         const n = [0, 1, 2], all = [0, 1, 2, 3], order = [...s.readMemory(syms.GsOrder, 4)];
         const s16 = (lo, hi, car) => (peek(hi + car) << 24 | peek(lo + car) << 16) >> 16;
@@ -256,7 +256,7 @@ async function play(name) {
         ["prepare shown", syms["prepare.shown"], bankbg], ["prepare over", syms["prepare.over"], bankbg],
         ["select shown", syms["select.shown"], bankbg], ["select over", syms["select.done"], bankbg],
         ["upgrade shown", syms["upgrade.shown"], bankbg], ["upgrade over", syms["upgrade.over"], bankbg],
-        ["circle pass", syms["circle.count"], bankbg], ["circle over", syms["circle.partied"], bankbg],
+        ["circle pass", syms["circle.count"], bankbg], ["circle fire", syms["game_fire.got"], bankbg], ["circle over", syms["circle.partied"], bankbg],
     ];
     const byAddr = new Map(stops.map(([n, a, b]) => [a, n]));
     const list = stops.map(([, a, b]) => [a, b]);
@@ -299,6 +299,10 @@ async function play(name) {
                 selectScreen(stop);
                 continue;
             }
+            if (stop === "circle fire") {               // (the ST's celebration's 200 fields, then fire: the BBC waits, D28)
+                cpu.a = ++circleFields >= 200 ? 0x80 : 0;
+                continue;
+            }
             if (stop === "circle pass") {
                 if (!circleCounted) circleScreen("circle shown", false);
                 circleCounted = true;
@@ -307,6 +311,7 @@ async function play(name) {
             if (stop === "circle over") {
                 circleScreen("circle over", true);
                 circleCounted = false;
+                circleFields = 0;
                 continue;
             }
             if (stop === "upgrade shown" || stop === "upgrade over") {

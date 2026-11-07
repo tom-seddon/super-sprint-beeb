@@ -380,3 +380,9 @@ Departs from D19, which has the game around the race bit-exact with the ST. The 
 Tom, 2026-11-06, trying the screen: "there's a timeout, that it'd be nice to remove. It makes sense for an arcade game, but not so much for home computer".
 So: the screen waits for fire, and the seconds are gone. A pass stays the ST's 3 fields, for the dial and the flashing. Nothing else moves: the ST's time running out and fire do the
 same thing, so `tools/game_check.mjs` gives fire at the traced game's 158th read, and that game stays exact. Only this screen: the select's countdown and prepare's wait are as they were.
+
+### D28. The winner's circle waits for fire: Decided (2026-11-06)
+Departs from D19, as D27 does. The ST's circle ends 200 fields after its count, 4 seconds.
+Tom, 2026-11-06, trying the screen: "The winner's circle screen disappears quite quickly. Like the upgrades screen, this probably makes sense for the arcade machine, but less so here. I think it should wait for a keypress."
+So: after the count the celebration runs until a player's fire, the key that moves every other screen on, and fire already held doesn't count until it's let go, as accelerate may be held from the race. Nothing else moves: the celebration draws no random numbers, so `tools/game_check.mjs` gives fire at the ST's 200th field and the traced games stay exact.
+No prompt on the screen (Tom, 2026-11-07: "I think it's fine without a prompt.").

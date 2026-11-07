@@ -26,10 +26,11 @@ const lit = (from, to) => {
 const G = (n) => syms[`game_resume.${n}`];
 const opens = syms["load_go.load"], closes = [syms.wipe_in, syms.frame_loop], got = syms["game_read.got"], done = G("credits_shown");
 const selected = G("selected");
-const stops = [[opens], [closes[0], bankbg], [closes[1]], [got, bankbg], [done, bankbg], [selected, bankbg]];
+const fire = syms["game_fire.got"];
+const stops = [[opens], [closes[0], bankbg], [closes[1]], [got, bankbg], [done, bankbg], [selected, bankbg], [fire, bankbg]];
 for (const [a, bank] of stops) s.addBreakpoint("execute", a, bank === undefined ? {} : { bank });
 
-let bad = 0, field = 0, loads = 0, grace = -1, racing = false, firing = false, started = false, seen = 0, said = false, upgraded = false;
+let bad = 0, field = 0, loads = 0, grace = -1, racing = false, firing = false, started = false, seen = 0, said = false, upgraded = false, partied = 0;
 const say = (t) => { if (bad++ < 20) console.log(`field ${field}: ${t}`); };
 for (let left = Field; ;) {
     s.resetBreakpointHits();
@@ -56,6 +57,7 @@ for (let left = Field; ;) {
                 cpu.pc = G("arrived");
             }
         }
+        else if (hit.address === fire) cpu.a = ++partied > 1 ? 0x80 : 0;    // (the circle waits for fire)
         else if (hit.address === got) {
             if (firing && !started && cpu.x === 0) { cpu.a = 0x80; started = true; }
             else cpu.a = upgraded && cpu.x === 0 ? 0x80 : 0;    // (the upgrades wait for fire)
