@@ -484,6 +484,48 @@ PanelRows = 6                           ; prepare's cell rows of panels (tools/s
     RTS
 }
 
+\\ The upgrades' file from where it was kept (loadcode.6502) to where it runs. A, X, Y corrupted.
+
+.front_parked_upgrades
+{
+    LDA #'U':STA GmFront
+    LDA bankobj:STA game_go.page+1
+    LDA #HI(ParkUpgrades):STA game_go.from+2
+    LDA #LO(BgOrg):STA game_go.into+1
+    LDA #HI(BgOrg):STA game_go.into+2
+    LDX #ParkLowPages                   ; (only those it fills: whole pages from BgOrg would run on into the game)
+    JSR front_parked
+    LDA #HI(ParkUpgrades) + HI(front_pics_end - BgOrg):STA game_go.from+2
+    LDA #HI(FrontPicOrg):STA game_go.into+2
+    LDX #ParkPreparePages
+    BRA front_parked
+}
+
+\\ Prepare's the same. A, X, Y corrupted.
+
+.front_parked_prepare
+{
+    LDA #'P':STA GmFront
+    LDA bankcars:STA game_go.page+1
+    LDA #HI(ParkPrepare):STA game_go.from+2
+    LDA #HI(FrontPicOrg):STA game_go.into+2
+    LDX #ParkPreparePages
+}
+
+\\ X pages by game_go's copy, from a page's start, its page in transit in the shadow screen. A, X, Y corrupted.
+
+.front_parked
+{
+    STZ game_go.from+1
+    LDA acccon:ORA #AccX:STA &FE34      ; ACCCON: the shadow screen written
+    JSR game_go.copy_pages
+    STZ game_go.into+1                  ; (as game_go wants it)
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: the background's bank, ANDY in
+    RTS
+}
+
 \\ Back from a picture: wiped out, then MODE 1, the race's palette. Outputs: GmPicture 0. A, X, Y corrupted.
 
 .front_leave

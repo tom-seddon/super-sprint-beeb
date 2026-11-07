@@ -283,10 +283,13 @@ async function play(name) {
         ["circle pass", syms["circle_file.circle.count"], bankbg], ["circle fire", syms["game_fire.got"], bankbg], ["circle over", syms["circle_file.circle.partied"], bankbg],
     ];
     const byAddr = new Map(stops.map(([n, a, b]) => [a, n]));
+    // (the screens' files run at the same addresses, so a stop in one counts only with that file in)
+    const InFile = { "select shown": "S", "select over": "S", "upgrade shown": "U", "upgrade over": "U", "circle pass": "C", "circle over": "C" };
     const list = stops.map(([, a, b]) => [a, b]);
     for (;;) {
         const at = await runToAny(s, list, 2000000000);
         const stop = byAddr.get(at);
+        if (InFile[stop] && String.fromCharCode(peek(syms.GmFront)) !== InFile[stop]) continue;
         if (stop === "game_read") {
             const car = cpu.x;
             if (!started) {

@@ -1,4 +1,4 @@
-// The upgrades' screen (F_01A130, step 8): build/game.ssd, a game started and the circle's end reached by pokes with a state chosen to
+// The upgrades' screen (F_01A130, step 8): build/game.ssd, a game started and the circle's end reached with a state poked in, chosen to
 // try each part of the screen, every pass compared byte for byte with tools/upgrades_model.mjs: the panels, levels, "TAKEN", the
 // dial's 16 positions, the boxes flashing and full, what's bought, and the figures as they're paid for, with no flicker. It waits for
 // fire past the ST's 158 passes (D27). game_check sees the screens of the traced games.
@@ -90,6 +90,19 @@ function stepped(where) {
     }
     step = { before: Uint8Array.from(ram(s, syms.PlayAddr, Panels)), writes: [] };   // (a copy: ram's a view)
 }
+// a race's end first, a player with wrenches and ahead, for the file: it's read with the circle's, and kept
+s.writeMemory(syms.GmStage, [1]);
+s.writeMemory(syms.RcWrench, [4]);
+s.writeMemory(syms.RcLaps, [4, 0, 0, 0]);
+s.writeMemory(syms.RcLapTimeLo, [100, 200, 44, 144]);
+s.writeMemory(syms.RcLapTimeHi, [0, 0, 1, 1]);
+cpu.pc = syms["game_resume.arrived"];
+for (let n = 0; ;) {
+    const at = await runToAny(s, [[syms["game_fire.got"], bankbg], [syms["game_resume.after_circle"], bankbg]], 2000000000);
+    if (at !== syms["game_fire.got"]) break;
+    cpu.a = ++n > 2 ? 0x80 : 0;
+}
+
 for (const c of Cases) {
     poke(c);
     cpu.pc = syms["game_resume.after_circle"];

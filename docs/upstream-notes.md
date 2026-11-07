@@ -54,6 +54,21 @@ a gap or a workaround looks like it isn't only this project's.
   jsbeeb's `keymap.js` has all 19 keypad keys at the same places, so it needs nothing.
 - **Could be**: the table added to section 7, with a line that numbers 2-9 are the keyboard's links and read as keys in a scan.
 
+### Code that shares an address but not a bank number
+- **Found** (2026-11-07; D31's chain): `harness.mjs` gates a hook on the paging (`romsel`, `andy`, `hazel`) and
+  refuses an ungated one in `&8000`-`&BFFF`, after Stryker's Run's false failures. That doesn't reach overlays:
+  here the screens' files are all loaded to `&A900` in the same bank, so paging can't tell them apart. A stop in
+  the circle's file also fired at the same address in the upgrades' or prepare's. `tools/game_check.mjs`, which
+  doesn't use the kit's harness, stops anyway and then looks at `GmFront` to see whether the stop counts. Any
+  port with loaded overlays meets this, and only a check with a stop in more than one of them would show it.
+- **In the kit**: the gate's comment names "your overlay addresses" for the filing system during boot only.
+  Neither `docs/verification.md` nor `harness.mjs` mentions jsbeeb's breakpoint conditions.
+- **Could be**: a third gate beside the paging: the bytes at the label are the bytes the build assembled there,
+  taken from the file's own build, as a `?PC = ...` condition (tried, see jsbeeb below) or in `gate()`. It needs
+  nothing from the game. A byte the game keeps naming its overlay works too, as here, but it's code in the game
+  for the check's sake: `LDA #'U':STA GmFront` and `LDA #'P':STA GmFront` in `src/front.6502`, 10 bytes, are read
+  by nothing but `game_check`. Bytes need choosing where two files happen to match; not built here yet.
+
 ### Smaller
 - A self-patching copy loop that doesn't reset its operands works until it's run a second time (`shared_copy` and
   `load_go` here, 3c). Perhaps a line in `docs/gotchas.md`, if a port's loader is ever re-run.
@@ -64,8 +79,19 @@ a gap or a workaround looks like it isn't only this project's.
 slower loads showed up there before anyone knew why. Tool gaps only:
 - **The VIAs' state through the MCP**: DDRA, DDRB, IER, ACR and PCR took `s._machine.processor.sysvia`, jsbeeb's
   internals, from a script. A `read_via` tool, or the registers in `read_registers`, would have shown this at once.
-- **A log of hardware register writes**: Tom's instruction log found the `STA &FE42`; the MCP has breakpoints but
-  nothing like it. A write-watch on `&FE00`-`&FEFF` would help.
+- **The MCP's `set_breakpoint` takes less than jsbeeb does**: `address`, `type` (execute, read, write) and `bank`
+  only. jsbeeb's own `addBreakpoint` also takes `condition`, `end`, `hitCount` and `action`, the kinds `access`,
+  `brk`, `undocumented`, `irq`, `nmi`, `vsync` and `line`, and has `drainBreakpointLog()` (2.18.0,
+  `src/machine-session.js`). So the two things below are there from a script and not from the MCP. Passing those
+  options through, and a tool to drain the log, looks a small change.
+  - **A log of hardware register writes**: Tom's instruction log found the `STA &FE42`. Corrected 2026-11-07: this
+    note said jsbeeb had nothing like it. `addBreakpoint("write", 0xFE00, { end: 0xFEFF, action: "log" })` is it,
+    tried on `build/game.ssd`: each hit gives the address, PC, value and old value. It keeps the first 10,000
+    and counts the rest (45,658 dropped in one run), so it wants draining often.
+  - **A stop that depends on memory**: see "Code that shares an address" under the kit. Tried on `build/game.ssd`
+    at `front_title`: `?&A45 = 70` stopped there and `?&A45 = 67` didn't in 400M cycles, and `?PC = 169 && ?(PC+1)
+    = 244` stopped there and the same with `<>` didn't. `?` reads whatever is paged in, with no side effects, so at
+    an execute stop it reads the code being run.
 - **`MasterADFS` with no disc**: `run_basic` failed with "did not hit appropriate breakpoint in time". To check: what
   a real Master does there. A clearer message at least, or a way to give it a formatted disc.
 

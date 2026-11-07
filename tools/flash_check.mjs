@@ -53,6 +53,8 @@ for (let left = Field; ;) {
                 upgraded = true;
                 s.writeMemory(syms.RcWrench, [4]);
                 s.writeMemory(syms.RcLaps, [4, 0, 0, 0]);       // (ahead of the drones, or it'd be out, and no upgrades)
+                s.writeMemory(syms.RcLapTimeLo, [100, 200, 44, 144]);   // (the demo's would count for minutes)
+                s.writeMemory(syms.RcLapTimeHi, [0, 0, 1, 1]);
                 s.writeMemory(syms.GmStage, [1]);
                 cpu.pc = G("arrived");
             }
@@ -79,6 +81,6 @@ for (let left = Field; ;) {
     if (field > 20000) { say("never reached a race"); break; }
 }
 if (!upgraded) say("the upgrades never reached");
-if (loads < 7) say(`only ${loads} loads: the circle's and the upgrades' should both be among them`);
+if (loads !== 5) say(`${loads} loads: the circle's, upgrades' and prepare's should be one`);
 console.log(bad ? `${bad} fields wrong` : `${field} fields, ${loads} loads, ${seen} fields looked at in them: nothing to see`);
 process.exit(bad ? 1 : 0);

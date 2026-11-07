@@ -132,17 +132,11 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 .game_resume
 {
     LDA GmBack:BEQ arrived
-    CMP #6:BNE back_upgrades
-    STZ GmBack                          ; (back from the circle's file)
+    CMP #6:BNE back_select
+    STZ GmBack                          ; (back from the files after a race)
     JSR load_game
     JSR circle_file.circle
     BRA after_circle
-.back_upgrades
-    CMP #5:BNE back_select
-    STZ GmBack                          ; (back from the upgrades' file)
-    JSR load_game
-    JSR upgrades
-    BRA after_upgrades
 .back_select
     CMP #4:BNE back_options
     STZ GmBack                          ; (back from the select screen's file)
@@ -165,22 +159,26 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     LDA GmStage:BEQ attract
     LDA GmAbandon:BNE attract           ; F10: straight back (the ST's F_0141B0, with no save)
     JSR circle_sums
+
+    \\ one load for all that comes before the next race: prepare's file, the upgrades' if anyone may buy, then the circle's (loadcode.6502)
+
+    LDY #1
+    JSR any_wrenches:BCC @+
+    INY
+.@
+    STY GmChain
     LDA #6
-    LDX #'C' - '0'
+    LDX #'P' - '0'
     BRA to_file
 .after_circle
-    LDX #2
-.player                                 ; (the upgrades' file only for a player who'll see it)
-    LDA RcDrone,X:BNE nobody
-    LDA RcWrench,X:CMP #4:BCC nobody
-    LDA #5
-    LDX #'U' - '0'
-    BRA to_file
-.nobody
-    DEX
-    BPL player
+    JSR any_wrenches:BCC after_upgrades
+    JSR front_parked_upgrades
+    JSR upgrades
 .after_upgrades
-    LDA #1
+    JSR front_parked_prepare
+    JSR save_game
+    LDA #1:STA GmBack
+    JMP back_prepare
 .to_prepare
     LDX #'P' - '0'
 .to_file                                ; A: GmBack, X: the file. It comes first, a race having overwritten what was there
@@ -322,6 +320,22 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     JMP load_go
 }
 
+\\ Is a player due the upgrades? Outputs: C set if so. A, X corrupted.
+
+.any_wrenches
+{
+    LDX #2
+.player
+    LDA RcDrone,X:BNE next
+    LDA RcWrench,X:CMP #4:BCS done
+.next
+    DEX
+    BPL player
+    CLC
+.done
+    RTS
+}
+
 \\ Leaving a picture for anything else.
 
 .mode1
@@ -424,84 +438,6 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     STZ RcTopUp,X
     STZ RcTraction,X
     STZ GmScoreUp,X
-    RTS
-}
-
-\\ The select screen, F_0198B6: the dial, its time, the other players joining.
-\\
-\\ Inputs: GsWho. Outputs: every car a drone but those playing, no scores or upgrades, wrenches by the dial, GmTrack.
-
-.select
-{
-    LDX #3
-.car
-    LDA #1:STA RcDrone,X
-    JSR blank_score
-    JSR clear_upgrades
-    DEX
-    BPL car
-    LDX GsWho:STZ RcDrone,X
-    STZ GsDial:STZ GsMove:STZ GsLast
-    JSR say_clear                       ; (the file landed in the screen)
-    JSR select_show
-.shown
-    LDA #167:STA GsCount                ; 499 down by 3 a pass, while above 0
-.pass
-    LDX GsWho:JSR game_read:STA GsKey
-    BIT #4:BEQ notleft
-    LDA #&FF:STA GsMove
-    BRA moved
-.notleft
-    BIT #8:BEQ moved
-    LDA #1:STA GsMove
-.moved
-    LDA GsDial:CLC:ADC GsMove:AND #15:STA GsDial
-    AND #1:BNE @+
-    STZ GsMove
-.@
-    JSR select_dial
-    JSR select_tick
-    LDA #2:JSR fields
-    LDA GsDial:LSR A:LSR A:CMP GsLast:BEQ same
-    STA GsLast                          ; (its new wording takes the third field's place)
-    BRA said
-.same
-    LDA #1:JSR fields
-.said
-    LDA GsKey:BPL nofire
-    LDA #1:STA GsCount
-.nofire
-    JSR join_select
-    DEC GsCount
-    BNE pass
-    LDA GsDial:LSR A:LSR A
-    LDX #2
-.wrench
-    STA RcWrench,X
-    DEX
-    BPL wrench
-    LDA GsDial:LSR A:STA GmTrack
-.done
-    JMP mode1
-}
-
-\\ F_019F38: any drone among cars 0-2 pressing fire joins.
-
-.join_select
-{
-    LDX #0
-.car
-    STX GsCar
-    LDA RcDrone,X:BEQ next
-    JSR game_read
-    LDX GsCar
-    AND #&80:BEQ next
-    STZ RcDrone,X
-    JSR select_join
-.next
-    LDX GsCar
-    INX
-    CPX #3:BNE car
     RTS
 }
 

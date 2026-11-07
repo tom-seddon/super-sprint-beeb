@@ -197,6 +197,7 @@ SECTION UpgradesFile, filename = "TRACKU", load = &FFFF0000+TrackFileAddr
 .UpHead2
         INCBIN "../build/gen/upgrades_h2.zx02"
         ASSERT P% <= GameOrg, "the upgrades' pictures under ANDY: they end at the game"
+        ASSERT P% <= BgOrg + ParkLowPages * 256 AND BgOrg + ParkLowPages * 256 <= GameOrg, "the upgrades' part under ANDY: the pages copied once it's been kept"
         PRINT "the upgrades' part under ANDY: ", GameOrg - P%, " bytes free"
         PADTO front_pics_end
     ENDSECTION
@@ -204,6 +205,9 @@ SECTION UpgradesFile, filename = "TRACKU", load = &FFFF0000+TrackFileAddr
         INCLUDE "panels.6502"
         INCLUDE "upgrades.6502"
         PRINT "the upgrades' file: ", GameScratchOrg - P%, " bytes free"
+        ASSERT front_pics_end - BgOrg + P% - FrontPicOrg <= ParkUpgradesPages * 256, "the upgrades' file too big to keep"
+        ASSERT ParkUpgrades == ObjSlot AND ParkUpgrades + ParkUpgradesPages * 256 <= FrontImage, "the upgrades' file kept where only a track's load writes"
+        ASSERT ParkPrepare >= PrioSlot AND ParkPrepare + ParkPreparePages * 256 <= SwramEnd, "prepare's file kept where only a track's load writes"
     ENDSECTION
 ENDSECTION
 

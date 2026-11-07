@@ -68,7 +68,9 @@ def main(d, zx02, out):
         files[f'TRACK{n + 1}'] = dfs.Entry(f'TRACK{n + 1}', data, 0xFF0000 | FileAddr, 0xFF0000, '$', False)
         print(f'TRACK{n + 1}: {len(data):,} bytes ({sum(r for _, r, _ in sizes):,} unpacked): '
               + ', '.join(f'{k} {r}/{p}' for k, r, p in sizes))
-    disc = dfs.build_image(files, layout=list(img.files), title=img.title, cycle=img.cycle, opt=img.opt)
+    # the files read between races first, next to the catalogue, as DFS goes back to it for each: those read together as a race ends, then the tracks
+    first = ['TRACKP', 'TRACKU', 'TRACKC'] + [f'TRACK{n + 1}' for n in range(8)]
+    disc = dfs.build_image(files, layout=first + [f for f in img.files if f not in first], title=img.title, cycle=img.cycle, opt=img.opt)
     open(out, 'wb').write(disc)
     used = sum((len(f.data) + 255) // 256 for f in files.values())
     print(f'{out}: {len(files)} files of 31, {used} sectors of {dfs.TOTAL_SECTORS} '

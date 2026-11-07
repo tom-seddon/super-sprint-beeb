@@ -51,6 +51,7 @@
     LDX #LoadingText - LoadTexts:JSR row_text
     LDA #8:STA &FE00                    ; CRTC: R8
     LDA #&C0:STA &FE01                  ; display on, cursor off (at the first load, it's been off since the boot)
+.another
     LDX #17                             ; OSFILE's block: the name, the load address (the host's), exec's
     LDA #0                              ; low byte 0 (the address given); OSFILE writes the catalogue's back,
 .block                                  ; so it's made again each time
@@ -64,6 +65,45 @@
     LDA #&FF:STA LoadBlock+4:STA LoadBlock+5
     LDX #LO(LoadBlock):LDY #HI(LoadBlock)
     JSR &FFDD                           ; OSFILE: load (A = &FF)
+    LDA GmChain:BEQ last
+
+    \\ one of a race's end's files: kept in a bank, and the next read while the motor's still turning, which is most of what a load costs
+
+    SEI                                 ; (the OS mustn't see its ROM gone)
+    LDA #HI(TrackFileAddr):STA park+2   ; (its operands from the first page: every load)
+    LDA LoadName+5:CMP #'U':BEQ upgrades
+    LDA #HI(ParkPrepare):STA keep+2
+    LDA bankcars:LDX #ParkPreparePages
+    BRA parking
+.upgrades
+    LDA #HI(ParkUpgrades):STA keep+2
+    LDA bankobj:LDX #ParkUpgradesPages
+.parking
+    STA &FE30                           ; ROMSEL: the bank
+    LDY #0
+.park
+    LDA TrackFileAddr,Y                 ; self-modified: the page's high byte
+.keep
+    STA ParkPrepare,Y                   ; self-modified: the page's high byte
+    INY
+    BNE park
+    INC park+2
+    INC keep+2
+    DEX
+    BNE park
+    LDA OsRom:STA &FE30                 ; ROMSEL: the OS's ROM
+    CLI
+    LDA LoadName+5:CMP #'U':BEQ circle
+    LDA GmChain:CMP #2:BNE circle
+    LDA #'U'
+    BRA named
+.circle
+    STZ GmChain
+    LDA #'C'
+.named
+    STA LoadName+5
+    JMP another
+.last
     LDA #143:LDX #12:LDY #255:JSR &FFF4 ; OSBYTE 143: the NMIs claimed again
     STY NmiOwner
 
@@ -85,12 +125,11 @@
     LDA &FE34:AND #&30:STA acccon       ; ACCCON: the main screen shown and written
     STA &FE34
 
-    \\ a picture file, TRACKF, TRACKS, TRACKU, TRACKC, TRACKP or TRACKO: copied up to where it's read, and back to the game (game_go) with no race
+    \\ a picture file, TRACKF, TRACKS, TRACKC, TRACKP or TRACKO: copied up to where it's read, and back to the game (game_go) with no race
 
     LDA LoadName+5
     CMP #'F':BEQ pictures
     CMP #'S':BEQ pictures
-    CMP #'U':BEQ pictures
     CMP #'C':BEQ pictures
     CMP #'P':BEQ pictures
     CMP #'O':BNE parts
@@ -99,8 +138,7 @@
     LDA bankbg:STA &FE30                ; ROMSEL: the background's bank
     LDA #HI(TrackFileAddr):STA from+2   ; (its operands from the first page: every load)
     LDA GmFront:CMP #'F':BEQ low
-    CMP #'S':BEQ low
-    CMP #'U':BNE high
+    CMP #'S':BNE high
 .low
     LDA #LO(BgOrg):STA into+1           ; (ANDY out: the part under it first, then the rest)
     LDA #HI(BgOrg):STA into+2

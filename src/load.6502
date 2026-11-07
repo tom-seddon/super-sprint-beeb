@@ -16,6 +16,11 @@
 GameBuf = &7F00                         ; game_go's page in transit: the main screen's end
 TrackFileAddr = &4200                   ; where a track's file lands: the main screen, after the HUD's row
 LoadCodeOrg = &7C00                     ; where the load's code runs: the main screen's end
+ParkUpgrades = &9A00                    ; files read as a race ends and wanted before the next, kept where only a track's load writes: the objects' bank's ObjSlot,
+ParkUpgradesPages = 28
+ParkLowPages = 14                       ; its part under ANDY
+ParkPrepare = &B000                     ; and the cars' bank's PrioSlot
+ParkPreparePages = HI(GameScratchOrg - FrontPicOrg)
 ASSERT TrackFileAddr >= PlayAddr, "a track's file below the play area: the HUD's row shown while it loads"
 ZpSwap = &90                            ; zero page's OS half (D7)
 ZpSwapLen = &100 - ZpSwap
@@ -86,9 +91,11 @@ SECTION LowFree                         ; &0900-&0AFF, kept across loads (D26)
     SKIP 1
 .GmSeeded                               ; the generator's been seeded
     SKIP 1
-.GmFront                                ; the file in the background's bank: 'F', 'S', 'U', 'C', 'P', 'O' or 0 (a track's load overwrites it)
+.GmFront                                ; the file in the background's bank: 'F', 'S', 'C', 'U', 'P', 'O' or 0 (a track's load overwrites it)
     SKIP 1
-.GmBack                                 ; the way back after a file's load: prepare to race 1 between races, 2 at the first; 3 options, 4 select, 5 upgrades, 6 the circle
+.GmBack                                 ; the way back after a file's load: prepare to race 1 between races, 2 at the first; 3 options, 4 select, 6 the files after a race
+    SKIP 1
+.GmChain                                ; while files are read in one load: 1 prepare's, then the circle's; 2 with the upgrades' between
     SKIP 1
 .GmPicture                              ; a picture's on the screen: its mode, 1 or 2, or 0 none
     SKIP 1

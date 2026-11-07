@@ -51,14 +51,14 @@ export function ram(s, addr, length, shadow = false) {
     return mem.subarray(at, at + length);
 }
 
-// A Master 128 with its DFS, the disc booted with SHIFT-BREAK
-export async function bootDisc(disc = "build/sprint.ssd", model = "Master") {
+// A Master 128 with its DFS, the disc booted with SHIFT-BREAK, SHIFT held for hold cycles (ADFS wants longer: its drive spins up first)
+export async function bootDisc(disc = "build/sprint.ssd", model = "Master", hold = 2000000) {
     const s = new MachineSession(model);
     await s.initialise();
     s.loadDisc(disc);
     s.keyDown("ShiftLeft");
     s.reset(true);
-    await s.runFor(2000000);
+    await s.runFor(hold);
     s.keyUp("ShiftLeft");
     return s;
 }
