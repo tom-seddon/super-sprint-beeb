@@ -41,14 +41,18 @@ export function symbols(path = "build/sprint.json") {
     return syms;
 }
 
-// A DFS disc's files, by name ("$.TRACKC" or "TRACKC"): {load, exec, data}. Side 0 of an .ssd or .dsd.
+// one of jsbeeb's own modules, by its file's name in src ("disc.js")
+export const jsbeebModule = (file) => import(join(src, file));
+
+// A DFS disc's files, by name ("$.TRACKC" or "TRACKC"): {load, exec, data, entry (the catalogue's offset)}. Side 0
+// of an .ssd or .dsd, from its path or its bytes.
 export function discFiles(path) {
-    const d = readFileSync(path), files = {};
+    const d = typeof path === "string" ? readFileSync(path) : path, files = {};
     for (let i = 8; i <= d[0x105]; i += 8) {
         const name = String.fromCharCode(...d.subarray(i, i + 7)).trimEnd();
         const dir = String.fromCharCode(d[i + 7] & 0x7f), e = d.subarray(0x100 + i, 0x108 + i), hi = e[6];
         const length = e[4] | (e[5] << 8) | (((hi >> 4) & 3) << 16), sector = e[7] | ((hi & 3) << 8);
-        const file = { load: e[0] | (e[1] << 8), exec: e[2] | (e[3] << 8), data: d.subarray(sector * 256, sector * 256 + length) };
+        const file = { load: e[0] | (e[1] << 8), exec: e[2] | (e[3] << 8), data: d.subarray(sector * 256, sector * 256 + length), entry: i };
         files[`${dir}.${name}`] = file;
         if (dir === "$") files[name] = file;
     }

@@ -357,6 +357,14 @@ Tom chose (a) ("Save to disc").
 Then: "One note about the high score saving: this is a good feature, but lower priority. If the disk runs out of catalogue entries, or if handling all the error cases takes up too much room, it can be abandoned."
 So: saving is lower priority; it gives way to the disc's catalogue and to room, and is dropped (scores kept
 for the session) if either runs short.
+Built 2026-11-08 (brief step 10), with the keys and sound the options set (Tom, 2026-11-06: "saving keys and
+sound belongs with step 10's save"). One file, `SCORES`, 307 bytes: `SSPRINT.HSC`'s 295 as the ST has them, the
+sound flag, the nine keys and a 2-byte sum. Not on the disc as built: the first save makes it, so a disc that's
+never saved to has 20 files (of 31). Saved as the title's file loads (after every game, as the ST's
+F_010760, and on leaving the options), only if the sum's changed; a failed save's error is said in the HUD's
+row with " - press a key", and isn't tried again until something else changes. Read at the boot if it's there,
+307 bytes long and its sum good; otherwise the table and keys as built. Room: the first 4K 10 bytes, the &3000
+area 12 (3 left), main RAM none; the save's code is TRACKF's last 106 bytes, the load's in the loader (SPRINT's, run once).
 
 ### D24. The ST's keys: Decided (2026-11-03)
 Proposed: the ST's F1 options, F5 the celebration shortened, F8 pause, F10 the race abandoned, Esc prepare to

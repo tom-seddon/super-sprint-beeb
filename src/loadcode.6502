@@ -104,6 +104,9 @@
     STA LoadName+5
     JMP another
 .last
+    LDA LoadName+5:CMP #'F':BNE @+
+    JSR front_save                      ; TRACKF's: the table, keys and sound saved if changed (step 10)
+.@
     LDA #143:LDX #12:LDY #255:JSR &FFF4 ; OSBYTE 143: the NMIs claimed again
     STY NmiOwner
 

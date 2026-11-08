@@ -75,3 +75,35 @@ ENDMACRO
 MACRO SAME_PAGE target
     ASSERT HI(target) == HI(P%), "a hot branch crosses a page"
 ENDMACRO
+
+\\ The saved table's sum (step 10, D23): over HiSumLen bytes from base, a total of the bytes and a total of
+\\ those totals, so a byte moved changes it as well as a byte changed. No zero page: the OS may have it.
+\\
+\\ Inputs:
+\\     base: where the bytes are (a constant), HiSumLen of them, at least a page
+\\     sumhi: a byte for the second total
+\\
+\\ Outputs:
+\\     A: the first total; sumhi: the second
+\\     X, Y, C: corrupted
+
+MACRO HI_SUM base, sumhi
+    ASSERT HiSumLen > &100 AND HiSumLen < &200, "HI_SUM: a page and part of one"
+    LDA #0:STA sumhi
+    TAY
+    CLC
+.first
+    ADC base,Y
+    TAX
+    ADC sumhi:STA sumhi
+    TXA
+    INY
+    BNE first
+.second
+    ADC base+&100,Y
+    TAX
+    ADC sumhi:STA sumhi
+    TXA
+    INY
+    CPY #HiSumLen-&100:BNE second
+ENDMACRO

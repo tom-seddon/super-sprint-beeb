@@ -136,6 +136,13 @@ SECTION FrontFile, filename = "TRACKF", load = &FFFF0000+TrackFileAddr
 .RecordsPic                             ; (the heading's cell rows)
         INCBIN "../build/gen/records.zx02"
         PRINT "the front end's file: ", GameScratchOrg - P%, " bytes free"
+.front_high_end
+    ENDSECTION
+    \ save.6502, run where it lands in the main screen: the end of the file (copied into the background's bank
+    \ with the pictures, harmlessly, as far as it reaches below GameScratchOrg)
+    FrontSaveOrg = TrackFileAddr + (front_pics_end - BgOrg) + (front_high_end - FrontPicOrg)
+    SECTION FrontSave, org = FrontSaveOrg, guard = LoadCodeOrg, cmos = TRUE
+        INCLUDE "save.6502"
     ENDSECTION
 ENDSECTION
 
@@ -292,6 +299,13 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
 HiScores = HiFile
 HiNames = HiFile + 31 * 6
 LapRecords = HiFile + 279
+.HiKeys                                 ; SoundOff and PlayerKeys, copied here to be saved with the table
+                SKIP 10                 ; (step 10, D23: entry.6502's scores_load, save.6502)
+.HiSum                                  ; HI_SUM of HiFile up to here, as last loaded or saved (the main
+                SKIP 2                  ; screen's: only the load reads it)
+HiSumLen = HiSum - HiFile
+HiSaveLen = HiSumLen + 2                ; SCORES: the table, lap records, keys, sound and the sum
+                ASSERT HiKeys - HiFile == 295, "SSPRINT.HSC's 295 bytes"
             ENDIF
 .SharedEnd
             PRINT "the &3000 area: ", HudAddr - SharedEnd, " bytes free after Shared"

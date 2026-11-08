@@ -84,6 +84,7 @@ KeyF9 = 119
     EQUB KeyQ, KeyW, KeyE
     EQUB KeyV, KeyB, KeyN
     EQUB KeyComma, KeyPeriod, KeySlash
+    ASSERT P% - SoundOff == 10, "SoundOff and PlayerKeys: HiKeys's 10 bytes, saved with the table"
 .PlayerOf
     EQUB 0, 0, 0, 1, 1, 1, 2, 2, 2
 .PlayerBit

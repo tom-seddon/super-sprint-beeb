@@ -62,6 +62,7 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     BNE copy
     IF GenPlay                          ; the OS's state kept for the loads (load.6502), before the game
         CLI                             ; writes any of zero page's &90-&FF
+        JSR scores_load                 ; (LowFree its buffer, before load_takeover fills it)
         JSR load_takeover
         SEI
     ENDIF
@@ -235,4 +236,73 @@ IF GenPlay
 
 .TrackName                              ; a track's file: TRACK1 to TRACK8
     EQUS "TRACK?", 13
+
+\ The high scores, lap records, keys and sound saved (step 10, D23; save.6502): SCORES loaded into LowFree, if
+\ it's there, its size right and its sum good, then copied over HiFile's (the main screen's: shared_copy
+\ makes the shadow screen's after) and into SoundOff and PlayerKeys. Without it, HiFile's as assembled and the
+\ keys and sound as they are, with their sum made, so the first save is when something changes. A disc error
+\ is the OS's, as SPRINT's own load would be. The OS has the machine.
+\
+\ Inputs:
+\     none
+\
+\ Outputs:
+\     HiFile to HiSum, SoundOff, PlayerKeys
+\     A, X, Y: corrupted
+
+.scores_load
+{
+    LDX #HiSumLen - (HiKeys - HiFile) - 1
+.keys
+    LDA SoundOff,X:STA HiKeys,X
+    DEX
+    BPL keys
+    HI_SUM HiFile, sumhi
+    STA HiSum
+    LDA sumhi:STA HiSum+1
+    LDX #LO(ScoresBlock):LDY #HI(ScoresBlock)
+    LDA #5:JSR &FFDD                    ; OSFILE 5: SCORES's catalogue entry
+    CMP #1:BNE done                     ; (1: a file)
+    LDA ScoresBlock+10:CMP #LO(HiSaveLen):BNE done
+    LDA ScoresBlock+11:CMP #HI(HiSaveLen):BNE done
+    LDA ScoresBlock+12:ORA ScoresBlock+13:BNE done
+    LDX #4
+.block
+    LDA LoadAt,X:STA ScoresBlock+2,X
+    DEX
+    BPL block
+    LDX #LO(ScoresBlock):LDY #HI(ScoresBlock)
+    LDA #&FF:JSR &FFDD                  ; OSFILE: load, at LowFree
+    HI_SUM LowFreeOrg, sumhi
+    CMP LowFreeOrg+HiSumLen:BNE done
+    LDA sumhi:CMP LowFreeOrg+HiSumLen+1:BNE done
+    LDX #0
+.low
+    LDA LowFreeOrg,X:STA HiFile,X
+    INX
+    BNE low
+    LDX #HiSaveLen-&100-1
+.high
+    LDA LowFreeOrg+&100,X:STA HiFile+&100,X
+    DEX
+    BPL high
+    LDX #HiSumLen - (HiKeys - HiFile) - 1
+.saved
+    LDA HiKeys,X:STA SoundOff,X
+    DEX
+    BPL saved
+.done
+    RTS
+
+.sumhi
+    EQUB 0
+.LoadAt                                 ; the load address, then exec's low byte 0: load there
+    EQUD &FFFF0000 + LowFreeOrg
+    EQUB 0
+.ScoresBlock                            ; OSFILE's block: the name, then what OSFILE 5 gives
+    EQUW ScoresFile
+    SKIP 16
+.ScoresFile
+    EQUS "SCORES", 13
+}
 ENDIF

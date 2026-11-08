@@ -577,6 +577,32 @@ touches the build.
      ear, not yet).
 10. **High scores** (D23): the entry and the table are done (step 8's initials); saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.
+    - **Built** (2026-11-08), with the keys and sound (step 8's options). `SCORES`, 307 bytes: `SSPRINT.HSC`'s 295 as they sit in
+      Shared (`HiFile`), then `SoundOff` and `PlayerKeys` (copied to `HiKeys`), then `HiSum`, a total and a total of totals
+      (`HI_SUM`, `src/macros.6502`), so a moved byte shows as well as a changed one. Not on the disc as built (20 files of 31):
+      the first save makes it, and `tools/cheat_disc.py`'s table is left alone.
+    - **Saving** (`src/save.6502`): TRACKF's last 106 bytes, assembled to run where the file lands in the main screen, called by
+      `load_track` once TRACKF's in, the OS still in charge. TRACKF is the title's file, so it runs after every game (the ST's
+      F_010760) and on leaving the options, and also after each demo, when nothing's changed. It writes only if the sum's changed,
+      and keeps the new sum first, so a failed save isn't tried again until something else changes: `load_track`'s own `brk`
+      says the OS's error in the HUD's row, "Disc read only - press a key", and loads TRACKF again on a key. Saved only at the
+      title, not after each race, so a broken lap record costs no time mid-game and a write-protected disc stops nobody between
+      races. F10 (no save on the ST) still saves at the title, what's in the table being the same either way.
+    - **Loading** (`scores_load`, `src/entry.6502`, in SPRINT's loader, run once): OSFILE 5 for SCORES; if it's there, 307 bytes
+      long and its sum good, it's read into LowFree (before `load_takeover` uses it) and copied over HiFile, which the shadow
+      screen's copy is made from, and into SoundOff and PlayerKeys. Otherwise the assembled table and keys, and their sum made.
+    - **Room**: the first 4K 62 to 52 (the call in `load_track`), the &3000 area 15 to 3 (HiKeys and HiSum), main RAM 206 (none),
+      TRACKF's landing in the main screen up to &5EB4, below LoadCodeOrg.
+    - **Time** (jsbeeb, the title's load from `load_track` to the title's wait): DFS 4.09 s, 5.36 with a save (+1.27); ADFS L
+      3.55, 5.02 (+1.47).
+    - **Checked**: `tools/save_check.mjs`, in the suite: no file, nothing written; a change written once, byte for byte; the disc
+      jsbeeb wrote booted back, both screens' copies, then saved over; five spoilt files refused (a table byte, two swapped,
+      either sum byte, a byte short); a write-protected disc's error said once, the title reached; on ADFS L, saved, SHIFT-BREAK,
+      back, saved over, back. Seen to fail: the sum kept only after a save that worked (the file's sum wrong, and the
+      read-only disc asks for ever: the check now stops after 3 keys); the boot's sum not checked; the keys not taken from the
+      file. **Mistake, mine**: with only the sum's first byte unchecked the check passed, as every spoilt file changed its
+      second byte too; a case spoiling the first alone found it.
+    - **Not yet**: a real Master (Tom), Econet and MMFS (step 11), a hard disc copy.
 11. **The disc on every filing system**: DFS and ADFS in jsbeeb (`beeb-target-matrix`), MMFS and Econet on
     hardware or another emulator; the BRKV retry on a disc error tried.
     - **ADFS, first try** (2026-11-07): `tools/adfs_disc.py` makes `build/game.adf`, an ADFS M disc of the same files. In jsbeeb's `MasterADFS` the game boots with `*MOUNT 0` and `*RUN !BOOT` (SHIFT-BREAK didn't mount it there: not looked into) and gets through the circle's, upgrades', prepare's and a track's loads. Not yet: a whole game on it, or a real Master.
