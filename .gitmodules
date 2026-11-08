@@ -7,9 +7,6 @@
 [submodule "rich/chasehq-beeb"]
 	path = rich/chasehq-beeb
 	url = https://github.com/waitingforvsync/chasehq-beeb
-[submodule "rich/teddyboy"]
-	path = rich/teddyboy
-	url = https://github.com/waitingforvsync/teddyboy
 [submodule "rich/baron"]
 	path = rich/baron
 	url = https://github.com/waitingforvsync/baron

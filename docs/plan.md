@@ -266,7 +266,7 @@ adds the logic.
   scratch folder, on this machine): yes, given three things by hand, and its discs are byte for byte this
   checkout's (`game.ssd` 37fd99f7f367a9ff1a9370dd66efd107df2d78a9, `game.adl` 3fc4c18e5d23e4964d9a9673818d35dcb1c76d88),
   every ST trace made again in Hatari. About 16 minutes from nothing. What it needed:
-  1. The submodules: `--recurse-submodules` stops at `rich/teddyboy` (gone from GitHub, the item below) and
+  1. The submodules: `--recurse-submodules` stopped at `rich/teddyboy` (gone from GitHub, now taken out) and
      leaves the ones after it empty, the kit's among them; `git submodule update --force` on the rest mended it.
      The build needs only `reference/beeb-port-kit` (ZX02's source).
   2. `build/trace/logic_t0_r0.json`: `tools/all_tracks.sh` reads it before calling make, so nothing makes it.
@@ -285,12 +285,11 @@ adds the logic.
   easier to be confident about which build you're playing". Not yet looked at: where it's shown (the credits, the
   options' screen, the "Loading" row), how it gets into the build (the Makefile passing the commit, and whether the
   tree had changes), and that a rebuild of one commit still gives the same disc.
-- For later (Tom, 2026-11-08): take the `rich/teddyboy` submodule out. Its repository has gone from GitHub
-  ("Repository not found" over https; this machine's checkout still has it, cloned over ssh), so a
-  `git clone --recurse-submodules` stops there, and the submodules not yet checked out are left empty (the kit's
-  among them, which the build needs). Tom: "It should be removed from the repo." Only for reference: also
-  `CLAUDE.md`'s list of Rich's projects, and the mentions in `docs/colours.md` (its `zx02.6502`) and
-  `docs/upstream-notes.md`, which stay as history.
+- ~~The `rich/teddyboy` submodule out~~: done 2026-11-08 (Tom: "It should be removed from the repo"). Its
+  repository has gone from GitHub, so `git clone --recurse-submodules` stopped there and left the submodules
+  after it empty, the kit's among them. `CLAUDE.md`'s list of Rich's projects without it; the mentions in
+  `docs/colours.md` and `docs/upstream-notes.md` stay as history. This machine's copy of its history is still in
+  `.git/modules/rich/teddyboy`.
 - For later (Tom, 2026-11-08): the suite's load on his laptop. "The test suite is taking a while and my laptop's
   fans are spinning up. Is something being done that could be run on `agentbox` instead?" Not yet measured,
   three places to look: `make game` run by hand before `tools/suite.sh`, which builds the same things again
