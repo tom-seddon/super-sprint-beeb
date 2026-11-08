@@ -9,16 +9,17 @@
 //
 // Exit status: 1 if any game differs, or reads are left over or run out, else 0.
 //
-// Usage (from the repo root, after make game): node tools/game_check.mjs [GAMES]   (default three alone rejoin)
+// Usage (from the repo root, after make game): node tools/game_check.mjs [--adfs] [GAMES]   (default three alone rejoin;
+// --adfs: build/game.adl, jsbeeb.mjs's bootGame; its files are game.ssd's, so the stops' gates are read from that)
 
 import { readFileSync } from "node:fs";
-import { bootDisc, fileGate, ram, runToAny, symbols } from "./jsbeeb.mjs";
+import { bootGame, fileGate, gameArgs, ram, runToAny, symbols } from "./jsbeeb.mjs";
 import { comparer, PerCar, Race } from "./logic_compare.mjs";
 import { bonus, First, screen as circle } from "./circle_model.mjs";
 import { screen as initials } from "./initials_model.mjs";
 import { screen as upgrades } from "./upgrades_model.mjs";
 
-const games = process.argv.length > 2 ? process.argv.slice(2) : ["three", "alone", "rejoin"];
+const games = gameArgs.length ? gameArgs : ["three", "alone", "rejoin"];
 const Region = 0x1c722;
 const Keys = 0x1dfd4, Esc = Keys + 1, F5 = Keys + 0x3f, F10 = Keys + 0x44;
 const CarOf = { 0: 0, 2: 1, 3: 2 };     // G_01DFCC's devices
@@ -64,13 +65,13 @@ async function play(name) {
     for (let i = 0; i < points.length; i++) if (points[i].name === "race") races.push(points[i]);
 
     const syms = symbols("build/tracks/t0.json");
-    const s = await bootDisc("build/game.ssd");
+    const s = await bootGame();
     const cpu = s._machine.processor;
     const peek = (a) => s.readMemory(a, 1)[0];
     const word = (a) => peek(a) | (peek(a + 1) << 8);
     const put = (a, v) => s.writeMemory(a, [v]);
     const idle = syms["game_resume.idle"];
-    await runToAny(s, [[idle]], 80000000);
+    await runToAny(s, [[idle]], 400000000);
     const banktrace = ram(s, 2, 1)[0], bankbg = ram(s, 0, 1)[0];
     // MUTATE=LABEL+OFFSET=BYTE: a byte of the game's image changed: this check is seen to fail (it runs from a copy)
     if (process.env.MUTATE) {

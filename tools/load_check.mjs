@@ -15,17 +15,17 @@
 // Exit status: 1 if any slot's byte differs, a load never finishes, the fields run slow or a disc error isn't
 // survived, else 0.
 //
-// Usage (from the repo root, after make game): node tools/load_check.mjs [TRACKS]   (indexes, default all 8,
-// in the ST's order from track 1's: 2 6 5 1 4 7 3 0)
+// Usage (from the repo root, after make game): node tools/load_check.mjs [--adfs] [TRACKS]   (indexes, default all 8,
+// in the ST's order from track 1's: 2 6 5 1 4 7 3 0; --adfs: build/game.adl, jsbeeb.mjs's bootGame)
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { andy, bootDisc, cycles, ram, runTo, runToAny, settle, symbols } from "./jsbeeb.mjs";
+import { andy, bootGame, cycles, gameArgs, ram, runTo, runToAny, settle, symbols } from "./jsbeeb.mjs";
 
 const syms = symbols("build/tracks/t0.json");
 const want = JSON.parse(readFileSync("build/game_slots.json"));
-const order = process.argv.length > 2 ? process.argv.slice(2).map(Number) : [2, 6, 5, 1, 4, 7, 3, 0];
-const s = await bootDisc("build/game.ssd");
-await runTo(s, syms["game_resume.idle"], 80000000);       // (the disc copies its banks first; the attract mode)
+const order = gameArgs.length ? gameArgs.map(Number) : [2, 6, 5, 1, 4, 7, 3, 0];
+const s = await bootGame();
+await runTo(s, syms["game_resume.idle"], 400000000);       // (the disc copies its banks first; the attract mode)
 const banks = [...ram(s, 0, 4)];                           // bankbg, bankcars, banktrace, bankobj
 const role = { BgBank: 0, CarsBank: 1, TraceBank: 2, ObjBank: 3 };
 

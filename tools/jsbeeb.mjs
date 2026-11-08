@@ -121,6 +121,14 @@ export async function bootDisc(disc = "build/sprint.ssd", model = "Master", hold
     return s;
 }
 
+// The game's disc for a check: build/game.ssd, or with --adfs on the command line build/game.adl (D32) on a Master
+// with ADFS, booted by SHIFT-BREAK too, held longer as its drive spins up first. The two discs hold the same files.
+// gameArgs: the command line's arguments but --adfs.
+export const adfs = process.argv.includes("--adfs");
+export const gameDisc = adfs ? "build/game.adl" : "build/game.ssd";
+export const gameArgs = process.argv.slice(2).filter((a) => a !== "--adfs");
+export const bootGame = () => (adfs ? bootDisc(gameDisc, "MasterADFS", 8000000) : bootDisc(gameDisc));
+
 // After a breakpoint stops a run, jsbeeb's next runFor also runs the cycles the stopped run had left: drop
 // them, so a run is the cycles asked for from where the CPU is.
 export function settle(s) {

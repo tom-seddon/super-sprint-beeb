@@ -7,7 +7,7 @@
 # (`make hazardtrace` records them); and tools/human_traces.sh's, with two or three humans; and the demo. Then the
 # race with cars put where one pixel of the wall probes decides (hprobe, state only), and the faults it's there
 # for put back (--probes). Then the disc's other checks, which read only it and what it was made from:
-# tools/game_check.mjs, tools/attract_check.mjs, tools/flash_check.mjs, tools/options_check.mjs, tools/select_check.mjs, tools/upgrades_check.mjs, tools/circle_check.mjs, tools/initials_check.mjs, tools/tune_check.mjs (and again with --off: tune_off), tools/save_check.mjs and tools/load_check.mjs (last, as a race's job soon leaves a machine
+# tools/game_check.mjs, tools/attract_check.mjs, tools/flash_check.mjs, tools/options_check.mjs, tools/select_check.mjs, tools/upgrades_check.mjs, tools/circle_check.mjs, tools/initials_check.mjs, tools/tune_check.mjs (and again with --off: tune_off), tools/save_check.mjs, game_check and load_check again on build/game.adl (--adfs: game_adfs, load_adfs) and tools/load_check.mjs (last, as a race's job soon leaves a machine
 # free). Exit status 1 if any is wrong, or if any job left no status.
 #
 # The jobs run on REMOTE, by default agentbox (tools/remote.sh copies what they read there, and their logs back);
@@ -31,6 +31,8 @@ if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools
       echo probes disc_races --probes
       for c in $CHECKS; do echo $c $c; done
       echo tune_off tune_check --off
+      echo game_adfs game_check --adfs
+      echo load_adfs load_check --adfs
     } | xargs -P ${MACHINES:-4} -L 1 sh -c 'n=$0; t=$1; shift; node tools/$t.mjs "$@" > "$OUT/$n.log" 2>&1; echo $? > "$OUT/$n.status"'
     exit 0
 fi
@@ -57,7 +59,7 @@ done
 grep -a '^track .*loaded' "$OUT/probe.log"; status probe
 grep -a 'after the end' "$OUT/silence.log"; status silence
 grep -a '^control\|^car \|^all \| entries not' "$OUT/probes.log"; status probes
-for c in $CHECKS tune_off; do
+for c in $CHECKS tune_off game_adfs load_adfs; do
     echo "$c: $(grep -av '^\[jsbeeb\|^Loading' "$OUT/$c.log" | tail -1)"
     status $c
 done

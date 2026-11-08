@@ -610,8 +610,23 @@ touches the build.
       later"; `docs/plan.md`).
     - **A hard disc** (Tom, 2026-11-08, b2): "Works with hard disk on b2. Installation via `*COPY` works fine."
     - **The Master Compact** (D33; Tom, 2026-11-08): "Works on Master Compact." Its joystick is still to come with D5's.
+    - **ADFS in the suite** (2026-11-08): `game_check` and `load_check` take `--adfs` (`tools/jsbeeb.mjs`'s `bootGame`:
+      `build/game.adl` on jsbeeb's MasterADFS, booted by SHIFT-BREAK, SHIFT held 4 s). The suite runs both on it too
+      (`game_adfs`: all 3 traced games exact; `load_adfs`: all 8 tracks' slots right, and a disc error survived), and
+      `save_check` saves and boots there.
+    - **Why ADFS costs more** (2026-11-08, jsbeeb, the 1770's commands logged through one load): it isn't per file but per
+      track. After each step to a new track ADFS asks for the track's first sector with a step that verifies and a 15 ms
+      settle (commands &54, &84), and by then sector 0 has just gone by: 198 ms to read it, against a revolution of 200.
+      DFS steps without a verify (&50) and has its first sector in 74 ms. A file's first sector costs ADFS much the same
+      wait. So the load after a race (prepare's, the upgrades' and the circle's files) is 5.15 s on ADFS L, 4.61 on DFS:
+      6 steps at about 190 ms lost each on ADFS, 9 at about 55 on DFS, the first sectors on top. The two-file load into
+      a game is the other way, 3.20 s on ADFS L, 3.33 on DFS, ADFS's motor being quicker to start (1.1 s against DFS's
+      1.5 from its restore to its first read). Whether a real drive loses the same revolution depends on where sector 0
+      sits on each track of the real disc (its skew), which a .adl image doesn't say and jsbeeb makes up; nothing in the
+      game's files would change it. A stopwatch on Tom's Master would tell: the load after a race, from "Loading" to the
+      circle, against jsbeeb's 5.2 s (ADFS L) and 4.6 s (DFS) for the files alone.
     - **ADFS, first try** (2026-11-07): `tools/adfs_disc.py` makes `build/game.adf`, an ADFS M disc of the same files. In jsbeeb's `MasterADFS` the game boots with `*MOUNT 0` and `*RUN !BOOT` (SHIFT-BREAK didn't mount it there: not looked into) and gets through the circle's, upgrades', prepare's and a track's loads. Not yet: a whole game on it, or a real Master.
-    - **An official ADFS disc** (D32, Tom, 2026-11-07), beside the DFS one: ADFS L, `build/game.adl`, made by `make game` (Tom, on his Master: "runs well"; no M disc). Still: the suite to check it (at least `load_check` and a traced game on it); SHIFT-BREAK booting it; why ADFS costs more than DFS a file (L 7.39 s and 8.79 between races, against 7.24 and 8.24); a copy made with `*COPY` into a directory of a hard disc, as Tom expects people to install it, and run from there, `*RUN !BOOT` with that directory current, with step 10's save writing to the same directory. The Master Compact (D33): a target, assumed to work until Tom tries it, as jsbeeb has none.
+    - **An official ADFS disc** (D32, Tom, 2026-11-07), beside the DFS one: ADFS L, `build/game.adl`, made by `make game` (Tom, on his Master: "runs well"; no M disc). Still: the suite to check it, SHIFT-BREAK booting it, why ADFS costs more than DFS a file, and a hard disc copy made with `*COPY`: all done since, below. The Master Compact (D33): a target, assumed to work until Tom tries it, as jsbeeb has none.
     - **ADFS L** (2026-11-07, Tom's idea): on two sides the files could sit in about half the tracks, some on each side. ADFS numbers side 0's sectors first, then side 1's (seen in jsbeeb: logical sector 22 read from side 0's track 1, the 1770's writes logged), so files end to end fill one side. `tools/adfs_disc.py build/game.ssd build/game.adl` splits them: side 0 has the race's files and reaches track 19, side 1 the attract mode's and options' pictures and then the boot's files, reaching track 23. Between races in jsbeeb, a load's start to the track's first frame (track index 2, then 7): DFS 7.24 and 7.10 s, 8.24 and 8.10 with the upgrades; ADFS M 7.58, 7.44, 8.98, 8.84; ADFS L 7.39, 7.25, 8.79, 8.65. L saves 0.19 s, all in the load after the race; the track's load is the same, as M already has the race's files in its first 20 tracks. ADFS's extra over DFS grows with the files read (0.3 s for two, 0.7 for three), so it's per file, not seeking; not looked into yet. On a real drive the step rate may make seeks dearer than in jsbeeb. **Mistake, mine**: the first L image assumed the sides went track by track and didn't load; nothing had checked a file's bytes, only that `*LOAD` gave no error.
 
 ## 8. What the all-tracks build says today
