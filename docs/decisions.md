@@ -451,3 +451,16 @@ So the ADFS disc is `build/game.adl`, ADFS L, made by `make game`; no ADFS M dis
 Adds to D4 (the Master 128 only). Tom, 2026-11-07: "Please do treat the Compact as a target. The hardware is quite similar to the Master 128, with the main relevant difference for this project being hardware level access to the joystick (as yet unimplemented, so not an issue)." And: "Until joystick support is added, I think it'll be possible to just assume it works. I'll test it later, and we can look at any matters arising as a separate issue."
 So: the Master 128 and the Compact, the same disc for both (D32's two). Nothing is checked on a Compact here, as jsbeeb has none; Tom will try it. The boot already lets a Compact through (OSBYTE 0 gives 3 or more on both); its refusal now names both machines. When the joysticks (D5) are built, the Compact's are read differently.
 Tried 2026-11-08, with step 10's save in. Tom: "Works on Master Compact."
+
+### D34. The score pickups' digits black: Agreed (2026-11-08)
+Tom, 2026-11-08: "the score pickups aren't very readable. They just look like yellow boxes, but there's supposed
+to be some text on them - perhaps it's white?" It is: the ST's bonus (slot sprites 0-15, value * 4 + size,
+F_00B326) is a pink box (colour 10, `&703`) with white digits (15), and option B's map (D1) makes the pink yellow,
+so white on yellow. Rendered on track 1's road (`build/pickups/pickups.png`): as now; a, a yellow box with black
+digits; b, as a with its white edge black too; c, a green box; d, a black box with yellow digits; e, a white box
+with black digits. Tom: "I think go for option a, but it'll need testing. I may change my mind after seeing it on
+a CRT."
+So: the digits black, the box yellow and its top and right edge white, in all 16 sizes. `tools/objects.py`'s
+`slot_bbc` marks a bonus sprite's digits as colour 16 (its white pixels in rows 1-6 left of the right edge, the
+top row's last white pixel), option B's map makes 16 black; `gendata.py` and `render_model.py` both use it. The
+same bytes: no room changes. Tom, asked how they look on his CRT: "Good, commit"; agreed.

@@ -38,7 +38,7 @@ TRIM = (1, 2, 4, 5)
 
 BG_A = {0: 'K', 1: 'K', 2: 'YK', 3: 'K', 4: 'YK', 5: 'GK', 6: 'WK', 7: 'W', 8: 'K', 9: 'W',
         10: 'Y', 11: 'WK', 12: 'Y', 13: 'G', 14: 'W', 15: 'W'}
-BG_B = {**BG_A, 8: 'KW', 11: 'W'}
+BG_B = {**BG_A, 8: 'KW', 11: 'W', 16: 'K'}   # (16: not an ST colour, the bonus's digits: objects.BonusDigits, D34)
 
 OPTIONS = {
     'A': dict(name='black, green, yellow, white; black road', pal='KGYW', bg=BG_A,

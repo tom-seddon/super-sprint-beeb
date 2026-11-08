@@ -287,7 +287,7 @@ def object_variants(dat, used):
     lmap = logical_map(Opt, Opt['bg'])
     out = {'slot': [], 'gate': [], 'barrier': []}
     for sprite in range(22):
-        out['slot'].append((4, 8, rows_bytes(map_at(objects.slot(dat, sprite), lmap, 0, 0)), None, None))
+        out['slot'].append((4, 8, rows_bytes(map_at(objects.slot_bbc(dat, sprite), lmap, 0, 0)), None, None))
     for frame in used['gate']:
         col, mc = objects.gate(dat, frame)
         for parity in range(2):

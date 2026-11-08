@@ -256,6 +256,7 @@ adds the logic.
 - The demo's car 3 in its own colours (D20's small file, left out at step 6, Tom's to say when).
 - ~~D16's helicopter chop~~: done 2026-11-08, a rising sweep over the car's blink to its put-back (Tom: "Build C1 (sweep)", "Span the blink").
 - A palette split on prepare to race, so the cars are the right colours (Tom's idea, 2026-11-05).
+- ~~The score pickups' digits~~: done 2026-11-08, black on the yellow box (D34; Tom, after his CRT: "Good, commit").
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
 - For later (Tom, 2026-11-07): does the game build from a fresh clone? Found in passing: a `git worktree` of `HEAD`
@@ -313,6 +314,7 @@ adds the logic.
 | D31 | Loads between races | Decided (Tom, 2026-11-07): one after a race (circle, upgrades, prepare) and one into a game (prepare, select) |
 | D32 | An ADFS disc | Decided (Tom, 2026-11-07): `build/game.adl`, ADFS L, beside the DFS disc |
 | D33 | The Master Compact | Decided (Tom, 2026-11-07): a target; tried by Tom 2026-11-08, works |
+| D34 | The score pickups' digits | Agreed (Tom, 2026-11-08): black on the yellow box, seen on his CRT |
 
 ## Risks
 

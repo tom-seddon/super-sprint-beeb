@@ -36,6 +36,23 @@ def slot(dat, sprite):
     return np.array([planes_to_indices(words(dat, base + r * 8, 4)) for r in range(8)], np.uint8)
 
 
+# The bonus's sprites (0-15, value * 4 + size: F_00B326) are a pink box (colour 10) with white digits (15), which
+# option B's map would make white on yellow. On the BBC their digits are colour 16, not an ST colour, black in
+# the map (D34). The box's top and right edge are white too: the right edge is its top row's last white pixel.
+BonusSprites = 16
+BonusDigits = 16
+
+
+def slot_bbc(dat, sprite):
+    """slot(), with a bonus sprite's digits BonusDigits: the white pixels in its rows 1-6, left of its right edge."""
+    s = slot(dat, sprite)
+    if sprite < BonusSprites:
+        edge = int(np.flatnonzero(s[0] == 15).max())
+        inside = s[1:7, :edge]
+        inside[inside == 15] = BonusDigits
+    return s
+
+
 def gate(dat, frame):
     """-> colours (16 x 48), mask C (16 x 48, 1: a car shows)."""
     base = Objects + 0x180 + frame * 0x240
@@ -66,11 +83,12 @@ def place(kind, args):
     return (off % 160) // 8 * 16, off // 160
 
 
-def apply(dat, kind, args, bg, maskc):
-    """A call's effect on the clean background (ST colours) and mask C, as the ST has it."""
+def apply(dat, kind, args, bg, maskc, bbc=False):
+    """A call's effect on the clean background (ST colours) and mask C, as the ST has it (bbc: a slot's
+    sprite as slot_bbc's, its digits BonusDigits)."""
     x, y = place(kind, args)
     if kind == 'slot':
-        bg[y:y + 8, x:x + 16] = slot(dat, args[0])
+        bg[y:y + 8, x:x + 16] = (slot_bbc if bbc else slot)(dat, args[0])
     elif kind == 'gate':
         col, mc = gate(dat, args[0])
         bg[y:y + 16, x:x + 48] = col

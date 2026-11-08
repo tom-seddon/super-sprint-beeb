@@ -117,7 +117,7 @@ def main(track, tracepath, out, cue=None):
                 count = 2 if budget == 0 else count - 1
             calls = [c for c in fr['calls'] if c[0] in objects.Background]
             for kind, args, *_ in calls:
-                objects.apply(dat, kind, args, stbg, maskc)
+                objects.apply(dat, kind, args, stbg, maskc, bbc=True)
             if calls:
                 bg = apply_map(stbg, bgmap)
             lidx = bg.copy()
