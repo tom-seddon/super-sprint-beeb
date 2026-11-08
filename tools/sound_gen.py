@@ -5,18 +5,19 @@ Usage: sound_gen.py OUTDIR [--wav]
 
 Writes OUTDIR/sound.6502: each effect's fields, 3 bytes each: the tone period's low 8 bits; its high 2 bits |
 the tone's attenuation << 2 | 1 << 6 if the noise sounds; the noise's rate | its attenuation << 4. And each
-effect's length, its loop (the helicopter's), and its priority (the instrument's, while it plays: the ST's
-starters test it). With --wav, OUTDIR/wav/<effect>_ym.wav and _sn.wav: the YM's fields and the SN's, to
+effect's length and its priority (the instrument's, while it plays: the ST's starters test it). With --wav, OUTDIR/wav/<effect>_ym.wav and _sn.wav: the YM's fields and the SN's, to
 listen to side by side.
 
 The effects: start (the race's start, on each channel), bounce (a wall), bump (a car, a jump's landing),
-slow (water, the yellow patch, a cone), skid (oil), wrench, bonus, tornado, wreck (the crash, then the
-helicopter until it's gone: its fields' envelope a loop). Each is one instance from a captured race: the
+slow (water, the yellow patch, a cone), skid (oil), wrench, bonus, tornado, wreck (the crash: the ST's
+helicopter after it isn't the BBC's, D16). Each is one instance from a captured race: the
 first that started (its channel's priority under the starter's threshold), from its start to the field its
 channel's priority falls back to 0 (the sequence's instrument 0), or for the start and the crash (priority
 0 throughout) to where their sequence ends (by its waits, at the driver's 83.25 Hz). The fields are the
 YM's state at each VBL; its 749 Hz pitch steps and 83 Hz volume steps fall between them, so each instance
 differs a little from another (where the timer stood): one stands for all.
+
+And one that isn't the ST's (D16): back, a wrecked car put back, a rising sweep in the helicopter's place.
 
 The conversion (ay2sn.py's rules, the kit's): the YM at 2 MHz and the SN at 4 MHz share a period (f =
 125,000 / period); over the SN's 1023, an octave up at a time. A volume through ay2sn's table; in envelope
@@ -98,7 +99,7 @@ def channel_field(f, fi, c):
 
 
 def effects():
-    """-> {name: (fields, loop start or None, priority, the YM's fields)}."""
+    """-> {name: (fields, priority, the YM's fields, or None: not the ST's)}."""
     caps = [json.load(open(os.path.join(ROOT, p))) for p in Captures]
     out = {}
     for d in caps:
@@ -111,13 +112,11 @@ def effects():
             if name in Threshold and s['prio'][c] >= Threshold[name]:
                 continue
             if name == 'wreck':
-                # the crash, then the helicopter (priority 7) until it's gone: its steady fields, a loop
-                n = int(math.ceil(Ticks['crash'] * 50 / TickHz))
+                # the crash, to the helicopter's start (priority 7), held at 7: the helicopter isn't played (D16)
                 heli = next(j for j in range(i, len(F)) if F[j]['prio'][c] == 7)
-                period = 256 * 700 / YmClock * 50   # the envelope's cycle in fields (period 700)
-                cycles = 25                         # 25 cycles: 112.0 fields, within 0.01
-                js = list(range(i, heli)) + list(range(heli, heli + round(cycles * period)))
-                out['wreck'] = ([channel_field(F, j, c) for j in js], heli - i, 7, [ym_field(F, j, c) for j in js])
+                assert heli - i == int(math.ceil(Ticks['crash'] * 50 / TickHz))
+                js = range(i, heli)
+                out['wreck'] = ([channel_field(F, j, c) for j in js], 7, [ym_field(F, j, c) for j in js])
                 continue
             if name not in Threshold:
                 continue
@@ -127,7 +126,7 @@ def effects():
             others = [t for t in S if t is not s and t['channel'] % 3 == c and i <= t['index'] < (end or i)]
             if end is None or others:
                 continue
-            out[name] = ([channel_field(F, j, c) for j in range(i, end)], None, prio,
+            out[name] = ([channel_field(F, j, c) for j in range(i, end)], prio,
                          [ym_field(F, j, c) for j in range(i, end)])
     # the start: the race's first pause, on each channel, for its sequence's length from its first sound
     d = caps[0]
@@ -136,8 +135,19 @@ def effects():
     n = int(math.ceil(Ticks['start'] * 50 / TickHz))
     for c in range(3):
         js = range(first, first + n)
-        out[f'start{c}'] = ([channel_field(F, j, c) for j in js], None, 0, [ym_field(F, j, c) for j in js])
+        out[f'start{c}'] = ([channel_field(F, j, c) for j in js], 0, [ym_field(F, j, c) for j in js])
+    out['back'] = (Back, 7, None)
     return out
+
+
+# back (D16): a wrecked car seen again, blinking where it's put back, in the helicopter's place, its 28 frames to
+# the put-back (race.6502's CueFrames): a tone rising from period 500 to 90 (250 Hz to 1.4 kHz) over 24 fields,
+# loud then fading, then 4 fading at the top. Chosen by ear (Tom, 2026-11-08: "Build C1 (sweep)", 20 fields from
+# the put-back, from build/wav_restart's renderings), then stretched to the blink (Tom: "It feels like it should
+# play when the car reappears on the track").
+BackRise = [6, 4, 3, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5, 6, 7]   # the 20-field sweep's attenuations, stretched
+Back = [(round(500 * (90 / 500) ** (i / 23)), BackRise[round(i * 15 / 23)], None, Silent) for i in range(24)] + \
+       [(90, a, None, Silent) for a in [9, 11, 13, 14]]
 
 
 def pack(fields):
@@ -147,7 +157,7 @@ def pack(fields):
     return out
 
 
-Order = ['start0', 'start1', 'start2', 'bounce', 'bump', 'slow', 'skid', 'wrench', 'bonus', 'tornado', 'wreck']
+Order = ['start0', 'start1', 'start2', 'bounce', 'bump', 'slow', 'skid', 'wrench', 'bonus', 'tornado', 'wreck', 'back']
 
 
 def main(out, wav):
@@ -158,13 +168,12 @@ def main(out, wav):
     same = {n: next(m for m in Order if pack(fx[m][0]) == pack(fx[n][0])) for n in Order}   # (start0 and start1)
     lines = ['\\\\ sound.6502 - the race\'s effects, from the ST\'s sound (tools/sound_gen.py): 3 bytes a field', '']
     lines += [f'Fx{n.capitalize()} = {i}' for i, n in enumerate(Order)]
-    lines += [f'FxCount = {len(Order)}', '']
+    lines += [f'FxCount = {len(Order)}', f'FxMaxLen = {max(len(fx[n][0]) for n in Order)}',
+              f'FxBackLen = {len(Back)}', '']
     lines += ['.FxLen                                  ; each effect\'s fields',
               '    EQUB ' + ', '.join(str(len(fx[n][0])) for n in Order),
-              '.FxLoop                                 ; the field its loop starts at (its length: none)',
-              '    EQUB ' + ', '.join(str(fx[n][1] if fx[n][1] is not None else len(fx[n][0])) for n in Order),
               '.FxPrio                                 ; its priority while it plays',
-              '    EQUB ' + ', '.join(str(fx[n][2]) for n in Order),
+              '    EQUB ' + ', '.join(str(fx[n][1]) for n in Order),
               '.FxLo                                   ; its fields\' address (an effect the same as an earlier one: its)',
               '    EQUB ' + ', '.join(f'LO(Fx_{same[n]})' for n in Order),
               '.FxHi',
@@ -187,9 +196,11 @@ def render(fx, out):
     both at 50 Hz: the ST's own steps between fields aren't in either), for the ear."""
     from ay2sn import render_sn, render_ay, write_wav
     os.makedirs(out, exist_ok=True)
-    for n, (fields, loop, prio, ym) in fx.items():
+    for n, (fields, prio, ym) in fx.items():
         states = [[f[0], f[1], 0, Silent, 0, Silent, -1 if f[2] is None else 4 | f[2], f[3]] for f in fields]
         write_wav(os.path.join(out, f'{n}_sn.wav'), render_sn(states, CONV))
+        if ym is None:                  # (not the ST's)
+            continue
         rows = []
         for p, vol, tone, noise, nper in ym:     # channel A of one chip
             g = [0] * 16

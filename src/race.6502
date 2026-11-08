@@ -532,6 +532,10 @@ ENDSECTION
     RTS
 }
 
+CueFrames = 28                          ; a wreck's last frames, the car blinking where it comes back, and the
+                                        ; sweep's (D16: logicframe's build_cars, sound_gen.py's Back)
+ASSERT FxBackLen == CueFrames, "the sweep's fields: the blink's frames"
+
 \\ F_00E66A's work for one car.
 \\
 \\ Inputs:
@@ -576,11 +580,16 @@ ENDSECTION
 .drawn
 
     \\ F_01510A's logic: a wrecked car's timer down, its explosion counted to 103, and at 0 it's put back
-    \\ (F_00ED28)
+    \\ (F_00ED28). At CueFrames, as the car is first seen blinking where it comes back (logicframe's
+    \\ build_cars), the sweep in the helicopter's place, on its channel, to the put-back (D16).
 
     LDA #&FF:STA RcExplFrame,X          ; (drawn as the car, unless it's still wrecked)
     LDA RcState,X:BEQ racing
     DEC RcBounce,X:BEQ putback
+    LDA RcBounce,X:CMP #CueFrames:BNE @+
+.sweep
+    LDA #FxBack:LDY #0:JSR fx_car       ; (always)
+.@
     LDA RcSpin,X:LSR A:LSR A            ; the explosion's frame (F_0152E0), for the renderer
     STA RcExplFrame,X
     LDA RcSpin,X:CMP #103:BCS racing

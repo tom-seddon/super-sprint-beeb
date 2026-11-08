@@ -32,7 +32,6 @@ SECTION GameVars
 ENDSECTION
 
 MaxHazInst = 6                          ; the gates and barriers: the 3 barriers, then up to 3 gates
-CueFrames = 28                          ; a wreck's last frames, the car blinking where it comes back (D16)
 GateInst0 = 3
 
 IF GenPlay = 0

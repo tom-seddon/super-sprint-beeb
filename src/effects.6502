@@ -226,7 +226,7 @@ ENDSECTION
     STA RcHeliCar
     STX car
     TAX
-    LDA #FxWreck:JSR fx_two             ; F_012C74: the crash, then the helicopter
+    LDA #FxWreck:JSR fx_two             ; F_012C74: the crash (the helicopter's chop not played: D16)
     LDX car
     LDA side:STA RcHeliVariant
     LDA #&FF:STA RcHeliStateLo:STA RcHeliStateHi
@@ -308,7 +308,6 @@ ENDSECTION
 {
     ZA_AUTO1 step                       ; local: -2 or 2
     ZA_AUTO1 left                       ; local: the timer before it's counted down, its bytes ORed
-    ZA_AUTO1 keep                       ; local: X
 
     STZ RcHeliDrawn
     LDA RcHeliStateLo:ORA RcHeliStateHi
@@ -336,12 +335,8 @@ ENDSECTION
 .@
     DEC RcHeliTimerLo
     LDA left:BNE move
-    LDA #&80:STA RcHeliStateLo          ; gone: the engines back (F_012D38)
-    STX keep
-    LDX RcHeliCar
-    LDA #FxEngine:JSR fx_two
-    LDX keep
-    RTS
+    LDA #&80:STA RcHeliStateLo          ; gone (F_012D38's engines back: not the BBC's, D16, as the car
+    RTS                                 ; it brought is racing by now)
 .move
     INC RcHeliDrawn
     LDA RcHeliVariant:AND #1:ASL A:ASL A

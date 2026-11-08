@@ -283,6 +283,31 @@ Mask B and ANDY, after (2026-11-02): the copy of mask B's mixed cells by column 
 room was built (`7b70c1c`, above ANDY: mask B didn't need to move) and measured: exact, the game's mean 31,874
 -> 31,771, its frames over unchanged at 106, for 1,200-2,320 bytes. Tom: "Yes, revert it." Reverted; the room
 is free.
+The chop replaced (2026-11-08). Tom: "What are the options for alternative sounds for the player restart?
+Currently it's the helicopter noise, which sounds a bit odd (as there's no helicopter)." Found looking: the car
+is put back when the helicopter arrives (the wait, 40-100 frames), but the chop played until its flight ended
+(88 or 116 frames and 5), so for 20-50 frames a car raced back with no engine and a chop over nothing; and the
+wreck held its car's channel and the next at priority 7 all that time, another player's engine with it. Four
+options were rendered as WAVs of a whole restart on the player's channel (`build/wav_restart`, its script
+beside them): the crash and then quiet; a crackle from the wreck; a sweep, chime or warble at the put-back; the
+chop kept from a 9-field loop. Tom: "Build C1 (sweep)".
+Built: the wreck effect is the crash alone (22 fields, priority 7, then the engine at volume 0). Tom, of the
+sweep first built at the put-back: "The sound is good, but the timing isn't quite right", "It feels like it
+should play when the car reappears on the track", and of the options put to him, "Span the blink". So in the
+frame a wreck's wait reaches `CueFrames` (28, the blink's first frame: `collide_car.sweep`), `back` starts on
+the car's channel, always: 28 fields to the put-back, a tone from period 500 to 90 (250 Hz to 1.4 kHz) over
+24, attenuation 6 to 2 and out to 7, then 4 fields fading at the top (`tools/sound_gen.py`'s `Back`, priority
+7; `ASSERT FxBackLen == CueFrames`), then the engine at volume 0, rising as the car drives. `CueFrames` moved to
+`race.6502` for the logic test. F_012D38's engines back on two channels as the helicopter goes is no longer
+called (with the chop gone it would cut a racing car's engine to nothing). No effect loops now, so `FxLoop`
+and its code went, and as no effect's fields pass a page (77 at most: `ASSERT`) the field's offset is
+`sound_irq`'s Y, with no carry into the pointer. The tunes' rings moved from `&3800` to `&3700` to stay in
+Shared's slot, which moved down. MEASURED (`make game`'s figures, every track): the `&3000` area 3 -> 267 bytes
+free, main RAM 206 -> 222, the rest the same. `sound_check`: the helicopter's going left out of the ST's
+starters; each sweep checked on its car's channel, at the frame its wait is `CueFrames` read from the state
+(track 1's race and the hazard race: 1 each); in each race one bounce now starts that the ST's chop held off
+(track 1 frame 399, the hazard race frame 182, counted with the priorities' timing). `sn_check` finds each
+blink's sweep at the chip.
 
 ### D17. The flip at the display's end, or in the blank: Decided (2026-11-03)
 A drawn frame was shown at the vsync after it was done (the vsync interrupt flipped ACCCON's D), so one that

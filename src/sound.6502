@@ -73,7 +73,7 @@ ENDIF
 
 FxSilence = &80                         ; (not an effect: a channel's state set to instrument 15's)
 FxEngine = &81                          ; (instrument 0's)
-TuneRing = &3800                        ; a tune's three channels' rings, a page each, in Shared's slot (front.6502; free between races)
+TuneRing = &3700                        ; a tune's three channels' rings, a page each, in Shared's slot (front.6502; free between races)
 TicksPerField = 15                      ; the 749.3 Hz timer's ticks in a 50 Hz field (14.99)
 EngStepBy = 900                         ; instrument 0's step (an engine's step is it or none)
 
@@ -161,8 +161,8 @@ ENDIF
     ENDIF
 }
 
-\\ F_012C74's and F_012D38's: a state on a car's channel and the next (the wreck and the helicopter, then the
-\\ engine back), always.
+\\ F_012C74's: a state on a car's channel and the next (the wreck's crash), always. (F_012D38's, the engines back
+\\ on both as the helicopter goes, isn't the BBC's: D16.)
 \\
 \\ Inputs: A: the effect or instrument; X: the car (3 for a drone's wreck: channel 0). Outputs: the two
 \\ channels' state. A, Y: corrupted; X preserved.
@@ -282,8 +282,8 @@ ENDIF
     RTS
 }
 
-\\ The vsync's sound: each channel's field, a tune's (front.6502) or else an effect's (then on to its next, its loop,
-\\ or its end) or the engine's; the noise from the loudest that has it; written to the chip where it changed. In the
+\\ The vsync's sound: each channel's field, a tune's (front.6502) or else an effect's (then on to its next, or its
+\\ end) or the engine's; the noise from the loudest that has it; written to the chip where it changed. In the
 \\ IRQ.
 \\
 \\ A tune's channel is a step a field from its ring page (tools/tune_gen.py): one byte, its YM level << 4 and the
@@ -324,16 +324,9 @@ ENDIF
     LDY SndFx,X:BMI engine
     LDA FxLo,Y:STA p
     LDA FxHi,Y:STA p+1
-    LDA SndField,X:ASL A:ADC SndField,X ; (C clear: the field * 3, at most 133 * 3: a page and more)
-    BCC @+
-    INC p+1
-    CLC
-.@
-    ADC p:STA p
-    BCC @+
-    INC p+1
-.@
-    LDY #0
+    ASSERT (FxMaxLen - 1) * 3 < &100, "sound_irq: an effect's fields in a page"
+    LDA SndField,X:ASL A:ADC SndField,X ; the field * 3 (C clear: ASL's bit 7, the field under 86)
+    TAY
     LDA (p),Y:STA nlo
     INY
     LDA (p),Y:AND #3:STA nhi
@@ -345,20 +338,14 @@ ENDIF
     STA natt
     LDA (p),Y:AND #3:ORA #4:STA noise   ; white noise at its rate
 .nonoise
-    LDY SndFx,X                         ; on a field; at the end, the loop or the effect's end
+    LDY SndFx,X                         ; on a field; at the end, the effect's end
     INC SndField,X
     LDA SndField,X:CMP FxLen,Y:BNE out
-    LDA FxLoop,Y:CMP FxLen,Y:BEQ ended
-    STA SndField,X
-    BRA out
-.ended
     LDA #FxEngine                       ; (the start's three end in silence, the rest in the engine)
     CPY #FxStart2+1:BCS @+
     LDA #FxSilence
 .@
     JSR set_state
-    BRA out
-
     BRA out
 .engine
     JSR engine_field

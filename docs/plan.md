@@ -242,8 +242,8 @@ adds the logic.
   screen; three whole games exact on both discs; each screen against its model; the tunes at the chip; the
   save; every track's load on both discs. On real hardware (Tom): his Master 128 (DFS and ADFS L) and a Master
   Compact; MMFS and a hard disc (installed by `*COPY`) in b2; BeebLink.
-- Room, the play build (MEASURED, `tools/all_tracks.sh`, 2026-11-08), free bytes: main RAM's code 206, the
-  `&3000` area 3, the fourth bank's first 4K 52, the fourth bank 21, ANDY 237; the cars' bank 2,212 on track 1, 370
+- Room, the play build (MEASURED, `tools/all_tracks.sh`, 2026-11-08), free bytes: main RAM's code 222, the
+  `&3000` area 267 (both after D16's sweep), the fourth bank's first 4K 52, the fourth bank 21, ANDY 237; the cars' bank 2,212 on track 1, 370
   at the least (track 6); the objects' bank 4,322 on track 1, 34 at the least (track 5). The screens' files have
   195 (prepare's) to 1,682 (the circle's) free, their parts under ANDY 45 to 357. `docs/memory-map.md` has the rest.
 
@@ -254,7 +254,7 @@ adds the logic.
   up to 4.1% of fields with three humans driving at random (put aside for it, Tom, 2026-11-04;
   `docs/brief-phase5.md` step 4).
 - The demo's car 3 in its own colours (D20's small file, left out at step 6, Tom's to say when).
-- D16's helicopter chop kept for now, perhaps another sound later (Tom, 2026-11-03).
+- ~~D16's helicopter chop~~: done 2026-11-08, a rising sweep over the car's blink to its put-back (Tom: "Build C1 (sweep)", "Span the blink").
 - A palette split on prepare to race, so the cars are the right colours (Tom's idea, 2026-11-05).
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
@@ -270,7 +270,7 @@ adds the logic.
   easier to be confident about which build you're playing". Not yet looked at: where it's shown (the credits, the
   options' screen, the "Loading" row), how it gets into the build (the Makefile passing the commit, and whether the
   tree had changes), and that a rebuild of one commit still gives the same disc.
-- Room is the constraint on all of it: main RAM 206 free, the `&3000` area 3, the fourth bank 21. New code goes
+- Room is the constraint on all of it: main RAM 222 free, the `&3000` area 267, the fourth bank 21. New code goes
   in the screens' files and the banks with room, as the save went into TRACKF's.
 
 ### At the end of the project
@@ -296,7 +296,7 @@ adds the logic.
 | D13 | Mask B's storage | Decided (Tom, 2026-11-02): the mixed cells only, as the priority mask |
 | D14 | The drones' dead accumulators | Decided (Tom, 2026-11-02): dropped (only dead ST code reads them) |
 | D15 | ANDY for the logic's data | Decided (Tom, 2026-11-02): mask B and the logic's state in ANDY |
-| D16 | The helicopter | Decided (Tom, 2026-11-02): not drawn, the car blinks where it comes back; its chop kept for now (2026-11-03) |
+| D16 | The helicopter | Decided (Tom, 2026-11-02): not drawn, the car blinks where it comes back; its chop replaced by a sweep over the blink (2026-11-08) |
 | D17 | The flip | Decided (Tom, 2026-11-03): in the blank after the display, by System VIA T1 and T2; seen on a real Master |
 | D18 | Front-end colours | Decided (Tom, 2026-11-03): each screen its own 4 colours, from option sheets |
 | D19 | The game around the race | Decided (Tom, 2026-11-03): bit-exact, traced against Hatari |
@@ -321,7 +321,7 @@ adds the logic.
   together).
 - **Keyboard ghosting**: none possible on paper with the chosen nine keys (each in its own column); untried
   on a real BBC with three players (D12).
-- **Room**: main RAM has 206 bytes free, the `&3000` area 3 and the fourth bank 21 (2026-11-08); the joysticks,
+- **Room**: main RAM has 222 bytes free, the `&3000` area 267 and the fourth bank 21 (2026-11-08); the joysticks,
   or anything else, need room found first (`beeb-ram-hunt`).
 - **A filing system in sideways RAM** (MMFS is often loaded that way; Tom's MMFS run in b2 worked) leaves 3 banks; the game needs 4 free
   (D4), so such a machine is told so at boot.
