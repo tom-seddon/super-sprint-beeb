@@ -1,0 +1,117 @@
+\\ tunes.6502 - the front end's tunes played (Phase 5, step 9, D11): started, fed and faded; front.6502 has the rest and
+\\ says how they're kept. In Shared, past its slot, so in both screens' &3000 area: tune_feed runs as it switches
+\\ ACCCON's X between them, to fill both screens' rings. GameScratch's variables are the background's bank's, paged in
+\\ throughout the front end.
+
+.TuneBase
+    EQUB HI(TuneStore), HI(TuneStore1)
+
+\\ A slot's tune played from its start, unless the sound's off (F9, the ST's G_01D312): the rings filled, then the IRQ
+\\ playing them. Inputs: X: the slot; ANDY in. A, X, Y corrupted.
+
+.tune_play
+{
+    LDA SoundOff:BNE done
+    STX TuneSlot
+    SEI
+    JSR sound_init                      ; (every channel silent, the tune before off)
+    CLI
+    LDX TuneSlot
+    LDA TuneNLo,X:STA TuneLeft
+    LDA TuneNHi,X:STA TuneLeft+1
+    LDA #16:STA TuneMaster
+    LDA TuneBase,X
+    STZ TuneSrcLo:STA TuneSrcHi
+    CLC:ADC TuneO1Hi,X:STA TuneEndHi:STA TuneSrcHi+1
+    LDA TuneO1Lo,X:STA TuneEndLo:STA TuneSrcLo+1
+    LDA TuneBase,X:CLC:ADC TuneO2Hi,X:STA TuneEndHi+1:STA TuneSrcHi+2
+    LDA TuneO2Lo,X:STA TuneEndLo+1:STA TuneSrcLo+2
+    LDA TuneBase,X:CLC:ADC TuneSzHi,X:STA TuneEndHi+2
+    LDA TuneSzLo,X:STA TuneEndLo+2
+    LDX #2
+.channel
+    STZ TuneRd,X:STZ TuneWr,X
+    STZ TuneLvl,X:STZ TunePerLo,X:STZ TunePerHi,X
+    DEX
+    BPL channel
+    JSR tune_feed.fill
+    LDA #&80:STA TuneOn
+.done
+    RTS
+}
+
+\\ The tune playing faded out as a screen ends, as the ST's F_01332E and F_013306: if it's still playing, the master
+\\ down 1 every 5 fields, and at 0 it's stopped. A corrupted.
+
+.tune_fade
+{
+    BIT TuneOn:BPL done
+.step
+    DEC TuneMaster:BEQ stop
+    LDA #5:JSR fields
+    BRA step
+.stop
+    STZ TuneOn
+.done
+    RTS
+}
+
+\\ The rings fed from the tune in ANDY: each channel's whole steps, while its page has room, to both screens' Shared.
+\\ Inputs: ANDY in. Outputs: A corrupted; X, Y preserved.
+
+.tune_feed
+{
+    ZA_AUTO2 src                        ; local: the stream's next byte
+    ZA_AUTO2 dst                        ; local: the channel's ring page
+    ZA_AUTO1 keepx, keepy, was          ; local: X, Y and ACCCON, as they were
+    ZA_AUTO1 main, shadow               ; local: ACCCON with each screen's &3000 area
+    ZA_AUTO1 w, n                       ; local: the ring's next place, the step's bytes left
+
+    BIT TuneOn:BMI fill
+    RTS
+.fill
+    STX keepx:STY keepy
+    LDA &FE34:STA was
+    AND #&FF EOR AccX:STA main
+    ORA #AccX:STA shadow
+    STZ dst
+    LDX #2
+.channel
+    TXA:CLC:ADC #HI(TuneRing):STA dst+1
+    LDA TuneSrcLo,X:STA src
+    LDA TuneSrcHi,X:STA src+1
+    LDA TuneWr,X:STA w
+.step
+    LDA src:CMP TuneEndLo,X             ; (all fed)
+    LDA src+1:SBC TuneEndHi,X
+    BCS fed
+    LDA (src):AND #15
+    LDY #1
+    CMP #8:BNE @+
+    LDY #3                              ; (a new note's three bytes)
+.@
+    STY n
+    LDA TuneRd,X:CLC:SBC w              ; the room: Rd - w - 1
+    CMP n:BCC fed
+.byte
+    LDY w
+    LDA main:STA &FE34                  ; ACCCON: the main screen's
+    LDA (src):STA (dst),Y
+    LDA shadow:STA &FE34                ; and the shadow screen's
+    LDA (src):STA (dst),Y
+    INC w
+    INC src:BNE @+
+    INC src+1
+.@
+    DEC n:BNE byte
+    LDA w:STA TuneWr,X                  ; (the step's in)
+    BRA step
+.fed
+    LDA src:STA TuneSrcLo,X
+    LDA src+1:STA TuneSrcHi,X
+    DEX
+    BPL channel
+    LDA was:STA &FE34
+    LDX keepx:LDY keepy
+    RTS
+}

@@ -188,7 +188,15 @@ $(GEN)/front.6502: tools/screens.py tools/screen_options.py tools/st_frontend.py
 	mkdir -p $(GEN)
 	$(PY) tools/screens.py $(GEN) build/zx02
 
-build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(LOGICDEPS)
+# The front end's tunes (Phase 5, step 9, D11): captured whole on the ST (about 35 s, in Hatari), converted and packed.
+build/trace/tunes.json: tools/st_trace_tunes.py tools/hatari.sh | $(VENV)
+	$(PY) tools/st_trace_tunes.py $@
+$(GEN)/tunes_fixed.bin: tools/tune_gen.py tools/sound_gen.py tools/ay2sn.py build/trace/tunes.json | build/zx02 $(VENV)
+	mkdir -p $(GEN)
+	$(PY) tools/tune_gen.py build/trace/tunes.json $(GEN)
+$(GEN)/tunes_circle.bin: $(GEN)/tunes_fixed.bin
+
+build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(GEN)/tunes_fixed.bin $(LOGICDEPS)
 	baron -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
 
 # The game's disc (Phase 5, 3b): every track's play build (tools/all_tracks.sh, which checks their layout),

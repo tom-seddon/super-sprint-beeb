@@ -664,10 +664,104 @@ PanelRows = 6                           ; prepare's cell rows of panels (tools/s
 
 .pace
 {
+    JSR tune_feed
     LDA vsyncs:SEC:SBC fstart
     CMP #3:BCC pace
     RTS
 }
+
+\\ The front end's tunes (step 9, D11): the ST's own, captured whole and converted (tools/tune_gen.py), each channel a
+\\ stream of steps, packed. The select's, prepare's, the join's and the ding's are kept at the fourth bank's end
+\\ (TunesFixed), the circle's five in its file (CircleTunes): a block of descriptors, 10 bytes a tune, then the tunes.
+\\ A tune's unpacked into ANDY, which a track's load fills (a slot: 0 at TuneStore, 1 the jingle's after it), and the
+\\ IRQ plays it a field a vsync (sound.6502) from a page for each channel in Shared, which the waits keep fed from
+\\ ANDY: fields, pace and the circle's count, all with ANDY in. Shared is in both screens, so the rings are too.
+
+TuneSelect = 0                          ; TunesFixed's (tools/tune_gen.py's Fixed, in order)
+TunePrepare = 1
+TuneJoin = 2
+TuneDing = 3
+TuneStore = AndyOrg                     ; the slots, in ANDY's track slot
+TuneStore1 = AndyOrg + &900
+ASSERT TuneStore1 + &550 <= LogicVarsOrg   ; (tools/tune_gen.py's Slot: what each slot may hold)
+
+SECTION GameScratch
+.TuneO1Lo                               ; each slot's tune: its channel 1's and 2's starts, its end, its fields
+    SKIP 2
+.TuneO1Hi
+    SKIP 2
+.TuneO2Lo
+    SKIP 2
+.TuneO2Hi
+    SKIP 2
+.TuneSzLo
+    SKIP 2
+.TuneSzHi
+    SKIP 2
+.TuneNLo
+    SKIP 2
+.TuneNHi
+    SKIP 2
+.TuneSrcLo                              ; the tune playing: each channel's next byte to feed, and its stream's end
+    SKIP 3
+.TuneSrcHi
+    SKIP 3
+.TuneEndLo
+    SKIP 3
+.TuneEndHi
+    SKIP 3
+.TuneBlk                                ; the block a tune's unpacked from, its number, its slot
+    SKIP 2
+.TuneWant
+    SKIP 1
+.TuneSlot
+    SKIP 1
+ENDSECTION
+
+\\ One of TunesFixed's unpacked into a slot: the block copied to the shadow screen's TuneRing, a page at a time by game_go's
+\\ copy, and the tune unpacked from there into ANDY. Inputs: Y: the tune, X: the slot. A, X, Y corrupted.
+
+.tune_fixed
+{
+    STY TuneWant:STX TuneSlot
+    LDA banktrace:STA game_go.page+1
+    LDA #HI(TunesFixed):STA game_go.from+2
+    LDA #HI(TuneRing):STA game_go.into+2
+    LDX #HI(SwramEnd - TunesFixed)
+    JSR front_parked                    ; (the shadow screen's, then the main screen written, ANDY in)
+    LDA #LO(TuneRing):STA TuneBlk
+    LDA #HI(TuneRing):STA TuneBlk+1
+    LDA acccon:ORA #AccX
+}
+
+\\ A tune in a block unpacked into a slot. Inputs: A: ACCCON for the block's screen, TuneBlk, TuneWant, TuneSlot; ANDY
+\\ in. A, X, Y corrupted.
+
+.tune_unpack
+{
+    STA &FE34                           ; ACCCON: the block's screen
+    LDA TuneWant:ASL A:STA zxsrc:ASL A:ASL A:ADC zxsrc  ; (its descriptor: 10 bytes a tune)
+    ADC TuneBlk:STA zxsrc
+    LDA TuneBlk+1:ADC #0:STA zxsrc+1
+    LDX TuneSlot
+    LDY #2:LDA (zxsrc),Y:STA TuneO1Lo,X
+    INY:LDA (zxsrc),Y:STA TuneO1Hi,X
+    INY:LDA (zxsrc),Y:STA TuneO2Lo,X
+    INY:LDA (zxsrc),Y:STA TuneO2Hi,X
+    INY:LDA (zxsrc),Y:STA TuneSzLo,X
+    INY:LDA (zxsrc),Y:STA TuneSzHi,X
+    INY:LDA (zxsrc),Y:STA TuneNLo,X
+    INY:LDA (zxsrc),Y:STA TuneNHi,X
+    LDY #0:LDA (zxsrc),Y:CLC:ADC TuneBlk:STA zxdst  ; (the tune: from the block's start)
+    INY:LDA (zxsrc),Y:ADC TuneBlk+1:STA zxsrc+1
+    LDA zxdst:STA zxsrc
+    STZ zxdst
+    LDA TuneBase,X:STA zxdst+1
+    JSR front_unpack
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    RTS
+}
+
 
 .flimit                                 ; Y's end in a page: 0, after 16 steps, or 128
     SKIP 1

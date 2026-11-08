@@ -42,6 +42,22 @@ SECTION GameVars
     SKIP 3
 .SndNoise                               ; the noise control written last (&FF none), and its attenuation
     SKIP 2
+.TuneOn                                 ; bit 7: a tune plays (front.6502), from the ring in Shared, a field a vsync
+    SKIP 1
+.TuneLeft                               ; its fields still to play
+    SKIP 2
+.TuneMaster                             ; the ST's master (G_01F264): 16, down to 0 as a screen's end fades it
+    SKIP 1
+.TuneRd                                 ; each channel's next byte in its ring page, and the byte after the last fed
+    SKIP 3
+.TuneWr
+    SKIP 3
+.TunePerLo                              ; each channel's period, or with bit 6 of the high byte its noise's rate
+    SKIP 3
+.TunePerHi
+    SKIP 3
+.TuneLvl                                ; and its YM level
+    SKIP 3
 ENDSECTION
 
 IF DEFINED(SoundLog)
@@ -57,6 +73,7 @@ ENDIF
 
 FxSilence = &80                         ; (not an effect: a channel's state set to instrument 15's)
 FxEngine = &81                          ; (instrument 0's)
+TuneRing = &3800                        ; a tune's three channels' rings, a page each, in Shared's slot (front.6502; free between races)
 TicksPerField = 15                      ; the 749.3 Hz timer's ticks in a 50 Hz field (14.99)
 EngStepBy = 900                         ; instrument 0's step (an engine's step is it or none)
 
@@ -83,6 +100,9 @@ IF DEFINED(SoundLog) = 0                ; (the game's: the logic test sets the s
     DEX
     BPL channel
     LDA #&FF:STA SndNoise
+    IF GenPlay
+        STZ TuneOn                      ; (no tune into a race)
+    ENDIF
     RTS
 }
 
@@ -262,9 +282,14 @@ ENDIF
     RTS
 }
 
-\\ The vsync's sound: each channel's field, an effect's (then on to its next, its loop, or its end) or the
-\\ engine's; the noise from the loudest effect that has it; written to the chip where it changed. In the
+\\ The vsync's sound: each channel's field, a tune's (front.6502) or else an effect's (then on to its next, its loop,
+\\ or its end) or the engine's; the noise from the loudest that has it; written to the chip where it changed. In the
 \\ IRQ.
+\\
+\\ A tune's channel is a step a field from its ring page (tools/tune_gen.py): one byte, its YM level << 4 and the
+\\ period's change, -7 to 7 (on the noise, 0); or level << 4 | 8 and two more, a new period, or the noise's rate and
+\\ &40. The level's faded by the master (the ST's volume * master >> 8, as level * master >> 4), then SnAtten's. A
+\\ ring that's run dry (front.6502 feeds it) plays its last step again.
 \\
 \\ Inputs:
 \\     the sound's state
@@ -279,7 +304,7 @@ ENDIF
     ZA_AUTO1 nlo, nhi, att              ; local: the channel's period and attenuation
     ZA_AUTO1 noise, natt                ; local: the noise's control (&FF none) and attenuation
     ZA_AUTO1 per                        ; local: a tone's second byte
-    ZA_AUTO1 t                          ; local: the engine's ticks
+    ZA_AUTO1 t                          ; local: the engine's ticks, or a tune's step
 
     LDA #&FF:STA &FE43                  ; system VIA: DDRA, all outputs, for the field's writes (the keys'
                                         ; read sets its own, with interrupts off)
@@ -291,6 +316,11 @@ ENDIF
     STA SndPrio,X
     LDA #&FF:STA SndPrioNext,X
 .@
+    IF GenPlay
+        BIT TuneOn:BPL effect
+        JMP tune
+    .effect
+    ENDIF
     LDY SndFx,X:BMI engine
     LDA FxLo,Y:STA p
     LDA FxHi,Y:STA p+1
@@ -359,6 +389,16 @@ ENDIF
 
     \\ the noise: its control when it changed (writing it restarts the noise), its attenuation
 .noises
+    IF GenPlay
+        BIT TuneOn:BPL @+               ; a tune's field played: at its last, it's over
+        LDA TuneLeft:BNE dec
+        DEC TuneLeft+1
+    .dec
+        DEC TuneLeft
+        LDA TuneLeft:ORA TuneLeft+1:BNE @+
+        STZ TuneOn
+    .@
+    ENDIF
     LDA noise:BMI quiet
     CMP SndNoise:BEQ @+
     STA SndNoise
@@ -374,6 +414,61 @@ ENDIF
     ORA #&F0:JMP sn_write
 .done
     RTS
+
+    IF GenPlay
+    \\ a tune's step, from its ring page
+.tune
+    STZ p
+    TXA:CLC:ADC #HI(TuneRing):STA p+1
+    LDY TuneRd,X
+    TYA:CMP TuneWr,X:BEQ stepped        ; (dry: the last step again)
+    LDA (p),Y:INY
+    STA t
+    LSR A:LSR A:LSR A:LSR A:STA TuneLvl,X
+    LDA t:AND #15
+    CMP #8:BNE change
+    LDA (p),Y:INY:STA TunePerLo,X       ; a new note, or the noise
+    LDA (p),Y:INY:STA TunePerHi,X
+    BRA moved
+.change
+    BIT TunePerHi,X:BVS moved           ; (on the noise: no change)
+    CMP #8:BCC up
+    ORA #&F0                            ; down: -7 to -1
+    CLC:ADC TunePerLo,X:STA TunePerLo,X
+    BCS moved
+    DEC TunePerHi,X
+    BRA moved
+.up
+    CLC:ADC TunePerLo,X:STA TunePerLo,X
+    BCC moved
+    INC TunePerHi,X
+.moved
+    TYA:STA TuneRd,X
+.stepped
+    LDA #0                              ; the level * the master >> 4
+    LDY TuneMaster:BEQ faded
+.fade
+    CLC:ADC TuneLvl,X
+    DEY
+    BNE fade
+    LSR A:LSR A:LSR A:LSR A
+.faded
+    TAY:LDA SnAtten,Y
+    BIT TunePerHi,X:BVS noisy
+    STA att
+    LDA TunePerLo,X:STA nlo
+    LDA TunePerHi,X:STA nhi
+    JMP out
+.noisy
+    CMP natt:BCS @+                     ; (the loudest noise)
+    STA natt
+    LDA TunePerLo,X:ORA #4:STA noise
+.@
+    LDA #15:STA att                     ; its tone silent, where it was
+    LDA SndN,X:STA nlo
+    LDA SndN+3,X:STA nhi
+    JMP out
+    ENDIF
 
     \\ the engine: its period + or - its step, the step turned every rate + 1 ticks; its volume >> 4
 .engine_field

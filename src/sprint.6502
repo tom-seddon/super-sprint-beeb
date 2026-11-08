@@ -72,6 +72,12 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
             INCLUDE "../build/lgen/cells.6502"
 .CellsSlotEnd
             INCLUDE "../build/lgen/pshift.6502"
+            IF GenPlay
+                PADTO (P% + &FF) AND &FF00
+.TunesFixed                             ; the select's, prepare's, the join's and the ding's tunes (front.6502)
+                INCBIN "../build/gen/tunes_fixed.bin"
+                ASSERT SwramEnd - TunesFixed <= &400, "the tunes kept: 4 pages, copied to TuneRing"
+            ENDIF
             PRINT "the fourth bank: ", SwramEnd - P%, " bytes free"
         ELSE
             INCLUDE "heli.6502"
@@ -234,6 +240,12 @@ SECTION CircleFile, filename = "TRACKC", load = &FFFF0000+TrackFileAddr
 .CircleData
         INCBIN "../build/gen/circle_streams.zx02s"
         PRINT "the circle's file in the screen: ", CircleScratch - P%, " bytes free"
+.CircleMainEnd
+    ENDSECTION
+    SECTION CircleTunes, org = CircleMainEnd, guard = LoadCodeOrg  ; (unpacked first, before CircleScratch is used)
+.CircleTunes                            ; the circle's five tunes (front.6502)
+        INCBIN "../build/gen/tunes_circle.bin"
+        PRINT "the circle's file: ", LoadCodeOrg - P%, " bytes free to the load's code"
     ENDSECTION
 ENDSECTION
 
@@ -254,7 +266,7 @@ ENDIF
 SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entry, filename = "SPRINT", guard = &7C00, cmos = TRUE
     IF GenLogic
         SKIP SharedOrg - LoadAddr       ; (ScreenVars: set by start)
-        SECTION Shared, org = SharedOrg, guard = HudAddr
+        SECTION Shared, org = SharedOrg, guard = HudAddr, cmos = TRUE
             INCLUDE "../build/lgen/sound.6502"
             INCLUDE "../build/lgen/probes.6502"
             INCLUDE "sharedtabs.6502"
@@ -266,6 +278,10 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
 .TorPiece                               ; the tornado's piece, by frame * 4 + x's shift (the track's pieces'
             EQUB GenTorPiece            ; numbers)
 .SharedSlotEnd
+            ASSERT SharedSlot <= TuneRing AND TuneRing + &400 <= SharedSlotEnd, "the tunes' rings and their block in Shared's slot"
+            IF GenPlay
+                INCLUDE "tunes.6502"
+            ENDIF
             IF GenPlay = 0
 .LogicInputs
                 INCBIN "../build/lgen/inputs.rle" ; the traced race's inputs, as runs (tools/gen_logic.py)

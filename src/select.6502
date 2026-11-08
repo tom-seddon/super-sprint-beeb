@@ -26,9 +26,11 @@ SelRectCols = 22                        ; a rectangle's bytes across, past its f
     BPL car
     LDX GsWho:STZ RcDrone,X
     STZ GsDial:STZ GsMove:STZ GsLast
+    LDY #TuneSelect:LDX #0:JSR tune_fixed
     JSR say_clear                       ; (the file landed in the screen)
     JSR select_show
 .shown
+    LDX #0:JSR tune_play
     LDA #167:STA GsCount                ; 499 down by 3 a pass, while above 0
 .pass
     LDX GsWho:JSR game_read:STA GsKey
@@ -64,6 +66,7 @@ SelRectCols = 22                        ; a rectangle's bytes across, past its f
     STA RcWrench,X
     DEX
     BPL wrench
+    JSR tune_fade
     LDA GsDial:LSR A:STA GmTrack
 .done
     JMP mode1

@@ -26,7 +26,15 @@ ASSERT CircleScratch + CiFrameBytes * 7 <= &8000
 
 .circle
 {
+    LDA SoundOff:BNE @+                 ; (with the sound off, no tune was drawn)
+    LDA #LO(CircleTunes):STA TuneBlk    ; (before anything's put in the screen past the file: the tunes are there)
+    LDA #HI(CircleTunes):STA TuneBlk+1
+    LDA GsTune:STA TuneWant
+    STZ TuneSlot
+    LDA acccon:JSR tune_unpack
+.@
     JSR circle_show
+    LDX #0:JSR tune_play
 
     \\ the bonuses counted up, 10 at a time, a pass of 2 fields; then the celebration, the ST's 200 fields here until a player's fire (D28)
 
@@ -63,6 +71,7 @@ ASSERT CircleScratch + CiFrameBytes * 7 <= &8000
     BPL each
     JSR circle_scores
 .pass
+    JSR tune_feed
     LDA vsyncs:SEC:SBC fstart
     CMP #2:BCC pass
 .passed
@@ -121,6 +130,7 @@ ASSERT CircleScratch + CiFrameBytes * 7 <= &8000
 .@
     DEX
     BPL drone
+    JSR tune_fade
     JMP mode1
 
 \\ the place's points: 10 fewer, and 10 added

@@ -549,6 +549,32 @@ touches the build.
    - **One load into the game** (2026-11-07, Tom, D31): fire on the title reads prepare's file, kept as after a race, and the select's in one load. Fire to the race in jsbeeb, 3 loads to 2: 8.50 s of loading to 6.99.
    - **On a Master** (2026-11-07): the winner's circle, the upgrades and the initials tried on Tom's: "they're good". That's all ten screens seen on real hardware or passed by Tom, and step 8 done.
 9. **The front end's tunes** (D11's method): captured, converted, sized, heard against the ST's.
+   - **Built** (2026-11-08). **Captured**: `tools/st_trace_tunes.py`, each tune whole in Hatari (35 s for the ten): the
+     starter run from a Vsync call in the title's wait, the quiet stretch before high scores and lap records (750 VBLs);
+     F_0134FA's offset patched for prepare's and the circle's five, as their starters are the same code. Every sound
+     driver entry is watched, and a capture cut at any: the first tries at a fixed VBL were cut by the demo's race start.
+     Each ends where its sequence does: select 603 fields, prepare 386, the join 129, the ding 56, the circle's 498-670.
+     **Converted** by sound_gen's rules (`tools/tune_gen.py`): each channel a stream, a byte a field (the YM level and the
+     period's change, -7 to 7, the ST's vibrato) or three for a new note or the noise; never two channels on the noise
+     at once, nor the envelope. Unpacked and played by the BBC's steps in Python, they give the converter's fields
+     exactly. **Sized**: packed a channel at a time with ZX02, select, prepare, the join and the ding are 963 bytes, kept
+     for good at the fourth bank's end (1,003 with descriptors, from its last 1,086 spare bytes); the circle's five 2,008 (2,058
+     with descriptors), in TRACKC past its screen part (the file 13,166 bytes, 1,682 under the load's code). With the
+     three channels' steps interleaved a field at a time they pack to 5.1K in all; as raw fields of 7 bytes, 29K (8.9K
+     packed). **Played**: a screen unpacks its tune into ANDY's track slot (free between races;
+     slot 0 at &8000, the jingle's slot 1 at &8900), the IRQ plays a field a vsync from three one-page rings in Shared's
+     slot (&3800, both screens), which `fields`, `pace` and the circle's count feed from ANDY (with ANDY in at every one,
+     measured: ROMSEL &84 at all 1,641 field waits of flash_check's run). As the ST: started after the screen's wipe-in
+     and only with the sound on (G_01D312, F9's SoundOff: the circle's tune's random number drawn only then too, as the
+     ST does); the join's jingle and the ding replace the tune; a screen ending with its tune still playing fades it,
+     the master down 1 every 5 fields to 0 (75 fields: "the music's gaps"), the level * master / 16 before SnAtten.
+     **Checked**: `tools/tune_check.mjs`, in the suite, runs flash_check's flow with a drone joining prepare: 9 tunes,
+     4,197 fields at the chip, each like the converter's, the fades' steps 5 fields each, the feeds' paging; `--off`
+     plays none. Seen to fail: a wrong sign in the vibrato (field 1), the fade a field short (its first step), the
+     shadow screen's ring not fed (prepare, as the join's panel is drawn there). **Room**: main RAM 408 to 206 (the
+     IRQ's part), the &3000 area 312 to 15 (tune_play, tune_feed, tune_fade), the front end's code 192 to 34, the
+     first 4K 106 to 62, the fourth bank 1,086 to 21. Heard: `build/sound/tunes/*_ym.wav` against `*_sn.wav` (Tom's
+     ear, not yet).
 10. **High scores** (D23): the entry and the table are done (step 8's initials); saving and loading them is lower priority (Tom,
     2026-11-03), dropped if the disc's catalogue or the room for its error handling runs short.
 11. **The disc on every filing system**: DFS and ADFS in jsbeeb (`beeb-target-matrix`), MMFS and Econet on

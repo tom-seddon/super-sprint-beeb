@@ -7,7 +7,7 @@
 # (`make hazardtrace` records them); and tools/human_traces.sh's, with two or three humans; and the demo. Then the
 # race with cars put where one pixel of the wall probes decides (hprobe, state only), and the faults it's there
 # for put back (--probes). Then the disc's other checks, which read only it and what it was made from:
-# tools/game_check.mjs, tools/attract_check.mjs, tools/flash_check.mjs, tools/options_check.mjs, tools/select_check.mjs, tools/upgrades_check.mjs, tools/circle_check.mjs, tools/initials_check.mjs and tools/load_check.mjs (last, as a race's job soon leaves a machine
+# tools/game_check.mjs, tools/attract_check.mjs, tools/flash_check.mjs, tools/options_check.mjs, tools/select_check.mjs, tools/upgrades_check.mjs, tools/circle_check.mjs, tools/initials_check.mjs, tools/tune_check.mjs (and again with --off: tune_off) and tools/load_check.mjs (last, as a race's job soon leaves a machine
 # free). Exit status 1 if any is wrong, or if any job left no status.
 #
 # The jobs run on REMOTE, by default agentbox (tools/remote.sh copies what they read there, and their logs back);
@@ -19,7 +19,7 @@
 
 RACES="r1 r2 r4 r17 r50 h012 h12 h01 h02"     # (and demo0 demo17: state only, so no models)
 ROTATIONS=${ROTATIONS:-0 1 2 3 4 5 6 7 8 9 10}
-CHECKS="game_check attract_check flash_check options_check select_check upgrades_check circle_check initials_check load_check"
+CHECKS="game_check attract_check flash_check options_check select_check upgrades_check circle_check initials_check tune_check load_check"
 
 if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools/disc_races.sh jobs OUT)
     export OUT=$2                       # (not in the command: BSD xargs -I cuts an argument at 255 bytes)
@@ -30,6 +30,7 @@ if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools
       echo silence disc_races --races h012 --tracks 0 --noscreen --silence     # (a race the fault showed in)
       echo probes disc_races --probes
       for c in $CHECKS; do echo $c $c; done
+      echo tune_off tune_check --off
     } | xargs -P ${MACHINES:-4} -L 1 sh -c 'n=$0; t=$1; shift; node tools/$t.mjs "$@" > "$OUT/$n.log" 2>&1; echo $? > "$OUT/$n.status"'
     exit 0
 fi
@@ -56,7 +57,7 @@ done
 grep -a '^track .*loaded' "$OUT/probe.log"; status probe
 grep -a 'after the end' "$OUT/silence.log"; status silence
 grep -a '^control\|^car \|^all \| entries not' "$OUT/probes.log"; status probes
-for c in $CHECKS; do
+for c in $CHECKS tune_off; do
     echo "$c: $(grep -av '^\[jsbeeb\|^Loading' "$OUT/$c.log" | tail -1)"
     status $c
 done

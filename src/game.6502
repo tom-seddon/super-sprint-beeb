@@ -102,6 +102,10 @@ SECTION GameScratch
     SKIP 1
 .GsFields                               ; fields' count
     SKIP 1
+.GsVsync                                ; the field a field's wait began
+    SKIP 1
+.GsTune                                 ; the circle's tune, 0-4 (drawn before its file's load)
+    SKIP 1
 .GsWait                                 ; the attract mode's wait
     SKIP 1
 ENDSECTION
@@ -448,9 +452,12 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 
 .prepare
 {
+    LDY #TunePrepare:LDX #0:JSR tune_fixed
+    LDY #TuneJoin:LDX #1:JSR tune_fixed
     JSR say_clear                       ; (the file landed in the screen)
     JSR front_prepare
 .shown
+    LDX #0:JSR tune_play
     LDX #2
 .init
     LDA RcDrone,X:EOR #1:STA GsAnim,X
@@ -507,6 +514,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     LDA RcDrone:ORA RcDrone+1:ORA RcDrone+2:BNE more
 .done
 .over
+    JSR tune_fade
     JSR initials
     JMP mode1
 .more
@@ -530,6 +538,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
     LDX GsJ
     STZ RcDrone,X
     JSR front_join
+    LDX #1:JSR tune_play                ; (the join's jingle in the prepare's tune's place)
 .next
     LDX GsJ
     INX
@@ -1025,7 +1034,10 @@ InRepeat = 4
     LDA #16:JSR random
     AND #3:STA GsKind
 .nokind
+    LDA SoundOff:BNE @+                 ; (the ST draws it only with the sound on, G_01D312)
     LDA #5:JSR random
+    STA GsTune
+.@
     LDX #15
 .spark
     STX GsN
@@ -1273,7 +1285,9 @@ InRepeat = 4
 {
     STA GsFields
 .field
-    LDA vsyncs
+    LDA vsyncs:STA GsVsync
+    JSR tune_feed                       ; (the tune's rings: front.6502)
+    LDA GsVsync
 .wait
     CMP vsyncs:BEQ wait
     DEC GsFields

@@ -18,6 +18,8 @@ UpFlipSum = 242                         ; and down, this less its first and line
 
 .upgrades
 {
+    LDY #TuneSelect:LDX #0:JSR tune_fixed  ; (the select's tune, and a ding a purchase)
+    LDY #TuneDing:LDX #1:JSR tune_fixed
     LDX #0
 .car
     STX GsCar
@@ -38,6 +40,7 @@ UpFlipSum = 242                         ; and down, this less its first and line
     LDA #2:STA GsDial
     JSR upgrade_show
 .shown
+    LDX #0:JSR tune_play
     STZ GsMove
 .pass
     LDA vsyncs:STA fstart               ; (the drawing inside the pass: a dial moving takes most of it)
@@ -90,11 +93,12 @@ UpFlipSum = 242                         ; and down, this less its first and line
     LDX GsCar
     DEC RcWrench,X
     JSR upgrade_figures
+    LDX #1:JSR tune_play
     LDA #20:JSR fields
     DEC GsCount
     BNE pay
 .over
-    RTS
+    JMP tune_fade
 }
 
 \\ The screen for car GsCar, the dial at GsDial. Outputs: GmPicture 1. A, X, Y corrupted.
