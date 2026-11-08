@@ -183,8 +183,13 @@ beeb: build/sprint.ssd
 # after each race, so its disc is the one with them). build/sprint.ssd is whichever build was made last.
 play: game
 	cp build/game.ssd build/play.ssd
-# The front end's pictures and tables, for the file TRACKF: a screen's look is in tools/screens.py.
-$(GEN)/front.6502: tools/screens.py tools/screen_options.py tools/st_frontend.py | build/zx02 $(VENV)
+# The front end's pictures and tables, for the file TRACKF: a screen's look is in tools/screens.py. They're drawn
+# against the ST's screens, captured in Hatari (about 30 s, tools/game_traces.sh's): made if missing, and like that
+# script's, a capture already made is kept (a new tracer or script doesn't remake it: delete the file).
+STSCREENS = build/st_screens/screens.json build/st_screens/options.json
+$(STSCREENS): build/st_screens/%.json: | $(VENV)
+	tools/game_traces.sh screens $*
+$(GEN)/front.6502: tools/screens.py tools/screen_options.py tools/st_frontend.py | build/zx02 $(VENV) $(STSCREENS)
 	mkdir -p $(GEN)
 	$(PY) tools/screens.py $(GEN) build/zx02
 
@@ -206,7 +211,9 @@ ZX02SRC = reference/beeb-port-kit/template/tools/zx02src/src
 build/zx02: $(ZX02SRC)/compress.c $(ZX02SRC)/memory.c $(ZX02SRC)/optimize.c $(ZX02SRC)/zx02.c
 	mkdir -p build
 	cc -O2 -o $@ $^
-game: build/zx02 | $(VENV)
+# tools/all_tracks.sh copies track 1's logic trace for each track's room before it calls make, so it's made here
+# if missing (an order-only prerequisite: a newer tracer doesn't trace it again).
+game: build/zx02 | $(VENV) build/trace/logic_t0_r0.json
 	tools/all_tracks.sh
 	$(PY) tools/make_game.py build/tracks build/zx02 build/game.ssd
 	$(PY) tools/adfs_disc.py build/game.ssd build/game.adl
