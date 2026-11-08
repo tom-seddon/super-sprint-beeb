@@ -271,6 +271,13 @@ adds the logic.
   easier to be confident about which build you're playing". Not yet looked at: where it's shown (the credits, the
   options' screen, the "Loading" row), how it gets into the build (the Makefile passing the commit, and whether the
   tree had changes), and that a rebuild of one commit still gives the same disc.
+- For later (Tom, 2026-11-08): the suite's load on his laptop. "The test suite is taking a while and my laptop's
+  fans are spinning up. Is something being done that could be run on `agentbox` instead?" Not yet measured,
+  three places to look: `make game` run by hand before `tools/suite.sh`, which builds the same things again
+  (about 5 minutes); the jsbeeb oracles the suite still runs here (about 2-3 minutes) that could go to agentbox
+  with the disc races; and building on agentbox too, copying back only the discs and what the local checks read.
+  Also unexplained: the disc races took 705 s on agentbox on 2026-11-08 (D34's run), against 106-194 s before;
+  perhaps D34's change to `render_model.py` made their model screens be redrawn, not checked.
 - Room is the constraint on all of it: main RAM 222 free, the `&3000` area 267, the fourth bank 21. New code goes
   in the screens' files and the banks with room, as the save went into TRACKF's.
 
