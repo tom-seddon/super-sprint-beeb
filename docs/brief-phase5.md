@@ -1,6 +1,7 @@
 # Brief - Phase 5, the game: the first steps
 
-> **Status: AGREED (2026-11-03), nothing built.** Branch `phase5`, off `c6f9495` (main, Phase 4 closed).
+> **Status: BUILT, Phase 5 closed 2026-11-08 (Tom: "Please close phase 5.").** Every step built but Econet (§9).
+> The plan agreed 2026-11-03. Branch `phase5`, off `c6f9495` (main, Phase 4 closed).
 > D18-D24 below are this brief's proposals. Tom, 2026-11-03: D18, D19, D20 and D22 decided as proposed;
 > D21 withdrawn (the play build already has every object, §2); D23, D24 and D25 (the display) decided too: none left open.
 >
@@ -11,7 +12,8 @@
 > `docs/st-graphics.md` "Track backgrounds" and "`SUPER.DAT`"; `docs/plan.md` Phase 5; D3, D7, D9, D11, D15,
 > D16.*
 
-**Resume point: step 5.** Every decision is taken; steps 1-4 are done.
+**Resume point: none, Phase 5 is closed** (2026-11-08). What it built, what it tried and didn't, and what's left are
+in §9; what comes next is `docs/plan.md`'s "After Phase 5", Tom's to choose from.
 
 ## 0. The proposal in one paragraph
 
@@ -629,7 +631,7 @@ touches the build.
     - **An official ADFS disc** (D32, Tom, 2026-11-07), beside the DFS one: ADFS L, `build/game.adl`, made by `make game` (Tom, on his Master: "runs well"; no M disc). Still: the suite to check it, SHIFT-BREAK booting it, why ADFS costs more than DFS a file, and a hard disc copy made with `*COPY`: all done since, below. The Master Compact (D33): a target, assumed to work until Tom tries it, as jsbeeb has none.
     - **ADFS L** (2026-11-07, Tom's idea): on two sides the files could sit in about half the tracks, some on each side. ADFS numbers side 0's sectors first, then side 1's (seen in jsbeeb: logical sector 22 read from side 0's track 1, the 1770's writes logged), so files end to end fill one side. `tools/adfs_disc.py build/game.ssd build/game.adl` splits them: side 0 has the race's files and reaches track 19, side 1 the attract mode's and options' pictures and then the boot's files, reaching track 23. Between races in jsbeeb, a load's start to the track's first frame (track index 2, then 7): DFS 7.24 and 7.10 s, 8.24 and 8.10 with the upgrades; ADFS M 7.58, 7.44, 8.98, 8.84; ADFS L 7.39, 7.25, 8.79, 8.65. L saves 0.19 s, all in the load after the race; the track's load is the same, as M already has the race's files in its first 20 tracks. ADFS's extra over DFS grows with the files read (0.3 s for two, 0.7 for three), so it's per file, not seeking; not looked into yet. On a real drive the step rate may make seeks dearer than in jsbeeb. **Mistake, mine**: the first L image assumed the sides went track by track and didn't load; nothing had checked a file's bytes, only that `*LOAD` gave no error.
 
-## 8. What the all-tracks build says today
+## 8. What the all-tracks build said at the start (2026-11-03)
 
 Each track's play build (three humans, race 17's objects), free bytes by region (MEASURED, `tools/all_tracks.sh`,
 2026-11-03, from `c6f9495`):
@@ -647,3 +649,40 @@ Every track assembles. In one build for every track each region has to hold the 
 the fixed parts' room is the column minimum: ANDY 237, Shared 768, the cars' bank 422, the objects' bank
 2,491. The fourth bank and main RAM are the same on every track: nothing per track lives in them but
 `lgen/cells` (the same size on each). (Before the room hunt: see `docs/brief-ram-2026-11-03.md` for after.)
+
+## 9. What Phase 5 built (closed 2026-11-08)
+
+**Landed**, each step's detail and measurements in §7:
+- Steps 1-4: room (D26), one build for every track with its data loaded per race through the OS (`make game`), the
+  race count's hazards real, 72 traced races exact on the disc itself, state and screen (`tools/disc_races.sh`).
+- Steps 5-7: whole games and the demo traced on the ST (`tools/game_traces.sh`); the game around the race bit-exact
+  (D19), attract mode to game over (`tools/game_check.mjs`, `tools/attract_check.mjs`); the ST's front-end data decoded.
+- Step 8: the ten screens (D18, D25), each checked against a model of its own, and the departures D27-D30 at Tom's word;
+  one load after a race and one into a game (D31).
+- Step 9: the ten front-end tunes from the ST's (D11), `tools/tune_check.mjs`.
+- Step 10: `SCORES`, the table, lap records, keys and sound (D23), `tools/save_check.mjs`.
+- Step 11: two discs, DFS and ADFS L (D22, D32), for the Master 128 and the Compact (D33); both in the suite; Tom's
+  Master, a Compact, MMFS, a hard disc and BeebLink tried by Tom.
+
+**Room at the close** (MEASURED, `tools/all_tracks.sh`, 2026-11-08), free bytes: main RAM's code 206, the `&3000`
+area 3, the fourth bank's first 4K 52, the fourth bank 21, ANDY 237 (each the same on every track); the cars' bank
+370 to 2,212 by track, the objects' bank 34 (track 5) to 4,322. Outside the slots every track's build is the same.
+
+**Tried or costed, and not built** (don't re-litigate without something new):
+
+| What | Why not | Where |
+|---|---|---|
+| A cars' file per mix of humans (D20's (a)) | A race only draws the four sets resident anyway: 5.8K a load, about 40K of disc and 7 catalogue entries saved | D20 |
+| The demo's car 3 in its own colours | Left out at step 6; the drone set drawn instead. Tom's to say when | D20, step 6 |
+| Separate loads for the circle, upgrades and prepare; for the select and prepare | Folded, Tom's choice: between races 9.7 s to 7.2 (DFS, jsbeeb); fire to the race 24.54 s to 23.01 | D31 |
+| An ADFS M disc | ADFS L saves 0.19 s between races; Tom: no M disc | D32 |
+| The ST's time limits on the upgrades, the circle and the initials; its 6-field reads in the initials | Tom: an arcade's, not a home computer's | D27-D30 |
+| All 16 dial positions stored for the select | Didn't fit: 5-8 and 3-0 are 1-4 and 13-16 drawn upside down, as the ST stores them | step 8 |
+| The circle on a black ground or dim checks | The words were lost in the build's images; flat white chosen | step 8 |
+| An editable PNG as the title's source | Offered, not wanted for now (Tom, 2026-11-05) | step 8 |
+| The tune player in the front end's code | 265 bytes over; it's in Shared | step 9 |
+| The save's code in main RAM; a save after each race; `SCORES` shipped on the disc; flags set wherever the table changes | Main RAM's 206 bytes kept; no wait mid-game and no read-only disc stopping players between races; the cheat disc keeps its table and the first save makes the file; one sum compared at the title costs nothing elsewhere | step 10 |
+
+**Left open**, carried to `docs/plan.md` "After Phase 5": Econet (no network to try it on); the joysticks (D5); the
+three-person playtest (D12, and the sparks, step 4); the demo's car 3; D16's chop; prepare's palette split; a README;
+the fresh-clone build; a version number on the screen.

@@ -1,10 +1,11 @@
 # Super Sprint for the BBC Master: plan
 
 A port of the Atari ST version of *Super Sprint* (State of the Art / Electric Dreams, 1987; `orig/st`) to the
-BBC Master 128, written in Baron. Phases 1 to 4 are done (2026-11-01 to 11-03): the original specified (`docs/st-graphics.md`,
+BBC Master 128 and Compact, written in Baron. Phases 1 to 5 are done (2026-11-01 to 11-08): the original specified (`docs/st-graphics.md`,
 `docs/st-logic.md`), its graphics converted to MODE 1 (`docs/colours.md`), the renderer
-(`docs/renderer.md`) and one race, its logic bit-exact with the ST's (`docs/brief-phase4.md`). Next is
-Phase 5, the game. The Verdict and Speed sections are the plan's estimates from before Phase 3, kept as made. Decisions are in `docs/decisions.md`, work
+(`docs/renderer.md`), one race, its logic bit-exact with the ST's (`docs/brief-phase4.md`), and the whole game around
+it on two discs, DFS and ADFS (`docs/brief-phase5.md`). What's left is under "After Phase 5"; Phase 6 is Tom's to
+choose from it. The Verdict and Speed sections are the plan's estimates from before Phase 3, kept as made. Decisions are in `docs/decisions.md`, work
 done in `JOURNAL.md`.
 
 ## Verdict
@@ -221,9 +222,42 @@ adds the logic.
 - Speed, four rounds and D14-D17: the hazard race's (track 5, race 17) fields repeating a frame 734 -> 5
   of 2,240; over the nine races drawn from the logic, 42. The logic run
   a frame ahead (about 9, simulated) was closed, not built: lower latency is better.
-- Left open, not urgent (Tom, 2026-11-03): the joysticks (D5); three players on the keys waits on a
-  three-person playtest, with D12's check on a real BBC; D16's helicopter chop kept for now, perhaps
-  another sound later.
+- Left open at its close, not urgent (Tom, 2026-11-03): the joysticks (D5), the three-person playtest (D12),
+  D16's chop: carried to "After Phase 5".
+- Phase 3's budget for the logic (the cycles the renderer left a frame by track, and the memory) is in
+  `docs/brief-phase4.md` §9, kept as the record.
+
+### Phase 5: the game (done, 2026-11-08: `docs/brief-phase5.md`)
+- Done: one build for every track, each race's data a file loaded through the OS between races (D3, D7), the
+  race count's hazards real; the game around the race bit-exact with the ST's (D19), attract mode to game over,
+  traced in Hatari and checked read by read; all ten screens converted (D18) and drawn by the game with the
+  ST's dot wipe, in the race's 26 rows (D25): title, credits, high scores, lap records, select, prepare to race,
+  the winner's circle, upgrades, initials and options (keys and sound, D24); the front end's ten tunes from the
+  ST's (D11); the high scores, lap records, keys and sound saved as `SCORES` (D23). Two discs from one build,
+  `build/game.ssd` (DFS, D22) and `build/game.adl` (ADFS L, D32), for the Master 128 and the Compact (D33).
+- Departures from the ST at Tom's word, for a home computer: the upgrades, the winner's circle and the
+  initials wait with no time limit (D27-D29); the initials act on a key's press at once (D30). One load after a
+  race and one into a game (D31).
+- Checked: `tools/suite.sh`, 38 verdicts, all passing (2026-11-08): 72 traced races exact on the disc, state and
+  screen; three whole games exact on both discs; each screen against its model; the tunes at the chip; the
+  save; every track's load on both discs. On real hardware (Tom): his Master 128 (DFS and ADFS L) and a Master
+  Compact; MMFS and a hard disc (installed by `*COPY`) in b2; BeebLink.
+- Room, the play build (MEASURED, `tools/all_tracks.sh`, 2026-11-08), free bytes: main RAM's code 206, the
+  `&3000` area 3, the fourth bank's first 4K 52, the fourth bank 21, ANDY 237; the cars' bank 2,212 on track 1, 370
+  at the least (track 6); the objects' bank 4,322 on track 1, 34 at the least (track 5). The screens' files have
+  195 (prepare's) to 1,682 (the circle's) free, their parts under ANDY 45 to 357. `docs/memory-map.md` has the rest.
+
+### After Phase 5: what's left
+- Joysticks (D5): left open, not urgent (Tom, 2026-11-03). The Master 128's two analogue ones, and the
+  Compact's, read differently (D33); a choice beside the keys in the options, saved with them.
+- The three-person playtest: three players on the keys on a real BBC (D12's check), and the sparks that repeat
+  up to 4.1% of fields with three humans driving at random (put aside for it, Tom, 2026-11-04;
+  `docs/brief-phase5.md` step 4).
+- The demo's car 3 in its own colours (D20's small file, left out at step 6, Tom's to say when).
+- D16's helicopter chop kept for now, perhaps another sound later (Tom, 2026-11-03).
+- A palette split on prepare to race, so the cars are the right colours (Tom's idea, 2026-11-05).
+- A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
+  loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
 - For later (Tom, 2026-11-07): does the game build from a fresh clone? Found in passing: a `git worktree` of `HEAD`
   stopped at `make game`'s first step, as the ZX02 compressor's source is in the kit's submodule
   (`reference/beeb-port-kit`), not checked out there. Not looked at further: whether a clone with its submodules
@@ -232,25 +266,12 @@ adds the logic.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
-- Room, the play build (track 1, `docs/memory-map.md`): main RAM's code 103 bytes free, the fourth bank
-  1,828, ANDY 1,496, Shared 1,146, the cars' bank 2,245, the objects' 7,273. The tightest tracks are in
-  `docs/brief-room-2026-11-02.md` and `tools/all_tracks.sh`. Main RAM is the binding region for Phase 5: 780 bytes free after Phase 5's room hunt, and `&0900`-`&0AFF` (D26).
-- Phase 3's budget for the logic (the cycles the renderer left a frame by track, and the memory) is in
-  `docs/brief-phase4.md` §9, kept as the record.
-
-### Phase 5: the game
-- The brief: `docs/brief-phase5.md` (every decision taken: D18-D20 and D22-D26 decided, D21 withdrawn).
-- Done so far: room (main RAM 682 free, `&0900`-`&0AFF` the game's, D26); one build for every track and the loads
-  through the OS, `make game` (`build/game.ssd`), each track's file loaded right in jsbeeb, a load seen on Tom's
-  Master (2026-11-04); the race count real, and 72 traced races (every track, each mix of hazards, one to three
-  humans) exact on the disc itself, state and screen (`tools/disc_races.sh`); whole games and the demo races traced
-  on the ST, screen by screen (`tools/game_traces.sh`); the game's rules around the race, attract mode to game over,
-  exact against those (`tools/game_check.mjs`, `tools/attract_check.mjs`), with text for screens; the ST's front-end
-  data decoded, every screen captured (`tools/st_frontend.py`, `docs/st-graphics.md`). Next: step 8.
-- Put aside for the three-player playtest (Tom, 2026-11-04): sparks repeat up to 4.1% of fields with three humans
-  driving at random. The cause, the options and how to measure it again: `docs/brief-phase5.md`, step 4.
-- All the tracks, hazards, upgrades, the front end, the results and high-score screens, the screen wipe, the
-  disc, and the loads through the OS (D3, D7), tested on DFS, MMFS, ADFS and Econet.
+- For later (Tom, 2026-11-08): the build's version shown somewhere in the game, "probably git commit?", "so it's
+  easier to be confident about which build you're playing". Not yet looked at: where it's shown (the credits, the
+  options' screen, the "Loading" row), how it gets into the build (the Makefile passing the commit, and whether the
+  tree had changes), and that a rebuild of one commit still gives the same disc.
+- Room is the constraint on all of it: main RAM 206 free, the `&3000` area 3, the fourth bank 21. New code goes
+  in the screens' files and the banks with room, as the save went into TRACKF's.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
@@ -279,25 +300,30 @@ adds the logic.
 | D17 | The flip | Decided (Tom, 2026-11-03): in the blank after the display, by System VIA T1 and T2; seen on a real Master |
 | D18 | Front-end colours | Decided (Tom, 2026-11-03): each screen its own 4 colours, from option sheets |
 | D19 | The game around the race | Decided (Tom, 2026-11-03): bit-exact, traced against Hatari |
-| D20 | Cars' frames per race | Decided (Tom, 2026-11-04, revised): all four sets resident for every race; one small file for the demo |
-| D22 | The disc | Decided (Tom, 2026-11-03): one 80-track single-sided DFS disc |
-| D23 | High scores | Decided (Tom, 2026-11-03): saved to disc, a failed save shown and ignored; lower priority, dropped if the catalogue or room runs short |
+| D20 | Cars' frames per race | Decided (Tom, 2026-11-04, revised): all four sets resident for every race; the demo's small file left out for now |
+| D22 | The disc | Decided (Tom, 2026-11-03): one 80-track single-sided DFS disc; an ADFS one as well (D32) |
+| D23 | High scores | Decided (Tom, 2026-11-03): saved to disc, a failed save shown and ignored; built 2026-11-08 as `SCORES`, keys and sound with them |
 | D24 | The ST's keys | Decided (Tom, 2026-11-03): f1, f5, f8, f0 (for F10), f9, Escape from the matrix |
 | D26 | `&0900`-`&0AFF` | Decided (Tom, 2026-11-03): the game's, kept across loads (revises D7) |
 | D25 | The display between races | Decided (Tom, 2026-11-03): the race's 26 rows for every screen, the HUD row erased as needed |
+| D27 | The upgrades' time limit | Decided (Tom, 2026-11-06): none; they wait for fire |
+| D28 | The winner's circle's end | Decided (Tom, 2026-11-06): waits for fire, no prompt |
+| D29 | The initials' time limit | Decided (Tom, 2026-11-07): none |
+| D30 | The initials' keys | Decided (Tom, 2026-11-07): a press acts at once, a held key repeating after 24 fields |
+| D31 | Loads between races | Decided (Tom, 2026-11-07): one after a race (circle, upgrades, prepare) and one into a game (prepare, select) |
+| D32 | An ADFS disc | Decided (Tom, 2026-11-07): `build/game.adl`, ADFS L, beside the DFS disc |
+| D33 | The Master Compact | Decided (Tom, 2026-11-07): a target; tried by Tom 2026-11-08, works |
 
 ## Risks
 
-- **Memory.** The estimate above is over the banks by about a quarter before the savings listed. Phase 3
-  measures the sprites and code.
 - **Speed at 50 fps.** Measured in Phase 4: logic and drawing fit a TV frame on most frames of every track;
   42 fields in the nine races repeat a frame (a gate stepping, cars under a bridge and against walls,
   together).
 - **Keyboard ghosting**: none possible on paper with the chosen nine keys (each in its own column); untried
   on a real BBC with three players (D12).
-- **Main RAM** has 780 bytes free in the play build after Phase 5's room hunt, and `&0900`-`&0AFF` (D26)
-  (`beeb-ram-hunt`).
-- **A filing system in sideways RAM** (MMFS is often loaded that way) leaves 3 banks; the game needs 4 free
+- **Room**: main RAM has 206 bytes free, the `&3000` area 3 and the fourth bank 21 (2026-11-08); the joysticks,
+  or anything else, need room found first (`beeb-ram-hunt`).
+- **A filing system in sideways RAM** (MMFS is often loaded that way; Tom's MMFS run in b2 worked) leaves 3 banks; the game needs 4 free
   (D4), so such a machine is told so at boot.
 - **Unpaged space** is about 13.5K with the OS's memory left alone (D7). If the IRQ, logic and state don't
   fit, HAZEL can be taken, with the OS's copy swapped through a bank (up to 8K); the low pages stay the OS's.
