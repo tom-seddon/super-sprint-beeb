@@ -24,7 +24,7 @@ run() {
 }
 
 run all_tracks tools/all_tracks.sh
-run game_disc sh -c 'make build/zx02 && .venv/bin/python tools/make_game.py build/tracks build/zx02 build/game.ssd'
+run game_disc sh -c 'make build/zx02 && .venv/bin/python tools/make_game.py build/tracks build/zx02 build/game.ssd && .venv/bin/python -P tools/adfs_disc.py build/game.ssd build/game.adl'
 [ -n "$REMOTE" ] && run disc_races tools/disc_races.sh "$OUT/disc_races" &
 run st_frontend .venv/bin/python -P tools/st_frontend.py
 run st_screens .venv/bin/python -P tools/st_screens_check.py
