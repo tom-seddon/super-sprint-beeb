@@ -156,7 +156,7 @@ adds the logic.
   left/centre/right, fire buttons on system VIA PB4/PB5); the Compact's are read differently (Tom, D33). Each
   player needs only left, right and accelerate.
 - **Keyboard ghosting**: the nine keys chosen are each in a matrix column of their own, so none can ghost
-  another (D12).
+  another (D12); none seen on Tom's Master either (2026-11-08).
 - **ADC:** slow conversions (about 10 ms a channel). Poll it from the frame IRQ, not by interrupt.
 - **Sound:** the SN76489's 3 tones and noise against the YM's 3 channels: one engine tone per human car,
   effects taking channels by the ST's priorities, the noise parts on the shared noise channel. The ST's periods
@@ -250,20 +250,34 @@ adds the logic.
 ### After Phase 5: what's left
 - Joysticks (D5): left open, not urgent (Tom, 2026-11-03). The Master 128's two analogue ones, and the
   Compact's, read differently (D33); a choice beside the keys in the options, saved with them.
-- The three-person playtest: three players on the keys on a real BBC (D12's check), and the sparks that repeat
-  up to 4.1% of fields with three humans driving at random (put aside for it, Tom, 2026-11-04;
-  `docs/brief-phase5.md` step 4).
+- The three-person playtest: the sparks that repeat up to 4.1% of fields with three humans driving at random
+  (put aside for it, Tom, 2026-11-04; `docs/brief-phase5.md` step 4). The keys' ghosting is done: none on Tom's
+  Master, "using the keypress indicators, and no clashes noted" (2026-11-08, D12).
+- The default keys less cramped (Tom, 2026-11-08, D12): "I think it'd be worth updating the default key
+  assignments, so that things are a bit less cramped, but I don't have any specific suggestions for the
+  updated assignments yet." Needs looking at; no set chosen. Now Q W E, V B N, `, . /`.
 - The demo's car 3 in its own colours (D20's small file, left out at step 6, Tom's to say when).
 - ~~D16's helicopter chop~~: done 2026-11-08, a rising sweep over the car's blink to its put-back (Tom: "Build C1 (sweep)", "Span the blink").
 - A palette split on prepare to race, so the cars are the right colours (Tom's idea, 2026-11-05).
 - ~~The score pickups' digits~~: done 2026-11-08, black on the yellow box (D34; Tom, after his CRT: "Good, commit").
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
-- For later (Tom, 2026-11-07): does the game build from a fresh clone? Found in passing: a `git worktree` of `HEAD`
-  stopped at `make game`'s first step, as the ZX02 compressor's source is in the kit's submodule
-  (`reference/beeb-port-kit`), not checked out there. Not looked at further: whether a clone with its submodules
-  builds both discs, or needs what only this machine's `build/` holds (the ST's traces, made in Hatari).
-  The kit's `beeb-portable-build` skill is the check for it.
+- For later (Tom, 2026-11-07): does the game build from a fresh clone? Checked 2026-11-08 (be1f910, a clone in a
+  scratch folder, on this machine): yes, given three things by hand, and its discs are byte for byte this
+  checkout's (`game.ssd` 37fd99f7f367a9ff1a9370dd66efd107df2d78a9, `game.adl` 3fc4c18e5d23e4964d9a9673818d35dcb1c76d88),
+  every ST trace made again in Hatari. About 16 minutes from nothing. What it needed:
+  1. The submodules: `--recurse-submodules` stops at `rich/teddyboy` (gone from GitHub, the item below) and
+     leaves the ones after it empty, the kit's among them; `git submodule update --force` on the rest mended it.
+     The build needs only `reference/beeb-port-kit` (ZX02's source).
+  2. `build/trace/logic_t0_r0.json`: `tools/all_tracks.sh` reads it before calling make, so nothing makes it.
+     The Makefile's rule for it works (`make build/trace/logic_t0_r0.json`, a minute).
+  3. `build/st_screens/screens.json`: `tools/screens.py` (via `st_frontend.first_dump`) reads it, and only
+     `tools/game_traces.sh screens screens` makes it (20 s); no Makefile rule. (`screens options` was made too;
+     whether the build needs it isn't checked.)
+  Everything else came by itself: the tracks' dumps, the conversions, the eight race traces, the sound and the
+  tunes. The fix: the two traces as `game`'s prerequisites (a rule for the screens' trace), the submodule out,
+  and the README's prerequisites (now macOS, Python 3.14, Hatari's path): Baron 0.6 on the PATH, a C compiler,
+  and that `tools/hatari.sh` names Hatari's path outright.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
@@ -271,6 +285,12 @@ adds the logic.
   easier to be confident about which build you're playing". Not yet looked at: where it's shown (the credits, the
   options' screen, the "Loading" row), how it gets into the build (the Makefile passing the commit, and whether the
   tree had changes), and that a rebuild of one commit still gives the same disc.
+- For later (Tom, 2026-11-08): take the `rich/teddyboy` submodule out. Its repository has gone from GitHub
+  ("Repository not found" over https; this machine's checkout still has it, cloned over ssh), so a
+  `git clone --recurse-submodules` stops there, and the submodules not yet checked out are left empty (the kit's
+  among them, which the build needs). Tom: "It should be removed from the repo." Only for reference: also
+  `CLAUDE.md`'s list of Rich's projects, and the mentions in `docs/colours.md` (its `zx02.6502`) and
+  `docs/upstream-notes.md`, which stay as history.
 - For later (Tom, 2026-11-08): the suite's load on his laptop. "The test suite is taking a while and my laptop's
   fans are spinning up. Is something being done that could be run on `agentbox` instead?" Not yet measured,
   three places to look: `make game` run by hand before `tools/suite.sh`, which builds the same things again
@@ -300,7 +320,7 @@ adds the logic.
 | D9 | Exactness of the race logic | Decided (Tom, 2026-11-02): bit-exact, checked frame by frame against Hatari |
 | D10 | First track | Decided (Tom, 2026-11-02): track 1 (index 0) |
 | D11 | Sound | Decided (Tom, 2026-11-02): 50 Hz IRQ; captured streams for effects and tunes; engines live |
-| D12 | Keys | Decided in part (Tom, 2026-11-02): layout Proposed (Q W E, V B N, , . /: no ghosting on paper), the real BBC's check deferred (Tom, 2026-11-03: another set if needed); joysticks as an option |
+| D12 | Keys | Decided in part (Tom, 2026-11-02): Q W E, V B N, , . /, no ghosting on paper or on Tom's Master (2026-11-08); less cramped defaults to look at (Tom, 2026-11-08); joysticks as an option |
 | D13 | Mask B's storage | Decided (Tom, 2026-11-02): the mixed cells only, as the priority mask |
 | D14 | The drones' dead accumulators | Decided (Tom, 2026-11-02): dropped (only dead ST code reads them) |
 | D15 | ANDY for the logic's data | Decided (Tom, 2026-11-02): mask B and the logic's state in ANDY |
@@ -328,8 +348,8 @@ adds the logic.
 - **Speed at 50 fps.** Measured in Phase 4: logic and drawing fit a TV frame on most frames of every track;
   42 fields in the nine races repeat a frame (a gate stepping, cars under a bridge and against walls,
   together).
-- **Keyboard ghosting**: none possible on paper with the chosen nine keys (each in its own column); untried
-  on a real BBC with three players (D12).
+- **Keyboard ghosting**: none possible on paper with the chosen nine keys (each in its own column), and none
+  seen on Tom's Master (2026-11-08, D12). A less cramped set, still to choose, needs the same checks.
 - **Room**: main RAM has 222 bytes free, the `&3000` area 267 and the fourth bank 21 (2026-11-08); the joysticks,
   or anything else, need room found first (`beeb-ram-hunt`).
 - **A filing system in sideways RAM** (MMFS is often loaded that way; Tom's MMFS run in b2 worked) leaves 3 banks; the game needs 4 free

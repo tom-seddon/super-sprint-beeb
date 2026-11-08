@@ -180,6 +180,13 @@ player). Not built yet: the joysticks (the Master's ADC and the fire buttons are
 open by Tom 2026-11-03 (D5).
 The real keyboard's gate deferred, Tom, 2026-11-03: "D12: I think this one can wait. If there turn out to be problems with the keys chosen, we can choose a different set." The layout stays as built; a
 problem found later means another set, each key still in a column of its own.
+The real keyboard's gate passed, Tom, 2026-11-08: "I think the current key setup is fine in that respect. I've
+tested it on my Master, using the keypress indicators, and no clashes noted." Still open, Tom, the same day: "I
+think it'd be worth updating the default key assignments, so that things are a bit less cramped, but I don't
+have any specific suggestions for the updated assignments yet." The defaults only: the options' screen (D24)
+redefines them and `SCORES` keeps what was chosen. A new set wants the same checks (`tools/keys_ghost.py`, each
+key in a column of its own or the combinations worked through; `tools/keys_check.mjs`) and another try on Tom's
+Master.
 
 ### D13. Mask B (walls): only the mixed cells: Decided (2026-11-02)
 Proposed for Phase 4's first steps (`docs/brief-phase4.md` §3).
