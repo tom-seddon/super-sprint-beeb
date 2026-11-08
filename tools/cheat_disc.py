@@ -6,9 +6,13 @@
   score gets in: a player knocked out enters initials at the next prepare to race, in a place that depends on how they did. The drones' scores are
   blanked after the circle as ever, so nobody else does. A score that's beaten is pushed down as usual.
 
+Also OUT's ADFS L copy, OUT with .adl (build/cheat.adl), made from it by tools/adfs_disc.py as build/game.adl is.
+
 Usage: cheat_disc.py [N] [OUT]   (N default 8, OUT default build/cheat.ssd; after make game)
 """
-import json, re, sys
+import json, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import adfs_disc
 
 
 def symbol(tree, name):
@@ -59,6 +63,7 @@ def main(n=8, out='build/cheat.ssd'):
 
     open(out, 'wb').write(disc)
     print(f'{out}: {n} wrenches a game, 1 lap a race, a low table')
+    adfs_disc.main(out, os.path.splitext(out)[0] + '.adl')
 
 
 if __name__ == '__main__':
