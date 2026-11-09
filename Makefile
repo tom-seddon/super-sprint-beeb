@@ -55,7 +55,7 @@ GEN = build/gen
 # A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
 .DELETE_ON_ERROR:
 
-.PHONY: all baron venv stfiles disasm tracks convert sheets viewer beeb play game check clean always logictrace hazardtrace hazardrace logic logiccheck
+.PHONY: all baron venv stfiles disasm tracks convert sheets viewer beeb play game check clean always version logictrace hazardtrace hazardrace logic logiccheck
 
 all: disasm convert sheets viewer beeb
 
@@ -210,6 +210,15 @@ $(GEN)/front.6502: tools/screens.py tools/screen_options.py tools/st_frontend.py
 	mkdir -p $(GEN)
 	$(PY) tools/screens.py $(GEN) build/zx02
 
+# The build's version, on the options screen (tools/version.py): the commit's first 5 hex digits, and "m" if the tree
+# has changes. Where there's no git (tools/suite_remote.sh's copy), VERSION is given; with neither, nothing's shown.
+# Made every build, but rewritten only when it changes. `make version` prints it.
+VERSION ?= $(shell git rev-parse --short=5 HEAD 2>/dev/null)$(if $(shell git status --porcelain 2>/dev/null),m)
+$(GEN)/version.6502 $(GEN)/options_version.bin: always | $(VENV) $(STSCREENS)
+	$(PY) tools/version.py $(GEN) '$(VERSION)'
+version:
+	@echo '$(VERSION)'
+
 # The front end's tunes (Phase 5, step 9, D11): captured whole on the ST (about 35 s, in Hatari), converted and packed.
 build/trace/tunes.json: | tools/st_trace_tunes.py tools/hatari.sh $(VENV)
 	$(PY) tools/st_trace_tunes.py $@
@@ -218,7 +227,7 @@ $(GEN)/tunes_fixed.bin: tools/tune_gen.py tools/sound_gen.py tools/ay2sn.py buil
 	$(PY) tools/tune_gen.py build/trace/tunes.json $(GEN)
 $(GEN)/tunes_circle.bin $(GEN)/tunes_fixed.6502: $(GEN)/tunes_fixed.bin
 
-build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(GEN)/tunes_fixed.bin $(GEN)/tunes_fixed.6502 $(LOGICDEPS) $(BARON)
+build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(GEN)/tunes_fixed.bin $(GEN)/tunes_fixed.6502 $(GEN)/version.6502 $(LOGICDEPS) $(BARON)
 	$(BARON) -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
 
 # The game's disc (Phase 5, 3b): every track's play build (tools/all_tracks.sh, which checks their layout),

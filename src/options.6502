@@ -2,7 +2,8 @@
 \\ read where it lands, at FrontPicOrg. Keys and sound for now (D5, D24); the ST steps each car through its devices.
 \\ Each car's three keys are named in the BBC's font (the small font has no punctuation) and shown in inverse while held,
 \\ so a name lit with nobody pressing that key is a clash. F2, F3 and F4 ask for a car's keys again, in PlayerKeys,
-\\ which no load touches. The wording's the small font's. The picture comes from tools/screens.py.
+\\ which no load touches. The wording's the small font's. The picture comes from tools/screens.py. The build's version is in
+\\ the status line's right end, in green (tools/version.py).
 
 OptRows = 3                             ; a car's keys
 OptSlots = 3 * OptRows
@@ -12,6 +13,7 @@ OptNameBytes = 7 * 16                   ; 7 characters, a field's bytes
 OptLineY = 192                          ; the status line: the last cell row
 OptLineAddr = PlayAddr + 24 * 640
 OptNodes = 8 + 13                       ; the matrix's rows and columns
+VersionAddr = OptLineAddr + VersionX DIV 4 * 8   ; the version's first byte, to the line's end
 
 .options_go
 {
@@ -281,7 +283,8 @@ OptNodes = 8 + 13                       ; the matrix's rows and columns
     RTS
 }
 
-\\ The status line cleared and text X written on it. A, X, Y corrupted.
+\\ The status line cleared, the build's version written in its right end, in green, and text X written on it. A, X, Y
+\\ corrupted.
 
 .opt_line
 {
@@ -304,6 +307,22 @@ OptNodes = 8 + 13                       ; the matrix's rows and columns
     DEX
     BNE part
     LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    IF VersionX < 320
+        LDA #LO(VersionX):STA fx
+        LDA #HI(VersionX):STA fx+1
+        LDA #OptLineY:STA fy
+        LDX #OptVersion - OptTexts
+        JSR opt_text                    ; (white: both of a pixel's bits)
+        LDA fshadow:STA &FE34           ; ACCCON
+        ASSERT OptLineAddr + 640 - VersionAddr <= 128, "the version's bytes: counted down by X"
+        LDX #OptLineAddr + 640 - VersionAddr - 1
+.green
+        LDA VersionAddr,X:AND #&0F      ; (a pixel's high bit off: white to green)
+        STA VersionAddr,X
+        DEX
+        BPL green
+        LDA acccon:STA &FE34            ; ACCCON: the main screen written
+    ENDIF
     LDA #24:STA fx
     STZ fx+1
     LDA #OptLineY:STA fy
@@ -404,6 +423,9 @@ OptAll = P% - OptNumbers
     EQUB OptTextPrompt
 .OptUsed
     EQUB OptTextUsed
+.OptVersion
+    EQUB VersionGlyphs
+    ASSERT P% - OptTexts <= 256, "the texts: indexed by X"
 
 .OptCar                                 ; the car being asked about
     SKIP 1

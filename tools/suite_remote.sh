@@ -30,7 +30,9 @@ rsync -a build/gfx build/st_screens "$REMOTE:$DIR/build/" || exit 1
 rsync -a --exclude='obj_*' --exclude='*_room.json' --include='*.json' --exclude='*' \
     build/trace/ "$REMOTE:$DIR/build/trace/" || exit 1
 [ -f build/prof/seeds.txt ] && { rsync -a build/prof/seeds.txt "$REMOTE:$DIR/build/prof/" || exit 1; }
-ssh -o ServerAliveInterval=30 "$REMOTE" "cd $DIR && rm -rf out/suite && HATARI=/usr/bin/false REMOTE= MACHINES=${MACHINES:-14} MODELS=${MODELS:-12} sh tools/suite.sh out/suite $2 > out/suite.log 2>&1; echo \$? > out/suite.status"
+# the build's version, git's here: there's no .git there (the Makefile's VERSION)
+version=$(make -s version) || exit 1
+ssh -o ServerAliveInterval=30 "$REMOTE" "cd $DIR && rm -rf out/suite && VERSION='$version' HATARI=/usr/bin/false REMOTE= MACHINES=${MACHINES:-14} MODELS=${MODELS:-12} sh tools/suite.sh out/suite $2 > out/suite.log 2>&1; echo \$? > out/suite.status"
 [ $? = 0 ] || exit 1
 mkdir -p "$OUT"
 rsync -a "$REMOTE:$DIR/out/suite/" "$OUT/" || exit 1

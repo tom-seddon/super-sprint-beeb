@@ -12,6 +12,7 @@ INCLUDE "macros.6502"
 INCLUDE "../build/gen/trace.6502"       ; (GenLogic: the race drawn from the logic, Phase 4 step 8)
 INCLUDE "../build/gen/font.6502"        ; the HUD's glyphs (Font: in Shared in the game, main RAM in the test)
 INCLUDE "../build/gen/tunes_fixed.6502" ; TunesFixedLen
+INCLUDE "../build/gen/version.6502"     ; the build's version (VersionGlyphs, VersionX: options.6502)
 
 IF GenLogic
     INCLUDE "../build/gen/logickeys.6502"

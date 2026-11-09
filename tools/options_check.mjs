@@ -53,7 +53,10 @@ for (const [code, want] of Object.entries(named)) {
 }
 
 // what the screen should hold
-const frame = readFileSync("build/gen/options.bin"), lines = Object.fromEntries(["on", "off", "clash"].map((n) => [n, readFileSync(`build/gen/options_${n}.bin`)]));
+// (each status line with the build's version in its right end, green: tools/version.py's, which nothing else draws there)
+const version = readFileSync("build/gen/options_version.bin");
+const frame = readFileSync("build/gen/options.bin"), lines = Object.fromEntries(["on", "off", "clash"].map((n) =>
+    [n, readFileSync(`build/gen/options_${n}.bin`).map((b, i) => b | version[i])]));
 const font = (c) => peek(0xb900 + (c - 32) * 8, 8);
 const romFont = (() => {        // the MOS's font, from ROM 15
     const out = [];
