@@ -665,3 +665,6 @@
   reads F1 (Tom: "The Prepare to Race screen doesn't appear to respond to the f1 key?": it's `wait`, the attract
   mode's, that reads it, not `fields`). `keys_check` now presses the keys by jsbeeb's own matrix table, as Caps Lock
   and the keypad have no host keys of their own there; it and `options_check` pass.
+  Then white back on Q, W, E (Tom: "This will ensure the game is playable out of the box in single player mode with
+  the default keys on jsbeeb"): jsbeeb has no host key for Caps Lock. With Q, W, E nothing ghosts at all, F1 and
+  Escape included.

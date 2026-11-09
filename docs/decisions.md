@@ -211,6 +211,11 @@ an eye out for it when testing." (And, on the Compact: "the Master Compact defin
 its keypad's numbers are taken to be the Master 128's, not measured.) Built: `keyboard.6502`'s defaults,
 `keys_check` (each key pressed by jsbeeb 2.18.0's own matrix table, so the numbers are jsbeeb's: 64, 1, 65, 102, 103,
 104, 123, 26, 75), `options_check`.
+Then white back on Q, W, E, Tom, the same day: "due to the jsbeeb comment, I am going to propose a change: revert the
+white car's default keys back to the original Q/W/E. This will ensure the game is playable out of the box in single
+player mode with the default keys on jsbeeb." (jsbeeb has no host key for Caps Lock: it maps a PC's Caps Lock to the
+BBC's CTRL in one of its layouts.) With Q, W, E the model finds no ghost at all, of the nine or of any other key the
+game reads, so F1's and Escape's are gone too.
 
 ### D13. Mask B (walls): only the mixed cells: Decided (2026-11-02)
 Proposed for Phase 4's first steps (`docs/brief-phase4.md` §3).
