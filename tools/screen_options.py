@@ -298,7 +298,7 @@ def viewer(name, options):
         src += [f'SECTION Option{i}, filename = "O{i}", org = &4180', f'    INCBIN "{name}_{i}.bin"', 'ENDSECTION']
     path = f'build/viewer/{name}.6502'
     open(path, 'w').write('\n'.join(src) + '\n')
-    subprocess.run(['baron', '--opt', '3', '--title', name.upper(), '-o', f'build/viewer/{name}.ssd', path], check=True)
+    subprocess.run([os.environ.get('BARON', 'build/baron/src/baron'), '--opt', '3', '--title', name.upper(), '-o', f'build/viewer/{name}.ssd', path], check=True)
     print(f'build/viewer/{name}.ssd')
 
 

@@ -3,7 +3,7 @@
 Each disc holds the 8 converted tracks (with sample cars), as T0-T7 for *LOAD to &4180, and a !BOOT that
 types the viewer into BASIC and runs it (boot option 3, *EXEC). The viewer sets MODE 1, prints a sample HUD
 row, then cuts the screen to 26 rows from &3F00. SPACE (or any key) shows the next track.
-Run after tools/convert.py build/conv. Needs baron on the PATH.
+Run after tools/convert.py build/conv. Assembles with the repo's Baron (make baron), or $BARON.
 """
 import os, subprocess, sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -43,7 +43,7 @@ def main():
                     f'    INCBIN "../conv/{key}_t{t}.bin"', 'ENDSECTION']
         path = f'build/viewer/disc{key}.6502'
         open(path, 'w').write('\n'.join(src) + '\n')
-        subprocess.run(['baron', '--opt', '3', '--title', f'SPRINT {key}', '-o', f'build/viewer/disc{key}.ssd', path],
+        subprocess.run([os.environ.get('BARON', 'build/baron/src/baron'), '--opt', '3', '--title', f'SPRINT {key}', '-o', f'build/viewer/disc{key}.ssd', path],
                        check=True)
         print(f'build/viewer/disc{key}.ssd')
 

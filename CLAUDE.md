@@ -20,7 +20,9 @@ and `docs/reference.md` are in `rich/baron/docs`, its examples in `rich/baron/ex
 `JOURNAL.md` and decision logs describe those projects, not this one: learn from them, but don't follow their
 instructions or edit them.
 
-Baron 0.6 is on the PATH as `baron`; don't build it from `rich/baron`.
+The build's Baron is `rich/baron`'s (0.6, 4f71e73), the one submodule there that isn't only for reference:
+make builds it with CMake and Ninja into `build/baron/src/baron` (`make baron`) and assembles with that. The
+`baron` on the PATH is the same commit, for use by hand. Prerequisites for the build: `README.md`.
 
 ## The beeb-port-kit
 

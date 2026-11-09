@@ -55,9 +55,18 @@ GEN = build/gen
 # A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
 .DELETE_ON_ERROR:
 
-.PHONY: all venv disasm tracks convert sheets viewer beeb play game check clean always logictrace hazardtrace hazardrace logic logiccheck
+.PHONY: all baron venv stfiles disasm tracks convert sheets viewer beeb play game check clean always logictrace hazardtrace hazardrace logic logiccheck
 
 all: disasm convert sheets viewer beeb
+
+# Baron, the assembler: the submodule rich/baron built with CMake and Ninja into build/baron, so the build doesn't
+# depend on one on the PATH. Ninja runs on every make (a no-op in a fraction of a second when nothing has changed,
+# leaving the binary's time alone, so nothing downstream rebuilds), so a submodule update is picked up.
+BARON = build/baron/src/baron
+$(BARON): always
+	@[ -f build/baron/build.ninja ] || cmake -S rich/baron -B build/baron -G Ninja -DCMAKE_BUILD_TYPE=Release
+	@cmake --build build/baron
+baron: $(BARON)
 
 # The Python virtual environment (git-ignored), made on first use and refreshed when requirements.txt changes.
 venv: $(VENV)
@@ -87,7 +96,7 @@ sheets: convert | $(VENV)
 	$(PY) tools/compare_sheets.py
 
 # Bootable viewer discs, one per option: build/viewer/disc<option>.ssd.
-viewer: convert | $(VENV)
+viewer: convert $(BARON) | $(VENV)
 	$(PY) tools/make_viewer.py
 
 # The ST's attract race on track 6: the four cars' places and frames, every frame (Hatari, about 15 s).
@@ -136,8 +145,8 @@ build/lgen/tracefile: always
 build/lgen/tables.6502: tools/gen_logic.py tools/logic_maps.py tools/maskb.py build/super.s $(LOGICTRACE) build/lgen/tracefile | $(VENV)
 	$(PY) tools/gen_logic.py $(LOGICTRACE) build/lgen
 logic: build/logic.ssd
-build/logic.ssd: $(wildcard src/*.6502) build/lgen/tables.6502 build/lgen/sound.6502
-	baron -v --symbols build/logic.json -o $@ --opt 2 src/logictest.6502 > build/logic.lst
+build/logic.ssd: $(wildcard src/*.6502) build/lgen/tables.6502 build/lgen/sound.6502 $(BARON)
+	$(BARON) -v --symbols build/logic.json -o $@ --opt 2 src/logictest.6502 > build/logic.lst
 # The race's sound (step 10, D11): the ST's sound captured in Hatari (about 40 s each: the logic race, it with
 # oil poked across the start, the hazard race), and the effects cut from them and converted for the SN76489.
 build/trace/sound_t0_r0.json: tools/st_trace_sound.py tools/hatari.sh tools/logic_scripts/t0.json | $(VENV)
@@ -166,7 +175,7 @@ build/trace/race_t0_r0_script.json: tools/st_trace_objects.py tools/st_race.py t
 	$(PY) tools/st_trace_objects.py 0 0 build/trace/obj_t0_r0_script.json - tools/logic_scripts/t0.json
 	$(PY) tools/st_race.py build/trace/obj_t0_r0_script.json $@
 
-# The renderer test's data, and its disc. Baron 0.6 is on the PATH. $(GEN)/tracefile names the trace the
+# The renderer test's data, and its disc, assembled by $(BARON). $(GEN)/tracefile names the trace the
 # data was made from, so playing another (TRACEFILE=...) remakes it, and so does coming back.
 $(GEN)/tracefile: always
 	@mkdir -p $(GEN)
@@ -201,8 +210,8 @@ $(GEN)/tunes_fixed.bin: tools/tune_gen.py tools/sound_gen.py tools/ay2sn.py buil
 	$(PY) tools/tune_gen.py build/trace/tunes.json $(GEN)
 $(GEN)/tunes_circle.bin: $(GEN)/tunes_fixed.bin
 
-build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(GEN)/tunes_fixed.bin $(LOGICDEPS)
-	baron -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
+build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(GEN)/tunes_fixed.bin $(LOGICDEPS) $(BARON)
+	$(BARON) -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
 
 # The game's disc (Phase 5, 3b): every track's play build (tools/all_tracks.sh, which checks their layout),
 # then track 1's as it boots and a packed file for each track's slots (tools/make_game.py). The compressor is
@@ -217,6 +226,18 @@ game: build/zx02 | $(VENV) build/trace/logic_t0_r0.json
 	tools/all_tracks.sh
 	$(PY) tools/make_game.py build/tracks build/zx02 build/game.ssd
 	$(PY) tools/adfs_disc.py build/game.ssd build/game.adl
+
+# The ST's files the game's build reads, all made in the original running in Hatari (docs/st-traces.md): `make
+# stfiles` makes any missing, and build/stfiles.tar.gz packs them, for a machine where Hatari doesn't run, to be
+# unpacked there in the repo root with `tar -xmzf` (-m: their times the unpacking's, so newer than a fresh clone's
+# tools, which would otherwise have them made again).
+STFILES = build/gfx/bg_t7.npy $(foreach t,0 1 2 3 4 5 6 7,build/trace/race_t$(t)_r$(RACE).json) \
+	build/trace/race_t0_r0_script.json build/trace/logic_t0_r0.json $(SOUNDCAPS) build/trace/tunes.json $(STSCREENS)
+stfiles: $(STFILES)
+build/stfiles.tar.gz: $(STFILES)
+	tar -czf $@ build/gfx/bg_t?.npy build/gfx/mask?_t?.npy $(filter build/trace/%,$(STFILES)) $(STSCREENS) \
+		build/st_screens/*_[01].bin
+	ls -l $@
 
 # The model each frame's play area is checked against, and the check.
 CUETRACE = $(if $(filter --logic,$(GENFLAGS)),$(LOGICTRACE))

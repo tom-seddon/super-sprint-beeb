@@ -4,7 +4,7 @@
 # Debugger scripts: --parse file. Exit after N frames: --run-vbls N.
 set -e
 cd "$(dirname "$0")/.."
-HATARI=/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari
+HATARI=${HATARI:-/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari}   # (elsewhere: HATARI=...)
 mkdir -p build/stdisk
 cp -R orig/st/ build/stdisk/
 limit=$1; shift
