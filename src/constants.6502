@@ -20,6 +20,11 @@ ScreenHSyncPos = 98
 ScreenVSyncPos = 31
 ScreenVTotal = 39                       ; character rows a field (R4 + 1): 312 lines
 
+\\ R0-R13 as a load has them: the HUD's row alone shown, saying "Loading", the cursor off. The boot sets them
+\\ (boot.6502), so "Loading" is up from the start, and the game's loader leaves them so (entry.6502)
+
+CrtcLoad = {127, 80, ScreenHSyncPos, &28, ScreenVTotal - 1, 0, 1, ScreenVSyncPos, &C0, 7, 32, 7, HI(HudAddr DIV 8), LO(HudAddr DIV 8)}
+
 \\ The Video ULA: MODE 1's control register, and the palette (D1, option B): black, green, yellow, white
 
 UlaMode1 = &D8

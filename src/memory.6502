@@ -30,8 +30,9 @@
 \\          trace's bank: the helicopter, then the ST race's cars and objects. The objects' bank: the background objects'
 \\          bytes (gates, barriers, pickups)
 \\
-\\ While loading: !BOOT at &1200, the banks' files loaded at &3000 and copied in, SPRINT loaded at &3000
-\\ (Shared at its place, then main RAM's code's image) and its loader copying main RAM's code down to &0E00.
+\\ While loading: !BOOT at &1200, showing "Loading" in the shadow screen (D35), the banks' files loaded at &3000 in
+\\ main RAM and copied in, SPRINT loaded at &3000 (Shared at its place, then main RAM's code's image) and its loader
+\\ copying main RAM's code down to &0E00.
 
 ZA_POOL &04..&7B, &FD..&FF              ; &FC: the MOS's IRQ entry saves A there
 

@@ -18,7 +18,7 @@
 
 RACES="r1 r2 r4 r17 r50 h012 h12 h01 h02"     # (and demo0 demo17: state only, so no models)
 ROTATIONS=${ROTATIONS:-0 1 2 3 4 5 6 7 8 9 10}
-CHECKS="game_check attract_check flash_check options_check select_check upgrades_check circle_check initials_check tune_check save_check load_check"
+CHECKS="boot_check game_check attract_check flash_check options_check select_check upgrades_check circle_check initials_check tune_check save_check load_check"
 
 if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools/disc_races.sh jobs OUT)
     export OUT=$2                       # (not in the command: BSD xargs -I cuts an argument at 255 bytes)
@@ -32,6 +32,7 @@ if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools
       echo tune_off tune_check --off
       echo game_adfs game_check --adfs
       echo load_adfs load_check --adfs
+      echo boot_adfs boot_check --adfs
     } | xargs -P ${MACHINES:-4} -L 1 sh -c 'n=$0; t=$1; shift; node tools/$t.mjs "$@" > "$OUT/$n.log" 2>&1; echo $? > "$OUT/$n.status"'
     exit 0
 fi
@@ -58,7 +59,7 @@ done
 grep -a '^track .*loaded' "$OUT/probe.log"; status probe
 grep -a 'after the end' "$OUT/silence.log"; status silence
 grep -a '^control\|^car \|^all \| entries not' "$OUT/probes.log"; status probes
-for c in $CHECKS tune_off game_adfs load_adfs; do
+for c in $CHECKS tune_off game_adfs load_adfs boot_adfs; do
     echo "$c: $(grep -av '^\[jsbeeb\|^Loading' "$OUT/$c.log" | tail -1)"
     status $c
 done

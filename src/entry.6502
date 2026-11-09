@@ -5,6 +5,7 @@
 \\ is left as it was (D7) but IRQ1V; its NMIs are claimed, so a network filing system stops listening.
 
 ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where it's copied to"
+LoadingChars = {'L', 'o', 'a', 'd', 'i', 'n', 'g'}   ; loadcode.6502's LoadingText, as the boot writes it
 
 \\ Take the machine over and start the frame loop.
 \\
@@ -28,7 +29,8 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     SEI
     LDX #&FF:TXS
 
-    \\ the CRTC: MODE 1's, 26 rows from HudAddr, the display off until start's drawn both screens
+    \\ the CRTC: MODE 1's, 26 rows from HudAddr, the display off until start's drawn both screens; in the game,
+    \\ as the boot left it, the HUD's row alone shown, saying "Loading", until the first load's over
 
     LDX #13
 .crtc
@@ -60,6 +62,39 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     INC copy+5
     DEX
     BNE copy
+    IF GenPlay
+
+        \\ "Loading" in the main screen's HUD row as the boot put it in the shadow screen's, shown (main RAM's
+        \\ code's image was there, copied down now): the row cleared, the play area's first row and a half too,
+        \\ then the MOS's font, white, as loadcode.6502's row_char draws it. So nothing's seen to change when
+        \\ game_go shows the main screen. (Not copied from the shadow screen: while ACCCON's X shows it, this
+        \\ code's own place is hidden.)
+
+        ASSERT maincode_image <= HudAddr AND HudAddr + &300 <= maincode_end, "the HUD's row: in main RAM's code's image"
+        LDA #0:TAX
+.row
+        STA HudAddr,X
+        STA HudAddr+&100,X
+        STA HudAddr+&200,X
+        INX
+        BNE row
+        LDA #RomFontBank:STA &FE30      ; ROMSEL: the MOS's font (interrupts off)
+        FOR i = 0..LEN(LoadingChars)-1
+            LDX #7
+.@
+            LDA RomFont + (LoadingChars[i] - ' ') * 8,X
+            AND #&F0:STA HudAddr + i * 16,X ; its left 4 pixels, each 3: high and low bits
+            LSR A:LSR A:LSR A:LSR A
+            ORA HudAddr + i * 16,X:STA HudAddr + i * 16,X
+            LDA RomFont + (LoadingChars[i] - ' ') * 8,X
+            AND #&0F:STA HudAddr + i * 16 + 8,X ; its right 4
+            ASL A:ASL A:ASL A:ASL A
+            ORA HudAddr + i * 16 + 8,X:STA HudAddr + i * 16 + 8,X
+            DEX
+            BPL @-
+        NEXT
+        LDA &F4:STA &FE30               ; ROMSEL: as the OS has it
+    ENDIF
     IF GenPlay                          ; the OS's state kept for the loads (load.6502), before the game
         CLI                             ; writes any of zero page's &90-&FF
         JSR scores_load                 ; (LowFree its buffer, before load_takeover fills it)
@@ -162,6 +197,9 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
 }
 
 .CrtcRegs                               ; R0-R13
+IF GenPlay
+    EQUB CrtcLoad                       ; as the boot left them (constants.6502)
+ELSE
     EQUB 127                            ; R0: horizontal total
     EQUB 80                             ; R1: displayed
     EQUB ScreenHSyncPos                 ; R2: sync position
@@ -176,6 +214,7 @@ ASSERT maincode_image >= GameVarsEnd, "main RAM's code's image lies above where 
     EQUB 7                              ; R11: cursor end
     EQUB HI(HudAddr DIV 8)              ; R12: screen start, high
     EQUB LO(HudAddr DIV 8)              ; R13: screen start, low
+ENDIF
 
 .PalVals                                ; palette entry e is logical e DIV 8 * 2 + e DIV 2 MOD 2's (MODE 1)
     EQUB (0..15) * 16 + (PalPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)

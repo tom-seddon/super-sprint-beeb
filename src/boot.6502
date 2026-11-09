@@ -1,12 +1,16 @@
-\\ boot.6502 - !BOOT, *RUN by SHIFT-BREAK (*OPT 4,2): checks for a Master 128, finds the sideways RAM, copies
-\\ each bank's file into its bank, loads SPRINT and runs it. The OS stays alive; this file is assembled on
-\\ its own, in NMOS code, so a Model B gets the error.
+\\ boot.6502 - !BOOT, *RUN by SHIFT-BREAK (*OPT 4,2): checks for a Master 128, finds the sideways RAM, puts
+\\ the game's screen up saying "Loading", copies each bank's file into its bank, loads SPRINT and runs it. The
+\\ OS stays alive; this file is assembled on its own, in NMOS code, so a Model B gets the error.
+
+INCLUDE "constants.6502"
 
 bankbg = &00                            ; the banks found, for the game (memory.6502's): the background's,
 bankcars = &01                          ; the cars', the trace's, the objects' (BASIC's zero page, written
 banktrace = &02                         ; once nothing can fail)
 bankobj = &03
 BanksNeeded = 4
+LoadingRow = (HudAddr - &3000) DIV RowBytes   ; the OS's text row at HudAddr, in MODE 1 from &3000
+ASSERT &3000 + LoadingRow * RowBytes == HudAddr, "the HUD's row is one of the OS's"
 
 BootOrg = &1200                         ; below where the files load
 LoadAddr = &3000                        ; where a bank's file loads, to be copied in, and SPRINT
@@ -62,6 +66,37 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     EQUS "Super Sprint needs ", AS_STRING(BanksNeeded * 16), "K of free sideways RAM", 0
     ZA_UNREACHABLE                      ; the BRK doesn't come back
 .found
+    PLA:PHA:STA &F4:STA &FE30           ; ROMSEL: the ROM back, while the OS draws
+
+    \\ the screen as a load has it, in shadow RAM, so the files can land in main RAM's &3000-&7FFF (a load to
+    \\ &FFFF3000 goes to main RAM while the shadow screen's shown): MODE 129, the game's palette, the CRTC's
+    \\ registers in the blank (the HUD's row alone shown: R6 changed past its row misses it), and "Loading" in
+    \\ the HUD's row, in the MOS's font as the loads write it (loadcode.6502's row_text). A disc error goes back
+    \\ to MODE 7 to be read
+
+    LDX #0
+.vdu
+    LDA BootVdu,X:JSR &FFEE             ; OSWRCH
+    INX
+    CPX #BootVduCrtc - BootVdu
+    BNE vdu
+    LDA #19:JSR &FFF4                   ; OSBYTE 19: vsync
+    LDY #13
+.crtc
+    STY &FE00                           ; CRTC: the register
+    LDA BootCrtc,Y:STA &FE01            ; CRTC: its value
+    DEY
+    BPL crtc
+    LDX #BootVduCrtc - BootVdu          ; (OSBYTE 19 corrupts X)
+.text
+    LDA BootVdu,X:JSR &FFEE             ; OSWRCH
+    INX
+    CPX #BootVduEnd - BootVdu
+    BNE text
+    LDA &202:STA OldBrk                 ; BRKV: boot_brk's
+    LDA &203:STA OldBrk+1
+    LDA #LO(boot_brk):STA &202
+    LDA #HI(boot_brk):STA &203
 
     \\ each bank's file loaded at LoadAddr (its catalogue's address, so OSFILE's write-back leaves the block
     \\ ready for the next) and copied into its bank, all 16K
@@ -82,11 +117,30 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     LDA #HI(SprintName):STA OsfileBlock+1
     LDA #&FF:STA OsfileBlock+6
     LDX #LO(OsfileBlock):LDY #HI(OsfileBlock):JSR &FFDD ; OSFILE: load (A = &FF)
+    LDA OldBrk:STA &202                 ; BRKV: the OS's again
+    LDA OldBrk+1:STA &203
     FOR i = 0..BanksNeeded-1
         LDA banks+i:STA bankbg+i
     NEXT
     JMP (OsfileBlock+6)                 ; SPRINT's entry
     ZA_CANJUMP LoadAddr                 ; (another assembly's code, in the file loaded there)
+}
+
+\\ BRKV while the files load: MODE 7, then the OS's handler, so a disc error can be read.
+\\
+\\ Inputs:
+\\     the error, as the OS gives it
+\\
+\\ Outputs:
+\\     none: it goes on to the OS's handler
+
+.boot_brk
+{
+    ZA_ENTRY
+    LDA #22:JSR &FFEE                   ; OSWRCH: MODE 7
+    LDA #7:JSR &FFEE
+    JMP (OldBrk)                        ; the OS's BRKV
+    ZA_CANJUMP &8000                    ; (not this assembly's: the language's handler, in its ROM)
 }
 
 \\ The 16K at LoadAddr copied to the bank paged in.
@@ -115,6 +169,19 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     RTS
 }
 
+.BootVdu                                ; MODE 129, the palette, the cursor off,
+    EQUB 22, 129
+    FOR l = 0..3
+        EQUB 19, l, PalPhys[l], 0, 0, 0
+    NEXT
+    EQUB 23, 1, 0, 0, 0, 0, 0, 0, 0, 0
+.BootVduCrtc                            ; then, once the CRTC's set, "Loading" in the HUD's row
+    EQUB 31, 0, LoadingRow
+    EQUS "Loading"
+.BootVduEnd
+.BootCrtc                               ; R0-R13
+    EQUB CrtcLoad
+
 .BankNames                              ; the banks' files, each 7 letters and a CR
     EQUS "SPRINTA", 13
     EQUS "SPRINTB", 13
@@ -123,6 +190,9 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     ASSERT P% - BankNames == BanksNeeded * 8, "a name for each bank"
 .SprintName
     EQUS "SPRINT", 13
+.OldBrk                                 ; BRKV as the OS had it
+    SKIP 2
+    ASSERT LO(OldBrk) != &FF, "JMP (OldBrk): not across a page (NMOS)"
 .OsfileBlock                            ; OSFILE's block: the name, then the load address
     EQUW 0
     EQUD &FFFF0000 + LoadAddr           ; (in the I/O processor, Tube or no Tube)

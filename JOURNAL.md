@@ -562,3 +562,13 @@
   is black as in a race, 29 pixels from the ST's own frames. In jsbeeb, the first demo's screenshots differ from the
   old disc's only at car 3, which has lost its green. `make check TRACE=attract`, which draws car 3 from its own
   frames: all 572 frames match.
+- **"Loading" from the boot's start** (2026-11-09, Tom's idea): D35. `!BOOT` sets up the game's screen in shadow
+  MODE 1 with "Loading" in the HUD's row before it loads anything, and the files load into main RAM behind it. SPRINT's
+  loader draws the same row into the main screen before showing it, and a load redraws its row after a vsync.
+  `tools/boot_check.mjs`, in the suite on both discs, watches every field from SHIFT-BREAK to the title's file. On
+  the old disc it fails: "Loading" first appears 470 fields after `!BOOT` starts. Now it's 9, and nothing changes
+  until the file's in. **Mistakes, mine**: my first loader copied the row out of the shadow screen with ACCCON's X
+  set, which hid the loader's own code from the CPU (as `entry.6502` says above `shared_copy`), and the game crashed;
+  the check caught it. And building the old disc for that comparison left it in `build/`, so my first disc-error
+  test ran on the old boot. On the new one, a missing bank file goes back to MODE 7 and says "Not found". Tom, on
+  his Master: "Looks much better".

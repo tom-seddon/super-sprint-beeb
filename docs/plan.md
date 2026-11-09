@@ -261,6 +261,8 @@ adds the logic.
 - ~~D16's helicopter chop~~: done 2026-11-08, a rising sweep over the car's blink to its put-back (Tom: "Build C1 (sweep)", "Span the blink").
 - A palette split on prepare to race, so the cars are the right colours (Tom's idea, 2026-11-05).
 - ~~The score pickups' digits~~: done 2026-11-08, black on the yellow box (D34; Tom, after his CRT: "Good, commit").
+- ~~"Loading" from the boot's start~~: done 2026-11-09, the boot's MODE 1 in shadow RAM while the files load (D35, Tom's
+  idea; on his Master: "Looks much better").
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
 - ~~Does the game build from a fresh clone?~~ (Tom, 2026-11-07): yes, done 2026-11-09. `git clone
@@ -344,6 +346,7 @@ adds the logic.
 | D32 | An ADFS disc | Decided (Tom, 2026-11-07): `build/game.adl`, ADFS L, beside the DFS disc |
 | D33 | The Master Compact | Decided (Tom, 2026-11-07): a target; tried by Tom 2026-11-08, works |
 | D34 | The score pickups' digits | Agreed (Tom, 2026-11-08): black on the yellow box, seen on his CRT |
+| D35 | "Loading" from the boot's start | Agreed (Tom's, 2026-11-09): the boot's shadow screen says it while the files load; on his Master, "Looks much better" |
 
 ## Risks
 

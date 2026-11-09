@@ -47,10 +47,11 @@
     LDA #143:LDX #11:LDY NmiOwner:JSR &FFF4 ; OSBYTE 143: the NMIs back to who had them
 
 .again
-    JSR row_clear
+    LDA #19:JSR &FFF4                   ; OSBYTE 19, vsync: the row's redrawn before it's next shown (at the
+    JSR row_clear                       ; first load it says "Loading" already, from the boot)
     LDX #LoadingText - LoadTexts:JSR row_text
     LDA #8:STA &FE00                    ; CRTC: R8
-    LDA #&C0:STA &FE01                  ; display on, cursor off (at the first load, it's been off since the boot)
+    LDA #&C0:STA &FE01                  ; display on, cursor off
 .another
     LDX #17                             ; OSFILE's block: the name, the load address (the host's), exec's
     LDA #0                              ; low byte 0 (the address given); OSFILE writes the catalogue's back,

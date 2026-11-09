@@ -479,3 +479,22 @@ So: the digits black, the box yellow and its top and right edge white, in all 16
 `slot_bbc` marks a bonus sprite's digits as colour 16 (its white pixels in rows 1-6 left of the right edge, the
 top row's last white pixel), option B's map makes 16 black; `gendata.py` and `render_model.py` both use it. The
 same bytes: no room changes. Tom, asked how they look on his CRT: "Good, commit"; agreed.
+
+### D35. "Loading" from the boot's start: Agreed (2026-11-09)
+Tom, 2026-11-09: "At the moment, when booting the disk, the computer sits at the startup prompt for a while as
+things load. Then it switches to MODE 1, prints `Loading`, and does a little bit more loading, and then the title
+screen appears. I think it'd be tidier if it switched to MODE 1 right at the start, set up the display, printed
+`Loading`, and then did all the loading. Shadow RAM could be used to show the message, if main RAM is needed for
+loading data." The prompt stayed up because `!BOOT` loads the four banks' 16K files at `&3000`, in the main screen.
+Now `!BOOT`, once the machine and the sideways RAM have been checked, selects MODE 129 (shadow MODE 1), sets the
+game's palette and the CRTC as a load has them (the HUD's row alone shown: `CrtcLoad`, `src/constants.6502`), and
+prints "Loading" through the OS at its text row 6, which is `HudAddr`, in the MOS's font as the loads draw it. The
+files then load into main RAM: a load to `&FFFF3000` goes there while the shadow screen's shown (measured in jsbeeb:
+`*LOAD SPRINTA FFFF3000` after `MODE 129` left SPRINTA's bytes in main RAM and the screen as it was). SPRINT's loader
+keeps that CRTC and draws "Loading" into the main screen's row from the MOS's font before `game_go` shows that screen,
+and a load redraws its row after a vsync, so nothing's seen to change until the title's file is in. A disc error
+while the boot loads goes back to MODE 7 first (`boot_brk`), so it can be read. In jsbeeb on DFS, "Loading" now
+comes 9 fields after `!BOOT` starts, where it came 470 fields (9.4 s) after; the title's file loads 1 field later.
+Costs 5 bytes of the first 4K (the vsync wait in the load's code); `!BOOT` and the loader aren't resident.
+`tools/boot_check.mjs` (in the suite, both discs) watches every field. Tom, on his Master: "Looks much better";
+agreed.
