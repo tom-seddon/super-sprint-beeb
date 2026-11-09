@@ -572,3 +572,11 @@
   the check caught it. And building the old disc for that comparison left it in `build/`, so my first disc-error
   test ran on the old boot. On the new one, a missing bank file goes back to MODE 7 and says "Not found". Tom, on
   his Master: "Looks much better".
+- **Track 1's parts cut from the boot's files** (2026-11-09): Tom noticed SPRINTA held track 1's whole background. The
+  disc is made from track 1's play build, and SPRINTA ended in its `BgSlot` (16,000 bytes), SPRINTB in its
+  `PrioSlot` (2,105). Neither is ever read: `game_go` copies the game's and front end's code over three quarters of the
+  background at the boot, prepare's file is parked in the priority cells, and every race loads its track's file first.
+  Tom: "Yes, cut them". `make_game.py` now cuts a bank's file where a slot at its end starts (SPRINTA 384 bytes,
+  SPRINTB 12,067); the boot still copies 16K. `boot_check`: the title's file in at field 563, not 654, on DFS (1.82 s),
+  759 not 840 on ADFS L (1.62 s); `load_check`: all 8 tracks load right. The DFS disc 701 sectors to 633. On Tom's
+  Master: "it looks good".

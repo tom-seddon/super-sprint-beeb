@@ -9,6 +9,10 @@ track's slots as its build has them, for tools/load_check.mjs.
 A track's file: a byte, the parts' count; 6 bytes a part (where: 0-3 the bank, as bankbg on, | &80 ANDY, or
 &40 Shared; its address, low and high; its stream's offset in the file, low and high; 0); then the streams.
 Each stream is round-tripped through the kit's zx02.py before it's written, and the file must fit below the load's code.
+
+A bank's file that ends in a slot (SPRINTA in the background, SPRINTB in the priority cells) ends where the slot
+starts instead: every race loads its track's file first, and until then nothing reads it (game_go's code goes over
+SPRINTA's at the boot, prepare's file is parked in SPRINTB's). The boot copies the whole 16K regardless.
 """
 import hashlib, json, os, sys
 
@@ -43,6 +47,16 @@ def slots(d, n):
     return out
 
 
+def cut(files, parts):
+    """files' banks' files that end in a slot cut where it starts (each slot's end the file's end, latest first)."""
+    bank = {v: k for k, v in T.Files.items()}
+    for name, sec, a, raw in sorted(parts, key=lambda p: -p[2]):
+        f = bank.get(sec)
+        if f and a - 0x8000 + len(raw) == len(files[f].data):
+            print(f'{f}: {len(files[f].data):,} bytes cut to {a - 0x8000:,}, at {name} (a track file\'s)')
+            files[f].replace(files[f].data[:a - 0x8000])
+
+
 def track_file(d, n, zx02):
     parts = slots(d, n)
     streams = [dfs.compress(raw, exe=zx02, name=f'track {n + 1} {name}') for name, _, _, raw in parts]
@@ -63,6 +77,7 @@ def main(d, zx02, out):
     want = [[{'name': name, 'section': sec, 'address': a, 'bytes': raw.hex()} for name, sec, a, raw in slots(d, n)]
             for n in range(8)]
     json.dump(want, open(os.path.splitext(out)[0] + '_slots.json', 'w'))   # (tools/load_check.mjs's answers)
+    cut(files, slots(d, 0))
     for n in range(8):
         data, sizes = track_file(d, n, zx02)
         files[f'TRACK{n + 1}'] = dfs.Entry(f'TRACK{n + 1}', data, 0xFF0000 | FileAddr, 0xFF0000, '$', False)

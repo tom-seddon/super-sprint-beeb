@@ -263,6 +263,9 @@ adds the logic.
 - ~~The score pickups' digits~~: done 2026-11-08, black on the yellow box (D34; Tom, after his CRT: "Good, commit").
 - ~~"Loading" from the boot's start~~: done 2026-11-09, the boot's MODE 1 in shadow RAM while the files load (D35, Tom's
   idea; on his Master: "Looks much better").
+- ~~Track 1's parts in the boot's files~~: done 2026-11-09 (Tom: "Yes, cut them"). SPRINTA ended in track 1's background
+  (16,000 bytes) and SPRINTB in its priority cells (2,105), never read: `make_game.py` cuts them. The title's file in
+  1.82 s sooner on DFS, 1.62 s on ADFS L; 68 sectors fewer. On Tom's Master: "it looks good".
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
 - ~~Does the game build from a fresh clone?~~ (Tom, 2026-11-07): yes, done 2026-11-09. `git clone
