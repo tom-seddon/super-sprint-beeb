@@ -629,4 +629,5 @@
   set can be messed up, because its RAM copy (held in ANDY) was overwritten"). His fix: OSBYTE 200,3 at the loader's
   start, so the next BREAK clears memory as power-on does and the MOS makes its soft font again (D15).
   `tools/break_check.mjs` boots the disc to the title's file, presses BREAK, and compares ANDY's `&8900`-`&8FFF` with
-  a fresh machine's: 965 of 1,792 bytes wrong before, 0 after, on DFS and ADFS. Added to the suite.
+  a fresh machine's: 965 of 1,792 bytes wrong before, 0 after, on DFS and ADFS. Added to the suite. On Tom's
+  Master: "I've tested on my Master."

@@ -258,6 +258,7 @@ X=3 Y=0 on startup, to set the memory clear flags so that the MOS clears all of 
 prod it into reinitialising the RAM copy of the character set too." So `entry` does OSBYTE 200,3 first thing (bit 0,
 Escape off, too: Tom, "I don't think it makes a difference provided the memory gets cleared"). `tools/break_check.mjs`
 (in the suite): before, 965 of the font's 1,792 bytes were still the game's after BREAK; after, none (DFS and ADFS).
+Tom, on his Master: "I've tested on my Master."
 
 ### D16. The helicopter: not drawn, a cue in its place: Decided (2026-11-02)
 After speed's fourth round the hazard race's slowest frames are its start (the helicopter on screen, about
