@@ -198,6 +198,19 @@ have any specific suggestions for the updated assignments yet." The defaults onl
 redefines them and `SCORES` keeps what was chosen. A new set wants the same checks (`tools/keys_ghost.py`, each
 key in a column of its own or the combinations worked through; `tools/keys_check.mjs`) and another try on Tom's
 Master.
+New defaults, Tom, 2026-11-09: "White car: Left=Caps Lock Right=Ctrl Accelerate=A / Green car: Left=, Right=.
+Accelerate=/ / Yellow car: Left=Pad 5 Right=Pad 6 Accelerate=Pad Delete. Pad 5 and Pad Delete are the same column, as
+are Ctrl and A, but it doesn't actually seem to be a problem..." Worked through on the model (`tools/keys_ghost.py`):
+the nine make no loop in the matrix, so none of the 511 combinations held ghosts another of them, and the options
+screen doesn't warn. But of the game's other keys, F1 ghosts with A, Pad 5 and Pad Delete held (and in 64
+combinations), Escape with Caps Lock, Pad 5 and Pad Delete (64): F1 is read only in the attract mode's waits, before
+a player's accelerate, so it would take the options' screen for a game's start; Escape on prepare to race, where it
+cuts the joining short. F0 (the race abandoned) can't ghost: none of the nine is in its row. Pad 4 for Pad 5 would
+clear both. Tom: "I think keep Pad 5/Pad 6/Pad Delete. I don't think the ghost Escape will be an issue but I'll keep
+an eye out for it when testing." (And, on the Compact: "the Master Compact definitely does have a numeric keypad";
+its keypad's numbers are taken to be the Master 128's, not measured.) Built: `keyboard.6502`'s defaults,
+`keys_check` (each key pressed by jsbeeb 2.18.0's own matrix table, so the numbers are jsbeeb's: 64, 1, 65, 102, 103,
+104, 123, 26, 75), `options_check`.
 
 ### D13. Mask B (walls): only the mixed cells: Decided (2026-11-02)
 Proposed for Phase 4's first steps (`docs/brief-phase4.md` §3).

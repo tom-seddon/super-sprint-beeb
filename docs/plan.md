@@ -262,9 +262,10 @@ adds the logic.
   RAM in banks 0-3, 1/3/5/7 and 0-7 (the game on the highest 4), and too few (2/5/6, the error in MODE 7). Wanted:
   a Master with cartridge RAM in banks 0-3 (D4: a machine whose 4-7 are ROM may still play), and one with too
   little, and a Compact.
-- The default keys less cramped (Tom, 2026-11-08, D12): "I think it'd be worth updating the default key
-  assignments, so that things are a bit less cramped, but I don't have any specific suggestions for the
-  updated assignments yet." Needs looking at; no set chosen. Now Q W E, V B N, `, . /`.
+- ~~The default keys less cramped~~ (Tom, 2026-11-08, D12: "I think it'd be worth updating the default key
+  assignments, so that things are a bit less cramped"): done 2026-11-09, Tom's set: white Caps Lock, Ctrl, A; green
+  `, . /`; yellow Pad 5, Pad 6, Pad Delete. No ghost among them; three of them can ghost Escape or F1 (D12), which
+  Tom took: "I'll keep an eye out for it when testing."
 - ~~The demo's car 3's green stripes~~: done 2026-11-09, black as in a race, through `DataBlack` (D20; Tom: "Yes, try it", then on his Master "Looks good"). Its own
   frames, 29 pixels different, would want a 2.6K file and a load path: left out.
 - ~~D16's helicopter chop~~: done 2026-11-08, a rising sweep over the car's blink to its put-back (Tom: "Build C1 (sweep)", "Span the blink").
@@ -362,7 +363,7 @@ adds the logic.
 | D9 | Exactness of the race logic | Decided (Tom, 2026-11-02): bit-exact, checked frame by frame against Hatari |
 | D10 | First track | Decided (Tom, 2026-11-02): track 1 (index 0) |
 | D11 | Sound | Decided (Tom, 2026-11-02): 50 Hz IRQ; captured streams for effects and tunes; engines live |
-| D12 | Keys | Decided in part (Tom, 2026-11-02): Q W E, V B N, , . /, no ghosting on paper or on Tom's Master (2026-11-08); less cramped defaults to look at (Tom, 2026-11-08); joysticks as an option |
+| D12 | Keys | Decided in part (Tom, 2026-11-02): Q W E, V B N, , . /, no ghosting on paper or on Tom's Master (2026-11-08); since 2026-11-09 Tom's less cramped defaults, Caps Lock, Ctrl, A; , . /; Pad 5, Pad 6, Pad Delete (Escape and F1 can ghost, taken); joysticks as an option |
 | D13 | Mask B's storage | Decided (Tom, 2026-11-02): the mixed cells only, as the priority mask |
 | D14 | The drones' dead accumulators | Decided (Tom, 2026-11-02): dropped (only dead ST code reads them) |
 | D15 | ANDY for the logic's data | Decided (Tom, 2026-11-02): mask B and the logic's state in ANDY |

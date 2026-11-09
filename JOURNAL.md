@@ -656,3 +656,12 @@
   `.git`, so `tools/suite_remote.sh` gives it the version from here. `options_check` passes, and with the version
   left out of what it expects finds 51 wrong. The suite 41 of 41 on agentbox at 9bcd0, the same discs as here. Tom,
   after trying 0b3c1's disc: "Looks good."
+- **New default keys** (2026-11-09, D12; Tom: "White car: Left=Caps Lock Right=Ctrl Accelerate=A / Green car: Left=,
+  Right=. Accelerate=/ / Yellow car: Left=Pad 5 Right=Pad 6 Accelerate=Pad Delete"). On the ghosting model the nine
+  make no loop, so none ghosts another (0 of 511 combinations); but A, Pad 5 and Pad Delete ghost F1, read in the
+  attract mode's waits, and Caps Lock, Pad 5 and Pad Delete ghost Escape, read on prepare to race. Pad 4 for Pad 5
+  would clear both; Tom kept his: "I'll keep an eye out for it when testing." I was wrong twice on the way: that the
+  Compact has no keypad (Tom: "the Master Compact definitely does have a numeric keypad"), and that prepare to race
+  reads F1 (Tom: "The Prepare to Race screen doesn't appear to respond to the f1 key?": it's `wait`, the attract
+  mode's, that reads it, not `fields`). `keys_check` now presses the keys by jsbeeb's own matrix table, as Caps Lock
+  and the keypad have no host keys of their own there; it and `options_check` pass.
