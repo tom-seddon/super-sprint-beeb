@@ -654,4 +654,5 @@
   nothing. `opt_line` writes it after clearing the status line (x 284, or 278 with the "m"; the status texts end by
   252) and ANDs those bytes with `&0F`, white to green. The options' file 263 to 216 bytes free. agentbox has no
   `.git`, so `tools/suite_remote.sh` gives it the version from here. `options_check` passes, and with the version
-  left out of what it expects finds 51 wrong. The suite 41 of 41 on agentbox at 9bcd0, the same discs as here.
+  left out of what it expects finds 51 wrong. The suite 41 of 41 on agentbox at 9bcd0, the same discs as here. Tom,
+  after trying 0b3c1's disc: "Looks good."

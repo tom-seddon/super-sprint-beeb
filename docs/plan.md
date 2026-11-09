@@ -315,7 +315,7 @@ adds the logic.
   in green, the small font: the commit's first 5 hex digits, "m" after them if the tree had changes (Tom: "the
   initial loading screen won't stick around for long enough", then "in the bottom right corner, in the small font",
   "in green"). `make version` prints it; `tools/version.py`. A rebuild of one commit gives the same disc; every
-  commit changes it.
+  commit changes it. Tom, after trying it: "Looks good."
 - ~~The `rich/teddyboy` submodule out~~: done 2026-11-08 (Tom: "It should be removed from the repo"). Its
   repository has gone from GitHub, so `git clone --recurse-submodules` stopped there and left the submodules
   after it empty, the kit's among them. `CLAUDE.md`'s list of Rich's projects without it; the mentions in
