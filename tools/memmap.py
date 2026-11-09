@@ -20,8 +20,10 @@ Regions = [                             # (name, the PRINT that gives its end, i
     ('The objects\' bank', 'the objects\' bank', 0xC000),
     ('Main RAM\'s code', 'main RAM\'s code', 0x2A00),
     ('Shared, both screens\' `&3070`-`&3EFF`', 'the &3000 area', 0x3F00),
+    ('LowFree\'s code, `&0AC0`-`&0AFF`', 'LowFree\'s code', 0x0B00),
 ]
-Labels = ['FxImage', 'LogicInputs', 'TraceData', 'HudEvents']   # data INCBINned, not INCLUDEd: marked by label
+AtEnd = {'TunesFixed'}                 # data placed at its region's end: the free bytes are before it, not after
+Labels = ['FxImage', 'LogicInputs', 'TraceData', 'HudEvents', 'TunesFixed']   # data INCBINned, not INCLUDEd: marked by label
 Vars = {'Tables': (0x0400, 0x0800), 'LowFree': (0x0900, 0x0B00), 'ObjBuf': (0x2A00, 0x2B00),
         'BlackTable': (0x2B00, 0x2C00), 'MoreTables': (0x2C00, 0x2E00), 'GameVars': (0x2E00, 0x3000), 'ScreenVars': (0x3000, 0x3070), 'LogicVars': (0x8E00, 0x9000),
         'FxData': (0x3000, 0x3F00), 'LogicZp': (0x00, 0x100)}
@@ -94,18 +96,24 @@ def report(path):
     lines, marks, free = parse(path)
     out = []
     for name, key, end in Regions:
-        f = next((v for t, v, k in free if key and key in t), None)
+        f = next((v for t, v, k in free if t == key), None)     # (the whole label: "ANDY" isn't "... under ANDY")
         idx = [i for i, (a, n, s) in enumerate(marks)
                if s and s[-1] == {'The background\'s bank': 'BgBank', 'The cars\' bank': 'CarsBank',
                                   'The fourth bank': 'TraceBank', 'The objects\' bank': 'ObjBank',
-                                  'Main RAM\'s code': 'MainCode', 'ANDY, over `&8000`-`&8FFF` (D15)': 'Andy'}.get(name, 'Shared')]
+                                  'Main RAM\'s code': 'MainCode', 'ANDY, over `&8000`-`&8FFF` (D15)': 'Andy',
+                                  'LowFree\'s code, `&0AC0`-`&0AFF`': 'LowCode'}.get(name, 'Shared')]
         if not idx:
             continue
         stop = end - f if f is not None else end
+        last = marks[idx[-1]][1] in AtEnd and f is not None
         parts = []
         for k, i in enumerate(idx):
             a = marks[i][0]
             b = marks[idx[k + 1]][0] if k + 1 < len(idx) else stop
+            if last and k == len(idx) - 2:
+                b -= f                  # (the free bytes: between this part and the one at the end)
+            elif last and k == len(idx) - 1:
+                b = end
             # a part in a nested section (FxData) runs to the next mark in its own section
             if b < a:
                 b = next((m[0] for m in marks[i + 1:] if m[2] == marks[i][2] and m[0] >= a), stop)
