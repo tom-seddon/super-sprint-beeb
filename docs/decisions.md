@@ -248,6 +248,10 @@ A fault found in step 13 (2026-11-02): the premise that the logic never reads th
 `heli_pieces` (logicframe) reads its plotter's `MovDX` and `MovW` to leave out pieces off the screen's side, and
 with ANDY in it read mask B; track 2's sideways helicopter showed it (track 5's comes from below). It now pages
 ANDY out for those reads.
+Tom, 2026-11-09, in a RAM survey: "ANDY can be assumed to survive every load, though it will get paged out while
+the load is in progress (relevant if accessing it from an interrupt routine). Its contents are documented as soft
+key definitions, VDU workspace, and soft character definitions. Filing systems won't touch these." So code may
+live in ANDY too, if only code that runs with it paged in calls it (never the IRQ).
 
 ### D16. The helicopter: not drawn, a cue in its place: Decided (2026-11-02)
 After speed's fourth round the hazard race's slowest frames are its start (the helicopter on screen, about
@@ -433,6 +437,9 @@ ANFS (MasterANFS), the logon refused ("No directory") and the pattern intact. AD
 MasterADFS reached no prompt without a disc): Phase 5's step 11 tries the real loader on each. `&0800`-`&08FF`
 and `&0B00`-`&0DFF` stay the OS's. (`&0400`-`&07FF`, the language's workspace, was already the game's: the car
 plotter's tables.)
+Tom, 2026-11-09, when a RAM survey found `&0B00`-`&0CFF` unwritten by `*CAT`, `*LOAD`, `*SAVE` and `*INFO` on DFS
+and ADFS in jsbeeb: "Please avoid using $b00...$cff. On the Master 128, this is tagget as Econet workspace." So
+`&0B00`-`&0CFF` stays the OS's: jsbeeb's untouched pages say nothing about a network filing system.
 
 ### D27. The upgrades have no time limit: Decided (2026-11-06)
 Departs from D19, which has the game around the race bit-exact with the ST. The ST's choice runs out after 158 passes, 9.5 seconds, and buys what the dial's on.

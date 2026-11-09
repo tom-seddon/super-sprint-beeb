@@ -38,6 +38,11 @@ a gap or a workaround looks like it isn't only this project's.
 ### `&0900`-`&0AFF` in the memory tables
 - `docs/hardware-facts.md` calls `&0A00` the printer buffer. Tom, from the Master Reference Manual: `&0900`-`&0AFF`
   are the tape and serial buffers (D26). To check against the manual before saying the kit's wrong.
+- Its table gives `&0B00`-`&0BFF` (soft keys) and `&0C00`-`&0CFF` (user-defined characters) as free once the MOS
+  is gone or not printing: the Model B's map. Tom, 2026-11-09: "On the Master 128, this is tagget as Econet
+  workspace." And: "The $b00...$cff region is documented in one of the Master reference manuals, so it's an
+  official Acorn guideline I guess!" jsbeeb's DFS and ADFS left both pages alone, which says nothing about Econet
+  (D26).
 
 ### OSWORD 10 after ANDY is overwritten
 - **Found** (2026-11-04): with the game's data in ANDY, OSWORD 10 returned 8 zero lines for every character: MOS
