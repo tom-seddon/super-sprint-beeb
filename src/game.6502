@@ -1295,8 +1295,7 @@ InRepeat = 4
     RTS
 }
 
-\\ The placeholder's text. say_clear: the screen black. say: A, X: a text's address, ending in 0, Y: its row: it's
-\\ written from column 2, in the MOS's font (font_char), through the HUD's expanding tables.
+\\ The screen black, and the display on.
 
 .say_clear
 {
@@ -1314,49 +1313,3 @@ InRepeat = 4
     LDA #&C0:STA &FE01                  ; display on, cursor off (a file's load left it off)
     RTS
 }
-
-.say
-{
-    STA text+1:STX text+2
-    LDA RowLo,Y:CLC:ADC #32:STA at
-    LDA RowHi,Y:ADC #0:STA at+1
-    STZ i
-.char
-    LDY i
-.text
-    LDA &FFFF,Y                         ; self-modified: the text
-    BEQ done
-    JSR font_char
-    LDA at:STA left+1
-    LDA at+1:STA left+2
-    CLC
-    LDA at:ADC #8:STA right+1
-    LDA at+1:ADC #0:STA right+2
-    LDX #7
-.line
-    LDY FontBuf,X
-    LDA PExpHi,Y
-.left
-    STA &FFFF,X                         ; self-modified
-    LDA PExpLo,Y
-.right
-    STA &FFFF,X                         ; self-modified
-    DEX
-    BPL line
-    CLC
-    LDA at:ADC #16:STA at
-    BCC @+
-    INC at+1
-.@
-    INC i
-    BRA char
-.done
-    RTS
-.at
-    SKIP 2
-.i
-    SKIP 1
-}
-
-.TextAttract
-    EQUS "Super Sprint: press fire", 0
