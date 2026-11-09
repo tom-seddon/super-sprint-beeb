@@ -145,7 +145,7 @@ def prio(track, reserved=()):
     """Each 8 x 8 cell with hidden pixels, or reserved (a gate's or barrier's, whose bits change in the race):
     its 8 lines of bits (1 hidden), and a class byte: per half (left in bits 0-1, right in bits 2-3), 0 nothing
     hidden, 1 all hidden, 2 some. A reserved cell's class is always 2 for both: its bits decide."""
-    hidden = np.load(f'build/gfx/mask2_t{track}.npy') == 0
+    hidden = np.load(f'build/gfx/maskclean2_t{track}.npy') == 0
     cells = hidden.reshape(25, 8, 40, 8)
     data = bytearray()
     classes = bytearray()
@@ -591,7 +591,7 @@ def main(track, tracepath, out, logic=False, play=False):
     # numbered in turn), and for each of its frames those cells' bits: the track's own, with the frame's
     # mask C over the lines it covers (over its sharers' at rest)
     dat_ = open('orig/st/SUPER.DAT', 'rb').read()
-    base_mask = np.load(f'build/gfx/mask2_t{track}.npy')
+    base_mask = np.load(f'build/gfx/maskclean2_t{track}.npy')
     def cell_bits(i, f):
         """Instance i at frame f: its cells' bits, by (row, column), 8 bytes each."""
         kind, x, y = insts[i]

@@ -1,6 +1,6 @@
 """Convert ST tracks and car sprites to BBC MODE 1 for each palette option (Phase 2).
 
-Usage: convert.py <out dir>     (reads build/gfx/bg_t*.npy and mask*_t*.npy, made from Hatari dumps,
+Usage: convert.py <out dir>     (reads build/gfx/bgclean_t*.npy and maskclean*_t*.npy, made from Hatari dumps,
                                  and orig/st/SUPER.DAT for the cars)
 
 Each ST colour becomes one MODE 1 logical colour or a checkerboard of two, fixed to the screen for the
@@ -150,9 +150,9 @@ def main(out):
         lmap = logical_map(opt, opt['bg'])
         sheet = Image.new('RGB', (4 * 330, 2 * 210), (50, 50, 50))
         for t in range(8):
-            bg = np.load(f'build/gfx/bg_t{t}.npy')
-            road = np.load(f'build/gfx/mask1_t{t}.npy')
-            prio = np.load(f'build/gfx/mask2_t{t}.npy')
+            bg = np.load(f'build/gfx/bgclean_t{t}.npy')   # (the text cells replaced: st_text_cells.py)
+            road = np.load(f'build/gfx/maskclean1_t{t}.npy')
+            prio = np.load(f'build/gfx/maskclean2_t{t}.npy')
             lidx = apply_map(bg, lmap)
             np.save(f'{out}/{key}_t{t}_bg.npy', lidx)
             open(f'{out}/{key}_t{t}_bg.bin', 'wb').write(mode1_bytes(lidx))

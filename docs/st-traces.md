@@ -22,7 +22,8 @@ Sizes are this checkout's (2026-11-09); "needs" says what reads them.
 
 | Files | What | Made by | Time | Size | Needs |
 |---|---|---|---|---|---|
-| `build/gfx/bg_tN.npy`, `maskK_tN.npy` | Each track's background and its three masks | `make tracks` (`st_dump_tracks.py`) | 5 s a track | 2 MB | `make game` |
+| `build/gfx/bg_tN.npy`, `maskK_tN.npy` | Each track's background and its three masks, as the ST has them | `make tracks` (`st_dump_tracks.py`) | 5 s a track | 2 MB | for comparison |
+| `build/gfx/bgclean_tN.npy`, `maskcleanK_tN.npy` | The same, with the map's "TRACK n" and "DRONE LAP" cells replaced before the ST builds the track (`st_text_cells.py`), so its trees are drawn over clean ground | `make tracks` (`st_dump_tracks.py --clean`) | 5 s a track | 2 MB | `make game` |
 | `build/trace/race_tN_r17.json` | Race 17 on track N, every object's draw calls each frame (from `obj_tN_r17.json`, which `st_trace_objects.py` writes, by `st_race.py`) | make, as the build asks | 20 s each | 2.6-6.0 MB each | `make game`, `make check`, `tools/tracks_check.sh` |
 | `build/trace/race_t0_r0_script.json` | The logic trace's race, drawn | make | 40 s | 1.4 MB | `make game`, `make check TRACE=logic0` |
 | `build/trace/logic_t0_r0.json` | Track 1's race 0, driven by `tools/logic_scripts/t0.json`: every car's variables, the inputs and the random numbers, every frame | make (`st_trace_logic.py`) | 1 min | 50 MB | `make game` (each track's logic data), `logic_check` |
@@ -45,7 +46,7 @@ make stfiles                # makes any of the build's ST files that are missing
 make build/stfiles.tar.gz   # packs them: 88 files, 2.5 MB
 ```
 
-The pack holds `build/gfx/bg_t?.npy` and `mask?_t?.npy`; `build/trace/race_t?_r17.json`, `race_t0_r0_script.json`,
+The pack holds `build/gfx/bg_t?.npy`, `mask?_t?.npy`, `bgclean_t?.npy` and `maskclean?_t?.npy`; `build/trace/race_t?_r17.json`, `race_t0_r0_script.json`,
 `logic_t0_r0.json`, `sound_t0_r0.json`, `sound_t0_r0_oil.json`, `sound_t6_r17.json` and `tunes.json`; and
 `build/st_screens/screens.json`, `options.json` and every `*_0.bin` and `*_1.bin` there. The paths are relative to
 the repo root.

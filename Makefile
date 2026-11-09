@@ -86,14 +86,18 @@ build/super.s: tools/st_disasm.py orig/st/AUTO/SUPER.PRG | $(VENV)
 # tools/hatari.sh, are order-only prerequisites, so a newer one doesn't make them again: git gives a file it checks
 # out the time of the checkout, and a branch switch or a merge would otherwise trace them all again (and where
 # Hatari doesn't run, fail). To make one again, delete it.
-# Each track's background and masks, dumped from the original running in Hatari (about 5 s a track).
-tracks: build/gfx/bg_t7.npy
+# Each track's background and masks, dumped from the original running in Hatari (about 5 s a track): as the ST
+# has them (bg_tN), and with the map's "TRACK n" and "DRONE LAP" cells replaced first (bgclean_tN: what the
+# game's built from; tools/st_text_cells.py).
+tracks: build/gfx/bg_t7.npy build/gfx/bgclean_t7.npy
 build/gfx/bg_t7.npy: | tools/st_dump_tracks.py tools/hatari.sh $(VENV)
 	$(PY) tools/st_dump_tracks.py
+build/gfx/bgclean_t7.npy: | tools/st_dump_tracks.py tools/st_text_cells.py tools/hatari.sh $(VENV)
+	$(PY) tools/st_dump_tracks.py --clean
 
 # MODE 1 conversions for every palette option.
 convert: build/conv/A_t0.bin
-build/conv/A_t0.bin: tools/convert.py tools/st_sprites.py build/gfx/bg_t7.npy | $(VENV)
+build/conv/A_t0.bin: tools/convert.py tools/st_sprites.py build/gfx/bgclean_t7.npy | $(VENV)
 	$(PY) tools/convert.py build/conv
 
 sheets: convert | $(VENV)
@@ -235,11 +239,11 @@ game: build/zx02 | $(VENV) build/trace/logic_t0_r0.json
 # stfiles` makes any missing, and build/stfiles.tar.gz packs them, for a machine where Hatari doesn't run, to be
 # unpacked there in the repo root with `tar -xmzf` (-m: their times the unpacking's, so newer than a fresh clone's
 # tools, which would otherwise have them made again).
-STFILES = build/gfx/bg_t7.npy $(foreach t,0 1 2 3 4 5 6 7,build/trace/race_t$(t)_r$(RACE).json) \
+STFILES = build/gfx/bg_t7.npy build/gfx/bgclean_t7.npy $(foreach t,0 1 2 3 4 5 6 7,build/trace/race_t$(t)_r$(RACE).json) \
 	build/trace/race_t0_r0_script.json build/trace/logic_t0_r0.json $(SOUNDCAPS) build/trace/tunes.json $(STSCREENS)
 stfiles: $(STFILES)
 build/stfiles.tar.gz: $(STFILES)
-	tar -czf $@ build/gfx/bg_t?.npy build/gfx/mask?_t?.npy $(filter build/trace/%,$(STFILES)) $(STSCREENS) \
+	tar -czf $@ build/gfx/bg_t?.npy build/gfx/mask?_t?.npy build/gfx/bgclean_t?.npy build/gfx/maskclean?_t?.npy $(filter build/trace/%,$(STFILES)) $(STSCREENS) \
 		build/st_screens/*_[01].bin
 	ls -l $@
 

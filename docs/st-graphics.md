@@ -189,7 +189,8 @@ The finished backgrounds and masks for all 8 tracks were dumped from Hatari at t
 (breakpoint at `&D20A`, with the track number patched into the race function's argument at `&217A4`): see
 `docs/img/st-tracks.png`. The decoded maps alone lack the trees.
 
-**For the port:** the ST map's bottom row has "TRACK n" and "DRONE LAP" in its tiles, and the top rows hold
+**For the port:** the ST map's bottom row has "TRACK n" and "DRONE LAP" in its tiles (replaced before the dump the
+game is built from: `tools/st_text_cells.py`, `st_dump_tracks.py --clean`), and the top rows hold
 the grandstands where the ST prints its HUD. With the HUD in its own row (D6), those text cells need
 repainting with grass. The rest converts as it is.
 

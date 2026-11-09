@@ -631,3 +631,17 @@
   `tools/break_check.mjs` boots the disc to the title's file, presses BREAK, and compares ANDY's `&8900`-`&8FFF` with
   a fresh machine's: 965 of 1,792 bytes wrong before, 0 after, on DFS and ADFS. Added to the suite. On Tom's
   Master: "I've tested on my Master."
+- **The track's own text taken out** (2026-11-09; Tom: "the tracks still say `DRONE LAP` at the bottom", then "Would
+  it be possible to apply a similar fix to remove the TRACK N lettering from the track as well?"). Filling the text
+  green would have suited six tracks, but cut a tree on track 3 and left green letters on track 8's white road edge;
+  "TRACK 5" has trees over it too. Tom chose the re-dump from Hatari, step by step. `tools/st_text_cells.py` finds a
+  tile for each text cell that matches it everywhere but the text: one for every cell on all 8 tracks, track 8's
+  edge included (the text tiles were the edge's tiles with the letters added). `st_dump_tracks.py --clean` writes
+  those words into the map in the ST's memory (SUPER.DAT at `&29500`, checked against the file) before the track's
+  set-up, which then draws its trees over clean ground: `bgclean_tN`, `maskcleanK_tN`, the old dumps kept. The new
+  dumps differ from the old only inside the text cells (246 to 267 pixels a track); of the masks, the solid one
+  (which the port doesn't read) and on tracks 5 to 8 the priority one change there too, the road mask not at all.
+  The game takes the new picture and priority mask (`convert.py`, `gendata.py`, `render_model.py`). On the BBC,
+  3,824 to 4,256 screen pixels change a track, all in the bottom row. Every track's free bytes the same; the suite
+  41 of 41 on agentbox, the same discs as here (`game.ssd` bca7c0e28524fce7959178f4ea985cd89d5bce2a, `game.adl`
+  13e2c19a4302ead964c4b72e344fc0b71846a108). On Tom's Master: "Looks good, though I didn't play every track."

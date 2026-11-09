@@ -71,8 +71,8 @@ def cues(frames, logicpath):
 def main(track, tracepath, out, cue=None):
     opt = OPTIONS['B']
     dat = open('orig/st/SUPER.DAT', 'rb').read()
-    stbg = np.load(f'build/gfx/bg_t{track}.npy').copy()
-    maskc = np.load(f'build/gfx/mask2_t{track}.npy').copy()
+    stbg = np.load(f'build/gfx/bgclean_t{track}.npy').copy()
+    maskc = np.load(f'build/gfx/maskclean2_t{track}.npy').copy()
     bgmap = logical_map(opt, opt['bg'])
     frames = {}
     for car in range(4):
