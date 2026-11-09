@@ -310,10 +310,12 @@ adds the logic.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
-- For later (Tom, 2026-11-08): the build's version shown somewhere in the game, "probably git commit?", "so it's
-  easier to be confident about which build you're playing". Not yet looked at: where it's shown (the credits, the
-  options' screen, the "Loading" row), how it gets into the build (the Makefile passing the commit, and whether the
-  tree had changes), and that a rebuild of one commit still gives the same disc.
+- ~~The build's version shown in the game~~ (Tom, 2026-11-08: "probably git commit?", "so it's easier to be
+  confident about which build you're playing"): done 2026-11-09, on the options screen's status line, bottom right,
+  in green, the small font: the commit's first 5 hex digits, "m" after them if the tree had changes (Tom: "the
+  initial loading screen won't stick around for long enough", then "in the bottom right corner, in the small font",
+  "in green"). `make version` prints it; `tools/version.py`. A rebuild of one commit gives the same disc; every
+  commit changes it.
 - ~~The `rich/teddyboy` submodule out~~: done 2026-11-08 (Tom: "It should be removed from the repo"). Its
   repository has gone from GitHub, so `git clone --recurse-submodules` stopped there and left the submodules
   after it empty, the kit's among them. `CLAUDE.md`'s list of Rich's projects without it; the mentions in

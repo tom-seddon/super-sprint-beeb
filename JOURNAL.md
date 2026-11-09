@@ -645,3 +645,13 @@
   3,824 to 4,256 screen pixels change a track, all in the bottom row. Every track's free bytes the same; the suite
   41 of 41 on agentbox, the same discs as here (`game.ssd` bca7c0e28524fce7959178f4ea985cd89d5bce2a, `game.adl`
   13e2c19a4302ead964c4b72e344fc0b71846a108). On Tom's Master: "Looks good, though I didn't play every track."
+- **The build's version** (2026-11-09; Tom, 2026-11-08: "so it's easier to be confident about which build you're
+  playing"). Not on the loading screen (Tom: "if running from a fast filing system, the initial loading screen won't
+  stick around for long enough"), but on the options screen: "in the bottom right corner, in the small font", the
+  commit's first 5 hex digits, then "in green, so it's clearly different from the rest of the text". The Makefile's
+  VERSION is git's, with "m" after it if the tree has changes (the small font has no "+"); `tools/version.py` writes
+  the glyphs and the line `options_check` expects, each only when it changes, so an unchanged version rebuilds
+  nothing. `opt_line` writes it after clearing the status line (x 284, or 278 with the "m"; the status texts end by
+  252) and ANDs those bytes with `&0F`, white to green. The options' file 263 to 216 bytes free. agentbox has no
+  `.git`, so `tools/suite_remote.sh` gives it the version from here. `options_check` passes, and with the version
+  left out of what it expects finds 51 wrong. The suite 41 of 41 on agentbox at 9bcd0, the same discs as here.
