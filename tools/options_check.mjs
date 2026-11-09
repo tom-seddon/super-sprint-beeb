@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { andy, bootDisc, ram, runToAny, settle, symbols } from "./jsbeeb.mjs";
 
 const Field = 39936, F = { f0: 32, f1: 113, f2: 114, f3: 115, f4: 20, f5: 116, f9: 119, esc: 112 };
-const Q = 16, W = 33, E = 34, V = 99, B = 100, N = 85, COMMA = 102, PERIOD = 103, SLASH = 104;
+const CAPS = 64, CTRL = 1, COMMA = 102, PERIOD = 103, SLASH = 104, PAD5 = 123, PAD6 = 26, PADDEL = 75;   // (the defaults, D12)
 const A = 65, S = 81, D = 50, RETURN = 73, LEFT = 25, SPACE = 98, ONE = 48, TWO = 49, THREE = 17;
 const syms = symbols("build/tracks/t0.json");
 const s = await bootDisc("build/game.ssd");
@@ -91,15 +91,15 @@ function screen(what, line, inverse = []) {
 const same = (what, got, want) => { if (got.join() !== want.join()) say(`${what}: ${got}, not ${want}`); };
 
 screen("the options", "on");
-same("the keys to start with", keysNow(), [Q, W, E, V, B, N, COMMA, PERIOD, SLASH]);
+same("the keys to start with", keysNow(), [CAPS, CTRL, A, COMMA, PERIOD, SLASH, PAD5, PAD6, PADDEL]);
 
 // the markers
-down(W);
+down(CTRL);
 await run(3);
-screen("W held", "on", [1]);
-up(W);
+screen("CTRL held", "on", [1]);
+up(CTRL);
 await run(3);
-screen("W up", "on");
+screen("CTRL up", "on");
 const nine = keysNow();
 nine.forEach(down);
 await run(3);
@@ -111,21 +111,21 @@ screen("all 9 up", "on");
 // redefining
 await tap(F.f2);
 for (const k of [A, S, D]) await tap(k);
-same("F2's keys", keysNow(), [A, S, D, V, B, N, COMMA, PERIOD, SLASH]);
+same("F2's keys", keysNow(), [A, S, D, COMMA, PERIOD, SLASH, PAD5, PAD6, PADDEL]);
 screen("the new keys", "on");
 await tap(F.f3);
 await tap(A);                           // taken
 await tap(F.f5);                        // the game's own
 await tap(F.esc);
-same("Escape, and what was refused", keysNow(), [A, S, D, V, B, N, COMMA, PERIOD, SLASH]);
+same("Escape, and what was refused", keysNow(), [A, S, D, COMMA, PERIOD, SLASH, PAD5, PAD6, PADDEL]);
 screen("Escape", "on");
 await tap(F.f4);
 for (const k of [RETURN, LEFT, SPACE]) await tap(k);
-same("F4's keys", keysNow(), [A, S, D, V, B, N, RETURN, LEFT, SPACE]);
+same("F4's keys", keysNow(), [A, S, D, COMMA, PERIOD, SLASH, RETURN, LEFT, SPACE]);
 screen("words and an arrow", "on");
 await tap(F.f4);
 for (const k of [0x4b, 0x7a, 0x3c]) await tap(k);
-same("the keypad's keys", keysNow(), [A, S, D, V, B, N, 0x4b, 0x7a, 0x3c]);
+same("the keypad's keys", keysNow(), [A, S, D, COMMA, PERIOD, SLASH, 0x4b, 0x7a, 0x3c]);
 screen("the keypad", "on");
 await tap(F.f4);
 for (const k of [RETURN, LEFT, SPACE]) await tap(k);
@@ -191,7 +191,7 @@ up(F.f0);
 await runToAny(s, [[syms["game_resume.shown"], bankbg]], 800000000);
 await runToAny(s, [[syms["game_resume.demo"], bankbg]], 1600000000);
 await runToAny(s, [[syms.frame_loop]], 800000000);
-same("the keys after a track's load", keysNow(), [A, S, D, V, B, N, RETURN, LEFT, SPACE]);
+same("the keys after a track's load", keysNow(), [A, S, D, COMMA, PERIOD, SLASH, RETURN, LEFT, SPACE]);
 const banktrace = ram(s, 2, 1)[0];
 down(S);
 await runToAny(s, [[syms["logic_frame.demo_fire"], banktrace]], 8000000);

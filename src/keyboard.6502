@@ -1,22 +1,22 @@
 \\ keyboard.6502 - the players' keys (D12), read straight from the keyboard matrix: the beeb-port-kit's
 \\ lib/keydown.6502, forked (keydown_int): the keyboard's free-running scan stopped for the read (the
 \\ addressable latch's line 3 low) and started again after, since while it's stopped the keyboard drives PA7,
-\\ which the sound chip's writes share. Each player's left, right and accelerate are in a column of
-\\ their own, so no keys of theirs held together can ghost another (tools/keys_ghost.py).
+\\ which the sound chip's writes share. The default keys (Tom's, 2026-11-09, D12) make no loop in the matrix, so no
+\\ keys of theirs held together can ghost another (tools/keys_ghost.py); three of them can ghost Escape or F1, which
+\\ Tom took.
 
-\\ The keys' internal numbers, measured: the kit's docs/hardware-facts.md section 7, and COMMA and PERIOD with
-\\ jsbeeb-mcp 4.3.0's key_down on a Master, 2026-11-02 (all confirmed there). Player 1 is Q, W, E rather than
-\\ Z, X, SHIFT (Tom, 2026-11-02): the BBC's two SHIFT keys are one key, at either side of the keyboard.
+\\ The keys' internal numbers, measured: the kit's docs/hardware-facts.md section 7, COMMA and PERIOD with jsbeeb-mcp
+\\ 4.3.0's key_down on a Master, 2026-11-02, and the rest against jsbeeb 2.18.0's own table (tools/keys_check.mjs).
 
-KeyQ = 16
-KeyW = 33
-KeyE = 34
-KeyV = 99
-KeyB = 100
-KeyN = 85
+KeyCaps = 64                            ; CAPS LOCK
+KeyCtrl = 1
+KeyA = 65
 KeyComma = 102
 KeyPeriod = 103
 KeySlash = 104
+KeyPad5 = 123
+KeyPad6 = 26
+KeyPadDelete = 75
 KeyEscape = 112
 KeyF0 = 32
 KeyF1 = 113
@@ -81,9 +81,9 @@ KeyF9 = 119
 .SoundOff                               ; 1: nothing's sent to the chip (F9, in the options)
     EQUB 0
 .PlayerKeys                             ; each player's left, right, accelerate (the options can change them)
-    EQUB KeyQ, KeyW, KeyE
-    EQUB KeyV, KeyB, KeyN
+    EQUB KeyCaps, KeyCtrl, KeyA
     EQUB KeyComma, KeyPeriod, KeySlash
+    EQUB KeyPad5, KeyPad6, KeyPadDelete
     ASSERT P% - SoundOff == 10, "SoundOff and PlayerKeys: HiKeys's 10 bytes, saved with the table"
 .PlayerOf
     EQUB 0, 0, 0, 1, 1, 1, 2, 2, 2
