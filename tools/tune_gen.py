@@ -14,7 +14,8 @@ master, G_01F264, / 16) before SnAtten turns it into one. A tone's level is 0 wh
 on the noise plays the noise alone (sound_gen's rule); the captures never have two channels on the noise at once, nor
 the YM's envelope (both are checked here).
 
-Writes OUTDIR/tunes_expect.json (each tune's fields, for tools/tune_check.mjs), OUTDIR/tunes_fixed.bin (the select's, prepare's, the join's and the ding's, for the fourth bank's end) and
+Writes OUTDIR/tunes_expect.json (each tune's fields, for tools/tune_check.mjs), OUTDIR/tunes_fixed.bin (the select's,
+prepare's, the join's and the ding's, at the fourth bank's end; its length in OUTDIR/tunes_fixed.6502) and
 OUTDIR/tunes_circle.bin (the circle's five, in TRACKC): each a block of descriptors, 10 bytes a tune, then the tunes,
 each packed whole with ZX02 (its three streams one after the other, which packs better than a field at a time). A
 descriptor, little-endian words: the packed tune's offset in the block, its channel 1's and 2's streams' offsets in
@@ -122,6 +123,7 @@ def block(T, names, path):
     data = b''.join(w.to_bytes(2, 'little') for w in descs) + b''.join(blobs)
     open(path, 'wb').write(data)
     print(f'{os.path.basename(path)}: {len(data)} bytes: ' + '; '.join(report))
+    return len(data)
 
 
 def wavs(T, out):
@@ -150,7 +152,10 @@ def wavs(T, out):
 def main(tunes, out, wav=None):
     T = json.load(open(tunes))
     os.makedirs(out, exist_ok=True)
-    block(T, Fixed, os.path.join(out, 'tunes_fixed.bin'))
+    n = block(T, Fixed, os.path.join(out, 'tunes_fixed.bin'))
+    open(os.path.join(out, 'tunes_fixed.6502'), 'w').write(
+        f'\\\\ tunes_fixed.6502 - tunes_fixed.bin\'s length, to end it at the fourth bank\'s end (tools/tune_gen.py)\n'
+        f'TunesFixedLen = {n}\n')
     block(T, Circle, os.path.join(out, 'tunes_circle.bin'))
     # what tools/tune_check.mjs looks for at the chip: each field's channels as the converter has them
     json.dump({n: fields_of(T[n]) for n in Fixed + Circle}, open(os.path.join(out, 'tunes_expect.json'), 'w'))

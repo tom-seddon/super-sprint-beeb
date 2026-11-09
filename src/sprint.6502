@@ -11,6 +11,7 @@ INCLUDE "memory.6502"
 INCLUDE "macros.6502"
 INCLUDE "../build/gen/trace.6502"       ; (GenLogic: the race drawn from the logic, Phase 4 step 8)
 INCLUDE "../build/gen/font.6502"        ; the HUD's glyphs (Font: in Shared in the game, main RAM in the test)
+INCLUDE "../build/gen/tunes_fixed.6502" ; TunesFixedLen
 
 IF GenLogic
     INCLUDE "../build/gen/logickeys.6502"
@@ -73,12 +74,15 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
 .CellsSlotEnd
             INCLUDE "../build/lgen/pshift.6502"
             IF GenPlay
-                PADTO (P% + &FF) AND &FF00
-.TunesFixed                             ; the select's, prepare's, the join's and the ding's tunes (front.6502)
-                INCBIN "../build/gen/tunes_fixed.bin"
-                ASSERT SwramEnd - TunesFixed <= &400, "the tunes kept: 4 pages, copied to TuneRing"
+                PRINT "the fourth bank: ", SwramEnd - TunesFixedLen - P%, " bytes free"
+                PADTO SwramEnd - TunesFixedLen
+.TunesFixed                             ; the select's, prepare's, the join's and the ding's tunes (front.6502),
+                INCBIN "../build/gen/tunes_fixed.bin"   ; at the bank's end
+                ASSERT P% == SwramEnd, "the tunes kept: at the bank's end"
+                ASSERT SwramEnd - (TunesFixed AND &FF00) <= &400, "the tunes kept: in 4 pages, copied to TuneRing"
+            ELSE
+                PRINT "the fourth bank: ", SwramEnd - P%, " bytes free"
             ENDIF
-            PRINT "the fourth bank: ", SwramEnd - P%, " bytes free"
         ELSE
             INCLUDE "heli.6502"
             PRINT "the fourth bank: ", SwramEnd - P%, " bytes after the helicopter (the trace's, in the test)"

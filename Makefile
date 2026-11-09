@@ -212,9 +212,9 @@ build/trace/tunes.json: | tools/st_trace_tunes.py tools/hatari.sh $(VENV)
 $(GEN)/tunes_fixed.bin: tools/tune_gen.py tools/sound_gen.py tools/ay2sn.py build/trace/tunes.json | build/zx02 $(VENV)
 	mkdir -p $(GEN)
 	$(PY) tools/tune_gen.py build/trace/tunes.json $(GEN)
-$(GEN)/tunes_circle.bin: $(GEN)/tunes_fixed.bin
+$(GEN)/tunes_circle.bin $(GEN)/tunes_fixed.6502: $(GEN)/tunes_fixed.bin
 
-build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(GEN)/tunes_fixed.bin $(LOGICDEPS) $(BARON)
+build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(GEN)/tunes_fixed.bin $(GEN)/tunes_fixed.6502 $(LOGICDEPS) $(BARON)
 	$(BARON) -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
 
 # The game's disc (Phase 5, 3b): every track's play build (tools/all_tracks.sh, which checks their layout),

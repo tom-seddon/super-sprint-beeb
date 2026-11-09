@@ -725,12 +725,12 @@ ENDSECTION
 {
     STY TuneWant:STX TuneSlot
     LDA banktrace:STA game_go.page+1
-    LDA #HI(TunesFixed):STA game_go.from+2
+    LDA #HI(TunesFixed):STA game_go.from+2  ; (from its page's start: the bytes before it come too, harmlessly)
     LDA #HI(TuneRing):STA game_go.into+2
-    LDX #HI(SwramEnd - TunesFixed)
+    LDX #HI(SwramEnd - (TunesFixed AND &FF00))
     JSR front_parked                    ; (the shadow screen's, then the main screen written, ANDY in)
-    LDA #LO(TuneRing):STA TuneBlk
-    LDA #HI(TuneRing):STA TuneBlk+1
+    LDA #LO(TuneRing + LO(TunesFixed)):STA TuneBlk
+    LDA #HI(TuneRing + LO(TunesFixed)):STA TuneBlk+1
     LDA acccon:ORA #AccX
 }
 
