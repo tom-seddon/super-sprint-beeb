@@ -611,3 +611,18 @@
   0-7 the game runs, on the highest 4; with 2/5/6 the error comes up in MODE 7. `boot_check`: "Loading" still 9
   fields after `!BOOT`, the title's file at 464. On Tom's Master: "Looks good on my Master 128, though it has the
   default config of sideways RAM in banks 4-7 so it wasn't exercising every case."
+- **A RAM hunt** (2026-11-09; Tom: "this is probably worth thinking about next, as it's a potential blocker for any
+  further work"; `docs/brief-ram-2026-11-09.md`). Three agents read main RAM's code, the fourth bank with ANDY and
+  Shared, and the code between races, for levers; the shortlist went to Tom in batches. First, `tools/memmap.py` was
+  wrong twice: TunesFixed counted as pshift's, and ANDY given 45 free (the first PRINT *containing* "ANDY"), not 237.
+  `&0B00`-`&0CFF` was unwritten by DFS and ADFS in jsbeeb, but Tom: "On the Master 128, this is tagget as Econet
+  workspace" (D26). Tom on ANDY: "ANDY can be assumed to survive every load" (D15). Batch 1 (Tom: "Build batch 1"),
+  six levers, none costing cycles: the play build's restart path was dead (every race starts after its track's file
+  has loaded, rewriting the slots), fourth bank +780 and main RAM +49; `say` and `TextAttract`, never called, first 4K
+  +134; TunesFixed at the bank's end (its length from `tools/tune_gen.py`), +74; `fill_screen` into the background's
+  bank below BgOrg, main RAM +76; `font_char` into LowFree's top, copied by the loader, +56; `human.6502` into the
+  fourth bank, +780. Main RAM 222 to 1,183, the fourth bank 21 to 95, the first 4K 47 to 181. The hazard race: mean
+  32,903 to 32,884 cycles, 116 frames over a TV frame both, fields repeated 8 to 6, every frame the model's. The
+  suite 40/40 on agentbox, which built the same discs as here (`game.ssd` c41a9f80be30c74c01ceff6fdab5568ffe4f241d,
+  `game.adl` 93468c98ad5246b7b9ee736c601dae94b8777e06).
+

@@ -253,6 +253,11 @@ adds the logic.
 - The three-person playtest: the sparks that repeat up to 4.1% of fields with three humans driving at random
   (put aside for it, Tom, 2026-11-04; `docs/brief-phase5.md` step 4). The keys' ghosting is done: none on Tom's
   Master, "using the keypress indicators, and no clashes noted" (2026-11-08, D12).
+- The bank probe on real hardware, beyond the default layout (Tom, 2026-11-09: "Please add the bank probe testing
+  to the "Needs people or hardware" section"). Tom's Master has run only its RAM in banks 4-7. In jsbeeb only: the
+  RAM in banks 0-3, 1/3/5/7 and 0-7 (the game on the highest 4), and too few (2/5/6, the error in MODE 7). Wanted:
+  a Master with cartridge RAM in banks 0-3 (D4: a machine whose 4-7 are ROM may still play), and one with too
+  little, and a Compact.
 - The default keys less cramped (Tom, 2026-11-08, D12): "I think it'd be worth updating the default key
   assignments, so that things are a bit less cramped, but I don't have any specific suggestions for the
   updated assignments yet." Needs looking at; no set chosen. Now Q W E, V B N, `, . /`.
@@ -276,6 +281,11 @@ adds the logic.
   2026-11-09: banks 7 to 0 probed with the screen clear, a bank counted only if it reads back what's written (D4). On Tom's
   Master: "Looks good on my Master 128, though it has the default config of sideways RAM in banks 4-7 so it wasn't
   exercising every case."
+- A crash handler from `!BOOT`'s hand-over to the title (Tom, 2026-11-09: "Please add the crash handler to the open
+  items list"). Between `.raw` putting the OS's BRKV back and the title, a BRK goes to the OS's handler: its message
+  lands after "Loading" and the rest on rows not shown, so the machine looks hung and says nothing useful (the
+  probe fault above). The game's own BRKV there would show the BRK's address, and the ROMSEL and ACCCON it found,
+  in the HUD's row, so a photo says where it went wrong. Not built.
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
 - ~~Does the game build from a fresh clone?~~ (Tom, 2026-11-07): yes, done 2026-11-09. `git clone
@@ -315,12 +325,21 @@ adds the logic.
   `tools/suite.sh OUT` runs it all locally, now its default (Tom: "It must ultimately be possible to run
   everything locally"). Found on the way: a merge rewrote `tools/hatari.sh`, and make wanted every ST file traced
   again; the ST files' tools are now order-only prerequisites (made if missing, then kept).
-- Room is the constraint on all of it: main RAM 222 free, the `&3000` area 267, the fourth bank 21. New code goes
-  in the screens' files and the banks with room, as the save went into TRACKF's.
+- ~~Room~~ (Tom, 2026-11-09: "this is probably worth thinking about next, as it's a potential blocker for any further
+  work"): a RAM hunt's batch 1 built 2026-11-09 (Tom: "Build batch 1"), `docs/brief-ram-2026-11-09.md`. Main RAM 222 to
+  1,183 free, the fourth bank 21 to 95, its first 4K 47 to 181, at no cost in cycles (the hazard race's mean 32,903 to
+  32,884); the dead restart path gone, `human.6502` into the fourth bank, `fill_screen` into the background's bank,
+  `font_char` into LowFree's top. The brief lists batch 2 and the levers that cost cycles, for when something needs them.
+  Now: the `&3000` area 267 free, ANDY 237, the front end's code 34, the objects' bank 34 (track 5). New code for
+  between races goes in the screens' files, in `game.6502` (the first 4K) or main RAM.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
   issues or PRs for the beeb-port-kit, jsbeeb, Baron and the rest (Tom, 2026-11-04). Add to it as things turn up.
+- With it, go through the Master reference manuals for anything relevant to the kit (Tom, 2026-11-09: "As part of
+  doing the upstream PR list later, it'd be worth going through the reference manuals, to see if there'd be anything
+  relevant for the port kit. Something for a future session as I expect this'll be a lot of tokens."). The kit's
+  memory tables give the Model B's map in places (`&0B00`-`&0CFF`, `&0900`-`&0AFF`: `docs/upstream-notes.md`).
 
 ## Decisions
 
@@ -368,8 +387,8 @@ adds the logic.
   together).
 - **Keyboard ghosting**: none possible on paper with the chosen nine keys (each in its own column), and none
   seen on Tom's Master (2026-11-08, D12). A less cramped set, still to choose, needs the same checks.
-- **Room**: main RAM has 222 bytes free, the `&3000` area 267 and the fourth bank 21 (2026-11-08); the joysticks,
-  or anything else, need room found first (`beeb-ram-hunt`).
+- **Room**: main RAM has 1,183 bytes free, the `&3000` area 267 and the fourth bank 95 (2026-11-09, after the RAM
+  hunt's batch 1); its brief's batch 2 has more (`docs/brief-ram-2026-11-09.md`).
 - **A filing system in sideways RAM** (MMFS is often loaded that way; Tom's MMFS run in b2 worked) leaves 3 banks; the game needs 4 free
   (D4), so such a machine is told so at boot.
 - **Unpaged space** is about 13.5K with the OS's memory left alone (D7). If the IRQ, logic and state don't
