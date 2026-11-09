@@ -262,29 +262,17 @@ adds the logic.
 - ~~The score pickups' digits~~: done 2026-11-08, black on the yellow box (D34; Tom, after his CRT: "Good, commit").
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
-- For later (Tom, 2026-11-07): does the game build from a fresh clone? Checked 2026-11-08 (be1f910, a clone in a
-  scratch folder, on this machine): yes, given three things by hand, and its discs are byte for byte this
-  checkout's (`game.ssd` 37fd99f7f367a9ff1a9370dd66efd107df2d78a9, `game.adl` 3fc4c18e5d23e4964d9a9673818d35dcb1c76d88),
-  every ST trace made again in Hatari. About 16 minutes from nothing. What it needed:
-  1. The submodules: `--recurse-submodules` stopped at `rich/teddyboy` (gone from GitHub, now taken out) and
-     leaves the ones after it empty, the kit's among them; `git submodule update --force` on the rest mended it.
-     The build needs only `reference/beeb-port-kit` (ZX02's source).
-  2. `build/trace/logic_t0_r0.json`: `tools/all_tracks.sh` reads it before calling make, so nothing makes it.
-     The Makefile's rule for it works (`make build/trace/logic_t0_r0.json`, a minute).
-  3. `build/st_screens/screens.json`: `tools/screens.py` (via `st_frontend.first_dump`) reads it, and only
-     `tools/game_traces.sh screens screens` makes it (20 s); no Makefile rule. (`screens options` was made too;
-     whether the build needs it isn't checked.)
-  Everything else came by itself: the tracks' dumps, the conversions, the eight race traces, the sound and the
-  tunes. The fix: the two traces as `game`'s prerequisites (a rule for the screens' trace), the submodule out,
-  and the README's prerequisites (now macOS, Python 3.14, Hatari's path): Baron 0.6 on the PATH, a C compiler,
-  and that `tools/hatari.sh` names Hatari's path outright.
-- For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
-  What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
-  OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
-- For later (Tom, 2026-11-08): the build's version shown somewhere in the game, "probably git commit?", "so it's
-  easier to be confident about which build you're playing". Not yet looked at: where it's shown (the credits, the
-  options' screen, the "Loading" row), how it gets into the build (the Makefile passing the commit, and whether the
-  tree had changes), and that a rebuild of one commit still gives the same disc.
+- ~~Does the game build from a fresh clone?~~ (Tom, 2026-11-07): yes, done 2026-11-09. `git clone
+  --recurse-submodules` then `make game`, nothing by hand: 15 min 14 s on this machine, every ST trace made again
+  in Hatari, and the discs byte for byte this checkout's (`game.ssd` 37fd99f7f367a9ff1a9370dd66efd107df2d78a9,
+  `game.adl` 3fc4c18e5d23e4964d9a9673818d35dcb1c76d88; every track's build the same). It took the `rich/teddyboy`
+  submodule out (below; `--recurse-submodules` stopped there and left the kit empty), and two traces `make game`
+  read but never asked for, now order-only prerequisites, made if missing and kept once made:
+  `build/trace/logic_t0_r0.json` (`tools/all_tracks.sh` reads it before calling make) and
+  `build/st_screens/screens.json` and `options.json` (`tools/screens.py`'s, made by `tools/game_traces.sh`).
+  Still to do: the README's prerequisites (now macOS, Python 3.14, Hatari's path) want Baron 0.6 on the PATH and
+  a C compiler, and `tools/hatari.sh` names Hatari's path outright. Only on this machine: another Mac, or Linux,
+  not tried.
 - ~~The `rich/teddyboy` submodule out~~: done 2026-11-08 (Tom: "It should be removed from the repo"). Its
   repository has gone from GitHub, so `git clone --recurse-submodules` stopped there and left the submodules
   after it empty, the kit's among them. `CLAUDE.md`'s list of Rich's projects without it; the mentions in
