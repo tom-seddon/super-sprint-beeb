@@ -270,9 +270,13 @@ adds the logic.
   read but never asked for, now order-only prerequisites, made if missing and kept once made:
   `build/trace/logic_t0_r0.json` (`tools/all_tracks.sh` reads it before calling make) and
   `build/st_screens/screens.json` and `options.json` (`tools/screens.py`'s, made by `tools/game_traces.sh`).
-  Still to do: the README's prerequisites (now macOS, Python 3.14, Hatari's path) want Baron 0.6 on the PATH and
-  a C compiler, and `tools/hatari.sh` names Hatari's path outright. Only on this machine: another Mac, or Linux,
-  not tried.
+  Then (Tom, 2026-11-09: "What about adding baron as a submodule, building it as part of the build, and having the
+  build use the repo's copy?"): make builds `rich/baron` with CMake and Ninja into `build/baron` and assembles with
+  that; a fresh clone with no `baron` on the PATH built the same discs here (15 min 18 s). `tools/hatari.sh` takes
+  `HATARI`; the README says what the build needs. And where Hatari doesn't run (agentbox: Tom's copy there won't
+  start over ssh), the build's ST files packed here (`make build/stfiles.tar.gz`, 2.5 MB) and unpacked in a fresh
+  clone build the same discs, in 1 min 8 s, with `HATARI=/usr/bin/false`: `docs/st-traces.md`, which also lists
+  every ST file, what makes it and what reads it. Not tried: Linux; Windows not supported for now (Tom).
 - ~~The `rich/teddyboy` submodule out~~: done 2026-11-08 (Tom: "It should be removed from the repo"). Its
   repository has gone from GitHub, so `git clone --recurse-submodules` stopped there and left the submodules
   after it empty, the kit's among them. `CLAUDE.md`'s list of Rich's projects without it; the mentions in

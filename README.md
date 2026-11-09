@@ -23,6 +23,8 @@ make game
 ```
 
 The game's two discs are `build/game.ssd` (DFS) and `build/game.adl` (ADFS L). From nothing, about 16 minutes:
-most of it is the ST's traces in Hatari, made once and kept in `build/`.
+most of it is the ST's traces in Hatari, made once and kept in `build/`. Where Hatari doesn't run, the game builds
+from those files made on a machine where it does, packed and copied: `docs/st-traces.md`, which also says what each
+of the ST's files is, what makes it and what reads it.
 
 The checks (`tools/suite.sh` and the rest, `CLAUDE.md` "Oracles") also need Node 22.
