@@ -4,6 +4,17 @@ Use the `beeb-baron` skill for all 6502, with one exception: the game targets th
 (CMOS) opcodes are allowed, in sections with `cmos = TRUE` (D4 in `docs/decisions.md`). The skill's NMOS-only
 rule doesn't apply here.
 
+## Commits
+
+On a branch made for a piece of work, commit each change (each lever, each mechanism) as its own commit once it's
+built and checked, without asking; the measurement goes in the body. Merging into `main` waits for Tom's agreement,
+every time, and nothing is pushed unless he asks. This overrides the skills' "commit only when asked" on work branches;
+on `main`, ask first. Tom, 2026-11-09: "I think for any future set of changes like this, it'd be better to commit each
+one individually, as it might simplify things if needing to examine the history or reverting changes that end up
+problematic. I think if a branch has been created for the overall piece of work, then there's no need to ask for
+permission for each checkin to that branch. It's still definitely worth stopping and getting agreement when it comes
+to merging into `main`."
+
 ## Upstream
 
 `docs/upstream-notes.md` collects faults and gaps that may be worth raising with the kit, jsbeeb, Baron or Rich's
