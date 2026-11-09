@@ -593,3 +593,21 @@
   patches put into the raw files first (its disc boots with its low table). **Mistake caught by the check**:
   `game_check` failed all 3 games until `fileGate` unpacked. On Tom's Master: "Looks good and I left it running through
   the attract for about an hour without problems."
+- **The bank probe** (2026-11-09): on Tom's Master, one boot printed "Loading", then characters 128-255, and hung.
+  A BRK followed by junk, under the OS's BRKV, gives exactly that in jsbeeb: the message goes after "Loading", the
+  rest to rows not shown. Between `!BOOT` and the title is the only time that can look so: a disc error during
+  `!BOOT`'s loads goes to MODE 7, and during the game's to "... - press a key" (checked with TRACKF renamed).
+  `tools/seed_check.mjs`, new: the Master's MOS clears main, shadow and HAZEL RAM at power-on, not ANDY or the banks
+  (measured: `&A5` left in ANDY's 16 pages); with those full of junk, 230 boots ran to the title's file. jsbeeb's
+  boots all keep the same time, the disc turning in step with the fields from power-on (two boots 80,000 cycles
+  apart at `!BOOT`'s start reached SPRINT on the same cycle), so the check turns the disc to a random place as
+  `!BOOT`, SPRINT and each load start: 480 DFS and 60 ADFS boots on agentbox, all to the title and 500 fields on.
+  Tom asked what the bank 8 probe was for: nothing, it was the skill's Model B recipe (15 down to 0), and a stock
+  Master's bank 8 is an empty socket, which the OS's type table doesn't list. Tom: the Master's data bus is
+  unbuffered, so an empty socket reads the video's last byte, and the probe ran in MODE 7 with the boot screen up,
+  calling a bank RAM when two reads differed: a space and a letter would do it. Not proven the cause (jsbeeb's
+  empty socket reads 0), but it fits. Now (D4): banks 7 to 0, after MODE 129 has cleared the screen on show, a
+  bank counted only if it reads back the `&FF` EOR written. In jsbeeb with the RAM in banks 0-3, 1/3/5/7, 4-7 and
+  0-7 the game runs, on the highest 4; with 2/5/6 the error comes up in MODE 7. `boot_check`: "Loading" still 9
+  fields after `!BOOT`, the title's file at 464. On Tom's Master: "Looks good on my Master 128, though it has the
+  default config of sideways RAM in banks 4-7 so it wasn't exercising every case."

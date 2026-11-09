@@ -38,6 +38,17 @@ Decided in part (2026-11-01). Asked whether the game must run with a filing syst
 leaving 3 banks, Tom answered: "No, need 4 free banks". So the game needs 4 banks of sideways RAM that the
 ROM type table doesn't list; a filing system has to be in ROM. `!BOOT` counts the free banks and stops with a
 message if there are fewer than 4.
+Revised 2026-11-09, after a boot on Tom's Master printed "Loading", then characters 128-255, and hung, once.
+The probe had tried banks 15 down to 0 in MODE 7, and called a bank RAM when two reads of `&8000` differed.
+Tom: "What is the bank 8 probe for? Banks 8-15 can be assumed to be ROM on the Master." And: "It'd be nice to
+check for banks 0-3 as well, if the game already supports arbitrary banks being sideways RAM. It's possible for
+banks 4-7 to be ROM, but if the user has enough sideways RAM in cartridges to make up the required 64 KB then they
+should still be allowed to play it." And: "The CPU data bus is unbuffered on the Master, so the value on the
+floating bus is the last byte read by the video hardware. [...] The safest thing would be to do the RAM probe with
+display memory clear." So `!BOOT` probes banks 7 down to 0, takes the highest 4 the type table doesn't list that
+read back what's written (`&FF` EOR the byte), and does it after MODE 129 has cleared the screen on show, before
+"Loading". The game uses the bank numbers only as ROMSEL's, so any 4 do: checked in jsbeeb with the RAM in banks
+0-3, 1/3/5/7, 4-7 and 0-7 (the highest 4 taken), and 2/5/6 (the error, in MODE 7).
 Tom: "D4: Master 128 only is fine. This means 65c02, more flexible shadow RAM, and leaves open the option of
 using HAZEL for something."
 So: the Master 128 only, with what that allows:

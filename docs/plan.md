@@ -269,6 +269,13 @@ adds the logic.
 - ~~The boot's files packed~~: done 2026-11-09 (Tom: "Yes, build it"). SPRINT and the banks' four ZX02 packed on the game's
   discs, 60,134 bytes to 29,147; the title's file in 1.98 s sooner again on DFS, 2.2 s on ADFS L; 121 sectors fewer. On Tom's
   Master: "Looks good", and an hour of the attract mode without problems.
+- ~~A boot that printed "Loading", then characters 128-255, and hung~~ (Tom's Master, once, 2026-11-09): a BRK under
+  the OS's BRKV between `!BOOT` and the title looks exactly like that. Not reproduced in 770 jsbeeb boots with junk
+  RAM and the disc's timing moved (`tools/seed_check.mjs`). The likely cause, from Tom: the probe read an empty
+  socket (bank 8) in MODE 7, where the floating bus is the video's last byte, and could take it for RAM. Done
+  2026-11-09: banks 7 to 0 probed with the screen clear, a bank counted only if it reads back what's written (D4). On Tom's
+  Master: "Looks good on my Master 128, though it has the default config of sideways RAM in banks 4-7 so it wasn't
+  exercising every case."
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
 - ~~Does the game build from a fresh clone?~~ (Tom, 2026-11-07): yes, done 2026-11-09. `git clone

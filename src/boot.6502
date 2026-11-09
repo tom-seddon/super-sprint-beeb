@@ -1,5 +1,5 @@
-\\ boot.6502 - !BOOT, *RUN by SHIFT-BREAK (*OPT 4,2): checks for a Master 128, finds the sideways RAM, puts
-\\ the game's screen up saying "Loading", puts each bank's file into its bank, loads SPRINT and runs it. The
+\\ boot.6502 - !BOOT, *RUN by SHIFT-BREAK (*OPT 4,2): checks for a Master 128, puts the game's screen up,
+\\ finds the sideways RAM, says "Loading", puts each bank's file into its bank, loads SPRINT and runs it. The
 \\ OS stays alive; this file is assembled on its own, in NMOS code, so a Model B gets the error.
 \\
 \\ A file is raw or ZX02 packed, as its catalogue's load address says: LoadAddr raw (the builds' own discs),
@@ -45,39 +45,15 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     ZA_UNREACHABLE                      ; the BRK doesn't come back
 .master
 
-    \\ the banks: the highest numbered that take a write and that the OS's ROM type table doesn't list (a ROM
-    \\ image the OS would still call, a filing system held in RAM: D4). &F4 is written before ROMSEL, so the
-    \\ OS would page it back
-
-    LDA &F4:PHA                         ; the ROM paged in now
-    LDY #BanksNeeded-1                  ; banks still to find, less one
-    LDX #15
-.probe
-    LDA &2A1,X:BNE nope                 ; the OS's ROM type table: one it knows
-    STX &F4:STX &FE30                   ; ROMSEL: bank X at &8000
-    LDA &8000:EOR #&FF:STA &8000
-    EOR #&FF:CMP &8000                  ; Z: it didn't take
-    STA &8000                           ; put it back (STA keeps Z)
-    BEQ nope
-    STX banks,Y:ZA_INDEXEDBY 0..BanksNeeded-1
-    DEY:BMI found
-.nope
-    DEX
-    BPL probe
-    PLA:STA &F4:STA &FE30               ; ROMSEL: the ROM back
-    BRK
-    EQUB 0
-    EQUS "Super Sprint needs ", AS_STRING(BanksNeeded * 16), "K of free sideways RAM", 0
-    ZA_UNREACHABLE                      ; the BRK doesn't come back
-.found
-    PLA:PHA:STA &F4:STA &FE30           ; ROMSEL: the ROM back, while the OS draws
-
     \\ the screen as a load has it, in shadow RAM, so the files can land in main RAM's &3000-&7FFF (a load to
-    \\ &FFFF3000 goes to main RAM while the shadow screen's shown): MODE 129, the game's palette, the CRTC's
-    \\ registers in the blank (the HUD's row alone shown: R6 changed past its row misses it), and "Loading" in
-    \\ the HUD's row, in the MOS's font as the loads write it (loadcode.6502's row_text). A disc error goes back
-    \\ to MODE 7 to be read
+    \\ &FFFF3000 goes to main RAM while the shadow screen's shown): MODE 129 (the screen it shows cleared), the
+    \\ game's palette, the cursor off, the CRTC's registers in the blank (the HUD's row alone shown: R6 changed
+    \\ past its row misses it). An error from here goes back to MODE 7 to be read
 
+    LDA &202:STA OldBrk                 ; BRKV: boot_brk's
+    LDA &203:STA OldBrk+1
+    LDA #LO(boot_brk):STA &202
+    LDA #HI(boot_brk):STA &203
     LDX #0
 .vdu
     LDA BootVdu,X:JSR &FFEE             ; OSWRCH
@@ -91,16 +67,43 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     LDA BootCrtc,Y:STA &FE01            ; CRTC: its value
     DEY
     BPL crtc
-    LDX #BootVduCrtc - BootVdu          ; (OSBYTE 19 corrupts X)
+
+    \\ the banks: the highest numbered of 0-7 (8-15 are the Master's ROMs) that the OS's ROM type table doesn't
+    \\ list (a ROM image the OS would still call, a filing system held in RAM: D4) and that read back what's
+    \\ written. Done with the screen clear: an empty socket reads the last byte the video read (the Master's data
+    \\ bus isn't buffered), so with every byte the CRTC scans 0, a write of &FF never seems to take. &F4 is written
+    \\ before ROMSEL, so the OS would page it back
+
+    LDA &F4:PHA                         ; the ROM paged in now
+    LDY #BanksNeeded-1                  ; banks still to find, less one
+    LDX #7
+.probe
+    LDA &2A1,X:BNE nope                 ; the OS's ROM type table: one it knows
+    STX &F4:STX &FE30                   ; ROMSEL: bank X at &8000
+    LDA &8000:EOR #&FF:STA &8000
+    EOR &8000:BNE nope                  ; not what was written: no RAM, and nothing changed
+    LDA &8000:EOR #&FF:STA &8000        ; put back
+    STX banks,Y:ZA_INDEXEDBY 0..BanksNeeded-1
+    DEY:BMI found
+.nope
+    DEX
+    BPL probe
+    PLA:STA &F4:STA &FE30               ; ROMSEL: the ROM back
+    BRK
+    EQUB 0
+    EQUS "Super Sprint needs ", AS_STRING(BanksNeeded * 16), "K of free sideways RAM", 0
+    ZA_UNREACHABLE                      ; the BRK doesn't come back
+.found
+    PLA:PHA:STA &F4:STA &FE30           ; ROMSEL: the ROM back, while the OS draws
+
+    \\ "Loading" in the HUD's row, in the MOS's font as the loads write it (loadcode.6502's row_text)
+
+    LDX #BootVduCrtc - BootVdu
 .text
     LDA BootVdu,X:JSR &FFEE             ; OSWRCH
     INX
     CPX #BootVduEnd - BootVdu
     BNE text
-    LDA &202:STA OldBrk                 ; BRKV: boot_brk's
-    LDA &203:STA OldBrk+1
-    LDA #LO(boot_brk):STA &202
-    LDA #HI(boot_brk):STA &203
 
     \\ each bank's file loaded and put into its bank
 

@@ -72,6 +72,18 @@ a gap or a workaround looks like it isn't only this project's.
 - **Could be**: a third gate in `harness.mjs` beside the paging, from the same idea: the bytes the build
   assembled at the label, as a condition or in `gate()`.
 
+### Finding sideways RAM: an empty socket can pass
+The recipe (`beeb-baron`'s `hardware.md` §2 step 2 and §7: for X = 15 down to 0, EOR `&8000` with `&FF`, store,
+compare) calls a bank RAM when its second read differs from its first, not when it reads back what was written, and
+runs while MODE 7's boot screen is up. Tom (2026-11-09): the Master's data bus isn't buffered, so an empty socket
+reads the last byte the video read: a space mostly, a letter of the banner now and then, so the two reads can
+differ and an empty socket pass. On a stock Master bank 8 is such a socket, and was probed first here. Tom's one
+boot that printed "Loading" and then characters 128-255 and hung (2026-11-09) fits a bank 8 taken for RAM, but it
+isn't proven: jsbeeb's empty socket reads 0 every time, and 770 jsbeeb boots with junk RAM and the disc's timing
+moved (`tools/seed_check.mjs`) all ran. Fixed here: banks 7 to 0 only (8-15 are the Master's ROMs), probed with
+the shadow screen MODE 129 just cleared on show, and a bank counted only if it reads back the `&FF` EOR written.
+Worth a line in the recipe and in `gotchas.md`.
+
 ### Smaller
 - A self-patching copy loop that doesn't reset its operands works until it's run a second time (`shared_copy` and
   `load_go` here, 3c). Perhaps a line in `docs/gotchas.md`, if a port's loader is ever re-run.
@@ -95,6 +107,13 @@ slower loads showed up there before anyone knew why. Tool gaps only:
     at `front_title`: `?&A45 = 70` stopped there and `?&A45 = 67` didn't in 400M cycles, and `?PC = 169 && ?(PC+1)
     = 244` stopped there and the same with `<>` didn't. `?` reads whatever is paged in, with no side effects, so at
     an execute stop it reads the code being run.
+- **Empty sockets and the floating bus**: an empty ROM socket reads 0 in jsbeeb (2.18.0, Master: bank 8 checked),
+  where a real Master reads the last byte the video read (Tom, 2026-11-09), so a probe fooled by that (see the
+  kit's "Finding sideways RAM") can't be seen there.
+- **Every boot keeps the same time**: the disc turns from power-on in step with the fields, near enough, and every
+  load waits for it, so a delay before a load is lost: two boots 80,000 cycles apart at `!BOOT`'s start reached
+  SPRINT on the same cycle. A real drive's turning has nothing to do with the video. `tools/seed_check.mjs` turns
+  it by hand (`fdc._drives[0].positionFraction`); an option to start the disc at a random place would do.
 - **`MasterADFS` with no disc**: `run_basic` failed with "did not hit appropriate breakpoint in time". To check: what
   a real Master does there. A clearer message at least, or a way to give it a formatted disc.
 
