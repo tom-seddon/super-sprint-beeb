@@ -364,6 +364,14 @@ to hold the largest anyway, and saves about 5.8K a load, about 40K of disc and 7
 differs: car 3 in its own colours, which aren't the drone-driven set through `DataBlack` (12 of 16 facings differ),
 so one small file at step 6. (Step 6 left it out, 2026-11-04: the demo draws car 3 in the drone-driven set for now,
 and Tom's to say when: `docs/brief-phase5.md` step 6.)
+Revised again, Tom, 2026-11-09 ("Yes, try it"): Tom noticed nothing wrong with car 3's colour in the demo, but asked
+what fixing it would change and what it would cost. The demo had drawn car 3 from the drone-driven set through `DataId`,
+so its stripes were green. Car 3's own set is 2,639 bytes with its tables, and only 370 bytes are free in t5's cars'
+bank, so it would have to be a file loaded over the drone-driven set for a demo, then loaded back for a game's first
+race. Instead, the table entry for car 3 when it isn't a drone (`CarTable` in `tools/gendata.py`), which only the demo
+uses, is now `DataBlack`. Car 3 is drawn as it is in a race, and is 29 pixels from the ST's own over the 16 facings
+(0 to 6 a facing). It costs no bytes and no file. Car 3's own frames have no value-1 pixels, so builds that draw them
+(`TRACE=attract`) draw the same. The full set stays left out. Tom, on his Master: "Looks good"; D20 resolved.
 
 ### D21. Withdrawn (2026-11-03)
 Proposed as "every object variant a track can draw"; the play build already makes them from the track's

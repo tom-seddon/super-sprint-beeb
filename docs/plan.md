@@ -256,7 +256,8 @@ adds the logic.
 - The default keys less cramped (Tom, 2026-11-08, D12): "I think it'd be worth updating the default key
   assignments, so that things are a bit less cramped, but I don't have any specific suggestions for the
   updated assignments yet." Needs looking at; no set chosen. Now Q W E, V B N, `, . /`.
-- The demo's car 3 in its own colours (D20's small file, left out at step 6, Tom's to say when).
+- ~~The demo's car 3's green stripes~~: done 2026-11-09, black as in a race, through `DataBlack` (D20; Tom: "Yes, try it", then on his Master "Looks good"). Its own
+  frames, 29 pixels different, would want a 2.6K file and a load path: left out.
 - ~~D16's helicopter chop~~: done 2026-11-08, a rising sweep over the car's blink to its put-back (Tom: "Build C1 (sweep)", "Span the blink").
 - A palette split on prepare to race, so the cars are the right colours (Tom's idea, 2026-11-05).
 - ~~The score pickups' digits~~: done 2026-11-08, black on the yellow box (D34; Tom, after his CRT: "Good, commit").
@@ -329,7 +330,7 @@ adds the logic.
 | D17 | The flip | Decided (Tom, 2026-11-03): in the blank after the display, by System VIA T1 and T2; seen on a real Master |
 | D18 | Front-end colours | Decided (Tom, 2026-11-03): each screen its own 4 colours, from option sheets |
 | D19 | The game around the race | Decided (Tom, 2026-11-03): bit-exact, traced against Hatari |
-| D20 | Cars' frames per race | Decided (Tom, 2026-11-04, revised): all four sets resident for every race; the demo's small file left out for now |
+| D20 | Cars' frames per race | Decided (Tom, 2026-11-04, revised): all four sets resident for every race; the demo's car 3 drawn from the drone-driven set, black (2026-11-09), its own set left out |
 | D22 | The disc | Decided (Tom, 2026-11-03): one 80-track single-sided DFS disc; an ADFS one as well (D32) |
 | D23 | High scores | Decided (Tom, 2026-11-03): saved to disc, a failed save shown and ignored; built 2026-11-08 as `SCORES`, keys and sound with them |
 | D24 | The ST's keys | Decided (Tom, 2026-11-03): f1, f5, f8, f0 (for F10), f9, Escape from the matrix |

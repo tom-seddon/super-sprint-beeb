@@ -85,8 +85,10 @@ def set_of(sets, car, droned):
     return sets.index((None, True) if droned else (car, False))
 
 
-# a car's data table, by car and drone-driven: 0 DataId (1 green), 1 DataYellow, 2 DataWhite, 3 DataBlack
-CarTable = {(0, 0): 0, (1, 0): 0, (2, 0): 1, (3, 0): 0, (0, 1): 2, (1, 1): 0, (2, 1): 1, (3, 1): 3}
+# a car's data table, by car and drone-driven: 0 DataId (1 green), 1 DataYellow, 2 DataWhite, 3 DataBlack. Car 3
+# isn't a drone only in the demo, which draws it from the drone-driven set (D20): black, as in a race, not green
+# (its own frames have no value 1, so the attract trace's builds, which have them, draw the same)
+CarTable = {(0, 0): 0, (1, 0): 0, (2, 0): 1, (3, 0): 3, (0, 1): 2, (1, 1): 0, (2, 1): 1, (3, 1): 3}
 
 
 def cars(dat, sets):
