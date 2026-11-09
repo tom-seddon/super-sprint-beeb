@@ -335,6 +335,14 @@ HiSaveLen = HiSumLen + 2                ; SCORES: the table, lap records, keys, 
         ASSERT P% <= ObjBufOrg, "main RAM's code: below ObjBuf"
     ENDSECTION
 .maincode_end
+    IF GenPlay                          ; LowFree's code's image, which the loader copies in
+.lowcode_image
+        SECTION LowCode, org = LowCodeOrg, guard = LowFreeEnd, cmos = TRUE
+            INCLUDE "lowfree.6502"
+            PRINT "LowFree's code: ", LowFreeEnd - P%, " bytes free"
+        ENDSECTION
+.lowcode_end
+    ENDIF
     INCLUDE "entry.6502"
     IF GenLogic                         ; ANDY's image, which the loader copies in
 .andy_image

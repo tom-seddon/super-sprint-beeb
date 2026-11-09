@@ -164,34 +164,6 @@ ENDSECTION
     RTS
 }
 
-\\ A character of the MOS's font into FontBuf: at &B900 in ROM 15 from ASCII 32 (loadcode.6502), and game.6502's bank
-\\ and ANDY paged in again.
-\\ Inputs: A: the character, 32 up. Outputs: FontBuf; A, X corrupted; Y preserved.
-
-.font_char
-{
-    SEC:SBC #' '
-    STZ font+2
-    ASL A:ROL font+2
-    ASL A:ROL font+2
-    ASL A:ROL font+2
-    STA font+1
-    LDA font+2:CLC:ADC #HI(&B900):STA font+2
-    LDX #7
-    SEI                                 ; (the IRQ's reads are of main RAM, but ROM 15 is the MOS's own)
-    LDA #15:STA &FE30                   ; ROMSEL: the font's ROM
-.line
-.font
-    LDA &B900,X                         ; self-modified: the character
-    STA FontBuf,X
-    DEX
-    BPL line
-    LDA bankbg:ORA #RomselAndy
-    STA &FE30                           ; ROMSEL: back
-    CLI
-    RTS
-}
-
 \\ The load's code copied from the fourth bank to where it runs, and run. From the frame loop's top: LoadWant the
 \\ track + 1, or &FF, a race just over, when it's the game's.
 \\

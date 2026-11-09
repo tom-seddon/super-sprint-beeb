@@ -24,7 +24,7 @@ Regions = [                             # (name, the PRINT that gives its end, i
 ]
 AtEnd = {'TunesFixed'}                 # data placed at its region's end: the free bytes are before it, not after
 Labels = ['FxImage', 'LogicInputs', 'TraceData', 'HudEvents', 'TunesFixed']   # data INCBINned, not INCLUDEd: marked by label
-Vars = {'Tables': (0x0400, 0x0800), 'LowFree': (0x0900, 0x0B00), 'ObjBuf': (0x2A00, 0x2B00),
+Vars = {'Tables': (0x0400, 0x0800), 'LowFree': (0x0900, 0x0AC0), 'ObjBuf': (0x2A00, 0x2B00),
         'BlackTable': (0x2B00, 0x2C00), 'MoreTables': (0x2C00, 0x2E00), 'GameVars': (0x2E00, 0x3000), 'ScreenVars': (0x3000, 0x3070), 'LogicVars': (0x8E00, 0x9000),
         'FxData': (0x3000, 0x3F00), 'LogicZp': (0x00, 0x100)}
 

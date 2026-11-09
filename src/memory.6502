@@ -10,7 +10,8 @@
 \\   &0200  the OS's vectors and variables: left alone but IRQ1V
 \\   &0400  the tables, made by the loader: the cars' mask table and data tables
 \\   &0800  the OS's: sound, the printer buffer
-\\   &0900  free: the MOS's serial and cassette buffers, which the game never uses (D26: LowFree)
+\\   &0900  free: the MOS's serial and cassette buffers, which the game never uses (D26: LowFree), its
+\\          top (LowCodeOrg) code between races (lowfree.6502)
 \\   &0B00  the OS's: soft keys, the font, the NMI handler
 \\   &0E00  main RAM's code: the IRQ, the frame loop, and what pages banks in
 \\   &2A00  a background object's priority bits, on their way from the objects' bank to the cars'
@@ -63,6 +64,7 @@ MoreTablesOrg = &2C00                   ; more tables, made by the loader (MoreT
 ObjBufOrg = &2A00                       ; a background object's bytes, copied from the objects' bank (ObjBuf)
 LowFreeOrg = &0900                      ; the MOS's serial and cassette buffers: the game's (D26)
 LowFreeEnd = &0B00
+LowCodeOrg = &0AC0                      ; its top: code, from the loader (lowfree.6502)
 
 SECTION Tables, org = TablesOrg, guard = &0800, virtual = TRUE
 .MaskTab                                ; a frame's byte -> its key pixels' bits: the screen's to keep
@@ -80,7 +82,7 @@ ASSERT LO(MaskTab) == 0, "the tables: on pages"
 SECTION GameVars, org = GameVarsOrg, guard = GameVarsEnd, virtual = TRUE
 ENDSECTION
 
-SECTION LowFree, org = LowFreeOrg, guard = LowFreeEnd, virtual = TRUE
+SECTION LowFree, org = LowFreeOrg, guard = LowCodeOrg, virtual = TRUE
 ENDSECTION
 
 GameOrg = &9000                         ; game.6502, in the background's bank between races: above ANDY

@@ -98,6 +98,11 @@ LoadingChars = {'L', 'o', 'a', 'd', 'i', 'n', 'g'}   ; loadcode.6502's LoadingTe
     IF GenPlay                          ; the OS's state kept for the loads (load.6502), before the game
         CLI                             ; writes any of zero page's &90-&FF
         JSR scores_load                 ; (LowFree its buffer, before load_takeover fills it)
+        LDX #lowcode_end - lowcode_image - 1
+.low                                    ; LowFree's code, now the load's done with its buffer
+        LDA lowcode_image,X:STA LowCodeOrg,X
+        DEX
+        BPL low
         JSR load_takeover
         SEI
     ENDIF
