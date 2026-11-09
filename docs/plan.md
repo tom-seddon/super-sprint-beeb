@@ -277,6 +277,13 @@ adds the logic.
   start over ssh), the build's ST files packed here (`make build/stfiles.tar.gz`, 2.5 MB) and unpacked in a fresh
   clone build the same discs, in 1 min 8 s, with `HATARI=/usr/bin/false`: `docs/st-traces.md`, which also lists
   every ST file, what makes it and what reads it. Not tried: Linux; Windows not supported for now (Tom).
+- For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
+  What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
+  OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
+- For later (Tom, 2026-11-08): the build's version shown somewhere in the game, "probably git commit?", "so it's
+  easier to be confident about which build you're playing". Not yet looked at: where it's shown (the credits, the
+  options' screen, the "Loading" row), how it gets into the build (the Makefile passing the commit, and whether the
+  tree had changes), and that a rebuild of one commit still gives the same disc.
 - ~~The `rich/teddyboy` submodule out~~: done 2026-11-08 (Tom: "It should be removed from the repo"). Its
   repository has gone from GitHub, so `git clone --recurse-submodules` stopped there and left the submodules
   after it empty, the kit's among them. `CLAUDE.md`'s list of Rich's projects without it; the mentions in
