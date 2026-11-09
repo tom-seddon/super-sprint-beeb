@@ -59,6 +59,40 @@ export function discFiles(path) {
     return files;
 }
 
+// A ZX02 stream unpacked (zx02depack.6502's format; the kit's zx02.py decompress, line for line): a Uint8Array.
+export function unzx02(z) {
+    const out = [];
+    let pos = 0, mask = 0, byte = 0, back = null, offset = 1;
+    const bit = () => {
+        if (back !== null) { const b = back & 1; back = null; return b; }
+        if (!mask) { byte = z[pos++]; mask = 128; }
+        const b = byte & mask ? 1 : 0;
+        mask >>= 1;
+        return b;
+    };
+    const gamma = () => { let v = 1; while (bit()) v = ((v << 1) | bit()) & 0xff; return v; };
+    const count = (v) => v || 256;
+    const copy = (n) => { for (let i = 0; i < n; i++) out.push(out[out.length - offset]); };
+    for (let state = "literals"; ;) {
+        if (state === "literals") {
+            const n = count(gamma());
+            for (let i = 0; i < n; i++) out.push(z[pos++]);
+            state = bit() ? "new" : "copy";
+        } else if (state === "copy") {
+            copy(count(gamma()));
+            state = bit() ? "new" : "literals";
+        } else {
+            const msb = gamma();
+            if (!msb) return Uint8Array.from(out);
+            const lsb = z[pos++];
+            offset = (msb - 1) * 128 + (lsb >> 1) + 1;
+            back = lsb;
+            copy(count((gamma() + 1) & 0xff));
+            state = bit() ? "new" : "literals";
+        }
+    }
+}
+
 // A condition for a stop at a label in a file loaded over others at the same address (the screens' files, all at
 // FrontPicOrg and BgOrg): the bytes there must be that file's, from the disc. As few as tell it from every other
 // file's section there (at least 4), the others being those loaded to the same address. undefined for a label in
@@ -72,14 +106,20 @@ export function fileGate(symbolsPath, discPath, label) {
             if (file?.attributes?.filename && section.attributes?.org !== undefined) sections.push({ section, file });
         });
     }
-    const disc = discFiles(discPath), offsets = new Map(), next = new Map();
+    const disc = discFiles(discPath), offsets = new Map(), next = new Map(), raw = new Map();
     for (const { section, file } of sections) {     // (a file is its sections, in order)
         const o = next.get(file) ?? 0;
         offsets.set(section, o);
         next.set(file, o + section.size);
     }
+    const unpacked = (file) => {        // (a boot file the game's disc has packed says so by its load address: boot.6502)
+        const f = disc[file.attributes.filename];
+        if (!f || f.load === (file.attributes.load & 0xffff)) return f?.data;
+        if (!raw.has(f)) raw.set(f, unzx02(f.data));
+        return raw.get(f);
+    };
     const bytesAt = ({ section, file }, addr, n) => {
-        const data = disc[file.attributes.filename]?.data;
+        const data = unpacked(file);
         const o = offsets.get(section) + addr - section.attributes.org;
         return data && [...data.subarray(o, o + n)];
     };

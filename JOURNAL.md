@@ -580,3 +580,16 @@
   SPRINTB 12,067); the boot still copies 16K. `boot_check`: the title's file in at field 563, not 654, on DFS (1.82 s),
   759 not 840 on ADFS L (1.62 s); `load_check`: all 8 tracks load right. The DFS disc 701 sectors to 633. On Tom's
   Master: "it looks good".
+- **The boot's files packed** (2026-11-09): Tom asked whether any files were ZX02 packed; the tracks' and the
+  pictures were, the boot's five weren't, and nothing had been decided. Tom: "Yes, build it". `make_game.py` packs
+  SPRINT and SPRINTA-D on the game's discs (60,134 bytes to 29,147) and gives each a load address that isn't `&3000`:
+  a bank's packed file loads at `&4000` and `!BOOT` unpacks it straight into its bank (no 16K copy); SPRINT's loads at
+  `&4D07`, `dfs.in_place_delta` ahead of its output, and unpacks into `&3000` in place. A file at `&3000` is copied as
+  before, so the builds' own discs boot unchanged. `boot_check`: the title's file in at field 464, not 563, on DFS
+  (1.98 s sooner), 649 not 759 on ADFS L (2.2 s); with the cut, 3.8 s sooner than this morning on both. The DFS disc 633
+  sectors to 512. Two tools read the boot's files off the disc: `fileGate` (`game_check`'s stops) now unpacks a
+  packed one (`unzx02` in `tools/jsbeeb.mjs`, proved against `t0.ssd`'s five files byte for byte), and
+  `tools/cheat_disc.py`, which patched bytes it found on `game.ssd`, now makes its disc through `make_game.py`, its
+  patches put into the raw files first (its disc boots with its low table). **Mistake caught by the check**:
+  `game_check` failed all 3 games until `fileGate` unpacked. On Tom's Master: "Looks good and I left it running through
+  the attract for about an hour without problems."

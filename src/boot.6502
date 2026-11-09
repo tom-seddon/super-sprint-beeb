@@ -1,6 +1,10 @@
 \\ boot.6502 - !BOOT, *RUN by SHIFT-BREAK (*OPT 4,2): checks for a Master 128, finds the sideways RAM, puts
-\\ the game's screen up saying "Loading", copies each bank's file into its bank, loads SPRINT and runs it. The
+\\ the game's screen up saying "Loading", puts each bank's file into its bank, loads SPRINT and runs it. The
 \\ OS stays alive; this file is assembled on its own, in NMOS code, so a Model B gets the error.
+\\
+\\ A file is raw or ZX02 packed, as its catalogue's load address says: LoadAddr raw (the builds' own discs),
+\\ anything else packed (the game's discs: tools/make_game.py). A bank's is copied or unpacked into its bank,
+\\ SPRINT's unpacked into LoadAddr from where it landed, ahead of it.
 
 INCLUDE "constants.6502"
 
@@ -98,25 +102,26 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     LDA #LO(boot_brk):STA &202
     LDA #HI(boot_brk):STA &203
 
-    \\ each bank's file loaded at LoadAddr (its catalogue's address, so OSFILE's write-back leaves the block
-    \\ ready for the next) and copied into its bank, all 16K
+    \\ each bank's file loaded and put into its bank
 
     FOR i = 0..BanksNeeded-1
-        LDA #LO(BankNames+i*8):STA OsfileBlock
-        LDA #HI(BankNames+i*8):STA OsfileBlock+1
-        LDA #&FF:LDX #LO(OsfileBlock):LDY #HI(OsfileBlock):JSR &FFDD ; OSFILE: load
+        LDX #LO(BankNames+i*8):LDY #HI(BankNames+i*8)
+        JSR load_file
         LDA banks+i:STA &F4:STA &FE30   ; ROMSEL: the bank
-        JSR copy_bank
+        JSR to_bank
     NEXT
     PLA:STA &F4:STA &FE30               ; ROMSEL: the ROM back
 
-    \\ SPRINT loaded at its own address (exec's low byte non-zero), then the banks handed over and it run
-    \\ from the exec address OSFILE wrote back
+    \\ SPRINT loaded and, if it's packed, unpacked into LoadAddr; then the banks handed over and it run from
+    \\ the exec address OSFILE wrote back
 
-    LDA #LO(SprintName):STA OsfileBlock
-    LDA #HI(SprintName):STA OsfileBlock+1
-    LDA #&FF:STA OsfileBlock+6
-    LDX #LO(OsfileBlock):LDY #HI(OsfileBlock):JSR &FFDD ; OSFILE: load (A = &FF)
+    LDX #LO(SprintName):LDY #HI(SprintName)
+    JSR load_file
+    BEQ raw
+    LDA #LO(LoadAddr):STA zxdst
+    LDA #HI(LoadAddr):STA zxdst+1
+    JSR zx_unpack
+.raw
     LDA OldBrk:STA &202                 ; BRKV: the OS's again
     LDA OldBrk+1:STA &203
     FOR i = 0..BanksNeeded-1
@@ -141,6 +146,47 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     LDA #7:JSR &FFEE
     JMP (OldBrk)                        ; the OS's BRKV
     ZA_CANJUMP &8000                    ; (not this assembly's: the language's handler, in its ROM)
+}
+
+\\ A file loaded at its own address (exec's low byte non-zero; OSFILE writes the catalogue's addresses back).
+\\
+\\ Inputs:
+\\     X, Y: its name
+\\
+\\ Outputs:
+\\     zxsrc: where it landed; Z set if that's LoadAddr (raw), clear if not (packed)
+\\     A, X, Y: corrupted
+
+.load_file
+{
+    STX OsfileBlock:STY OsfileBlock+1
+    LDA #&FF:STA OsfileBlock+6
+    LDX #LO(OsfileBlock):LDY #HI(OsfileBlock):JSR &FFDD ; OSFILE: load (A = &FF)
+    LDA OsfileBlock+2:STA zxsrc
+    LDA OsfileBlock+3:STA zxsrc+1
+    CMP #HI(LoadAddr):BNE done
+    LDA zxsrc:CMP #LO(LoadAddr)
+.done
+    RTS
+}
+
+\\ A bank's file put into its bank: copied, raw, or unpacked.
+\\
+\\ Inputs:
+\\     zxsrc: where it landed (load_file); the bank paged in
+\\
+\\ Outputs:
+\\     A, X, Y: corrupted
+
+.to_bank
+{
+    LDA zxsrc+1:CMP #HI(LoadAddr):BNE packed
+    LDA zxsrc:CMP #LO(LoadAddr):BNE packed
+    JMP copy_bank
+.packed
+    LDA #&00:STA zxdst
+    LDA #&80:STA zxdst+1
+    JMP zx_unpack
 }
 
 \\ The 16K at LoadAddr copied to the bank paged in.
@@ -169,6 +215,17 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     RTS
 }
 
+\\ The ZX02 depacker (zx02depack.6502, the beeb-port-kit's: plain 6502)
+
+ZA_AUTO2 zxsrc                          ; the stream
+ZA_AUTO2 zxdst                          ; the output
+ZA_AUTO1 zxofs
+ZA_AUTO1 zxbit
+ZA_AUTO2 zxwrk
+INCLUDE "zx02depack.6502"
+.zx_unpack
+    ZX02_DEPACKER
+
 .BootVdu                                ; MODE 129, the palette, the cursor off,
     EQUB 22, 129
     FOR l = 0..3
@@ -195,8 +252,8 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     ASSERT LO(OldBrk) != &FF, "JMP (OldBrk): not across a page (NMOS)"
 .OsfileBlock                            ; OSFILE's block: the name, then the load address
     EQUW 0
-    EQUD &FFFF0000 + LoadAddr           ; (in the I/O processor, Tube or no Tube)
-    EQUD 0                              ; exec: its low byte 0, so the load goes to the address above
+    EQUD &FFFF0000 + LoadAddr           ; (OSFILE writes the catalogue's back)
+    EQUD 0                              ; exec: its low byte set before each load, so it goes to its own address
     SKIP 8
 
 ENDSECTION

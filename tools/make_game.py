@@ -13,6 +13,10 @@ Each stream is round-tripped through the kit's zx02.py before it's written, and 
 A bank's file that ends in a slot (SPRINTA in the background, SPRINTB in the priority cells) ends where the slot
 starts instead: every race loads its track's file first, and until then nothing reads it (game_go's code goes over
 SPRINTA's at the boot, prepare's file is parked in SPRINTB's). The boot copies the whole 16K regardless.
+
+Then the boot's files, SPRINT and the banks', are ZX02 packed too, and say so by their catalogue's load address, which
+for a raw one is LoadAddr (&3000): a bank's packed file loads at PackedAt and !BOOT unpacks it into its bank; SPRINT's
+loads where it unpacks into itself at &3000, in place, its stream far enough ahead of the output (dfs.in_place_delta).
 """
 import hashlib, json, os, sys
 
@@ -22,6 +26,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'reference', 'b
 import dfs                                      # the kit's .ssd reader and writer, and its compress (used in place)
 
 FileAddr = 0x4200                               # load.6502's TrackFileAddr
+LoadAddr = 0x3000                               # boot.6502's: where a raw boot file loads, SPRINT runs
+PackedAt = 0x4000                               # where a bank's packed file loads: anything but LoadAddr
 CodeOrg = 0x7C00                                # and LoadCodeOrg: a file must end below it
 Where = {'BgBank': 0, 'CarsBank': 1, 'TraceBank': 2, 'ObjBank': 3, 'Andy': 0x80 | 2, 'Shared': 0x40}
 
@@ -57,6 +63,20 @@ def cut(files, parts):
             files[f].replace(files[f].data[:a - 0x8000])
 
 
+def pack_boot(files, zx02):
+    """The boot's files ZX02 packed, each with the load address that tells !BOOT so."""
+    for f in ['SPRINTA', 'SPRINTB', 'SPRINTC', 'SPRINTD', 'SPRINT']:
+        e = files[f]
+        assert e.load & 0xFFFF == LoadAddr, f'{f}: a raw boot file loads at &{LoadAddr:04X}'
+        raw = e.data
+        packed = dfs.compress(raw, exe=zx02, name=f)
+        at = LoadAddr + dfs.in_place_delta(packed, raw) if f == 'SPRINT' else PackedAt
+        if at == LoadAddr or at + len(packed) > 0x8000:
+            sys.exit(f'{f}: packed at &{at:04X}, {len(packed)} bytes: not where !BOOT can tell it or take it')
+        e.replace(packed, load=0xFF0000 | at)
+        print(f'{f}: {len(raw):,} bytes packed to {len(packed):,}, at &{at:04X}')
+
+
 def track_file(d, n, zx02):
     parts = slots(d, n)
     streams = [dfs.compress(raw, exe=zx02, name=f'track {n + 1} {name}') for name, _, _, raw in parts]
@@ -71,13 +91,18 @@ def track_file(d, n, zx02):
     return data, [(name, len(raw), len(s)) for (name, _, _, raw), s in zip(parts, streams)]
 
 
-def main(d, zx02, out):
+def main(d, zx02, out, patch=None):
+    """patch: given the files, raw (but the tracks'), to change in place before they're cut and packed
+    (tools/cheat_disc.py's)."""
     img = dfs.read_image(f'{d}/t0.ssd')
     files = dict(img.files)
     want = [[{'name': name, 'section': sec, 'address': a, 'bytes': raw.hex()} for name, sec, a, raw in slots(d, n)]
             for n in range(8)]
     json.dump(want, open(os.path.splitext(out)[0] + '_slots.json', 'w'))   # (tools/load_check.mjs's answers)
+    if patch:
+        patch(files)
     cut(files, slots(d, 0))
+    pack_boot(files, zx02)
     for n in range(8):
         data, sizes = track_file(d, n, zx02)
         files[f'TRACK{n + 1}'] = dfs.Entry(f'TRACK{n + 1}', data, 0xFF0000 | FileAddr, 0xFF0000, '$', False)

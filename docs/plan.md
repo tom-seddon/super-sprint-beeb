@@ -266,6 +266,9 @@ adds the logic.
 - ~~Track 1's parts in the boot's files~~: done 2026-11-09 (Tom: "Yes, cut them"). SPRINTA ended in track 1's background
   (16,000 bytes) and SPRINTB in its priority cells (2,105), never read: `make_game.py` cuts them. The title's file in
   1.82 s sooner on DFS, 1.62 s on ADFS L; 68 sectors fewer. On Tom's Master: "it looks good".
+- ~~The boot's files packed~~: done 2026-11-09 (Tom: "Yes, build it"). SPRINT and the banks' four ZX02 packed on the game's
+  discs, 60,134 bytes to 29,147; the title's file in 1.98 s sooner again on DFS, 2.2 s on ADFS L; 121 sectors fewer. On Tom's
+  Master: "Looks good", and an hour of the attract mode without problems.
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
 - ~~Does the game build from a fresh clone?~~ (Tom, 2026-11-07): yes, done 2026-11-09. `git clone
