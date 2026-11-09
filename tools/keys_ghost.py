@@ -3,8 +3,8 @@
 Usage: keys_ghost.py   (checks the default three-player layout, and the model against a known ghost)
 
 Exit status 1 if any of the layout's keys held can ghost another of them. The game's other keys it reads (Escape, f0,
-f1, f5, and the options' f2-f4 and f9) are listed with the smallest sets that ghost them; Tom took the defaults'
-Escape and F1 (2026-11-09, D12).
+f1, f5, and the options' f2-f4 and f9) are listed with the smallest sets that ghost them (none, with the defaults:
+D12).
 
 The matrix has no diodes: a key joins its column line to its row line (internal key number: column bits
 0-3, row bits 4-6). Reading a key asks whether its column and row are connected, so with keys held, any key
@@ -24,8 +24,8 @@ Keys = {'Q': 16, 'W': 33, 'E': 34, 'SHIFT': 0, 'Z': 97, 'X': 66, 'V': 99, 'B': 1
         'PAD DEL': 75}
 Others = {'ESCAPE': 112, 'F0': 32, 'F1': 113, 'F5': 116, 'F2': 114, 'F3': 115, 'F4': 20, 'F9': 119}   # (keyboard.6502)
 
-# the default layout (Tom, 2026-11-09): each player's left, right and accelerate
-Layout = [('CAPS', 'CTRL', 'A'), ('COMMA', 'PERIOD', 'SLASH'), ('PAD 5', 'PAD 6', 'PAD DEL')]
+# the default layout (Tom, 2026-11-09, D12): each player's left, right and accelerate
+Layout = [('Q', 'W', 'E'), ('COMMA', 'PERIOD', 'SLASH'), ('PAD 5', 'PAD 6', 'PAD DEL')]
 
 
 def reads_held(held, key):

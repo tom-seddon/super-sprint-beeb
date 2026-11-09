@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { andy, bootDisc, ram, runToAny, settle, symbols } from "./jsbeeb.mjs";
 
 const Field = 39936, F = { f0: 32, f1: 113, f2: 114, f3: 115, f4: 20, f5: 116, f9: 119, esc: 112 };
-const CAPS = 64, CTRL = 1, COMMA = 102, PERIOD = 103, SLASH = 104, PAD5 = 123, PAD6 = 26, PADDEL = 75;   // (the defaults, D12)
+const Q = 16, W = 33, E = 34, COMMA = 102, PERIOD = 103, SLASH = 104, PAD5 = 123, PAD6 = 26, PADDEL = 75;   // (the defaults, D12)
 const A = 65, S = 81, D = 50, RETURN = 73, LEFT = 25, SPACE = 98, ONE = 48, TWO = 49, THREE = 17;
 const syms = symbols("build/tracks/t0.json");
 const s = await bootDisc("build/game.ssd");
@@ -91,15 +91,15 @@ function screen(what, line, inverse = []) {
 const same = (what, got, want) => { if (got.join() !== want.join()) say(`${what}: ${got}, not ${want}`); };
 
 screen("the options", "on");
-same("the keys to start with", keysNow(), [CAPS, CTRL, A, COMMA, PERIOD, SLASH, PAD5, PAD6, PADDEL]);
+same("the keys to start with", keysNow(), [Q, W, E, COMMA, PERIOD, SLASH, PAD5, PAD6, PADDEL]);
 
 // the markers
-down(CTRL);
+down(W);
 await run(3);
-screen("CTRL held", "on", [1]);
-up(CTRL);
+screen("W held", "on", [1]);
+up(W);
 await run(3);
-screen("CTRL up", "on");
+screen("W up", "on");
 const nine = keysNow();
 nine.forEach(down);
 await run(3);

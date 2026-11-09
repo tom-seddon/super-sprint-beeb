@@ -2,15 +2,15 @@
 \\ lib/keydown.6502, forked (keydown_int): the keyboard's free-running scan stopped for the read (the
 \\ addressable latch's line 3 low) and started again after, since while it's stopped the keyboard drives PA7,
 \\ which the sound chip's writes share. The default keys (Tom's, 2026-11-09, D12) make no loop in the matrix, so no
-\\ keys of theirs held together can ghost another (tools/keys_ghost.py); three of them can ghost Escape or F1, which
-\\ Tom took.
+\\ keys of theirs held together can ghost another, nor any other key the game reads (tools/keys_ghost.py).
 
 \\ The keys' internal numbers, measured: the kit's docs/hardware-facts.md section 7, COMMA and PERIOD with jsbeeb-mcp
 \\ 4.3.0's key_down on a Master, 2026-11-02, and the rest against jsbeeb 2.18.0's own table (tools/keys_check.mjs).
+\\ Player 1 is Q, W, E so that one player can play on jsbeeb as it comes, with a PC's keyboard (Tom, 2026-11-09).
 
-KeyCaps = 64                            ; CAPS LOCK
-KeyCtrl = 1
-KeyA = 65
+KeyQ = 16
+KeyW = 33
+KeyE = 34
 KeyComma = 102
 KeyPeriod = 103
 KeySlash = 104
@@ -81,7 +81,7 @@ KeyF9 = 119
 .SoundOff                               ; 1: nothing's sent to the chip (F9, in the options)
     EQUB 0
 .PlayerKeys                             ; each player's left, right, accelerate (the options can change them)
-    EQUB KeyCaps, KeyCtrl, KeyA
+    EQUB KeyQ, KeyW, KeyE
     EQUB KeyComma, KeyPeriod, KeySlash
     EQUB KeyPad5, KeyPad6, KeyPadDelete
     ASSERT P% - SoundOff == 10, "SoundOff and PlayerKeys: HiKeys's 10 bytes, saved with the table"

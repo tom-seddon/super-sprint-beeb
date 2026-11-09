@@ -16,7 +16,7 @@ import { andy, bootDisc, ram, runTo, runToAny, symbols } from "./jsbeeb.mjs";
 const syms = symbols();
 const s = await bootDisc();
 // [jsbeeb's BBC key name, player, bit]: the defaults (D12)
-const Keys = [["CAPSLOCK", 0, 4], ["CTRL", 0, 8], ["A", 0, 0x80], ["COMMA", 1, 4], ["PERIOD", 1, 8], ["SLASH", 1, 0x80],
+const Keys = [["Q", 0, 4], ["W", 0, 8], ["E", 0, 0x80], ["COMMA", 1, 4], ["PERIOD", 1, 8], ["SLASH", 1, 0x80],
     ["NUMPAD5", 2, 4], ["NUMPAD6", 2, 8], ["NUMPAD_DELETE", 2, 0x80]];
 await runTo(s, syms["game_resume.idle"], 80000000);    // (the disc copies its banks first: the attract mode now)
 const bankbg = ram(s, 0, 1)[0], cpu = s._machine.processor, table = cpu.model.keys;
