@@ -68,6 +68,7 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
 .KeysSlotEnd
             INCLUDE "arithtabs.6502"
             INCLUDE "arith.6502"        ; (the logic's alone: in its bank, Phase 5's room)
+            INCLUDE "human.6502"        ; (race_frame's alone, run with this bank in: the same)
             INCLUDE "../build/lgen/tables.6502"
 .CellsSlot                              ; the track's part (Phase 5, 3a): its attribute map and slots
             INCLUDE "../build/lgen/cells.6502"
@@ -324,7 +325,6 @@ HiSaveLen = HiSumLen + 2                ; SCORES: the table, lap records, keys, 
         IF GenLogic
             INCLUDE "random.6502"
             INCLUDE "race.6502"
-            INCLUDE "human.6502"
             IF GenPlay
                 INCLUDE "keyboard.6502"
                 INCLUDE "load.6502"
