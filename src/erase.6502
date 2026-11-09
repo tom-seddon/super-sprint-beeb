@@ -120,3 +120,60 @@ ScHi = 5                                ; and the screen's (STA abs,X)
     EQUW erase_cars.scseq + (EraseCols - (1..EraseCols)) * 3
 .BgEntry
     EQUW erase_cars.bgseq + (EraseCols - (1..EraseCols)) * 3
+
+\\ The screen written: the HUD's row cleared, the play area copied from the clean background; and its own
+\\ variables: nothing to erase, the HUD's row shown blank.
+\\
+\\ In the background's bank, before the clean play area: start pages it in, ANDY out.
+\\
+\\ Inputs:
+\\     none
+\\
+\\ Outputs:
+\\     EraseH, HudShown: the screen's
+\\     A, X, Y: corrupted
+
+.fill_screen
+{
+    STZ EraseH                          ; (the list's end)
+    LDA #HudBlank
+    LDX #HudCols-1
+.shown
+    STA HudShown,X
+    DEX
+    BPL shown
+
+    LDA #0:TAY
+.hud
+    STA HudAddr,Y
+    STA HudAddr+&100,Y
+    INY
+    BNE hud
+    LDY #RowBytes-&200-1
+.hudtail
+    STA HudAddr+&200,Y
+    DEY
+    BPL hudtail
+
+    LDA #HI(BgOrg):STA copy+2
+    LDA #HI(PlayAddr):STA copy+5
+    LDX #HI(PlayBytes)
+    INY                                 ; (Y = &FF: 0)
+.copy
+    LDA BgOrg,Y                         ; self-modified: the page's high byte
+    STA PlayAddr,Y                      ; self-modified: the page's high byte
+    INY
+    BNE copy
+    INC copy+2
+    INC copy+5
+    DEX
+    BNE copy
+    ASSERT LO(PlayBytes) <= &80 AND LO(PlayAddr) == &80, "the copy's tail: Y counts down from 127 at most"
+    LDY #LO(PlayBytes)-1
+.tail
+    LDA BgOrg+(PlayBytes AND &FF00),Y
+    STA PlayAddr+(PlayBytes AND &FF00),Y
+    DEY
+    BPL tail
+    RTS
+}
