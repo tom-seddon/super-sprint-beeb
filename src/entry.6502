@@ -22,6 +22,8 @@ LoadingChars = {'L', 'o', 'a', 'd', 'i', 'n', 'g'}   ; loadcode.6502's LoadingTe
     CLI
     LDA #19:JSR &FFF4                   ; OSBYTE 19, vsync: the calls below hold interrupts off a while
     LDA #16:LDX #0:JSR &FFF4            ; OSBYTE 16: the ADC off
+    LDA #200:LDX #3:LDY #0:JSR &FFF4    ; OSBYTE 200: Escape off and BREAK clears memory, as power-on does, so
+                                        ; the MOS makes its soft font again (in ANDY, which the game takes: D15)
     IF GenPlay = 0
         LDA #143:LDX #12:LDY #255:JSR &FFF4 ; OSBYTE 143: NMIs claimed from the filing system (the play
     ENDIF                               ; build's in load_takeover, which keeps who had them)

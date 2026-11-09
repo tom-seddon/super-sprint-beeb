@@ -7,7 +7,7 @@
 # (`make hazardtrace` records them); and tools/human_traces.sh's, with two or three humans; and the demo. Then the
 # race with cars put where one pixel of the wall probes decides (hprobe, state only), and the faults it's there
 # for put back (--probes). Then the disc's other checks, which read only it and what it was made from:
-# tools/game_check.mjs, tools/attract_check.mjs, tools/flash_check.mjs, tools/options_check.mjs, tools/select_check.mjs, tools/upgrades_check.mjs, tools/circle_check.mjs, tools/initials_check.mjs, tools/tune_check.mjs (and again with --off: tune_off), tools/save_check.mjs, game_check and load_check again on build/game.adl (--adfs: game_adfs, load_adfs) and tools/load_check.mjs (last, as a race's job soon leaves a machine
+# tools/break_check.mjs, tools/game_check.mjs, tools/attract_check.mjs, tools/flash_check.mjs, tools/options_check.mjs, tools/select_check.mjs, tools/upgrades_check.mjs, tools/circle_check.mjs, tools/initials_check.mjs, tools/tune_check.mjs (and again with --off: tune_off), tools/save_check.mjs, game_check and load_check again on build/game.adl (--adfs: game_adfs, load_adfs) and tools/load_check.mjs (last, as a race's job soon leaves a machine
 # free). Exit status 1 if any is wrong, or if any job left no status.
 #
 # The jobs run on this machine, or with REMOTE=host on that one (tools/remote.sh copies what they read there, and
@@ -18,7 +18,7 @@
 
 RACES="r1 r2 r4 r17 r50 h012 h12 h01 h02"     # (and demo0 demo17: state only, so no models)
 ROTATIONS=${ROTATIONS:-0 1 2 3 4 5 6 7 8 9 10}
-CHECKS="boot_check game_check attract_check flash_check options_check select_check upgrades_check circle_check initials_check tune_check save_check load_check"
+CHECKS="boot_check break_check game_check attract_check flash_check options_check select_check upgrades_check circle_check initials_check tune_check save_check load_check"
 
 if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools/disc_races.sh jobs OUT)
     export OUT=$2                       # (not in the command: BSD xargs -I cuts an argument at 255 bytes)

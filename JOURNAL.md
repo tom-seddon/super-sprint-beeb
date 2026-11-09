@@ -625,4 +625,8 @@
   32,903 to 32,884 cycles, 116 frames over a TV frame both, fields repeated 8 to 6, every frame the model's. The
   suite 40/40 on agentbox, which built the same discs as here (`game.ssd` c41a9f80be30c74c01ceff6fdab5568ffe4f241d,
   `game.adl` 93468c98ad5246b7b9ee736c601dae94b8777e06).
-
+- **BREAK after the game** (2026-11-09, Tom on his Master: "when pressing BREAK after playing the game, the character
+  set can be messed up, because its RAM copy (held in ANDY) was overwritten"). His fix: OSBYTE 200,3 at the loader's
+  start, so the next BREAK clears memory as power-on does and the MOS makes its soft font again (D15).
+  `tools/break_check.mjs` boots the disc to the title's file, presses BREAK, and compares ANDY's `&8900`-`&8FFF` with
+  a fresh machine's: 965 of 1,792 bytes wrong before, 0 after, on DFS and ADFS. Added to the suite.

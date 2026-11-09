@@ -252,6 +252,12 @@ Tom, 2026-11-09, in a RAM survey: "ANDY can be assumed to survive every load, th
 the load is in progress (relevant if accessing it from an interrupt routine). Its contents are documented as soft
 key definitions, VDU workspace, and soft character definitions. Filing systems won't touch these." So code may
 live in ANDY too, if only code that runs with it paged in calls it (never the IRQ).
+Tom, 2026-11-09, after testing: "when pressing BREAK after playing the game, the character set can be messed up,
+because its RAM copy (held in ANDY) was overwritten. To fix this, I think the loader should do an OSBYTE with A=200
+X=3 Y=0 on startup, to set the memory clear flags so that the MOS clears all of memory on next press of BREAK. This'll
+prod it into reinitialising the RAM copy of the character set too." So `entry` does OSBYTE 200,3 first thing (bit 0,
+Escape off, too: Tom, "I don't think it makes a difference provided the memory gets cleared"). `tools/break_check.mjs`
+(in the suite): before, 965 of the font's 1,792 bytes were still the game's after BREAK; after, none (DFS and ADFS).
 
 ### D16. The helicopter: not drawn, a cue in its place: Decided (2026-11-02)
 After speed's fourth round the hazard race's slowest frames are its start (the helicopter on screen, about

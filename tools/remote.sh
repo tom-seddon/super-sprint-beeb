@@ -14,7 +14,7 @@ list=$(mktemp) || exit 1
 trap 'rm -f "$list"' EXIT
 {
     echo .mcp.json
-    for f in disc_races.sh disc_races.mjs boot_check.mjs game_check.mjs attract_check.mjs flash_check.mjs options_check.mjs select_check.mjs upgrades_check.mjs upgrades_model.mjs circle_check.mjs circle_model.mjs initials_check.mjs initials_model.mjs tune_check.mjs save_check.mjs load_check.mjs jsbeeb.mjs logic_compare.mjs; do
+    for f in disc_races.sh disc_races.mjs boot_check.mjs break_check.mjs game_check.mjs attract_check.mjs flash_check.mjs options_check.mjs select_check.mjs upgrades_check.mjs upgrades_model.mjs circle_check.mjs circle_model.mjs initials_check.mjs initials_model.mjs tune_check.mjs save_check.mjs load_check.mjs jsbeeb.mjs logic_compare.mjs; do
         echo tools/$f
     done
     echo build/game.ssd; echo build/game.adl; echo build/game_slots.json; for f in title credits scores records prepare_all prepare_none options options_on options_off options_clash select select_all select_none select_dial select_text select_level upgrades_all upgrades_box upgrades_font upgrades_dial circle circle_class circle_figure circle_figure_class circle_sparkle circle_junk initials_big; do echo build/gen/$f.bin; done; echo build/gen/tunes_expect.json; echo orig/st/SSPRINT.HSC
