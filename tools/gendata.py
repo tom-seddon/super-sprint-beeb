@@ -27,8 +27,6 @@ the trace is still read for the sets and the HUD (its frames are the check's mod
 - hudevents.bin: the HUD's changes, 10 bytes each: the frame (2 bytes), the car, its laps completed, and its
   score's 6 bytes as the ST has them (a BCD digit each, &80 a leading blank); a frame of &FFFF ends them.
 - font.6502: the HUD's glyphs (tools/font.py).
-- slotbg.bin: the clean background under each of the track's 20 slots (G_01EC48), 32 bytes each (its two cells'
-  4 byte columns), in slot order: the play build puts them back when the race restarts (logicframe.6502).
 """
 import json, os, sys
 import numpy as np
@@ -545,9 +543,6 @@ def main(track, tracepath, out, logic=False, play=False):
     bg = np.load(f'build/conv/B_t{track}_bg.npy')
     bgbytes = mode1_bytes(bg)
     open(f'{out}/bg.bin', 'wb').write(bgbytes)
-    slots = list(logic_maps.tb(0x1EC48)[track * 40:track * 40 + 40])
-    open(f'{out}/slotbg.bin', 'wb').write(b''.join(bgbytes[r * 640 + c * 16:r * 640 + c * 16 + 32]
-                                                   for c, r in zip(slots[0::2], slots[1::2])))
     frames = load_race(tracepath)
     sets = car_sets(frames)
     if logic:                           # the game's sets (D20): cars 0-2's own and the drone-driven, which

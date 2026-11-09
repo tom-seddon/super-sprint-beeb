@@ -106,17 +106,6 @@ ENDIF
     ENDIF
     DEX
     BPL sparks
-    IF GenPlay                          ; (a restart: the slots' cells as the track has them, the last race's
-        LDX #19                         ; pickups and hazards gone, before this one's are placed)
-    .cells
-        TXA:TAY
-        JSR slot_cell                   ; (X preserved)
-        LDA SlotCellL,X:STA (slot_cell.p)
-        LDY #1
-        LDA SlotCellR,X:STA (slot_cell.p),Y
-        DEX
-        BPL cells
-    ENDIF
     JSR race_setup
     LDA #&FF                            ; no gate or barrier drawn yet
     LDX #MaxHazInst-1
@@ -154,9 +143,7 @@ ENDIF
     LDA LfFrame+1:BNE race
     LDA LfFrame:CMP #2:BCS race
     INC setup                           ; the set-up's flips: every car drawn, the hazards' and cones' slots, the
-    IF GenPlay                          ; gates and barriers (noted by the set-up), the banner, the tornado
-        JSR slots_back
-    ENDIF
+                                        ; gates and barriers (noted by the set-up), the banner, the tornado
     JSR setup_slots
     LDA #&FF
     FOR c = 0..3
@@ -247,46 +234,6 @@ ENDIF
     BRA cone
 .coned
     RTS
-
-    IF GenPlay
-    \\ the play build's restart (the same race again: D3's load isn't built), before the set-up's draws: each
-    \\ slot's clean background put back, over the last race's pickups (slot_put, objects.6502), into the
-    \\ background and the screen being written on the first flip, and the other screen on the second
-.slots_back
-    ZA_AUTO2 src                        ; local: the slot's bytes in SlotBg
-    LDA #LO(SlotBg):STA src
-    LDA #HI(SlotBg):STA src+1
-    LDX #0
-.back
-    TXA:TAY
-    JSR slot_cell                       ; (X preserved; A the column, Y the row)
-    STZ slot_put.scr+1                  ; its first byte in the screen: the row's, + column * 16
-    ASL A:ASL A:ASL A
-    ROL slot_put.scr+1
-    ASL A
-    ROL slot_put.scr+1
-    CLC:ADC RowLo,Y:STA slot_put.scr
-    LDA slot_put.scr+1:ADC RowHi,Y:STA slot_put.scr+1
-    LDY #31
-.bytes
-    LDA (src),Y:STA Junk,Y
-    DEY
-    BPL bytes
-    LDA LfFrame:EOR #1:STA slot_put.fresh   ; (the first flip: fresh)
-    JSR slot_put                        ; (X preserved)
-    LDA src:CLC:ADC #32:STA src
-    BCC @+
-    INC src+1
-.@
-    INX
-    CPX #20:BNE back
-    RTS
-
-.SlotBg                                 ; each slot's clean background (tools/gendata.py)
-.SlotBgSlot                             ; (the track's part, Phase 5, 3a)
-    INCBIN "../build/gen/slotbg.bin"
-.SlotBgSlotEnd
-    ENDIF
 
     \\ F_00C592's start: the start's sound on each channel (F_0131A8), the 50 VBLs' pause (F_010214(50)) with
     \\ the set-up's last frame shown, the engines on (F_013582)
