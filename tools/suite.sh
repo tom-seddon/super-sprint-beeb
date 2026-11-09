@@ -2,9 +2,10 @@
 # Every oracle the game has, one after another (the builds share build/sprint.*, so not in parallel), each
 # one's output in OUT/<name>.log and its exit status in OUT/verdicts.txt. Exit status 1 if any failed.
 #
-# The races on the disc and the disc's other checks (tools/disc_races.sh: their logs in OUT/disc_races), nine-tenths of
-# the work, go to the machine REMOTE, by default agentbox (tools/remote.sh), as soon as the disc's made, the rest
-# running here meanwhile: about 4 minutes. `REMOTE= tools/suite.sh OUT` keeps it all on this machine, those last: about 38.
+# Everything runs on this machine, the races on the disc and the disc's other checks last (tools/disc_races.sh:
+# their logs in OUT/disc_races), nine-tenths of the work: about 38 minutes on Tom's laptop. REMOTE=host sends just
+# those to another machine as soon as the disc's made (tools/remote.sh), the rest running here meanwhile: about 4.
+# tools/suite_remote.sh runs the whole suite on another machine.
 #
 # Usage (from the repo root): tools/suite.sh OUT [quick]   (OUT outside the repository: the scratchpad or a temp dir)
 # quick: the races on the disc only one way round, 8 of 88. For changes to the front end's pictures alone, when the
@@ -12,7 +13,7 @@
 
 OUT=${1:?usage: tools/suite.sh OUT [quick]}
 [ "$2" = quick ] && export ROTATIONS=0
-export REMOTE=${REMOTE-agentbox}
+export REMOTE=${REMOTE-}
 mkdir -p "$OUT"
 : > "$OUT/verdicts.txt"
 run() {
@@ -23,6 +24,7 @@ run() {
     echo "$name $status $(( $(date +%s) - start ))s" >> "$OUT/verdicts.txt"
 }
 
+run prepare make venv baron build/zx02 build/trace/logic_t0_r0.json
 run all_tracks tools/all_tracks.sh
 run game_disc sh -c 'make build/zx02 && .venv/bin/python tools/make_game.py build/tracks build/zx02 build/game.ssd && .venv/bin/python -P tools/adfs_disc.py build/game.ssd build/game.adl'
 [ -n "$REMOTE" ] && run disc_races tools/disc_races.sh "$OUT/disc_races" &

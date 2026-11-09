@@ -289,13 +289,16 @@ adds the logic.
   after it empty, the kit's among them. `CLAUDE.md`'s list of Rich's projects without it; the mentions in
   `docs/colours.md` and `docs/upstream-notes.md` stay as history. This machine's copy of its history is still in
   `.git/modules/rich/teddyboy`.
-- For later (Tom, 2026-11-08): the suite's load on his laptop. "The test suite is taking a while and my laptop's
-  fans are spinning up. Is something being done that could be run on `agentbox` instead?" Not yet measured,
-  three places to look: `make game` run by hand before `tools/suite.sh`, which builds the same things again
-  (about 5 minutes); the jsbeeb oracles the suite still runs here (about 2-3 minutes) that could go to agentbox
-  with the disc races; and building on agentbox too, copying back only the discs and what the local checks read.
-  Also unexplained: the disc races took 705 s on agentbox on 2026-11-08 (D34's run), against 106-194 s before;
-  perhaps D34's change to `render_model.py` made their model screens be redrawn, not checked.
+- ~~The suite's load on Tom's laptop~~ (Tom, 2026-11-08: "my laptop's fans are spinning up"): done 2026-11-09.
+  Measured from this session's 13 runs: the laptop (a 2015 MacBook Pro, 4 threads) did about 5 minutes of builds and
+  checks each run, and remade the races' 72 models whenever `tools/render_model.py` changed, 3 at a time (D34's run:
+  `disc_races` 705 s against about 107, the checks beside it 2 to 3 times slower). Now `tools/suite_remote.sh OUT`
+  runs the whole suite on agentbox: the tree and the ST's files copied there, OUT and the discs back. 3 min 22 s,
+  1 s of the laptop's CPU; every verdict and log as D34's local run but the Baron command lines, and the discs
+  37fd99f7f367a9ff1a9370dd66efd107df2d78a9 and 3fc4c18e5d23e4964d9a9673818d35dcb1c76d88. For anyone else
+  `tools/suite.sh OUT` runs it all locally, now its default (Tom: "It must ultimately be possible to run
+  everything locally"). Found on the way: a merge rewrote `tools/hatari.sh`, and make wanted every ST file traced
+  again; the ST files' tools are now order-only prerequisites (made if missing, then kept).
 - Room is the constraint on all of it: main RAM 222 free, the `&3000` area 267, the fourth bank 21. New code goes
   in the screens' files and the banks with room, as the save went into TRACKF's.
 

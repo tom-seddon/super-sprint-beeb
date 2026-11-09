@@ -12,8 +12,9 @@ Hatari's runs are deterministic. A fresh clone's files, all made again in Hatari
 checkout's (2026-11-09, all 88 in the pack below).
 
 `tools/hatari.sh` looks for Hatari at `/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari`. Set `HATARI` to
-run another. Hatari 2.6.1 made all of these. A file is made if it's missing, and made again if `tools/hatari.sh`
-or its tracer is newer than it, so editing either makes them again.
+run another. Hatari 2.6.1 made all of these. A file is made if it's missing and then kept: a newer tracer or
+`tools/hatari.sh` doesn't make it again (their timestamps are only the last checkout's), so to make one again after
+changing its tracer, delete it.
 
 ## What there is
 
@@ -67,12 +68,16 @@ make game`, so that any call to Hatari would fail. No `baron` on its PATH, and n
 
 ## Running the checks on another machine
 
-The suite (`tools/suite.sh`) already does this for its biggest part. `tools/disc_races.sh`'s jobs (the 72 traced
-races on the disc, the games, the attract mode and the front end's checks) run on agentbox by default.
-`tools/remote.sh` copies what they read there with rsync: the discs, the tools, the logic traces of every
-traced race (`logic_t?_r{1,2,4,17,50}.json`, `logic_t?_h*.json`, the demos) and the games, about 10 GB the first
-time and only what's changed after. The models (`build/check/model_*.bin`) are made here, from the race traces, and
-copied too. The list is in `tools/remote.sh`. Those jobs need only Node and jsbeeb there, not Python, Baron or
-Hatari.
+`tools/suite.sh OUT` runs every check on this machine, reading the files in the table above. Two ways to send
+work elsewhere, both for Tom's laptop and his machine agentbox during development, neither needed:
 
-The rest of the suite runs here, as the builds do, and reads the files in the table above.
+- `tools/suite_remote.sh OUT` runs the whole suite on REMOTE (default agentbox). It copies this working tree there
+  with rsync (not `.git`, `build/` or `.venv`), and the ST's files: `build/gfx`, `build/st_screens`, the JSON in
+  `build/trace` (not the raw object traces or `tools/all_tracks.sh`'s copies) and `build/prof/seeds.txt`, with their
+  times kept. That's about 7 GB the first time, and only what's changed after. There the suite builds its own
+  `.venv`, Baron, discs and models, with `HATARI=/usr/bin/false`. Then OUT comes back, with the discs it built. It
+  needs the README's prerequisites there, and Node, but not a Hatari that runs.
+- `REMOTE=host tools/suite.sh OUT` sends just `tools/disc_races.sh`'s jobs (the 72 traced races on the disc, the
+  games, the attract mode and the front end's checks), through `tools/remote.sh`. That copies what they read: the
+  discs, the tools, the logic traces of every traced race and the games, and the models, made here. Those jobs need
+  only Node and jsbeeb there.

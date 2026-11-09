@@ -10,9 +10,8 @@
 # tools/game_check.mjs, tools/attract_check.mjs, tools/flash_check.mjs, tools/options_check.mjs, tools/select_check.mjs, tools/upgrades_check.mjs, tools/circle_check.mjs, tools/initials_check.mjs, tools/tune_check.mjs (and again with --off: tune_off), tools/save_check.mjs, game_check and load_check again on build/game.adl (--adfs: game_adfs, load_adfs) and tools/load_check.mjs (last, as a race's job soon leaves a machine
 # free). Exit status 1 if any is wrong, or if any job left no status.
 #
-# The jobs run on REMOTE, by default agentbox (tools/remote.sh copies what they read there, and their logs back);
-# `REMOTE= tools/disc_races.sh OUT` runs them on this machine. Either way MACHINES run at once (default 14 there,
-# 4 here). The models are made here.
+# The jobs run on this machine, or with REMOTE=host on that one (tools/remote.sh copies what they read there, and
+# their logs back). Either way MACHINES run at once (default 4 here, 14 there). The models are made here.
 #
 # Usage (from the repo root, after make game): tools/disc_races.sh OUT   (OUT outside the repository; ROTATIONS="0"
 # in the environment runs only those of the eleven)
@@ -38,7 +37,7 @@ if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools
 fi
 
 OUT=${1:?usage: tools/disc_races.sh OUT}
-REMOTE=${REMOTE-agentbox}
+REMOTE=${REMOTE-}
 mkdir -p "$OUT"
 for r in $RACES; do for n in 0 1 2 3 4 5 6 7; do
     m=build/check/model_t${n}_$r.bin
