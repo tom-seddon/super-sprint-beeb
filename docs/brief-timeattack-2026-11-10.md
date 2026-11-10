@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -153,21 +153,28 @@ playing it though."
   (proved with the `beeb-identical-build` skill), and the whole suite still passes on it.
 - **Each track a file**, loaded on demand as now: the time attack variant's, with the pickups' and hazards' objects left
   out, so smaller.
-- **The menu**: text in the MOS's font, drawn by `font_char` (LowFree, resident) as the options screen names keys
-  (the HUD's font has only 15 glyphs, its digits and a few more), a row a track: its number, best time, name and
-  upgrades, 29 of the row's 40 characters with a 10-letter name. Then the upgrades (5 points over three, forked from
+- **The menu (D40)**: every track's best at once, so a player picks by who they'd like to beat as well as by the
+  track. Text in the MOS's font, drawn by `font_char` (LowFree, resident) as the options screen names keys (the HUD's
+  font has only 15 glyphs, its digits and a few more), a row a track: its number, best time, name and upgrades, 29 of
+  the row's 40 characters with a 10-letter name. Then the upgrades (5 points over three, forked from
   `upgrades.6502`), then the race. After Escape, a name for a new record, then the save, then the menu.
+- **A track's list (D40)**: a second screen, from the menu, a track's 10 entries, a row each as the menu's. Its code
+  in its own file, about 200 bytes (ESTIMATED), as the name's.
 - **The name (D39)**: up to 10 characters typed on the keyboard. The options screen already finds any key held from a
   table of key numbers (`opt_find`, `OptNumbers`, through `key_down`), so the name's screen is that with a table of
   A-Z, 0-9, space, Delete and Return and their characters (about 80 bytes), the typing loop and the drawing: about
   250 bytes (ESTIMATED), in its own file, not resident. Which characters beyond those (lower case, punctuation; the
   MOS's font has them all) is for later.
 - **Saved**:
-  - A table, a few entries a track, 13 bytes an entry (the time 2, the name 10, the upgrades 1: three levels that sum
-    to 5 or less are 56 combinations), so 8 * 13 = 104 bytes an entry a track: 520 for 5 entries, 1,040 for 10
-    (COUNTED). It stays in Shared, as `HiFile` does now, which time attack leaves about 1,550 free (ESTIMATED: the 267
-    free, the drone path's 996 and `HiFile`'s 295), and is saved like `SCORES` (`save.6502`: only when changed, a failed
-    save said once and ignored, D23).
+  - One table for all 8 tracks (D40), 10 entries a track, 13 bytes an entry (the time 2, the name 10, the upgrades 1:
+    three levels that sum to 5 or less are 56 combinations): 80 entries, 1,040 bytes (COUNTED). Resident, in Shared,
+    as `HiFile` is now, which time attack leaves about 1,550 free (ESTIMATED: the 267 free, the drone path's 996 and
+    `HiFile`'s 295), so the menu and the lists read it without a load; loaded once at the boot and saved like `SCORES`
+    (`save.6502`: one file, only when changed, a failed save said once and ignored, D23).
+  - Laid out a column a field (the times' low bytes, their high bytes, the upgrades, then the names), indexed by
+    track * 10 + place, each track's 10 kept in order, best first: the menu reads places 0, 10, 20 and on, a track's
+    list reads its 10 in a row, and a new time moves the slower ones down within its track's 10. The best entry's
+    lap is the track's ghost.
   - A ghost a track, one file each (`GHOST1`-`GHOST8`, up to about 3K), saved when beaten. OSFILE can't save from a
     sideways RAM bank (the filing system's ROM is paged in while it runs), so the lap's copied first to main RAM, to
     the screen not shown.
@@ -181,8 +188,13 @@ playing it though."
 2. ~~The ghost's look~~: a black car, solid, no flicker, from the green set (D37, Tom, 2026-11-10), to be revisited once running (§3).
 3. ~~The first lap~~: a standing start, timed, the ghost shown from the race's start (D38, Tom, 2026-11-10) (§3).
 4. ~~The name~~: up to 10 characters, typed on the keyboard (D39, Tom, 2026-11-10) (§6).
-5. How many entries a track's table keeps.
+5. ~~How many entries a track's table keeps~~: 10, every track's together, the bests on the menu and a track's 10
+   on a screen of their own (D40, Tom, 2026-11-10) (§6).
 6. Wrecks kept, as the ST's (§4).
+7. What a race puts in the table (§6). Laps are endless, so if every lap could enter, one good race would fill a
+   track's 10 with one name. Proposed: a race enters its best lap only, as a race enters one score on the ST, so a
+   name can be there more than once from different races. Or: a name's best only, a name once a track (its entry
+   replaced when it beats it), the list then 10 different people.
 
 Each becomes a row in `docs/decisions.md`, Proposed until Tom agrees.
 

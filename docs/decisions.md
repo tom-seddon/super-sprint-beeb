@@ -591,3 +591,17 @@ the upgrades 1), so 104 bytes for each entry a track over 8 tracks; 1,040 for 10
 1,550 free in Shared once the drone path and the ST's table go. The name's screen, forked from the options screen's
 key finding (`opt_find`), is about 250 bytes in its own file. The ghost's file carries the name too, 10 bytes.
 So: up to 10 characters, typed on the keyboard, drawn in the MOS's font (`font_char`). A-Z, 0-9 and space at first.
+
+### D40. Time attack's table: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Proposed: how many entries a track's table keeps. Tom,
+2026-11-10: "part of the front end should show the best times for all tracks at once, with names, so that anybody
+thinking of playing can decide based on who they'd like to beat, as well as which track they fancy racing on. So the
+records are per-track, in a sense, but they'll need to be loaded simultaneously while in the front end and the data
+should be arranged with this in mind." And: "I was thinking just the 1, as I only had this overview screen in mind.
+But if it'd be possible to store a longer list (perhaps accessible via another screen?) then that'd be great."
+It doesn't change the plan's shape: the table was to be resident in Shared, all tracks at once, and the menu a row a
+track. Ten entries a track are 1,040 bytes (COUNTED, 13 an entry, D39), against about 1,550 free there (ESTIMATED).
+So: one table, one file, 10 entries for each of the 8 tracks, resident from the boot. A column a field, indexed by
+track * 10 + place, each track's 10 best first: the menu shows every track's best (places 0, 10, 20 and on), and a
+second screen a track's 10 (about 200 bytes, ESTIMATED, in its own file). The best entry's lap is the track's ghost.
+What a race puts in the table (a race's best lap, or a name's best only) is the brief's §7 question 7.
