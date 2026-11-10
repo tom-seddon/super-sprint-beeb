@@ -12,10 +12,10 @@ Hatari's runs are deterministic. A fresh clone's files, all made again in Hatari
 checkout's (2026-11-09, all 88 in the pack below). `docs/stfiles-sha256.txt` holds the hashes of the pack's 120 files
 as made here (2026-11-10, with the clean track dumps): `sha256sum -c docs/stfiles-sha256.txt` checks a set.
 
-`tools/hatari.sh` looks for Hatari at `/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari`. Set `HATARI` to
-run another. Hatari 2.6.1 made all of these (2.5.0 or later is needed: `docs/brief-ci-hatari-2026-11-10.md`). A file is made if it's missing and then kept: a newer tracer or
-`tools/hatari.sh` doesn't make it again (their timestamps are only the last checkout's), so to make one again after
-changing its tracer, delete it.
+`tools/hatari.sh` looks for Hatari at `/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari`. Set `HATARI` to run
+another. Hatari 2.6.1 made all of these (2.5.0 or later is needed: `docs/brief-ci-hatari-2026-11-10.md`). A file is made
+if it's missing and then kept: a newer tracer or `tools/hatari.sh` doesn't make it again (their timestamps are only the
+last checkout's), so to make one again after changing its tracer, delete it.
 
 ## What there is
 

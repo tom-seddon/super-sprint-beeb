@@ -4,15 +4,17 @@ Super Sprint, from the Atari ST, for the BBC Master 128 and the Master Compact.
 
 ## Building
 
-On macOS, and on Linux (Mint 22.3, 2026-11-10: `docs/brief-ci-hatari-2026-11-10.md`); Windows isn't supported for now. From your package manager
-(MacPorts, Homebrew, apt and so on):
+On macOS, and on Linux (Mint 22.3, 2026-11-10: `docs/brief-ci-hatari-2026-11-10.md`); Windows isn't supported for
+now. From your package manager (MacPorts, Homebrew, apt and so on):
 
 * make, a C compiler (`cc`), CMake 3.21 or later and Ninja: the build compiles its own Baron, the assembler, from
   the submodule `rich/baron`, and the ZX02 compressor, from the submodule `reference/beeb-port-kit`
-* Python 3.14, as `python3.14`: the build makes its own virtual environment, `.venv`, from `requirements.txt`
-* Hatari 2.5.0 or later (2.6.1 here; Ubuntu 24.04's 2.4.1 won't do) and perl: the build runs the ST original in Hatari to capture its data. `tools/hatari.sh`
-  looks for it at `/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari`; anywhere else, set `HATARI` to the
-  executable (`HATARI=$(which hatari) make game`).
+* Python 3.14, as `python3.14`: the build makes its own virtual environment, `.venv`, from `requirements.txt`.
+  3.12 works too, with `make PYTHON3=python3.12` (and on Ubuntu, apt's `python3.12-venv`)
+* Hatari 2.5.0 or later (2.6.1 here; Ubuntu 24.04's 2.4.1 won't do: build 2.6.1 from source) and perl: the build runs
+  the ST original in Hatari to capture its data. `tools/hatari.sh` looks for it at
+  `/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari`; anywhere else, set `HATARI` to the executable
+  (`HATARI=$(which hatari) make game`).
 
 Then:
 
