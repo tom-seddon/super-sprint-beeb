@@ -1,0 +1,110 @@
+# The game's discs, built on a push to ci-build (Tom, 2026-11-10: "the new CI branch can be fast-forwarded
+# occasionally to generate a new build. Let's not have a build on every push to `main`"), or by hand from the
+# Actions tab. The result is one zip, super-sprint-YYYYMMDD-HHMM-xxxxx.zip: the commit's time in UTC and the 5 hex
+# digits the options screen shows, holding game.ssd and game.adl named the same way.
+#
+# The build reads files made by running the ST original in Hatari (docs/st-traces.md), made here: Hatari 2.6.1
+# built from source, as Ubuntu's 2.4.1 can't make them (docs/brief-ci-hatari-2026-11-10.md), and checked against
+# docs/stfiles-sha256.txt, the Mac's. The suite isn't run: its traces want about 13 GB and hours on 2 CPUs.
+
+name: Build the discs
+
+on:
+  push:
+    branches: [ci-build]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HATARI_VERSION: 2.6.1
+  HATARI_SHA256: 75f09c8deddb511b8c1574b84c507743097db9abc6edbb078f942efa8677547e
+
+jobs:
+  discs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out, with the submodules the build uses
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Fetch rich/baron and the beeb-port-kit
+        run: git submodule update --init --depth 1 rich/baron reference/beeb-port-kit
+
+      - name: Install the packages for Baron and Hatari
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends ninja-build libsdl2-dev zlib1g-dev libreadline-dev
+
+      - name: Set up Python 3.14
+        id: python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Restore Hatari
+        id: hatari-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/hatari/bin
+          key: hatari-${{ env.HATARI_VERSION }}-${{ runner.os }}-ubuntu-24.04
+
+      - name: Build Hatari
+        if: steps.hatari-cache.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl -fsSL -o hatari.tar.gz https://github.com/hatari/hatari/archive/refs/tags/v$HATARI_VERSION.tar.gz
+          echo "$HATARI_SHA256  hatari.tar.gz" | sha256sum -c -
+          tar -xzf hatari.tar.gz
+          cmake -S hatari-$HATARI_VERSION -B hatari/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build hatari/build --target hatari
+          mkdir -p hatari/bin
+          cp hatari/build/src/hatari hatari/bin/
+
+      - name: Make the ST's files in Hatari
+        run: |
+          "$RUNNER_TEMP/hatari/bin/hatari" --version
+          HATARI="$RUNNER_TEMP/hatari/bin/hatari" make -j2 PYTHON3='${{ steps.python.outputs.python-path }}' stfiles
+
+      - name: Check them against the Mac's
+        run: |
+          if ! sha256sum --quiet -c docs/stfiles-sha256.txt; then
+            echo "::error::The ST's files differ from docs/stfiles-sha256.txt (made on the Mac). If a tracer changed, make that list again; if not, Hatari here made something else."
+            exit 1
+          fi
+
+      - name: Build the discs
+        run: make -j2 PYTHON3='${{ steps.python.outputs.python-path }}' game
+
+      - name: Name and zip them
+        id: zip
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+            echo "::error::The tree has changes, so the version would end in m"
+            exit 1
+          fi
+          name=super-sprint-$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y%m%d-%H%M)-$(make -s version)
+          mkdir -p dist
+          cp build/game.ssd dist/$name.ssd
+          cp build/game.adl dist/$name.adl
+          (cd dist && zip -X $name.zip $name.ssd $name.adl && sha256sum $name.ssd $name.adl $name.zip)
+          echo "zip=dist/$name.zip" >> "$GITHUB_OUTPUT"
+          df -h . | tail -1
+          du -sh build .venv "$RUNNER_TEMP/hatari"
+
+      - name: Upload the zip
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.zip.outputs.zip }}
+          archive: false
+          if-no-files-found: error

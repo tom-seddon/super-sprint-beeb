@@ -11,6 +11,9 @@ the original's files, by the tools here. That includes the models the render che
 Hatari's runs are deterministic. A fresh clone's files, all made again in Hatari, were the same byte for byte as this
 checkout's (2026-11-09, all 88 in the pack below). `docs/stfiles-sha256.txt` holds the hashes of the pack's 120 files
 as made here (2026-11-10, with the clean track dumps): `sha256sum -c docs/stfiles-sha256.txt` checks a set.
+GitHub's build (`.github/workflows/build.yml`) makes the files in Hatari 2.6.1 on Linux and fails if any differs from
+this list, so a change to what a tracer writes needs the list made again, from the files made here: `make
+build/stfiles.tar.gz && tar tzf build/stfiles.tar.gz | LC_ALL=C sort | xargs shasum -a 256 > docs/stfiles-sha256.txt`.
 
 `tools/hatari.sh` looks for Hatari at `/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari`. Set `HATARI` to run
 another. Hatari 2.6.1 made all of these (2.5.0 or later is needed: `docs/brief-ci-hatari-2026-11-10.md`). A file is made

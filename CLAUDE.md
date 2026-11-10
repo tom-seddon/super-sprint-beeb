@@ -64,6 +64,8 @@ What the skills look up, for this project:
   symbols `build/sprint.json` (Baron's `--symbols`). No `-D` flags. The build's version, on the options screen, is git's (`make
   version`; `VERSION=` gives it where there's no `.git`, as `tools/suite_remote.sh` does). The ST's files the build and the checks read
   are made in Hatari: `docs/st-traces.md` (and `make stfiles`, `build/stfiles.tar.gz` for a machine without it).
+  GitHub's build, `.github/workflows/build.yml`, runs on a push to the branch `ci-build` (fast-forwarded to `main`
+  when Tom wants a build, not on every push) and gives one zip of both discs, named by the commit's UTC time and version.
 - **Memory**: `src/memory.6502` (the map), `docs/memory-map.md` (generated: `tools/memmap.py --write` from the
   play build), `docs/renderer.md` "Memory".
 - **Oracles**: on Tom's laptop, `tools/suite_remote.sh OUT` (the whole suite on the machine `agentbox`: the tree and
