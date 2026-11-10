@@ -53,7 +53,7 @@ jobs:
 
       - name: Restore Hatari
         id: hatari-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ${{ runner.temp }}/hatari/bin
           key: hatari-${{ env.HATARI_VERSION }}-${{ runner.os }}-ubuntu-24.04
@@ -70,9 +70,16 @@ jobs:
           mkdir -p hatari/bin
           cp hatari/build/src/hatari hatari/bin/
 
+      - name: Save Hatari
+        if: steps.hatari-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/hatari/bin
+          key: ${{ steps.hatari-cache.outputs.cache-primary-key }}
+
       - name: Make the ST's files in Hatari
         run: |
-          "$RUNNER_TEMP/hatari/bin/hatari" --version
+          "$RUNNER_TEMP/hatari/bin/hatari" --version || true   # (it prints, then exits 1)
           HATARI="$RUNNER_TEMP/hatari/bin/hatari" make -j2 PYTHON3='${{ steps.python.outputs.python-path }}' stfiles
 
       - name: Check them against the Mac's
