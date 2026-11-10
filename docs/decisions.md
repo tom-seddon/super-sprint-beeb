@@ -688,3 +688,12 @@ each a map and four lines of the small font (the track, the best time, the name,
 `12.40`, as the ST's winner's circle shows them, for want of a colon. Colour 1 red over the logo and green below it,
 its 4 palette entries written at the logo's last line, timed from the vsync (about 40 bytes, ESTIMATED). Names, on the
 menu and the name's screen, in the small font, not the MOS's (D39).
+
+### D48. Time attack's track screen, between the menu and the race: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6). D40 has a track's 10 entries on a screen of their own. Tom,
+2026-11-10: "Regarding showing the per track high scores, I think do it this way: 1. select track on track select
+screen (exact mechanism to be determined) and press Return 2. game shows per-track high scores. Press Return again to
+race, or Escape to go back to track select".
+So: the menu (D47), a track picked and Return; the track's screen, its 10 entries; Return races, Escape back to the
+menu. How a track is picked on the menu is still to be settled. Proposed with it, not yet asked: after a race, back to
+the track's screen with the new entry lit, and the upgrades picked there, as last picked, so another go is one Return.

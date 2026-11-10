@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43; the maps on the menu: D44; the turnaround: D45; the front end's 32 rows: D46; the menu's layout: D47). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43; the maps on the menu: D44; the turnaround: D45; the front end's 32 rows: D46; the menu's layout: D47; the track's screen: D48). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -205,8 +205,9 @@ playing it though."
       five rows shown in 32 rows (four in 26), the list moved a row at a time; each map packed on its own (about 300
       bytes, ESTIMATED) and drawn as its row comes into view, on the screen not shown, then flipped. Room for words,
       but not every track's best at once.
-  - Then the upgrades (5 points over three, forked from `upgrades.6502`), then the race. After Escape, a name for a
-    new record, then the save, then the menu.
+  - Return on a track opens its screen (D48), Return there races (the upgrades, 5 points over three, forked from
+    `upgrades.6502`, picked on the way: where is open, below). After Escape, a name for a new record, then the save,
+    then the menus.
 - **32 rows in the front end, 26 in the race (D46)**. Tom, 2026-11-10: "What about changing the 26 row setup in the
   front end? Would it be possible to show a full 32 row (256 scanline) Mode 1?" ... "Then switch to the 26 row setup
   in game." D25 has one layout for the whole game, set up once, for its wipe; time attack has no wipe (D45), and
@@ -236,12 +237,19 @@ playing it though."
     shown and flipped.
   - Escape, then the name only if the race's best made the table (D41), the save only if something changed (one
     table, at most one ghost), then the menu.
-  - Proposed: the menu comes back on the track just raced, and the upgrades as last picked, so another go is two
-    presses; or the upgrades on the menu's screen itself, one screen fewer.
+  - Proposed: back to the track's screen (D48, below), the upgrades as last picked, so another go is one Return.
   - Proposed: the same track again loads nothing, if the front end's files keep out of the track's slots and the
     ghost's buffers (to be measured at step 6: where the menu's files go).
-- **A track's list (D40)**: a second screen, from the menu, a track's 10 entries, a row each as the menu's. Its code
-  in its own file, about 200 bytes (ESTIMATED), as the name's.
+- **A track's screen (D40, D48)**: a track's 10 entries, a row each, from the menu: the track picked there (how is to
+  be settled) and Return. Then Return races, Escape goes back to the menu. Tom, 2026-11-10: "select track on track
+  select screen (exact mechanism to be determined) and press Return; game shows per-track high scores. Press Return
+  again to race, or Escape to go back to track select". Its code in its own file, about 200 bytes (ESTIMATED), as the
+  name's.
+  - Proposed, not yet asked: after a race (and the name and save, if any) back to this screen, not the menu, the new
+    entry lit, so another go on the track is one Return; Escape from it to the menu. With the upgrades on this screen
+    too, as last picked (rather than a screen of their own between it and the race), that's every screen between
+    races but the name. Room: a row is the place, the time, the name and the upgrades, 10 rows in the small font,
+    with the track's map and the logo above.
 - **The name (D39)**: up to 10 characters typed on the keyboard. The options screen already finds any key held from a
   table of key numbers (`opt_find`, `OptNumbers`, through `key_down`), so the name's screen is that with a table of
   A-Z, 0-9, space, Delete and Return and their characters (about 80 bytes), the typing loop and the drawing: about
