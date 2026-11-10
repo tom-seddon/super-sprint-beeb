@@ -541,3 +541,13 @@ comes 9 fields after `!BOOT` starts, where it came 470 fields (9.4 s) after; the
 Costs 5 bytes of the first 4K (the vsync wait in the load's code); `!BOOT` and the loader aren't resident.
 `tools/boot_check.mjs` (in the suite, both discs) watches every field. Tom, on his Master: "Looks much better";
 agreed.
+
+### D36. Time attack's gates: Decided (2026-11-10), to be revisited after play
+Time attack (`docs/brief-timeattack-2026-11-10.md` §5). Proposed: the ST's gates on their own schedule; none; or the
+schedule started again at each crossing of the line. The ST's is fixed, not random (`docs/st-logic.md` §3), a gate
+repeating every 216 + 180 * its number frames (ESTIMATED), so a lap's time depends a little on where the gates are
+when it starts. Tom, 2026-11-10: "I think keep the ST's schedule, and accept the player may need to be a little
+strategic about how they time crossing the line. I may end up having to change my mind about this after playing it
+though."
+So: tracks 3, 5 and 8 keep their gates, on the ST's schedule from the race's start, as in the game. The ghost, drawn
+from its recorded positions, isn't affected by them. Revisited once Tom has played it.

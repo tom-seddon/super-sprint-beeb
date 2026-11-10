@@ -442,6 +442,7 @@ adds the logic.
 | D33 | The Master Compact | Decided (Tom, 2026-11-07): a target; tried by Tom 2026-11-08, works |
 | D34 | The score pickups' digits | Agreed (Tom, 2026-11-08): black on the yellow box, seen on his CRT |
 | D35 | "Loading" from the boot's start | Agreed (Tom's, 2026-11-09): the boot's shadow screen says it while the files load; on his Master, "Looks much better" |
+| D36 | Time attack's gates | Decided (Tom, 2026-11-10): the ST's schedule, kept; to be revisited after playing it |
 
 ## Risks
 

@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are open until he answers them.
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36).
 >
 > Figures say **MEASURED** (a build's listing or a tool run, named), **COUNTED** (off the source or a listing)
 > or **ESTIMATED** (arithmetic on top).
@@ -122,6 +122,10 @@ A position-recorded ghost isn't affected (it drives through a gate that's closed
 Options, for Tom (§7): the ST's schedule; no gates; or the schedule started again at each crossing of the line, which
 is fair (every lap meets the gates the same) but makes them jump.
 
+**Decided (D36):** the ST's schedule. Tom, 2026-11-10: "I think keep the ST's schedule, and accept the player may need
+to be a little strategic about how they time crossing the line. I may end up having to change my mind about this after
+playing it though."
+
 ## 6. The front end, saving and the disc
 
 - **The disc**: its own, `build/ta.ssd` and an ADFS L one beside it, from the same source as a build variant chosen
@@ -144,7 +148,7 @@ is fair (every lap meets the gates the same) but makes them jump.
 
 ## 7. To decide (Tom)
 
-1. The gates: the ST's schedule, none, or started again each lap (§5).
+1. ~~The gates~~: the ST's schedule (D36, Tom, 2026-11-10), to be revisited after playing it (§5).
 2. The ghost's look: solid in another colour, or flickering at 25 Hz (§3).
 3. The first lap: a standing start, timed; the ghost starts at each crossing of the line (§3).
 4. The name: three initials, as the ST's table, or longer.
