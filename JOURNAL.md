@@ -667,4 +667,4 @@
   and the keypad have no host keys of their own there; it and `options_check` pass.
   Then white back on Q, W, E (Tom: "This will ensure the game is playable out of the box in single player mode with
   the default keys on jsbeeb"): jsbeeb has no host key for Caps Lock. With Q, W, E nothing ghosts at all, F1 and
-  Escape included.
+  Escape included. On Tom's Master, 2026-11-10: "Tested on Master."

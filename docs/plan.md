@@ -265,7 +265,7 @@ adds the logic.
 - ~~The default keys less cramped~~ (Tom, 2026-11-08, D12: "I think it'd be worth updating the default key
   assignments, so that things are a bit less cramped"): done 2026-11-09, Tom's set: white Q, W, E ("playable out of
   the box in single player mode with the default keys on jsbeeb"); green `, . /`; yellow Pad 5, Pad 6, Pad Delete. No
-  ghost of them or of any other key the game reads (D12).
+  ghost of them or of any other key the game reads (D12). On Tom's Master: "Tested on Master."
 - ~~The demo's car 3's green stripes~~: done 2026-11-09, black as in a race, through `DataBlack` (D20; Tom: "Yes, try it", then on his Master "Looks good"). Its own
   frames, 29 pixels different, would want a 2.6K file and a load path: left out.
 - ~~D16's helicopter chop~~: done 2026-11-08, a rising sweep over the car's blink to its put-back (Tom: "Build C1 (sweep)", "Span the blink").

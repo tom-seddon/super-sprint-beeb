@@ -215,7 +215,7 @@ Then white back on Q, W, E, Tom, the same day: "due to the jsbeeb comment, I am 
 white car's default keys back to the original Q/W/E. This will ensure the game is playable out of the box in single
 player mode with the default keys on jsbeeb." (jsbeeb has no host key for Caps Lock: it maps a PC's Caps Lock to the
 BBC's CTRL in one of its layouts.) With Q, W, E the model finds no ghost at all, of the nine or of any other key the
-game reads, so F1's and Escape's are gone too.
+game reads, so F1's and Escape's are gone too. On Tom's Master, 2026-11-10: "Tested on Master."
 
 ### D13. Mask B (walls): only the mixed cells: Decided (2026-11-02)
 Proposed for Phase 4's first steps (`docs/brief-phase4.md` §3).
