@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -175,6 +175,8 @@ playing it though."
     track * 10 + place, each track's 10 kept in order, best first: the menu reads places 0, 10, 20 and on, a track's
     list reads its 10 in a row, and a new time moves the slower ones down within its track's 10. The best entry's
     lap is the track's ghost.
+  - A race enters its best lap only (D41), on the way out, if it's faster than the track's 10th: one entry a race,
+    so a race that doesn't beat the ghost can still make the list. A name can be there more than once.
   - A ghost a track, one file each (`GHOST1`-`GHOST8`, up to about 3K), saved when beaten. OSFILE can't save from a
     sideways RAM bank (the filing system's ROM is paged in while it runs), so the lap's copied first to main RAM, to
     the screen not shown.
@@ -191,10 +193,8 @@ playing it though."
 5. ~~How many entries a track's table keeps~~: 10, every track's together, the bests on the menu and a track's 10
    on a screen of their own (D40, Tom, 2026-11-10) (§6).
 6. Wrecks kept, as the ST's (§4).
-7. What a race puts in the table (§6). Laps are endless, so if every lap could enter, one good race would fill a
-   track's 10 with one name. Proposed: a race enters its best lap only, as a race enters one score on the ST, so a
-   name can be there more than once from different races. Or: a name's best only, a name once a track (its entry
-   replaced when it beats it), the list then 10 different people.
+7. ~~What a race puts in the table~~: its best lap only, one entry a race; a name can be there more than once, from
+   different races (D41, Tom, 2026-11-10) (§6).
 
 Each becomes a row in `docs/decisions.md`, Proposed until Tom agrees.
 

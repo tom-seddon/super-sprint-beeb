@@ -604,4 +604,14 @@ track. Ten entries a track are 1,040 bytes (COUNTED, 13 an entry, D39), against 
 So: one table, one file, 10 entries for each of the 8 tracks, resident from the boot. A column a field, indexed by
 track * 10 + place, each track's 10 best first: the menu shows every track's best (places 0, 10, 20 and on), and a
 second screen a track's 10 (about 200 bytes, ESTIMATED, in its own file). The best entry's lap is the track's ghost.
-What a race puts in the table (a race's best lap, or a name's best only) is the brief's §7 question 7.
+What a race puts in the table is D41.
+
+### D41. What a time attack race enters: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Laps are endless, so if every lap could enter, one good race
+would fill a track's 10 (D40) with one name. Proposed: a race's best lap only, or a name's best only (a name once a
+track). Tom, 2026-11-10: "I think a race's best lap only. So even if you didn't beat the ghost, you might still get
+onto the high score table at least. (You could keep playing and quitting and fill up the high score that way, one race
+at a time. I think that's ok.)"
+So: a race enters one time, its best lap, on the way out, if it's faster than the track's 10th; it goes in in order,
+the slower ones moved down. A name can be there more than once, from different races. The best entry's lap stays the
+track's ghost.

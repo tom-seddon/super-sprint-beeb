@@ -447,6 +447,7 @@ adds the logic.
 | D38 | Time attack's first lap | Decided (Tom, 2026-11-10): a standing start, timed; the ghost shown from the race's start |
 | D39 | Time attack's names | Decided (Tom, 2026-11-10): up to 10 characters, typed on the keyboard |
 | D40 | Time attack's table | Decided (Tom, 2026-11-10): one table, 10 entries a track, resident; the menu every track's best, a screen a track's 10 |
+| D41 | What a time attack race enters | Decided (Tom, 2026-11-10): its best lap only, one entry a race; names may repeat |
 
 ## Risks
 
