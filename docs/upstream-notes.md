@@ -92,6 +92,12 @@ Worth a line in the recipe and in `gotchas.md`.
 ### Smaller
 - A self-patching copy loop that doesn't reset its operands works until it's run a second time (`shared_copy` and
   `load_go` here, 3c). Perhaps a line in `docs/gotchas.md`, if a port's loader is ever re-run.
+- ROMSEL's readability: the `beeb-baron` skill's `hardware.md` (lines 136 and 318) says `&FE30` is write-only, with no
+  model named; the kit's `hardware-facts.md` (line 709) rightly says "on a Model B". Tom, 2026-11-10: "ROMSEL isn't
+  readable on the B or B+, but it can be read on the Master. ACCCON is also readable." I'd repeated the skill's
+  line to him. Not measured here. Also his, worth a line beside it: "by the time the BRK routine has been called,
+  the MOS has paged in the current language ROM", saving `&F4` as it was in `&024A`, so a BRK handler can't learn the
+  bank from ROMSEL, and `&024A` is only right if the code kept `&F4` in step.
 
 ## jsbeeb and jsbeeb-mcp
 

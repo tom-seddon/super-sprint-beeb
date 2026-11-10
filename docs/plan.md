@@ -291,8 +291,19 @@ adds the logic.
 - A crash handler from `!BOOT`'s hand-over to the title (Tom, 2026-11-09: "Please add the crash handler to the open
   items list"). Between `.raw` putting the OS's BRKV back and the title, a BRK goes to the OS's handler: its message
   lands after "Loading" and the rest on rows not shown, so the machine looks hung and says nothing useful (the
-  probe fault above). The game's own BRKV there would show the BRK's address, and the ROMSEL and ACCCON it found,
-  in the HUD's row, so a photo says where it went wrong. Not built.
+  probe fault above). Between loads, while the game runs, a BRK goes to the OS's handler too (each load puts its
+  BRKV back), and a wild jump into zeroed memory usually ends at one (BRK is &00). The design (2026-11-10), not built:
+  - The game's own BRKV, in main RAM's code: set once the loader has copied that in, and put back after each load
+    instead of the OS's, so it covers the loader, the screens and the race.
+  - MODE 7, set from the hardware (the CRTC's registers, the Video ULA), not through the OS, whose VDU workspace in
+    ANDY the game has taken; a teletext screen holds ASCII, so no font and no palette (Tom: "would it be cheaper
+    overall to have it set Mode 7?"). About 100 bytes, estimated.
+  - ACCCON set to show the screen the CPU writes (Tom: "It'll need to make sure that ACCCON is set to display the
+    same bank that's mapped in to RAM").
+  - It shows the build's version and the BRK's address, nothing else (Tom: "just print the address, and don't print
+    the ROMSEL value at all. Do include the git commit in the version number screen. Then any investigation can be
+    done offline."): by the time BRKV is called the MOS has paged in the language ROM (Tom), so ROMSEL is gone, and
+    `&024A`, its copy of `&F4`, is only right where the game kept `&F4` in step (8 of its 47 ROMSEL writes).
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
 - ~~Does the game build from a fresh clone?~~ (Tom, 2026-11-07): yes, done 2026-11-09. `git clone
