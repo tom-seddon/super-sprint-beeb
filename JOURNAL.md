@@ -668,3 +668,17 @@
   Then white back on Q, W, E (Tom: "This will ensure the game is playable out of the box in single player mode with
   the default keys on jsbeeb"): jsbeeb has no host key for Caps Lock. With Q, W, E nothing ghosts at all, F1 and
   Escape included. On Tom's Master, 2026-11-10: "Tested on Master."
+- **A crash handler** (2026-11-10). Before, a BRK went to the OS's handler from `!BOOT`'s hand-over to the title and
+  between loads, with only the HUD's row shown or the game's screens up, so the machine looked hung. Designed with
+  Tom: MODE 7 set from the hardware ("would it be cheaper overall to have it set Mode 7?": a teletext screen holds
+  ASCII, no font or palette, and the OS's VDU workspace is in ANDY, which the game has), ACCCON showing the screen the
+  CPU writes ("It'll need to make sure that ACCCON is set to display the same bank that's mapped in to RAM"), and only
+  the BRK's address and the build's version ("Then any investigation can be done offline"): the MOS pages the
+  language ROM in before BRKV (Tom), so ROMSEL is gone, and `&024A`'s copy of `&F4` is stale wherever the game
+  doesn't keep `&F4` in step, which is 39 of its 47 ROMSEL writes. I'd said ROMSEL can't be read on the Master: it can
+  (Tom), as can ACCCON; the skill's hardware notes say otherwise (`docs/upstream-notes.md`). `src/crash.6502` in main
+  RAM's code, 164 bytes (1,183 to 1,019 free); the loader sets BRKV once that's in, and load_takeover keeps it as the
+  BRKV each load puts back. `tools/crash_check.mjs` makes a BRK at the title and in the demo race at a frame showing
+  one screen and writing the other (ACCCON `&14`), and reads the screen back; with the ACCCON fix broken in memory it
+  finds 3 wrong.
+  The suite: 42 of 42 on agentbox at f0d2009, `crash_check` among them.

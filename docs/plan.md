@@ -288,7 +288,8 @@ adds the logic.
   2026-11-09: banks 7 to 0 probed with the screen clear, a bank counted only if it reads back what's written (D4). On Tom's
   Master: "Looks good on my Master 128, though it has the default config of sideways RAM in banks 4-7 so it wasn't
   exercising every case."
-- A crash handler from `!BOOT`'s hand-over to the title (Tom, 2026-11-09: "Please add the crash handler to the open
+- ~~A crash handler~~: done 2026-11-10 (`src/crash.6502`, `tools/crash_check.mjs`), as designed below; main RAM's
+  code 1,183 to 1,019 bytes free. From `!BOOT`'s hand-over to the title (Tom, 2026-11-09: "Please add the crash handler to the open
   items list"). Between `.raw` putting the OS's BRKV back and the title, a BRK goes to the OS's handler: its message
   lands after "Loading" and the rest on rows not shown, so the machine looks hung and says nothing useful (the
   probe fault above). Between loads, while the game runs, a BRK goes to the OS's handler too (each load puts its
@@ -304,6 +305,7 @@ adds the logic.
     the ROMSEL value at all. Do include the git commit in the version number screen. Then any investigation can be
     done offline."): by the time BRKV is called the MOS has paged in the language ROM (Tom), so ROMSEL is gone, and
     `&024A`, its copy of `&F4`, is only right where the game kept `&F4` in step (8 of its 47 ROMSEL writes).
+  - Built as that, with the SN76489's volumes off too, so a crash doesn't leave a tone sounding.
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
 - ~~Does the game build from a fresh clone?~~ (Tom, 2026-11-07): yes, done 2026-11-09. `git clone
@@ -407,7 +409,7 @@ adds the logic.
   together).
 - **Keyboard ghosting**: none possible on paper with the chosen nine keys (each in its own column), and none
   seen on Tom's Master (2026-11-08, D12). A less cramped set, still to choose, needs the same checks.
-- **Room**: main RAM has 1,183 bytes free, the `&3000` area 267 and the fourth bank 95 (2026-11-09, after the RAM
+- **Room**: main RAM has 1,019 bytes free (after the crash handler, 2026-11-10), the `&3000` area 267 and the fourth bank 95 (2026-11-09, after the RAM
   hunt's batch 1); its brief's batch 2 has more (`docs/brief-ram-2026-11-09.md`).
 - **A filing system in sideways RAM** (MMFS is often loaded that way; Tom's MMFS run in b2 worked) leaves 3 banks; the game needs 4 free
   (D4), so such a machine is told so at boot.
