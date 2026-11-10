@@ -332,12 +332,17 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      MEASURED in jsbeeb (a script: the car put right of the line on track 1, checkpoints 1-3 passed, at three
      frames): laps of 92, 248, 143 frames and of 233, 106, 205, each its end frame less the last, the best 92, then
      233 to 106 kept (again without the lap number: the same); the game's tracks' builds byte for byte.
-   - **3b, the HUD** (proposed, `build/ta/hud_mock2.png`): the lap's time running (white), `BEST` and the race's best
-     (yellow; ` 0.00` before there is one: Tom, "I think it'd be clearer if that were actually shown"), the track's
-     `T1` as now; no lap number (Tom, above); times as seconds and hundredths, `12.40` (D47), a frame 2 hundredths,
-     to 99.98; as a lap ends its time held 2 s (yellow if a best) while the next counts on unseen. Four glyphs more
-     for the font (`.`, `B`, `E`, `S`, 32 bytes). Up to 3 characters change between a screen's frames, within the
-     HUD's 4 a frame.
+   - **3b, the HUD** (proposed, `build/ta/hud_mock3.png`): the lap's time running (white), `BEST` and the race's
+     best (yellow), `GHOST` and the ghost's (green: the track's record, the table's first entry, D40, which the
+     player's lap becomes when it's beaten), the track's `T1` as now; ` 0.00` for a best or ghost not there yet
+     (Tom, "I think it'd be clearer if that were actually shown"); no lap number (Tom, above). Tom, on the ghost's:
+     "So you know the overall target to beat, as well as your best so far, and if you lose to the ghost you can see
+     how much by." Times as seconds and hundredths, `12.40` (D47), a frame 2 hundredths, to 99.98; as a lap ends its
+     time held 2 s while the next counts on unseen, white, or yellow if a new best, or green if under the ghost.
+     Seven glyphs more for the font (`.`, `B`, `E`, `S`, `G`, `H`, `O`, 56 bytes). Up to 3 characters change
+     between a screen's frames as the time runs, within the HUD's 4 a frame; a lap's end changes up to 15 (the
+     held time, the best, the ghost's), which takes 4 frames a screen to show, as a score's roll-over does now.
+     Until the ghost and the table are in (steps 4 and 5), the ghost's time is ` 0.00`.
 4. **The ghost.** Recorded and played back in the cars' bank. Its check: a scripted lap driven, then replayed, every
    frame's ghost record the same as the player's was (a headless oracle on `tools/jsbeeb.mjs`, in the suite).
 5. **Saving.** The table and the ghosts; a check as `tools/save_check.mjs`'s (saved, booted back, spoilt files
