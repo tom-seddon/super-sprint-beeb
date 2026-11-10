@@ -20,7 +20,9 @@ PlayerColour = {3, 1, 2}                ; and colour: their cars' bodies, white,
 TrackCol = 34
 DroneCol = 37
 
-ASSERT FontGlyphs == HudBlank + 1, "the font's glyphs: the HUD's codes"
+HudGlyphs = HudBlank + 1 + 7 * GenTimeAttack   ; (time attack's after: timeattack.6502's)
+ASSERT FontGlyphs == HudGlyphs, "the font's glyphs: the HUD's codes"
+HudGlyphMask = 15 + 16 * GenTimeAttack
 
 SECTION ScreenVars
 .HudShown                               ; what this screen shows
@@ -54,6 +56,9 @@ ZA_AUTO1 hudcount                       ; frames still to bring a screen up to H
     STA HudWant,X
     DEX
     BPL blank
+    IF GenTimeAttack
+        JSR ta_hud_start                ; (its labels, and its times' first values)
+    ENDIF
     LDA #(HudT OR HudWhite):STA HudWant+TrackCol
     IF GenLogic                         ; (the track's number, from its data: Phase 5, 3a)
         LDA TrackNum:INC A:ORA #HudWhite
@@ -182,7 +187,7 @@ HudPerFrame = 4
 
     STX column
     TAY
-    AND #15:ASL A:ASL A:ASL A           ; 8 * the glyph
+    AND #HudGlyphMask:ASL A:ASL A:ASL A ; 8 * the glyph
     CLC:ADC #LO(Font):STA font+1
     LDA #HI(Font):ADC #0:STA font+2
     TYA:ROL A:ROL A:ROL A:AND #3:TAY    ; the colour

@@ -34,7 +34,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from st_sprites import car_frame
 from convert import OPTIONS, car_table, logical_map, apply_map, mode1_bytes
-from font import Glyphs, glyph_bytes
+from font import Glyphs, GlyphsTA, glyph_bytes
 import objects
 import logic_maps
 
@@ -835,8 +835,9 @@ def main(track, tracepath, out, logic=False, play=False, ta=False):
         f.write(f'GenTimeAttack = {1 if ta else 0}\n')
     with open(f'{out}/font.6502', 'w') as f:
         f.write('\\\\ font.6502 - made by tools/gendata.py from tools/font.py: the HUD\'s glyphs, 8 lines each\n\n')
-        f.write(lst('GenFont', [b for g in range(len(Glyphs)) for b in glyph_bytes(g)]))
-        f.write(f'FontGlyphs = {len(Glyphs)}\n')
+        n = len(Glyphs) + (len(GlyphsTA) if ta else 0)   # (time attack's after the game's)
+        f.write(lst('GenFont', [b for g in range(n) for b in glyph_bytes(g)]))
+        f.write(f'FontGlyphs = {n}\n')
     print(f'sets {sets}; cars {len(data)} bytes, prio {len(pdata)} + {len(classes)} + {len(mapdata)} bytes '
           f'({int((cellmap > 0).sum())} cells), objects {len(obin)} bytes ({len(vt)} variants, {len(mt)} moving), '
           f'helicopter {len(hbin)} bytes ({len(hpieces)} pieces), '

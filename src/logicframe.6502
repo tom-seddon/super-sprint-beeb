@@ -191,7 +191,11 @@ ENDIF
     JSR build_cars
     JSR build_objects
     JSR build_movers
-    JSR build_hud
+    IF GenTimeAttack
+        JSR ta_hud                      ; (timeattack.6502's, main RAM)
+    ELSE
+        JSR build_hud
+    ENDIF
 .built                                  ; (tools/disc_races.mjs: the state the ST's flip dumps)
     LDA setup:BNE count                 ; (the set-up's flips: no race frame)
     JSR race_end                        ; after the frame's records: the ST's runs after its flip
@@ -542,6 +546,7 @@ ENDIF
     RTS
 }
 
+IF GenTimeAttack = 0                    ; (time attack's HUD: timeattack.6502)
 \\ The HUD: each car whose laps or score changed (every car's on the first frame) given to it.
 \\
 \\ Inputs: RcLaps, RcScore, LfLaps, LfScore. Outputs: the HUD's text wanted (hud_set), LfLaps, LfScore. A, X,
@@ -586,3 +591,4 @@ ENDIF
     LDA c:CMP #Cars:BNE car
     RTS
 }
+ENDIF

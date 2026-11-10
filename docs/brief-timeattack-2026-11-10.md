@@ -1,6 +1,6 @@
 # Brief - a time attack version
 
-> **Status: in progress (2026-11-10): steps 1 and 2 done (§8), step 2 to be tried on Tom's Master.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
+> **Status: in progress (2026-11-10): steps 1 to 3 done (§8); step 3's HUD to be tried on Tom's Master.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
 > benefit from having a special version, built from the same code and using the same basic game engine and tracks: a
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
@@ -332,7 +332,9 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      MEASURED in jsbeeb (a script: the car put right of the line on track 1, checkpoints 1-3 passed, at three
      frames): laps of 92, 248, 143 frames and of 233, 106, 205, each its end frame less the last, the best 92, then
      233 to 106 kept (again without the lap number: the same); the game's tracks' builds byte for byte.
-   - **3b, the HUD** (proposed, `build/ta/hud_mock3.png`): the lap's time running (white), `BEST` and the race's
+   - **3b, the HUD** (done 2026-11-10, to be tried on Tom's Master; Tom: "Yes, looks good. As with everything else,
+     there may be adjustments required after seeing it in action"; `docs/img/timeattack-hud.png` in jsbeeb; the
+     mock-up `build/ta/hud_mock3.png`): the lap's time running (white), `BEST` and the race's
      best (yellow), `GHOST` and the ghost's (green: the track's record, the table's first entry, D40, which the
      player's lap becomes when it's beaten), the track's `T1` as now; ` 0.00` for a best or ghost not there yet
      (Tom, "I think it'd be clearer if that were actually shown"); no lap number (Tom, above). Tom, on the ghost's:
@@ -343,6 +345,16 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      between a screen's frames as the time runs, within the HUD's 4 a frame; a lap's end changes up to 15 (the
      held time, the best, the ghost's), which takes 4 frames a screen to show, as a score's roll-over does now.
      Until the ghost and the table are in (steps 4 and 5), the ghost's time is ` 0.00`.
+     Built: `src/timeattack.6502` in main RAM's code (`ta_lap` moved there from `cells.6502`, `ta_hud` each frame for
+     `build_hud`, which time attack leaves out, and `ta_time`); `tools/font.py`'s `GlyphsTA` after the game's
+     glyphs, `hud_char` masking 5 bits of a glyph for 4. The ghost is the race's for now: 0 at its start, then any
+     lap under it. MEASURED (track 1's build): the fourth bank 29 to 193 bytes free, the `&3000` area 267 to 211,
+     main RAM's code 1,061 to 707. In jsbeeb (scripts: the car put right of the line at three frames, the HUD's text
+     read back each frame): laps of 233, 106, 205 frames shown `4.66`, `2.12`, `4.10`, each held 100 frames then the
+     running time at `2.00`; green for laps under the ghost (lap 1's, with none), white for one beating nothing;
+     with the ghost poked to 100 frames, yellow for the two bests over it; 6,000 and 4,999 frames shown `99.98`;
+     drawn on the screen as the text says. 12 to 13 fields repeated in 400 frames per track, as before (the start's).
+     The game's tracks' builds byte for byte; the suite 43 of 43 on agentbox.
 4. **The ghost.** Recorded and played back in the cars' bank. Its check: a scripted lap driven, then replayed, every
    frame's ghost record the same as the player's was (a headless oracle on `tools/jsbeeb.mjs`, in the suite).
 5. **Saving.** The table and the ghosts; a check as `tools/save_check.mjs`'s (saved, booted back, spoilt files

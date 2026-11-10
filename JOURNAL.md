@@ -696,3 +696,6 @@
   laps, Escape out. The cars' bank 8,228 bytes freer on every track. Tried in jsbeeb by scripts: past lap 4 on, the
   demo still ending, a wreck put back as on the game's disc, no frames dropped. Tom: work in smaller steps here, each
   tried ("there being no existing target to work against"); step 2's disc for his Master before step 3.
+  Step 3: the lap timing (`ta_lap`, the ST's measure) and the HUD, the lap's time, the best and the ghost's (Tom
+  dropped the lap number, asked for 0.00 shown when there's none, and added the ghost's time). Checked by a script
+  reading the HUD's text each frame around three poked crossings, and on the screen.

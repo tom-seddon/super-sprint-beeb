@@ -323,6 +323,9 @@ HiSaveLen = HiSumLen + 2                ; SCORES: the table, lap records, keys, 
         INCLUDE "irq.6502"
         INCLUDE "main.6502"
         INCLUDE "hud.6502"
+        IF GenTimeAttack
+            INCLUDE "timeattack.6502"
+        ENDIF
         IF GenLogic
             INCLUDE "random.6502"
             INCLUDE "race.6502"

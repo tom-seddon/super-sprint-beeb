@@ -1,7 +1,7 @@
 """The HUD's font: 8 x 8 glyphs, 6 pixels wide with a 2-pixel stroke, for the characters the HUD shows.
 
 Glyph codes: 0-9 the digits, then , L T D and a space. gendata.py writes them for the 6502 (font.6502) and
-render_model.py draws the HUD with them.
+render_model.py draws the HUD with them. Time attack's HUD (gendata.py --ta) has GlyphsTA after them: . B E S G H O.
 """
 
 Comma, LetterL, LetterT, LetterD, Space = 10, 11, 12, 13, 14
@@ -25,6 +25,18 @@ Glyphs = [
 ]
 
 
+# time attack's (docs/brief-timeattack-2026-11-10.md §8, 3b): codes 15 on, for its times and BEST and GHOST
+GlyphsTA = [
+    ["........", "........", "........", "........", "........", "..##....", "..##....", "........"],
+    ["#####...", "##..##..", "##..##..", "#####...", "##..##..", "##..##..", "#####...", "........"],
+    ["######..", "##......", "##......", "#####...", "##......", "##......", "######..", "........"],
+    [".####...", "##..##..", "##......", ".####...", "....##..", "##..##..", ".####...", "........"],
+    [".####...", "##..##..", "##......", "##.###..", "##..##..", "##..##..", ".#####..", "........"],
+    ["##..##..", "##..##..", "##..##..", "######..", "##..##..", "##..##..", "##..##..", "........"],
+    [".####...", "##..##..", "##..##..", "##..##..", "##..##..", "##..##..", ".####...", "........"],
+]
+
+
 def glyph_bytes(code):
-    """A glyph's 8 lines, each a byte of 8 pixels, bit 7 the leftmost."""
-    return [int(line.replace('#', '1').replace('.', '0'), 2) for line in Glyphs[code]]
+    """A glyph's 8 lines, each a byte of 8 pixels, bit 7 the leftmost (codes past Glyphs: GlyphsTA's)."""
+    return [int(line.replace('#', '1').replace('.', '0'), 2) for line in (Glyphs + GlyphsTA)[code]]

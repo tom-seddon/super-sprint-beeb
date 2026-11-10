@@ -1,0 +1,190 @@
+\\ timeattack.6502 - time attack's lap times and HUD (docs/brief-timeattack-2026-11-10.md §8, step 3), in main RAM's
+\\ code: the variant's alone (GenTimeAttack). The lap timing's state is the logic's (cells.6502's LogicVars,
+\\ cleared each race); the HUD's is here, in GameVars.
+\\
+\\ The HUD: the lap's time running (white), BEST and the race's best (yellow), GHOST and the ghost's (green), and
+\\ the track (hud.6502's). A time is seconds and hundredths, a frame 2 hundredths, to 99.98: " 7.34". As a lap
+\\ ends its time is held TaHoldFrames, while the next lap counts on unseen: white, or yellow if it's the race's
+\\ best, or green if it's under the ghost, which it then becomes (0: none yet, so any lap is under it). Until the
+\\ ghost and the table are in (steps 4 and 5), the ghost is the race's: 0 at its start.
+
+TaTimeCol = 1                           ; the HUD's columns: the lap's time,
+TaBestLabel = 8                         ; BEST and the best,
+TaBestCol = 13
+TaGhostLabel = 20                       ; GHOST and the ghost's
+TaGhostCol = 26
+TaHoldFrames = 100                      ; a lap's time held, 2 s
+HudDot = HudBlank + 1                   ; time attack's glyphs (tools/font.py's GlyphsTA)
+HudB = HudBlank + 2
+HudE = HudBlank + 3
+HudS = HudBlank + 4
+HudG = HudBlank + 5
+HudH = HudBlank + 6
+HudO = HudBlank + 7
+HudGreen = 1 << 6
+HudYellow = 2 << 6
+TaMaxFrames = 4999                      ; 99.98 s: what a time shows at most
+
+SECTION GameVars
+.TaGhostLo                              ; the ghost's lap, in frames (0: none)
+    SKIP 1
+.TaGhostHi
+    SKIP 1
+.TaHold                                 ; frames the last lap's time is still held
+    SKIP 1
+.TaHeld                                 ; its colour << 6
+    SKIP 1
+ENDSECTION
+
+\\ The race's start, from hud_start: BEST and GHOST, nothing held, no ghost yet (until steps 4 and 5).
+\\
+\\ Inputs: none. Outputs: HudWant's labels; TaHold, TaGhost 0. A, X corrupted.
+
+.ta_hud_start
+{
+    LDX #TaLabelsEnd - TaLabels - 1
+.label
+    LDA TaLabels,X:STA HudWant+TaBestLabel,X
+    DEX
+    BPL label
+    STZ TaHold
+    STZ TaGhostLo:STZ TaGhostHi
+    RTS
+}
+
+.TaLabels                               ; from TaBestLabel: BEST, a gap, GHOST
+    EQUB HudB OR HudYellow, HudE OR HudYellow, HudS OR HudYellow, HudT OR HudYellow
+    EQUB HudBlank, HudBlank, HudBlank, HudBlank, HudBlank, HudBlank, HudBlank, HudBlank
+    EQUB HudG OR HudGreen, HudH OR HudGreen, HudO OR HudGreen, HudS OR HudGreen, HudT OR HudGreen
+.TaLabelsEnd
+ASSERT TaLabelsEnd - TaLabels == TaGhostLabel - TaBestLabel + 5, "the labels: BEST to GHOST's end"
+
+\\ A lap ended (cells.6502's class2_, at the finish): its time, the frames since it started (lap 1 from frame 0,
+\\ as the ST's lap times: game.6502's circle_sums), the last lap's; the race's best if under it (or the first);
+\\ the ghost's too if under that (which a lap can only be if it's the best: the ghost's never above it); the next
+\\ lap starts this frame; the time held, in the colour of what it beat.
+\\
+\\ Inputs: RcFrame, TaStart, TaBest, TaGhost. Outputs: TaLast, TaBest, TaGhost, TaStart, TaHold, TaHeld. A
+\\ corrupted; X, Y preserved.
+
+.ta_lap
+{
+    SEC
+    LDA RcFrameLo:SBC TaStartLo:STA TaLastLo
+    LDA RcFrameHi:SBC TaStartHi:STA TaLastHi
+    LDA RcFrameLo:STA TaStartLo
+    LDA RcFrameHi:STA TaStartHi
+    LDA #HudWhite:STA TaHeld
+    LDA TaBestLo:ORA TaBestHi:BEQ best  ; (none yet)
+    LDA TaLastLo:CMP TaBestLo           ; under the best: the new best (the same isn't)
+    LDA TaLastHi:SBC TaBestHi
+    BCS held
+.best
+    LDA TaLastLo:STA TaBestLo
+    LDA TaLastHi:STA TaBestHi
+    LDA #HudYellow:STA TaHeld
+    LDA TaGhostLo:ORA TaGhostHi:BEQ record
+    LDA TaLastLo:CMP TaGhostLo          ; under the ghost: the ghost's now
+    LDA TaLastHi:SBC TaGhostHi
+    BCS held
+.record
+    LDA TaLastLo:STA TaGhostLo
+    LDA TaLastHi:STA TaGhostHi
+    LDA #HudGreen:STA TaHeld
+.held
+    LDA #TaHoldFrames:STA TaHold
+    RTS
+}
+
+\\ Each frame's HUD, from the logic's frame (logicframe.6502, for build_hud): the lap's time, or the last
+\\ lap's held; the best; the ghost's. hud_update draws what changed.
+\\
+\\ Inputs: RcFrame, TaStart, TaLast, TaBest, TaGhost, TaHold, TaHeld. Outputs: HudWant; hudcount 2; TaHold one
+\\ fewer. A, X, Y corrupted.
+
+.ta_hud
+{
+    LDA TaHold:BEQ running
+    DEC TaHold
+    LDA TaLastLo:STA num
+    LDA TaLastHi:STA num+1
+    LDA TaHeld
+    BRA time
+.running
+    SEC
+    LDA RcFrameLo:SBC TaStartLo:STA num
+    LDA RcFrameHi:SBC TaStartHi:STA num+1
+    LDA #HudWhite
+.time
+    LDX #TaTimeCol:JSR ta_time
+    LDA TaBestLo:STA num
+    LDA TaBestHi:STA num+1
+    LDA #HudYellow
+    LDX #TaBestCol:JSR ta_time
+    LDA TaGhostLo:STA num
+    LDA TaGhostHi:STA num+1
+    LDA #HudGreen
+    LDX #TaGhostCol:JSR ta_time
+    LDA #2:STA hudcount
+    RTS
+}
+
+\\ A time into the HUD's text: seconds (the tens blank if 0), the point, hundredths, " 7.34".
+\\
+\\ Inputs: num: the frames (TaMaxFrames shown if more); A: the colour << 6; X: the first column. Outputs:
+\\ HudWant's 5 columns. A, X, Y, num corrupted.
+
+.ta_time
+{
+    ZA_AUTO1 ink                        ; local: the colour
+    ZA_AUTO1 lo                         ; local: a subtraction's low byte
+
+    STA ink
+    LDA num:CMP #LO(TaMaxFrames + 1)    ; over the most: the most
+    LDA num+1:SBC #HI(TaMaxFrames + 1)
+    BCC under
+    LDA #LO(TaMaxFrames):STA num
+    LDA #HI(TaMaxFrames):STA num+1
+.under
+    LDY #&FF                            ; tens of seconds: 500 frames each
+.tens
+    INY
+    SEC
+    LDA num:SBC #LO(500):STA lo
+    LDA num+1:SBC #HI(500)
+    BCC tensdone
+    STA num+1
+    LDA lo:STA num
+    BRA tens
+.tensdone
+    TYA:BNE @+
+    LDA #HudBlank                       ; (a blank: colour 0)
+    BRA put
+.@
+    ORA ink
+.put
+    STA HudWant,X
+    LDY #&FF                            ; seconds: 50 frames each (num now under 500)
+.units
+    INY
+    SEC
+    LDA num:SBC #50:STA lo
+    LDA num+1:SBC #0
+    BCC unitsdone
+    STA num+1
+    LDA lo:STA num
+    BRA units
+.unitsdone
+    TYA:ORA ink:STA HudWant+1,X
+    LDA #HudDot:ORA ink:STA HudWant+2,X
+    LDA num                             ; hundredths: 2 a frame (num now under 50): tenths num / 5,
+    LDY #&FF
+.fifths
+    INY
+    SEC:SBC #5
+    BCS fifths
+    ADC #5                              ; (C clear: the remainder, 0-4)
+    ASL A:ORA ink:STA HudWant+4,X       ; and the hundredths 2 * (num MOD 5)
+    TYA:ORA ink:STA HudWant+3,X
+    RTS
+}

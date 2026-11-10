@@ -395,8 +395,8 @@ adds the logic.
   saved per track, a track menu for a front end; its own disc from the same source:
   `docs/brief-timeattack-2026-11-10.md`, branch `timeattack`, its questions answered (D36-D50). The ghost's room is the
   cars' bank's three unused car sets (about 8K, ESTIMATED: the green set alone, drawn white for the player and black
-  for the ghost, D37). Steps 1 and 2 done (`make ta`: `build/ta.ssd`, `build/ta.adl`; one car, endless laps, Escape out), step 2 for Tom
-  to try on his Master; then step 3, the lap timer, in smaller steps, each tried.
+  for the ghost, D37). Steps 1 to 3 done (`make ta`: `build/ta.ssd`, `build/ta.adl`; one car, endless laps, Escape out; the lap's time,
+  the best and the ghost's on the HUD), step 3 for Tom to try; then the dead code out, then step 4, the ghost.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
