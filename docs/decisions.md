@@ -590,6 +590,7 @@ the upgrades 1), so 104 bytes for each entry a track over 8 tracks; 1,040 for 10
 1,550 free in Shared once the drone path and the ST's table go. The name's screen, forked from the options screen's
 key finding (`opt_find`), is about 250 bytes in its own file. The ghost's file carries the name too, 10 bytes.
 So: up to 10 characters, typed on the keyboard, drawn in the MOS's font (`font_char`). A-Z, 0-9 and space at first.
+The font became the ST's small font with D47.
 
 ### D40. Time attack's table: Decided (2026-11-10)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Proposed: how many entries a track's table keeps. Tom,
@@ -671,3 +672,19 @@ palette black, the front end flipping at the vsync (the race's timed flip, D17, 
 from Shared to a sideways bank (the objects' bank, which loses the tornado and pickups in time attack); Shared is put
 back in both screens before each race from a packed copy, about 1,500 bytes (ESTIMATED); a front end tune carries its
 own data. About 60 bytes of code for the change (ESTIMATED).
+
+### D47. Time attack's menu: all eight tracks, the small font, the logo: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6, question 8). Proposed: layout A (all eight tracks at once, two
+columns of four, a map and its text) or B (a scrolling list), mocked up in `build/ta`. A 10-character name in the MOS's
+font (8 pixels a character) runs into the next column's map: a map (75 to 80 pixels) and 80 pixels of text fill a
+160-pixel column. Tom asked about the small font: the ST's (`G_01D43C`, 6 x 6, 6 pixels a character), drawn on the BBC
+already by `front.6502`'s `front_glyph`, so 10 characters are 60 pixels, 14 to spare. Its glyphs (COUNTED): 0-9, A-Z,
+space, `.` and `!` (the BBC's 39, 234 bytes), and `-` and `'` (the ST's, 12 bytes more); no lower case, no colon. Then
+the credits screen's SUPER SPRINT logo: 34 lines (MEASURED, `build/gen/credits.bin` lines 73-106), in place of a title
+and a line of keys, the rows 55 lines, 254 of the 256 used. Tom, 2026-11-10: "Yes, mockup looks good. And I think the
+logo should be red+yellow."
+So: layout A in 32 rows (D46), as `build/ta/menu_a32_logo.png`: the logo across the top, then four rows of two tracks,
+each a map and four lines of the small font (the track, the best time, the name, the upgrades). Times in seconds,
+`12.40`, as the ST's winner's circle shows them, for want of a colon. Colour 1 red over the logo and green below it,
+its 4 palette entries written at the logo's last line, timed from the vsync (about 40 bytes, ESTIMATED). Names, on the
+menu and the name's screen, in the small font, not the MOS's (D39).

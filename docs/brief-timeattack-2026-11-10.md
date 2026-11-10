@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43; the maps on the menu: D44; the turnaround: D45; the front end's 32 rows: D46). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43; the maps on the menu: D44; the turnaround: D45; the front end's 32 rows: D46; the menu's layout: D47). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -173,8 +173,11 @@ playing it though."
   which."
   - The maps are 75 to 80 pixels by 47 to 50 lines each (MEASURED, cut from `build/gen/select.bin` by
     `select.6502`'s `RectCol`/`RectTop`/`RectBottom`), already in the game's colours, the select screen's picture
-    2,440 bytes packed with its text (MEASURED, `build/gen/select.zx02`). Text in the MOS's font, drawn by
-    `font_char` (LowFree, resident) as the options screen names keys (the HUD's font has only 15 glyphs).
+    2,440 bytes packed with its text (MEASURED, `build/gen/select.zx02`). Text in the ST's small font (D47,
+    below; first planned in the MOS's font, through `font_char`; the HUD's font has only 15 glyphs).
+  - **Decided (D47)**: layout A in 32 rows, the text in the small font, the SUPER SPRINT logo across the top in its
+    red and yellow, no title or line of keys (`build/ta/menu_a32_logo.png`). Tom, 2026-11-10: "Yes, mockup looks
+    good. And I think the logo should be red+yellow." The working below.
   - Two layouts mocked up, in 32 rows (D46: `build/ta/menu_a32.png`, `build/ta/menu_b32.png`) and first in the
     race's 26 (`build/ta/menu_a.png`, `build/ta/menu_b.png`), the BBC's maps and the MOS's font, made-up entries;
     §7 question 8:
@@ -242,8 +245,8 @@ playing it though."
 - **The name (D39)**: up to 10 characters typed on the keyboard. The options screen already finds any key held from a
   table of key numbers (`opt_find`, `OptNumbers`, through `key_down`), so the name's screen is that with a table of
   A-Z, 0-9, space, Delete and Return and their characters (about 80 bytes), the typing loop and the drawing: about
-  250 bytes (ESTIMATED), in its own file, not resident. Which characters beyond those (lower case, punctuation; the
-  MOS's font has them all) is for later.
+  250 bytes (ESTIMATED), in its own file, not resident. Which characters beyond those (the small font has `.`, `!`, `-` and
+  `'`, no lower case, D47) is for later. Typed in the small font, as the menu shows it.
 - **Saved**:
   - One table for all 8 tracks (D40), 10 entries a track, 13 bytes an entry (the time 2, the name 10, the upgrades 1:
     three levels that sum to 5 or less are 56 combinations): 80 entries, 1,040 bytes (COUNTED). Resident, in a
@@ -275,8 +278,8 @@ playing it though."
    2026-11-10) (§4).
 7. ~~What a race puts in the table~~: its best lap only, one entry a race; a name can be there more than once, from
    different races (D41, Tom, 2026-11-10) (§6).
-8. The menu's layout (§6): A, all eight tracks at once, or B, a scrolling list (in 32 rows, D46:
-   `build/ta/menu_a32.png`, `build/ta/menu_b32.png`).
+8. ~~The menu's layout~~: A, all eight tracks at once, in 32 rows, in the ST's small font, the logo across the top in
+   red and yellow (D47, Tom, 2026-11-10) (§6, `build/ta/menu_a32_logo.png`).
 
 Each becomes a row in `docs/decisions.md`, Proposed until Tom agrees.
 

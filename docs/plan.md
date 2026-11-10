@@ -453,6 +453,7 @@ adds the logic.
 | D44 | Time attack's menu maps | Decided (Tom, 2026-11-10): the select screen's mini maps beside each track's best; the layout open |
 | D45 | Time attack's turnaround | Decided (Tom, 2026-11-10): as short as it can be but for the loads: no wipe, no prepare to race |
 | D46 | Time attack's front end rows | Decided (Tom, 2026-11-10): the front end in 32 rows, the race in 26; Shared put back before each race, the table in a bank |
+| D47 | Time attack's menu | Decided (Tom, 2026-11-10): all eight tracks at once, the ST's small font, the SUPER SPRINT logo in red and yellow, colour 1 changed below it |
 
 ## Risks
 
