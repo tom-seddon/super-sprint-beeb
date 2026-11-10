@@ -269,7 +269,9 @@ adds the logic.
 - ~~The demo's car 3's green stripes~~: done 2026-11-09, black as in a race, through `DataBlack` (D20; Tom: "Yes, try it", then on his Master "Looks good"). Its own
   frames, 29 pixels different, would want a 2.6K file and a load path: left out.
 - ~~D16's helicopter chop~~: done 2026-11-08, a rising sweep over the car's blink to its put-back (Tom: "Build C1 (sweep)", "Span the blink").
-- A palette split on prepare to race, so the cars are the right colours (Tom's idea, 2026-11-05).
+- ~~A palette split on prepare to race, so the cars are the right colours~~ (Tom's idea, 2026-11-05): dropped
+  2026-11-10, Tom: "let's abandon that idea. Everything else in the game flow uses the same black/green/yellow/white
+  in-game palette."
 - ~~The score pickups' digits~~: done 2026-11-08, black on the yellow box (D34; Tom, after his CRT: "Good, commit").
 - ~~"Loading" from the boot's start~~: done 2026-11-09, the boot's MODE 1 in shadow RAM while the files load (D35, Tom's
   idea; on his Master: "Looks much better").
