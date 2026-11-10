@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -110,8 +110,13 @@ if they want."
   its lap's speed.
 - Lap 1 is timed like any other, and can be the best (and the ghost) if it's the only lap finished; its record starts
   at the race's first frame, so that ghost starts from a standstill too.
-- A ghost that reaches the line first is put away there until the player crosses (proposed, the usual way; not yet
-  asked).
+- **A ghost that reaches the line first (D43)** waits at its lap's first frame, drawn there and still, until the player
+  crosses, then sets off from it: a jump from its last frame to its first when it finishes (a few pixels on a flying
+  lap, across the line; to the grid if its lap was lap 1), so it leaves smoothly as the player passes. A player who
+  crosses first starts the ghost's lap again there, from wherever it had got to. Tom, 2026-11-10: "have the ghost wait
+  at the line. I think have it wait at its start position (even if that means a jump from its end position), so that
+  it sets off smoothly as the player passes."
+  Either way, every lap the ghost and the player start together.
 
 ## 4. The race
 

@@ -578,8 +578,7 @@ line if they want."
 So: the ghost starts with the race as well as at each crossing of the line, from its lap's first frame. Every track's
 grid straddles the finish line (COUNTED: the first car's box against checkpoint 4's cells), so lap 1 is a full lap from
 a standstill and the ghost leaves the same line at speed. Lap 1 is timed as any lap, and its record, if it's the best,
-starts from a standstill. A ghost that reaches the line before the player is put away there until the player crosses
-(proposed with it, not yet asked).
+starts from a standstill. What a ghost does when it reaches the line first is D43.
 
 ### D39. Time attack's names: Decided (2026-11-10)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Proposed: three initials, as the ST's table, or longer. Tom,
@@ -629,3 +628,13 @@ come and go: water, oil and the yellow patch (the "sand") none in races 0 to 5, 
 So: time attack keeps the gates (D36) and wrecks as the game has them: the ST's wait for its helicopter (40 to 100
 frames), with no helicopter drawn, the car blinking where it comes back and the sweep over the blink (D16), the lap's
 clock running; the patches, cones, barriers, tornado, wrenches and bonus go.
+
+### D43. Time attack's ghost waits at the line: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §3). Proposed with D38: a ghost that reaches the line before the
+player is put away there until the player crosses. Tom, 2026-11-10: "Yes - have the ghost wait at the line. I think
+have it wait at its start position (even if that means a jump from its end position), so that it sets off smoothly as
+the player passes."
+So: when the ghost's lap ends first, it's drawn at its lap's first frame, still, until the player crosses the line,
+then plays from there. It jumps from its last frame to its first (a few pixels across the line on a flying lap; to
+the grid if the best lap was lap 1). A player who crosses first starts the ghost's lap again from wherever it had got
+to (D38). Every lap, the ghost and the player start together.
