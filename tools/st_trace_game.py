@@ -108,7 +108,7 @@ def parse(log, points):
         r = re.search(r'\bA7 ([0-9A-F]{8})', line)
         if r and cur and cur['kind'] == 'input':
             cur['a7'], cur['value'] = int(r.group(1), 16), d0 & 0xFF
-        m = re.match(r'^([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', line)
+        m = re.match(r'^(?:> )?([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', line)
         if not m:
             continue
         a, bs = int(m.group(1), 16), [int(x, 16) for x in m.group(2).split()]

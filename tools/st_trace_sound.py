@@ -85,7 +85,7 @@ def parse(log):
                 if r == 13:
                     env = (len(frames), int(w.group(3)))
             continue
-        m = re.match(r'^([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', line)
+        m = re.match(r'^(?:> )?([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', line)
         if not m:
             continue
         a = int(m.group(1), 16)

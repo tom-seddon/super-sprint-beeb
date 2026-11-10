@@ -31,7 +31,7 @@ def record(track, vbls=5200):
 def parse(log):
     frames, cur = [], None
     for line in open(log, errors='replace'):
-        m = re.match(r'^([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', line)
+        m = re.match(r'^(?:> )?([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', line)
         if not m:
             continue
         a = int(m.group(1), 16)

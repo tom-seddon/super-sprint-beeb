@@ -5,7 +5,7 @@ import sys, re, struct
 def frames(path, marker):
     cur = None; out = []
     for l in open(path, errors='replace'):
-        m = re.match(r'^([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', l)
+        m = re.match(r'^(?:> )?([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', l)
         if not m:
             continue
         a = int(m.group(1), 16); bs = bytes(int(x, 16) for x in m.group(2).split())

@@ -164,7 +164,7 @@ def parse(log):
         if n:
             kind = {InputPc + 4: 'input', RandomPc + 2: 'random'}.get(int(n.group(1), 16))
             continue
-        m = re.match(r'^([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', line)
+        m = re.match(r'^(?:> )?([0-9A-F]{8}): ((?:[0-9a-f]{2} )+)', line)
         if not m:
             continue
         a = int(m.group(1), 16)
