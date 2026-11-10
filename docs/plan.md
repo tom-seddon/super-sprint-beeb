@@ -448,6 +448,7 @@ adds the logic.
 | D39 | Time attack's names | Decided (Tom, 2026-11-10): up to 10 characters, typed on the keyboard |
 | D40 | Time attack's table | Decided (Tom, 2026-11-10): one table, 10 entries a track, resident; the menu every track's best, a screen a track's 10 |
 | D41 | What a time attack race enters | Decided (Tom, 2026-11-10): its best lap only, one entry a race; names may repeat |
+| D42 | Time attack's hazards | Decided (Tom, 2026-11-10): the gates and wrecks, which a track always has, kept; patches, cones, barriers and tornado gone |
 
 ## Risks
 

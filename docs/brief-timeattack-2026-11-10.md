@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -126,8 +126,14 @@ if they want."
 - **The HUD** (D6): the lap number, the lap's time and the best, `0:07.34` and so on (50 fields a second, so a field
   is 2 hundredths, `RcLapTimeLo`'s frames, `cells.6502`). The hundredths change every frame and the seconds every 50,
   so 1 to 4 characters a frame, within the HUD's 4 a frame (`docs/renderer.md`).
-- **Hazards**: the gates only, or none (§5). Wrecks stay (tracks 2 and 6's bridge edges and jumps, leaving the
-  area), as the ST has them.
+- **Hazards (D42)**: the ones a track always has on the ST stay; the ones that come and go with the race count or a
+  coin flip go (`docs/st-logic.md` §3).
+  - Kept: the gates (tracks 3, 5 and 8, every race; §5, D36) and wrecks (every track: leaving the area, squeezed
+    between walls, a wall head-on at top speed; and tracks 2 and 6's bridge edges and jumps), the helicopter and its
+    wait (40 to 100 frames) as the ST's, the lap's clock running.
+  - Gone: water, oil and the yellow patch (none in races 0 to 5, then `random(race / 6 + 1)`, at most 3), cones
+    (from race 16, half the time), the pop-up barriers (every third race) and the tornado (after race 3, half the
+    time). The wrenches and bonus go with them, as there's no score.
 - **Sound**: one engine.
 - **Speed**: one car simulated, two drawn, no tornado or pickups. Every track's frames fit 40,000 cycles with four
   cars and every hazard (Phase 4), so there's room to spare; measured at step 2.
@@ -192,7 +198,8 @@ playing it though."
 4. ~~The name~~: up to 10 characters, typed on the keyboard (D39, Tom, 2026-11-10) (§6).
 5. ~~How many entries a track's table keeps~~: 10, every track's together, the bests on the menu and a track's 10
    on a screen of their own (D40, Tom, 2026-11-10) (§6).
-6. Wrecks kept, as the ST's (§4).
+6. ~~Wrecks~~: kept, as the ST's; the hazards a track always has stay, those that come and go go (D42, Tom,
+   2026-11-10) (§4).
 7. ~~What a race puts in the table~~: its best lap only, one entry a race; a name can be there more than once, from
    different races (D41, Tom, 2026-11-10) (§6).
 

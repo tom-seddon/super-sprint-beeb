@@ -615,3 +615,16 @@ at a time. I think that's ok.)"
 So: a race enters one time, its best lap, on the way out, if it's faster than the track's 10th; it goes in in order,
 the slower ones moved down. A name can be there more than once, from different races. The best entry's lap stays the
 track's ghost.
+
+### D42. Time attack's hazards: wrecks and gates kept: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §4). Proposed: wrecks kept, as the ST's. Tom, 2026-11-10: "Yes,
+keep the wrecks. So I think the hazards are then wrecks and gates (both of which I think are always present when the
+track has them?), and not sand, oil, tornado and the barriers, (which are optional hazards and might not be
+present)."
+Checked against `docs/st-logic.md` §3 ("Hazards, pickups and their timing", "Wrecks and the helicopter"): it's so.
+The gates are a track's (tracks 3, 5 and 8), in every race. Wrecks can happen on every track (leaving the area,
+squeezed between walls, a wall head-on at top speed), and on tracks 2 and 6 off a bridge edge or a jump. The rest
+come and go: water, oil and the yellow patch (the "sand") none in races 0 to 5, then `random(race / 6 + 1)`, at most
+3; cones from race 16, half the time; the pop-up barriers every third race; the tornado after race 3, half the time.
+So: time attack keeps the gates (D36) and wrecks, the helicopter and its wait (40 to 100 frames) as the ST's, the
+lap's clock running; the patches, cones, barriers, tornado, wrenches and bonus go.
