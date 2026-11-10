@@ -6,7 +6,7 @@ set -e
 cd "$(dirname "$0")/.."
 HATARI=${HATARI:-/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari}   # (elsewhere: HATARI=...)
 mkdir -p build/stdisk
-cp -R orig/st/ build/stdisk/
+cp -R orig/st/. build/stdisk/   # orig/st/. not orig/st/: GNU cp copies the directory itself for the latter
 limit=$1; shift
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy exec perl -e 'alarm shift; exec @ARGV' "$limit" "$HATARI" \
     --confirm-quit no --alert-level fatal --sound off --fast-forward on --statusbar off \
