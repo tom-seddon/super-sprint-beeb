@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43; the maps on the menu: D44; the turnaround: D45). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -165,11 +165,39 @@ playing it though."
   (proved with the `beeb-identical-build` skill), and the whole suite still passes on it.
 - **Each track a file**, loaded on demand as now: the time attack variant's, with the pickups' and hazards' objects left
   out, so smaller.
-- **The menu (D40)**: every track's best at once, so a player picks by who they'd like to beat as well as by the
-  track. Text in the MOS's font, drawn by `font_char` (LowFree, resident) as the options screen names keys (the HUD's
-  font has only 15 glyphs, its digits and a few more), a row a track: its number, best time, name and upgrades, 29 of
-  the row's 40 characters with a 10-letter name. Then the upgrades (5 points over three, forked from
-  `upgrades.6502`), then the race. After Escape, a name for a new record, then the save, then the menu.
+- **The menu (D40, D44)**: every track's best at once, so a player picks by who they'd like to beat as well as by the
+  track, and each track's little map from the select screen, to say which is which. Tom, 2026-11-10: "I think I'd
+  like to have the screen use the little mini track maps from the original track select screen. I think the new
+  screen will need to work quite differently from the original, so that everything will fit (I was thinking a
+  scrolling list perhaps?) - but I think the mini track maps are essential to remind the player which track is
+  which."
+  - The maps are 75 to 80 pixels by 47 to 50 lines each (MEASURED, cut from `build/gen/select.bin` by
+    `select.6502`'s `RectCol`/`RectTop`/`RectBottom`), already in the game's colours, the select screen's picture
+    2,440 bytes packed with its text (MEASURED, `build/gen/select.zx02`). Text in the MOS's font, drawn by
+    `font_char` (LowFree, resident) as the options screen names keys (the HUD's font has only 15 glyphs).
+  - Two layouts mocked up (`build/ta/menu_a.png`, `build/ta/menu_b.png`, the BBC's maps and the MOS's font, made-up
+    entries), §7 question 8:
+    - **A, all eight at once**: two columns of four, a map and 10 characters beside it (number and time, name,
+      upgrades), rows of 52 lines filling the 26 rows. No scrolling, and the screen can be one packed picture, the
+      maps in place, with the text drawn over; tight: no title, and the maps all but touch.
+    - **B, a scrolling list**: a row a track, the map then the text (track and time, name, the upgrades in words),
+      four rows shown, the list moved a row at a time; each map packed on its own (about 300 bytes, ESTIMATED) and
+      drawn as its row comes into view, on the screen not shown, then flipped. Room for a title and words, but only
+      half the tracks' bests at once.
+  - Then the upgrades (5 points over three, forked from `upgrades.6502`), then the race. After Escape, a name for a
+    new record, then the save, then the menu.
+- **The turnaround (D45)**: from Escape to the next race as short as it can be, but for the loads. Tom, 2026-11-10:
+  "the turnaround time for playing should be as short as possible - I'm not thinking too much about the
+  load+decompress time (that will just have to take as long as it takes), but I was imagining not having the
+  transition effect, or the prepare to race screen, and so on." So:
+  - No wipe between screens (D25's), no prepare to race, no winner's circle; each screen drawn on the screen not
+    shown and flipped.
+  - Escape, then the name only if the race's best made the table (D41), the save only if something changed (one
+    table, at most one ghost), then the menu.
+  - Proposed: the menu comes back on the track just raced, and the upgrades as last picked, so another go is two
+    presses; or the upgrades on the menu's screen itself, one screen fewer.
+  - Proposed: the same track again loads nothing, if the front end's files keep out of the track's slots and the
+    ghost's buffers (to be measured at step 6: where the menu's files go).
 - **A track's list (D40)**: a second screen, from the menu, a track's 10 entries, a row each as the menu's. Its code
   in its own file, about 200 bytes (ESTIMATED), as the name's.
 - **The name (D39)**: up to 10 characters typed on the keyboard. The options screen already finds any key held from a
@@ -208,6 +236,8 @@ playing it though."
    2026-11-10) (§4).
 7. ~~What a race puts in the table~~: its best lap only, one entry a race; a name can be there more than once, from
    different races (D41, Tom, 2026-11-10) (§6).
+8. The menu's layout (§6): A, all eight tracks at once, or B, a scrolling list (`build/ta/menu_a.png`,
+   `build/ta/menu_b.png`).
 
 Each becomes a row in `docs/decisions.md`, Proposed until Tom agrees.
 

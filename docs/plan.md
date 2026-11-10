@@ -450,6 +450,8 @@ adds the logic.
 | D41 | What a time attack race enters | Decided (Tom, 2026-11-10): its best lap only, one entry a race; names may repeat |
 | D42 | Time attack's hazards | Decided (Tom, 2026-11-10): the gates and wrecks, which a track always has, kept; patches, cones, barriers and tornado gone |
 | D43 | Time attack's ghost at the line | Decided (Tom, 2026-11-10): one that finishes first waits, still, at its lap's first frame until the player crosses |
+| D44 | Time attack's menu maps | Decided (Tom, 2026-11-10): the select screen's mini maps beside each track's best; the layout open |
+| D45 | Time attack's turnaround | Decided (Tom, 2026-11-10): as short as it can be but for the loads: no wipe, no prepare to race |
 
 ## Risks
 

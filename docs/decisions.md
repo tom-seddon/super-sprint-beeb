@@ -638,3 +638,21 @@ So: when the ghost's lap ends first, it's drawn at its lap's first frame, still,
 then plays from there. It jumps from its last frame to its first (a few pixels across the line on a flying lap; to
 the grid if the best lap was lap 1). A player who crosses first starts the ghost's lap again from wherever it had got
 to (D38). Every lap, the ghost and the player start together.
+
+### D44. Time attack's menu shows the select screen's maps: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Tom, 2026-11-10: "for selecting the map in the front end, I
+think I'd like to have the screen use the little mini track maps from the original track select screen. I think the
+new screen will need to work quite differently from the original, so that everything will fit (I was thinking a
+scrolling list perhaps?) - but I think the mini track maps are essential to remind the player which track is which."
+So: the menu shows each track's map from the select screen (75 to 80 pixels by 47 to 50 lines, MEASURED, from
+`build/gen/select.bin`) beside its best (D40). Its layout, all eight at once or a scrolling list, is the brief's §7
+question 8, mocked up in `build/ta/menu_a.png` and `build/ta/menu_b.png`.
+
+### D45. Time attack's turnaround as short as it can be: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Tom, 2026-11-10: "the turnaround time for playing should be
+as short as possible - I'm not thinking too much about the load+decompress time (that will just have to take as long
+as it takes), but I was imagining not having the transition effect, or the prepare to race screen, and so on."
+So: no wipe between screens (D25's), no prepare to race and no winner's circle; each screen drawn on the screen not
+shown and flipped. After Escape, the name only if the race's best made the table, the save only if something changed,
+then the menu. Proposed with it, not yet asked: the menu back on the track just raced and the upgrades as last picked;
+the same track again loading nothing, if the front end's files keep out of the track's slots.
