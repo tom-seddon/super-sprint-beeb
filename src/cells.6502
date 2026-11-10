@@ -17,8 +17,6 @@ SECTION LogicVars
 .RcConeHit                              ; G_01EBA8: each cone's state, 2 once hit
     SKIP 4
 IF GenTimeAttack                        ; time attack's lap timing (ta_lap), car 0's:
-.TaLap                                  ; the lap being driven, 1 to 99 (race_setup's 1)
-    SKIP 1
 .TaStartLo                              ; the frame it started, RcFrame's (0 for lap 1: the ST's lap times)
     SKIP 1
 .TaStartHi
@@ -432,10 +430,9 @@ class1s = {water, oil, yellow, wrench, bonus, cone, cone, cone, cone}
 IF GenTimeAttack
 \\ Time attack: a lap ended. Its time, the frames since it started (lap 1 from frame 0, as the ST's lap
 \\ times: game.6502's circle_sums), the last lap's; the race's best if under it (or the first); the next lap
-\\ starts this frame; the lap number on, to 99.
+\\ starts this frame.
 \\
-\\ Inputs: RcFrame, TaStart, TaBest, TaLap. Outputs: TaLast, TaBest, TaStart, TaLap. A corrupted; X, Y
-\\ preserved.
+\\ Inputs: RcFrame, TaStart, TaBest. Outputs: TaLast, TaBest, TaStart. A corrupted; X, Y preserved.
 
 .ta_lap
 {
@@ -447,13 +444,10 @@ IF GenTimeAttack
     LDA TaBestLo:ORA TaBestHi:BEQ best  ; (none yet)
     LDA TaLastLo:CMP TaBestLo           ; under the best: the new best (the same isn't)
     LDA TaLastHi:SBC TaBestHi
-    BCS lapped
+    BCS done
 .best
     LDA TaLastLo:STA TaBestLo
     LDA TaLastHi:STA TaBestHi
-.lapped
-    LDA TaLap:CMP #99:BCS done
-    INC TaLap
 .done
     RTS
 }

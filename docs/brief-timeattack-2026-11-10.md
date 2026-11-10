@@ -326,16 +326,18 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
 3. **The lap timer and HUD.** In pieces, each tried:
    - **3a, the timing** (done 2026-11-10): `cells.6502`'s `ta_lap` at the finish, car 0's: the lap's time in frames
      (`TaLast`; lap 1 from frame 0, as the ST's lap times, `game.6502`'s `circle_sums`, the others from the lap
-     before), the race's best (`TaBest`, strictly under), the lap number on to 99 (`TaLap`); 7 bytes of LogicVars
-     (5 left), the fourth bank 95 to 19 bytes free (so the dead code time attack leaves out goes next but one).
+     before), the race's best (`TaBest`, strictly under; 0 none yet); 6 bytes of LogicVars (6 left), the fourth bank
+     95 to 29 bytes free (so the dead code time attack leaves out goes next but one). The lap number went (Tom,
+     2026-11-10: "If the player is doing endless laps, it's probably redundant"), with nothing else needing it.
      MEASURED in jsbeeb (a script: the car put right of the line on track 1, checkpoints 1-3 passed, at three
      frames): laps of 92, 248, 143 frames and of 233, 106, 205, each its end frame less the last, the best 92, then
-     233 to 106 kept; the game's tracks' builds byte for byte.
-   - **3b, the HUD** (proposed, `build/ta/hud_mock.png`): `L3` the lap (white), the lap's time running (white), `BEST`
-     and the race's best (yellow), the track's `T1` as now; times as seconds and hundredths, `12.40` (D47), a frame
-     2 hundredths, to 99.98; as a lap ends its time held 2 s (yellow if a best) while the next counts on unseen. Four
-     glyphs more for the font (`.`, `B`, `E`, `S`, 32 bytes). Up to 3 characters change between a screen's frames,
-     within the HUD's 4 a frame.
+     233 to 106 kept (again without the lap number: the same); the game's tracks' builds byte for byte.
+   - **3b, the HUD** (proposed, `build/ta/hud_mock2.png`): the lap's time running (white), `BEST` and the race's best
+     (yellow; ` 0.00` before there is one: Tom, "I think it'd be clearer if that were actually shown"), the track's
+     `T1` as now; no lap number (Tom, above); times as seconds and hundredths, `12.40` (D47), a frame 2 hundredths,
+     to 99.98; as a lap ends its time held 2 s (yellow if a best) while the next counts on unseen. Four glyphs more
+     for the font (`.`, `B`, `E`, `S`, 32 bytes). Up to 3 characters change between a screen's frames, within the
+     HUD's 4 a frame.
 4. **The ghost.** Recorded and played back in the cars' bank. Its check: a scripted lap driven, then replayed, every
    frame's ghost record the same as the player's was (a headless oracle on `tools/jsbeeb.mjs`, in the suite).
 5. **Saving.** The table and the ghosts; a check as `tools/save_check.mjs`'s (saved, booted back, spoilt files
