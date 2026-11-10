@@ -15,6 +15,12 @@ problematic. I think if a branch has been created for the overall piece of work,
 permission for each checkin to that branch. It's still definitely worth stopping and getting agreement when it comes
 to merging into `main`."
 
+## README.md
+
+Tom writes `README.md`: don't modify it. Say what you think it needs, and he'll change it. Tom, 2026-11-10: "I would
+like to word README.md in the repo myself, as it's primarily human-facing. Please refrain from modifying it in
+future, and I will update it myself." (The disc's README is another file: `disc/README.txt`, also his text.)
+
 ## Upstream
 
 `docs/upstream-notes.md` collects faults and gaps that may be worth raising with the kit, jsbeeb, Baron or Rich's
