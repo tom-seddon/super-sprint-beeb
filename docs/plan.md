@@ -350,6 +350,9 @@ adds the logic.
   from the cache (the ST's files 4 min 11 s, all 120 the Mac's; the discs 2 min 9 s), and Hatari's build 2 min 11 s
   when it isn't. `super-sprint-20261110-1323-3502c.zip`, 216,135 bytes. A branch's first push that also brings the
   workflow to GitHub started no run; deleting `ci-build` there and pushing it again did.
+  Then (Tom: "Please update the CI setup to make a release. Then it should be possible to download the results and
+  check them that way"): each build a release named as its zip, the notes the commit and the SHA-256s, in place of
+  the Actions artifact (which needs a sign-in to download).
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.

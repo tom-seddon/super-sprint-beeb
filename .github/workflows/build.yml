@@ -1,7 +1,10 @@
 # The game's discs, built on a push to ci-build (Tom, 2026-11-10: "the new CI branch can be fast-forwarded
 # occasionally to generate a new build. Let's not have a build on every push to `main`"), or by hand from the
 # Actions tab. The result is one zip, super-sprint-YYYYMMDD-HHMM-xxxxx.zip: the commit's time in UTC and the 5 hex
-# digits the options screen shows, holding game.ssd and game.adl named the same way.
+# digits the options screen shows, holding game.ssd and game.adl named the same way. It's published as a release of
+# that name (Tom, 2026-11-10: "Please update the CI setup to make a release. Then it should be possible to download
+# the results and check them that way"), its notes the commit and the files' SHA-256; a second run of the same commit
+# replaces the zip.
 #
 # The build reads files made by running the ST original in Hatari (docs/st-traces.md), made here: Hatari 2.6.1
 # built from source, as Ubuntu's 2.4.1 can't make them (docs/brief-ci-hatari-2026-11-10.md), and checked against
@@ -15,7 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write                       # (the release and its tag)
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -105,13 +108,28 @@ jobs:
           cp build/game.ssd dist/$name.ssd
           cp build/game.adl dist/$name.adl
           (cd dist && zip -X $name.zip $name.ssd $name.adl && sha256sum $name.ssd $name.adl $name.zip)
-          echo "zip=dist/$name.zip" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
           df -h . | tail -1
           du -sh build .venv "$RUNNER_TEMP/hatari"
 
-      - name: Upload the zip
-        uses: actions/upload-artifact@v7
-        with:
-          path: ${{ steps.zip.outputs.zip }}
-          archive: false
-          if-no-files-found: error
+      - name: Release the zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NAME: ${{ steps.zip.outputs.name }}
+        run: |
+          {
+            echo "Built from $(git log -1 --format='%h, %s')."
+            echo
+            echo 'SHA-256:'
+            echo
+            echo '```'
+            (cd dist && sha256sum "$NAME.ssd" "$NAME.adl" "$NAME.zip")
+            echo '```'
+          } > dist/notes.md
+          if gh release view "$NAME" > /dev/null 2>&1; then
+            gh release upload "$NAME" "dist/$NAME.zip" --clobber
+            gh release edit "$NAME" --notes-file dist/notes.md
+          else
+            gh release create "$NAME" "dist/$NAME.zip" --target "$GITHUB_SHA" --title "$NAME" --notes-file dist/notes.md
+          fi
