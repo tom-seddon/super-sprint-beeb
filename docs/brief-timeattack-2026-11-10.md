@@ -186,6 +186,13 @@ playing it though."
       right-hand column's map, no gap (`build/ta/menu_a32_w.png`, every name `WWWWWWWWWW`). Nine characters leave
       a character's gap (`build/ta/menu_a32_9.png`); the name under the map, the time and upgrades beside it, fits
       10 but leaves 2 lines between rows and no line of keys (`build/ta/menu_a32_under.png`).
+      In the ST's small font instead (`G_01D43C`: 6 x 6, 6 pixels a character, drawn at any pixel by `front.6502`'s
+      `front_glyph`, in the objects' bank through the front end, its 39 glyphs `SmallGlyphs`, 234 bytes), 10
+      characters are 60 pixels and fit with 14 to spare, with room for "TRACK 1" (`build/ta/menu_a32_small.png`;
+      the font, `build/ta/small_font.png`). Its glyphs (COUNTED, the ST's `G_01D118` and `G_01D43C`): 0-9, A-Z,
+      space, `.` and `!` (the BBC's 39), and `-` and `'` (the ST's, 12 bytes more); no lower case and no colon, so a
+      time is seconds, `12.40`, as the ST's winner's circle shows them (to 99.98, 4,999 fields, ESTIMATED as enough
+      for a table's lap).
     - **B, a scrolling list**: a row a track, the map then the text (track and time, name, the upgrades in words),
       five rows shown in 32 rows (four in 26), the list moved a row at a time; each map packed on its own (about 300
       bytes, ESTIMATED) and drawn as its row comes into view, on the screen not shown, then flipped. Room for words,
