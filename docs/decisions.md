@@ -603,7 +603,7 @@ track. Ten entries a track are 1,040 bytes (COUNTED, 13 an entry, D39), against 
 So: one table, one file, 10 entries for each of the 8 tracks, resident from the boot. A column a field, indexed by
 track * 10 + place, each track's 10 best first: the menu shows every track's best (places 0, 10, 20 and on), and a
 second screen a track's 10 (about 200 bytes, ESTIMATED, in its own file). The best entry's lap is the track's ghost.
-What a race puts in the table is D41.
+What a race puts in the table is D41. The table moved from Shared to a sideways bank with D46.
 
 ### D41. What a time attack race enters: Decided (2026-11-10)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Laps are endless, so if every lap could enter, one good race
@@ -646,7 +646,8 @@ new screen will need to work quite differently from the original, so that everyt
 scrolling list perhaps?) - but I think the mini track maps are essential to remind the player which track is which."
 So: the menu shows each track's map from the select screen (75 to 80 pixels by 47 to 50 lines, MEASURED, from
 `build/gen/select.bin`) beside its best (D40). Its layout, all eight at once or a scrolling list, is the brief's §7
-question 8, mocked up in `build/ta/menu_a.png` and `build/ta/menu_b.png`.
+question 8, mocked up in `build/ta/menu_a.png` and `build/ta/menu_b.png` (26 rows) and `build/ta/menu_a32.png` and
+`build/ta/menu_b32.png` (32 rows, D46).
 
 ### D45. Time attack's turnaround as short as it can be: Decided (2026-11-10)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Tom, 2026-11-10: "the turnaround time for playing should be
@@ -656,3 +657,17 @@ So: no wipe between screens (D25's), no prepare to race and no winner's circle; 
 shown and flipped. After Escape, the name only if the race's best made the table, the save only if something changed,
 then the menu. Proposed with it, not yet asked: the menu back on the track just raced and the upgrades as last picked;
 the same track again loading nothing, if the front end's files keep out of the track's slots.
+
+### D46. Time attack's front end in 32 rows, the race in 26: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Departs from D25 (one 26-row layout for the whole game, set up
+once, for the wipe) in the time attack variant only; it has no wipe (D45). Tom, 2026-11-10: "What about changing the
+26 row setup in the front end? Would it be possible to show a full 32 row (256 scanline) Mode 1?" Then: "Then switch
+to the 26 row setup in game."
+A 32-row screen is 20,480 bytes, `&3000`-`&7FFF`, so its extra rows are the screen's `&3000`-`&3EFF`: ScreenVars (104
+bytes) and Shared (read-only, both screens the same, 3,696 bytes at `&3070`). Both screens are 32 rows, as the front
+end draws on the one not shown and flips (D45), so both copies are lost there.
+So: the front end in 32 rows, the race in the race's 26; the CRTC's R6, R7 and start changed around each race with the
+palette black, the front end flipping at the vsync (the race's timed flip, D17, is for 26 rows). The table (D40) moves
+from Shared to a sideways bank (the objects' bank, which loses the tornado and pickups in time attack); Shared is put
+back in both screens before each race from a packed copy, about 1,500 bytes (ESTIMATED); a front end tune carries its
+own data. About 60 bytes of code for the change (ESTIMATED).

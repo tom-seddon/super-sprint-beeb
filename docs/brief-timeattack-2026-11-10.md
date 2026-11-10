@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43; the maps on the menu: D44; the turnaround: D45). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43; the maps on the menu: D44; the turnaround: D45; the front end's 32 rows: D46). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -175,17 +175,40 @@ playing it though."
     `select.6502`'s `RectCol`/`RectTop`/`RectBottom`), already in the game's colours, the select screen's picture
     2,440 bytes packed with its text (MEASURED, `build/gen/select.zx02`). Text in the MOS's font, drawn by
     `font_char` (LowFree, resident) as the options screen names keys (the HUD's font has only 15 glyphs).
-  - Two layouts mocked up (`build/ta/menu_a.png`, `build/ta/menu_b.png`, the BBC's maps and the MOS's font, made-up
-    entries), §7 question 8:
+  - Two layouts mocked up, in 32 rows (D46: `build/ta/menu_a32.png`, `build/ta/menu_b32.png`) and first in the
+    race's 26 (`build/ta/menu_a.png`, `build/ta/menu_b.png`), the BBC's maps and the MOS's font, made-up entries;
+    §7 question 8:
     - **A, all eight at once**: two columns of four, a map and 10 characters beside it (number and time, name,
-      upgrades), rows of 52 lines filling the 26 rows. No scrolling, and the screen can be one packed picture, the
-      maps in place, with the text drawn over; tight: no title, and the maps all but touch.
+      upgrades). No scrolling, and the screen can be one packed picture, the maps in place, with the text drawn
+      over. In 32 rows, rows of 56 lines with a title and a line of keys; in 26, rows of 52, no title, the maps all
+      but touching.
     - **B, a scrolling list**: a row a track, the map then the text (track and time, name, the upgrades in words),
-      four rows shown, the list moved a row at a time; each map packed on its own (about 300 bytes, ESTIMATED) and
-      drawn as its row comes into view, on the screen not shown, then flipped. Room for a title and words, but only
-      half the tracks' bests at once.
+      five rows shown in 32 rows (four in 26), the list moved a row at a time; each map packed on its own (about 300
+      bytes, ESTIMATED) and drawn as its row comes into view, on the screen not shown, then flipped. Room for words,
+      but not every track's best at once.
   - Then the upgrades (5 points over three, forked from `upgrades.6502`), then the race. After Escape, a name for a
     new record, then the save, then the menu.
+- **32 rows in the front end, 26 in the race (D46)**. Tom, 2026-11-10: "What about changing the 26 row setup in the
+  front end? Would it be possible to show a full 32 row (256 scanline) Mode 1?" ... "Then switch to the 26 row setup
+  in game." D25 has one layout for the whole game, set up once, for its wipe; time attack has no wipe (D45), and
+  changes the layout around each race, during the loads.
+  - **Room**: a 32-row screen is 20,480 bytes, `&3000`-`&7FFF`; its extra 6 rows are the screen's `&3000`-`&3EFF`,
+    which holds ScreenVars (each screen's own variables, 104 bytes) and Shared (read-only, the same in both screens:
+    the sound's effects, the tunes' data, the wall probes, the gates' tables, the drone path; `&3070`-`&3EFF`, 3,696
+    bytes). Drawn on the screen not shown and flipped (D45), both screens are 32 rows, so both copies are lost in the
+    front end:
+    - The table (D40) goes in a sideways bank, not Shared: the objects' bank, which loses the tornado (3,100) and the
+      pickups (701) in time attack. The front end's code reads it there; the save copies it to main RAM first, as
+      the ghost.
+    - Shared is put back in both screens before each race, from a packed copy in a bank (or in the track's file),
+      unpacked twice. Time attack's is smaller (no drone path, 996; no table): about 2,500 bytes, perhaps 1,500
+      packed (ESTIMATED), and much quicker than the load.
+    - A front end tune (if any) carries its own data, not Shared's.
+  - **The CRTC**: R6 (rows shown) 32 or 26, R7 (the vsync's row) and R12/R13 (the start, `&3000` or `&3F00`), set with
+    the palette black, so a monitor's resync isn't seen. The race's flip into the blank (D17's T1 and T2) is timed
+    for 26 rows; the front end flips at the vsync, drawing nothing against the beam. About 60 bytes (ESTIMATED).
+  - Or (not proposed): one screen of 32 rows, drawn with the palette black and then shown, the other screen keeping
+    Shared; the IRQ's sound then has to page Shared in itself while the front end draws.
 - **The turnaround (D45)**: from Escape to the next race as short as it can be, but for the loads. Tom, 2026-11-10:
   "the turnaround time for playing should be as short as possible - I'm not thinking too much about the
   load+decompress time (that will just have to take as long as it takes), but I was imagining not having the
@@ -207,9 +230,9 @@ playing it though."
   MOS's font has them all) is for later.
 - **Saved**:
   - One table for all 8 tracks (D40), 10 entries a track, 13 bytes an entry (the time 2, the name 10, the upgrades 1:
-    three levels that sum to 5 or less are 56 combinations): 80 entries, 1,040 bytes (COUNTED). Resident, in Shared,
-    as `HiFile` is now, which time attack leaves about 1,550 free (ESTIMATED: the 267 free, the drone path's 996 and
-    `HiFile`'s 295), so the menu and the lists read it without a load; loaded once at the boot and saved like `SCORES`
+    three levels that sum to 5 or less are 56 combinations): 80 entries, 1,040 bytes (COUNTED). Resident, in a
+    sideways bank (D46: first planned in Shared, as `HiFile` is now, but the front end's 32 rows overwrite Shared), so
+    the menu and the lists read it without a load; loaded once at the boot and saved like `SCORES`
     (`save.6502`: one file, only when changed, a failed save said once and ignored, D23).
   - Laid out a column a field (the times' low bytes, their high bytes, the upgrades, then the names), indexed by
     track * 10 + place, each track's 10 kept in order, best first: the menu reads places 0, 10, 20 and on, a track's
@@ -236,8 +259,8 @@ playing it though."
    2026-11-10) (§4).
 7. ~~What a race puts in the table~~: its best lap only, one entry a race; a name can be there more than once, from
    different races (D41, Tom, 2026-11-10) (§6).
-8. The menu's layout (§6): A, all eight tracks at once, or B, a scrolling list (`build/ta/menu_a.png`,
-   `build/ta/menu_b.png`).
+8. The menu's layout (§6): A, all eight tracks at once, or B, a scrolling list (in 32 rows, D46:
+   `build/ta/menu_a32.png`, `build/ta/menu_b32.png`).
 
 Each becomes a row in `docs/decisions.md`, Proposed until Tom agrees.
 
