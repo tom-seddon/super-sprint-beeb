@@ -1,6 +1,10 @@
 # Super Sprint for the BBC Master
 
-Super Sprint, from the Atari ST, for the BBC Master 128 and the Master Compact.
+A BBC Master port of Atari ST Super Sprint.
+
+Code by Claude Code, with occasional direction from Tom Seddon.
+
+# Instructions (as-was from Claude)
 
 ## Building
 
@@ -30,3 +34,9 @@ from those files made on a machine where it does, packed and copied: `docs/st-tr
 of the ST's files is, what makes it and what reads it.
 
 The checks (`tools/suite.sh` and the rest, `CLAUDE.md` "Oracles") also need Node 22.
+
+## For AI agents
+
+Start with `CLAUDE.md`: how the project builds, how it's checked, and where everything else is. Where the port
+stands is in `docs/plan.md`, the decisions in `docs/decisions.md`, the work done in `JOURNAL.md`. Please don't edit
+this README: Tom writes it.
