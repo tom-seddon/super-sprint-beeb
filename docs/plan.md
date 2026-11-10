@@ -357,6 +357,9 @@ adds the logic.
   byte for byte as cfe192a's built here (`--depth 1`, the two submodules, `-j2`), the zip as its notes say.
   Tom, 2026-11-10: "Build tested on my Master, and looks good. I've deleted it for now, but will create another one
   when the game is ready for proper release."
+  Still to do (Tom, 2026-11-10: "Putting the disk README into the zip should be part of the GitHub Actions item. Please
+  move it there and leave the GitHub Actions item open."): the disc's README in the zip too, as `tools/disc_readme.py`
+  makes it (Tom, earlier: "That same file should also be added to the zip somehow").
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
