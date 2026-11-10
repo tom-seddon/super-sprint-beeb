@@ -17,11 +17,14 @@ SPRINTA's at the boot, prepare's file is parked in SPRINTB's). The boot copies t
 Then the boot's files, SPRINT and the banks', are ZX02 packed too, and say so by their catalogue's load address, which
 for a raw one is LoadAddr (&3000): a bank's packed file loads at PackedAt and !BOOT unpacks it into its bank; SPRINT's
 loads where it unpacks into itself at &3000, in place, its stream far enough ahead of the output (dfs.in_place_delta).
+
+And README: disc/README.txt with a line linking to README.md at the build's commit (tools/disc_readme.py), last.
 """
 import hashlib, json, os, sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 import track_slots as T
+import disc_readme
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'reference', 'beeb-port-kit', 'template', 'tools'))
 import dfs                                      # the kit's .ssd reader and writer, and its compress (used in place)
 
@@ -108,9 +111,10 @@ def main(d, zx02, out, patch=None):
         files[f'TRACK{n + 1}'] = dfs.Entry(f'TRACK{n + 1}', data, 0xFF0000 | FileAddr, 0xFF0000, '$', False)
         print(f'TRACK{n + 1}: {len(data):,} bytes ({sum(r for _, r, _ in sizes):,} unpacked): '
               + ', '.join(f'{k} {r}/{p}' for k, r, p in sizes))
+    files['README'] = dfs.Entry('README', disc_readme.readme(), 0, 0, '$', False)
     # the files read between races first, next to the catalogue, as DFS goes back to it for each: those read together as a race ends, then the tracks
     first = ['TRACKP', 'TRACKU', 'TRACKC'] + [f'TRACK{n + 1}' for n in range(8)]
-    disc = dfs.build_image(files, layout=first + [f for f in img.files if f not in first], title=img.title, cycle=img.cycle, opt=img.opt)
+    disc = dfs.build_image(files, layout=first + [f for f in img.files if f not in first] + ['README'], title=img.title, cycle=img.cycle, opt=img.opt)
     open(out, 'wb').write(disc)
     used = sum((len(f.data) + 255) // 256 for f in files.values())
     print(f'{out}: {len(files)} files of 31, {used} sectors of {dfs.TOTAL_SECTORS} '
