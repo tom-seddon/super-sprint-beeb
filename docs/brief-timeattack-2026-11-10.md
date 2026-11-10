@@ -176,7 +176,7 @@ playing it though."
     2,440 bytes packed with its text (MEASURED, `build/gen/select.zx02`). Text in the ST's small font (D47,
     below; first planned in the MOS's font, through `font_char`; the HUD's font has only 15 glyphs).
   - **Decided (D47)**: layout A in 32 rows, the text in the small font, the SUPER SPRINT logo across the top in its
-    red and yellow, no title or line of keys (`build/ta/menu_a32_logo.png`). Tom, 2026-11-10: "Yes, mockup looks
+    red and yellow, no title or line of keys (`docs/img/timeattack-menu.png`, a copy of `build/ta/menu_a32_logo.png`). Tom, 2026-11-10: "Yes, mockup looks
     good. And I think the logo should be red+yellow." The working below.
   - Two layouts mocked up, in 32 rows (D46: `build/ta/menu_a32.png`, `build/ta/menu_b32.png`) and first in the
     race's 26 (`build/ta/menu_a.png`, `build/ta/menu_b.png`), the BBC's maps and the MOS's font, made-up entries;
@@ -279,7 +279,7 @@ playing it though."
 7. ~~What a race puts in the table~~: its best lap only, one entry a race; a name can be there more than once, from
    different races (D41, Tom, 2026-11-10) (§6).
 8. ~~The menu's layout~~: A, all eight tracks at once, in 32 rows, in the ST's small font, the logo across the top in
-   red and yellow (D47, Tom, 2026-11-10) (§6, `build/ta/menu_a32_logo.png`).
+   red and yellow (D47, Tom, 2026-11-10) (§6, `docs/img/timeattack-menu.png`).
 
 Each becomes a row in `docs/decisions.md`, Proposed until Tom agrees.
 

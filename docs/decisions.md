@@ -683,7 +683,7 @@ space, `.` and `!` (the BBC's 39, 234 bytes), and `-` and `'` (the ST's, 12 byte
 the credits screen's SUPER SPRINT logo: 34 lines (MEASURED, `build/gen/credits.bin` lines 73-106), in place of a title
 and a line of keys, the rows 55 lines, 254 of the 256 used. Tom, 2026-11-10: "Yes, mockup looks good. And I think the
 logo should be red+yellow."
-So: layout A in 32 rows (D46), as `build/ta/menu_a32_logo.png`: the logo across the top, then four rows of two tracks,
+So: layout A in 32 rows (D46), as `docs/img/timeattack-menu.png`: the logo across the top, then four rows of two tracks,
 each a map and four lines of the small font (the track, the best time, the name, the upgrades). Times in seconds,
 `12.40`, as the ST's winner's circle shows them, for want of a colon. Colour 1 red over the logo and green below it,
 its 4 palette entries written at the logo's last line, timed from the vsync (about 40 bytes, ESTIMATED). Names, on the
