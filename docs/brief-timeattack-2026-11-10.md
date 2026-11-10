@@ -33,19 +33,21 @@ Today's room is tight (`docs/memory-map.md`, MEASURED from the play build; the l
 `docs/plan.md`'s Phase 5 figures): most regions have under 300 bytes free, the cars' bank 370 on track 6 (index 5),
 the objects' bank 34 on track 5 (index 4). Time attack frees room by what it leaves out.
 
-**The cars' bank: two car sets, not four (the ghost's room).** The bank holds four sets of the car's 16 facings, each
+**The cars' bank: one car set, not four (the ghost's room).** The bank holds four sets of the car's 16 facings, each
 pre-shifted to 4 positions: cars 0-2's own and the drone-driven one, 10,275 bytes (`CarDataSize`,
-`build/gen/cars.6502`, MEASURED; D20). Time attack needs two: the player's (car 0's) and the drone-driven set, drawn
-through `DataBlack` for the ghost, the black car of a race (D37). (The first look had the ghost drawn from the player's
-own frames through another table, so one set: but a table recolours only a frame's value-1 pixels, and the white car's
-body is stored as white, value 3, `tools/gendata.py`, so it can't be made black that way.)
+`build/gen/cars.6502`, MEASURED; D20). A data table recolours only a frame's value-1 pixels, the body (`tools/gendata.py`:
+0 black, 1 the body, 3 white). The white car's body is stored as white, value 3, so its frames can't be drawn black; the
+green car's is value 1. So time attack keeps the green car's set alone, and draws the player through `DataWhite` and
+the ghost through `DataBlack` (D37), tables that are in main RAM already. Over the 16 facings (COUNTED,
+`build/ta/car_colours.png` from `car_values`): the player 11 pixels from today's white car, the ghost 95 from today's
+black car (car 3, the drone-driven set through `DataBlack`), most of them white highlights the black car hasn't.
 
 | The cars' bank, time attack | Bytes |
 |---|---|
 | Code and tables: 14,172 used on track 1 (MEASURED), less the sets (10,275) and track 1's priority cells (2,105) | 1,792 (COUNTED) |
-| Two car sets: half of 10,275 | ~5,140 (ESTIMATED) |
+| One car set, the green car's: a quarter of 10,275 | ~2,570 (ESTIMATED) |
 | The largest track's priority cells (`PrioSlot`, 3,947 on index 5, `build/game_slots.json`, MEASURED), which every track's layout leaves room for | 3,947 |
-| **Free on every track** | **~5,500 (ESTIMATED)** |
+| **Free on every track** | **~8,070 (ESTIMATED)** |
 
 The ghost's buffers go above the largest slot, at a fixed address, so a track's load never touches them.
 
@@ -83,19 +85,19 @@ lap worth keeping; a longer one is timed but leaves no ghost.
   changes by at most 1 (a turn waits at least 2 frames; a spin turns on odd frames), so a frame codes as a byte of
   dx and dy, plus a byte when the facing, the flags or the record's kind changes, or for a jump (a wrecked car put back).
 - Most frames are the one byte, so a lap is likely nearer 1.2 bytes a frame (ESTIMATED; measured at step 4). Two
-  buffers of 2,700 bytes, the current lap and the best, fit the 5,500 (ESTIMATED): 30 s at 1.8 bytes a frame, and
-  27 s even if every frame took 2. A lap that fills its buffer is timed but leaves no ghost. A new best is the two
-  buffers' pointers swapped, no copy.
+  buffers of 3,000 bytes, the current lap and the best, hold 30 s even if every frame took 2, and leave about 2,070
+  of the 8,070 (ESTIMATED) for the ghost's code. A lap that fills its buffer is timed but leaves no ghost. A new best
+  is the two buffers' pointers swapped, no copy.
 - The lap's upgrades (§4) are kept with it.
 
 **Where it runs.** In the cars' bank beside `plot_car`, which is paged in while the cars are drawn: the player's
 record is read and coded into the current buffer, and the ghost's next record decoded and put in the draw order (by
 y, elevated after, as the logic orders the cars). The ghost's on-top bit puts it under bridges as a car is.
 
-**How it looks (D37).** The black car, solid: the drone-driven set through `DataBlack`, as car 3 in a race. No
-flicker. Tom, 2026-11-10: "I think use the black car. I'm not very keen on the idea of flicker. Again, this may have to
-change once I see it running." If the second set's room is wanted back, a 256-byte table that draws the player's
-frames' white as black would do instead, but the car's black outline then merges with its body.
+**How it looks (D37).** A black car, solid, no flicker: the green car's set through `DataBlack` (§2). Tom,
+2026-11-10: "I think use the black car. I'm not very keen on the idea of flicker. Again, this may have to change once I
+see it running." Then, of the one-set ways to colour it: "The green set". If black on the road's checkerboard is hard
+to see, the same set draws it green or yellow (`DataId`, `DataYellow`) at no cost.
 
 **When it starts.** At each crossing of the finish line, with the best lap's first frame, so player and ghost cross
 together. The first lap is a standing start from the grid: timed, but almost never the best (§7).
@@ -156,7 +158,7 @@ playing it though."
 ## 7. To decide (Tom)
 
 1. ~~The gates~~: the ST's schedule (D36, Tom, 2026-11-10), to be revisited after playing it (§5).
-2. ~~The ghost's look~~: the black car, solid, no flicker (D37, Tom, 2026-11-10), to be revisited once running (§3).
+2. ~~The ghost's look~~: a black car, solid, no flicker, from the green set (D37, Tom, 2026-11-10), to be revisited once running (§3).
 3. The first lap: a standing start, timed; the ghost starts at each crossing of the line (§3).
 4. The name: three initials, as the ST's table, or longer.
 5. How many entries a track's table keeps.

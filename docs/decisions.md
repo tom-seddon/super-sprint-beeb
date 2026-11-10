@@ -558,8 +558,13 @@ Time attack (`docs/brief-timeattack-2026-11-10.md` §3). Proposed: solid, in gre
 change once I see it running." And on all the first answers: "A number of the first pass answers will be slightly
 speculative, as this version is venturing into the unknown much more so than the initial conversion. But it'll all
 become clearer as development goes on I think."
-So: the ghost is drawn every frame from the drone-driven set through `DataBlack`, as car 3 is in a race. That's a
-second car set in the cars' bank (about 2,570 bytes, ESTIMATED): the brief had counted on one, but a data table
-recolours only a frame's value-1 pixels and the white car's body is value 3 (`tools/gendata.py`), so the player's own
-frames can't be drawn black. The ghost's room is about 5,500 bytes, not 8,070 (ESTIMATED). If that's wanted back, a
-256-byte table drawing the player's frames' white as black would do, with the outline lost in the body.
+First recorded as the drone-driven set through `DataBlack`, as car 3 is in a race: a second car set in the cars' bank
+(about 2,570 bytes, ESTIMATED), since a data table recolours only a frame's value-1 pixels and the white car's body is
+value 3 (`tools/gendata.py`), so the white car's frames can't be drawn black. Tom: "What would be some lower-memory
+options for car colouring? Could it use, say, the green or yellow car, then have a tables for transforming that into
+white and black?" It can: the four sets' outlines differ by 2 to 7 pixels over the 16 facings, and the green and yellow
+cars' bodies are value 1, so one set through `DataWhite` and `DataBlack`, both resident already, draws both cars. Over
+the 16 facings (COUNTED, `build/ta/car_colours.png`): the green set 11 pixels from the white car and 95 from the black
+car; the yellow set 83 and 29. Tom: "The green set".
+So: time attack keeps the green car's set alone; the player is drawn through `DataWhite`, the ghost, every frame,
+through `DataBlack`. The ghost's room in the cars' bank is about 8,070 bytes (ESTIMATED).
