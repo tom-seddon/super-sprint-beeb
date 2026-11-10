@@ -329,6 +329,7 @@ HiSaveLen = HiSumLen + 2                ; SCORES: the table, lap records, keys, 
             IF GenPlay
                 INCLUDE "keyboard.6502"
                 INCLUDE "load.6502"
+                INCLUDE "crash.6502"
             ENDIF
             INCLUDE "sound.6502"
         ENDIF

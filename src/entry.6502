@@ -65,6 +65,10 @@ LoadingChars = {'L', 'o', 'a', 'd', 'i', 'n', 'g'}   ; loadcode.6502's LoadingTe
     DEX
     BNE copy
     IF GenPlay
+        LDA #LO(crash):STA &202         ; BRKV: the game's (crash.6502), now it's in; load_takeover keeps it as
+        LDA #HI(crash):STA &203         ; the BRKV each load puts back
+    ENDIF
+    IF GenPlay
 
         \\ "Loading" in the main screen's HUD row as the boot put it in the shadow screen's, shown (main RAM's
         \\ code's image was there, copied down now): the row cleared, the play area's first row and a half too,
@@ -247,7 +251,7 @@ IF GenPlay
     ZA_WIPE                             ; (a copy, not a store into the pool)
     LDA &204:STA OsIrq1v
     LDA &205:STA OsIrq1v+1
-    LDA &202:STA OsBrkv
+    LDA &202:STA OsBrkv                 ; (the game's by now: crash.6502)
     LDA &203:STA OsBrkv+1
     LDA &FE4B:STA OsAcr
     LDA &FE4C:STA OsPcr

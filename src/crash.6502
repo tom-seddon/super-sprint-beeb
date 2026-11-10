@@ -1,0 +1,90 @@
+\\ crash.6502 - the game's BRKV (the plan's crash handler, Tom, 2026-11-10): MODE 7, the screen shown the one the CPU
+\\ writes, and on it the BRK's address and the build's version, nothing else, the rest left to the build's listing
+\\ ("Then any investigation can be done offline"). The OS isn't used: the game has taken ANDY, its VDU workspace
+\\ (D15), and the MOS has paged the language ROM in before BRKV, so ROMSEL isn't the BRK's. Set by the loader once
+\\ main RAM's code is in (entry.6502), so load_takeover keeps it as the BRKV each load puts back.
+
+CrashScreen = &7C00                     ; MODE 7's, in main RAM (ACCCON's D and X off)
+CrashAt = CrashScreen + 2 * 40 + 2      ; the text: row 2, column 2
+
+\\ The machine stopped, with what's known shown. Entered through BRKV from the MOS's BRK handler.
+\\
+\\ Inputs:
+\\     &FD, &FE: the MOS's pointer to the BRK's error number, the byte after the BRK
+\\
+\\ Outputs:
+\\     none: it never returns
+
+.crash
+{
+    ZA_ENTRY
+    SEI                                 ; (the game's IRQ would go on flipping the screens)
+    CLD
+    LDA &FE34:AND #&FA:STA &FE34        ; ACCCON: D and X off, the main screen shown and written
+    LDA #&FF:STA &FE43                  ; system VIA: DDRA, all outputs, for the chip
+    LDX #3
+.quiet
+    TXA:ASL A:ASL A:ASL A:ASL A:ASL A   ; (channel X's attenuation latch)
+    ORA #&9F:JSR sn_write               ; its volume off
+    DEX
+    BPL quiet
+    LDA #UlaMode7:STA &FE20             ; video ULA: control, teletext
+    LDX #13
+.crtc
+    STX &FE00                           ; CRTC: the register
+    LDA CrashCrtc,X:STA &FE01           ; CRTC: its value
+    DEX
+    BPL crtc
+    LDA #' '
+    LDX #0
+.clear
+    STA CrashScreen,X
+    STA CrashScreen+&100,X
+    STA CrashScreen+&200,X
+    STA CrashScreen+&300,X
+    INX
+    BNE clear
+    LDX #CrashTextEnd - CrashText - 1
+.text
+    LDA CrashText,X:STA CrashAt,X
+    DEX
+    BPL text
+    LDA &FD:SEC:SBC #1:TAY              ; the BRK's address: the error number's, less 1
+    LDA &FE:SBC #0
+    LDX #CrashHex - CrashText
+    JSR hex
+    TYA
+    JSR hex
+.stop
+    BRA stop
+    ZA_UNREACHABLE                      ; (the machine stopped: BREAK starts it again)
+
+    \\ A as two hex digits at CrashAt + X, and X past them. A corrupted.
+.hex
+    PHA
+    LSR A:LSR A:LSR A:LSR A
+    JSR digit
+    PLA
+    AND #15
+.digit
+    CMP #10:BCC @+
+    ADC #'A' - '0' - 10 - 1             ; (C set)
+.@
+    ADC #'0'                            ; (C clear)
+    STA CrashAt,X
+    INX
+    RTS
+}
+
+.CrashCrtc                              ; MODE 7's R0-R13, the cursor off, the screen at &7C00
+    EQUB 63, 40, 51, &24, 30, 2, 25, 27, &93, 18, &20, &13, &28, &00
+.CrashText
+    EQUS "BRK at &"
+.CrashHex
+    EQUS "0000"
+    IF LEN(VersionAscii) > 1            ; (no git, no version)
+        EQUS ", build "
+        EQUB VersionAscii[0..LEN(VersionAscii) - 2]
+    ENDIF
+.CrashTextEnd
+    ASSERT CrashTextEnd - CrashText <= 38, "the crash's text: one row, from column 2"

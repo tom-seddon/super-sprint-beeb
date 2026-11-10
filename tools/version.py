@@ -4,8 +4,8 @@ digits, and an "m" after them if the tree had changes (the small font has no "+"
 Usage: version.py OUT VERSION   (the Makefile's VERSION: git's, or given, as tools/suite_remote.sh gives it; empty
                                  with no git, and nothing is shown)
 
-Writes OUT/version.6502 (VersionGlyphs, the small font's glyphs ending in 255, and VersionX, the first one's pixel
-across) and OUT/options_version.bin (the status line's 640 bytes with only the version drawn, as options.6502 draws
+Writes OUT/version.6502 (VersionGlyphs, the small font's glyphs ending in 255, VersionX, the first one's pixel
+across, and VersionAscii, the version's characters ending in 0, for the crash handler's MODE 7 screen) and OUT/options_version.bin (the status line's 640 bytes with only the version drawn, as options.6502 draws
 it: the glyphs ORed in white, then the bytes from VersionX's to the line's end ANDed with &0F, green), each only if
 it's changed, so a build that doesn't change the version doesn't remake what reads them.
 """
@@ -34,7 +34,8 @@ def main(out, version):
     os.makedirs(out, exist_ok=True)
     write(f'{out}/version.6502', (f'\\\\ version.6502 - the build\'s version, "{version}" (tools/version.py)\n'
                                   f'VersionGlyphs = {{{", ".join(map(str, codes + [255]))}}}\n'
-                                  f'VersionX = {x}\n').encode())
+                                  f'VersionX = {x}\n'
+                                  f'VersionAscii = {{{", ".join(str(ord(ch)) for ch in version + chr(0))}}}\n').encode())
     write(f'{out}/options_version.bin', mode1_bytes(lidx)[24 * 640:])
 
 

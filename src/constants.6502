@@ -29,6 +29,7 @@ CrtcLoad = {127, 80, ScreenHSyncPos, &28, ScreenVTotal - 1, 0, 1, ScreenVSyncPos
 
 UlaMode1 = &D8
 UlaMode2 = &F4
+UlaMode7 = &4B                          ; (teletext: the crash handler's)
 PalPhys = {0, 2, 3, 7}                  ; logical 0-3's physical colours
 
 \\ ACCCON (&FE34): D, bit 0, the screen shown is shadow's; X, bit 2, the CPU's &3000-&7FFF is shadow's
