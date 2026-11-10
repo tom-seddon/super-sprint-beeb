@@ -339,12 +339,17 @@ adds the logic.
   apt's Hatari 2.4.1 can't (its memory dumps break the race and sound tracers: 2.5.0 or later needed); 2.6.1
   built from source on Linux makes all 120 the same and the discs the same, and the whole suite passes there,
   with the tracers reading a dump after the debugger's prompt and running in parallel (`make -j16 stfiles` 45 s).
-  Built 2026-11-10 (`.github/workflows/build.yml`), not yet run on GitHub. Tom: "Please create a new branch, that
+  Built 2026-11-10 (`.github/workflows/build.yml`). Tom: "Please create a new branch, that
   the CI builds from on push ... Let's not have a build on every push to `main`": it runs on a push to `ci-build`, or
   by hand. Hatari 2.6.1 built from source (cached between runs), `make -j2 stfiles` checked against
   `docs/stfiles-sha256.txt`, `make -j2 game`, the zip uploaded as it is (`archive: false`, so not zipped again).
   The suite isn't run there. Disk (MEASURED, a fresh clone on the Mac at `-j2`): 1.1 GB at most, 800 MB of it
   `build/trace`, against the runner's 14 GB; the ST's files 8 min 3 s, the discs 2 min 41 s.
+  Run on GitHub, 2026-11-10: the third run passed (42824858951, at 3502c70; the first two failed on
+  `hatari --version`'s exit 1 and Baron's own submodule, `extern/richc`, not fetched). 6 min 49 s with Hatari
+  from the cache (the ST's files 4 min 11 s, all 120 the Mac's; the discs 2 min 9 s), and Hatari's build 2 min 11 s
+  when it isn't. `super-sprint-20261110-1323-3502c.zip`, 216,135 bytes. A branch's first push that also brings the
+  workflow to GitHub started no run; deleting `ci-build` there and pushing it again did.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
