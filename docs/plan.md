@@ -353,6 +353,8 @@ adds the logic.
   Then (Tom: "Please update the CI setup to make a release. Then it should be possible to download the results and
   check them that way"): each build a release named as its zip, the notes the commit and the SHA-256s, in place of
   the Actions artifact (which needs a sign-in to download).
+  The first, `super-sprint-20261110-1429-cfe19` (run 42839432092), downloaded with no sign-in: both discs the same
+  byte for byte as cfe192a's built here (`--depth 1`, the two submodules, `-j2`), the zip as its notes say.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
