@@ -455,6 +455,7 @@ adds the logic.
 | D46 | Time attack's front end rows | Decided (Tom, 2026-11-10): the front end in 32 rows, the race in 26; Shared put back before each race, the table in a bank |
 | D47 | Time attack's menu | Decided (Tom, 2026-11-10): all eight tracks at once, the ST's small font, the SUPER SPRINT logo in red and yellow, colour 1 changed below it |
 | D48 | Time attack's track screen | Decided (Tom, 2026-11-10): the menu, Return on a track, its 10 entries; Return races, Escape back to the menu |
+| D49 | Time attack's upgrades and names | Decided (Tom, 2026-11-10): the upgrades on the track's screen, the last race's at first; a name asked, empty, for every entry |
 
 ## Risks
 

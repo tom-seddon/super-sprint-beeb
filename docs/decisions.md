@@ -697,3 +697,14 @@ race, or Escape to go back to track select".
 So: the menu (D47), a track picked and Return; the track's screen, its 10 entries; Return races, Escape back to the
 menu. How a track is picked on the menu is still to be settled. Proposed with it, not yet asked: after a race, back to
 the track's screen with the new entry lit, and the upgrades picked there, as last picked, so another go is one Return.
+
+### D49. Time attack's upgrades on the track's screen; a name every time: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Proposed with D48: the upgrades picked on the track's screen,
+as last picked, and after a race back to that screen, so another go is one Return. Tom, 2026-11-10: "Good point about
+the upgrades. Yes, that could be part of the per-track screen too. Regarding after a race: if the player got on to the
+high score table, they need to enter their name every time. The game will very likely be played in a hot-seat
+fashion, with a different people taking the controls each time. Even though I'm kind of assuming a different player
+each time, I still do like the idea of having the default powerups set to the same as the last play."
+So: the upgrades are picked on the track's screen, no screen of their own, set at first to the last race's, whatever
+its track (at the boot, none). A race whose best makes the table always asks for a name, the entry empty, never the
+last name typed. Still proposed: after a race, back to the track's screen, the new entry lit.
