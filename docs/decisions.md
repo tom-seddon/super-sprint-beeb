@@ -707,4 +707,10 @@ fashion, with a different people taking the controls each time. Even though I'm 
 each time, I still do like the idea of having the default powerups set to the same as the last play."
 So: the upgrades are picked on the track's screen, no screen of their own, set at first to the last race's, whatever
 its track (at the boot, none). A race whose best makes the table always asks for a name, the entry empty, never the
-last name typed. Still proposed: after a race, back to the track's screen, the new entry lit.
+last name typed. After a race: D50.
+
+### D50. Time attack goes back to the track's screen after a race: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Proposed with D48 and D49: after a race (and the name and
+save, if any), back to the track's screen, not the menu, the new entry lit. Tom, 2026-11-10: "Yes".
+So: Escape, the name if the race made the table (D49), the save if something changed, then the track's screen with the
+upgrades as last picked; Return races again, Escape goes to the menu.

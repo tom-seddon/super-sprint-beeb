@@ -456,6 +456,7 @@ adds the logic.
 | D47 | Time attack's menu | Decided (Tom, 2026-11-10): all eight tracks at once, the ST's small font, the SUPER SPRINT logo in red and yellow, colour 1 changed below it |
 | D48 | Time attack's track screen | Decided (Tom, 2026-11-10): the menu, Return on a track, its 10 entries; Return races, Escape back to the menu |
 | D49 | Time attack's upgrades and names | Decided (Tom, 2026-11-10): the upgrades on the track's screen, the last race's at first; a name asked, empty, for every entry |
+| D50 | Time attack after a race | Decided (Tom, 2026-11-10): back to the track's screen, the new entry lit |
 
 ## Risks
 

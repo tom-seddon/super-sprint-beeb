@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43; the maps on the menu: D44; the turnaround: D45; the front end's 32 rows: D46; the menu's layout: D47; the track's screen: D48; the upgrades and the name between races: D49). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39; the table: D40; a race's entry: D41; wrecks: D42; the ghost at the line: D43; the maps on the menu: D44; the turnaround: D45; the front end's 32 rows: D46; the menu's layout: D47; the track's screen: D48; the upgrades and the name between races: D49; after a race: D50). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -236,9 +236,9 @@ playing it though."
   - No wipe between screens (D25's), no prepare to race, no winner's circle; each screen drawn on the screen not
     shown and flipped.
   - Escape, then the name only if the race's best made the table (D41), the save only if something changed (one
-    table, at most one ghost), then the menu.
-  - Proposed: back to the track's screen (D48, below), the upgrades as last picked (D49), so another go with no new
-    entry is one Return.
+    table, at most one ghost), then the track's screen (D50).
+  - Back to the track's screen (D50, below), the upgrades as last picked (D49), so another go with no new entry is
+    one Return.
   - Proposed: the same track again loads nothing, if the front end's files keep out of the track's slots and the
     ghost's buffers (to be measured at step 6: where the menu's files go).
 - **A track's screen (D40, D48)**: a track's 10 entries, a row each, from the menu: the track picked there (how is to
@@ -253,8 +253,8 @@ playing it though."
     typed: "The game will very likely be played in a hot-seat fashion, with a different people taking the controls
     each time." Tom, 2026-11-10, on the upgrades: "Even though I'm kind of assuming a different player each time, I
     still do like the idea of having the default powerups set to the same as the last play."
-  - Proposed, not yet asked: after a race (and the name and save, if any) back to this screen, not the menu, the new
-    entry lit; Escape from it to the menu.
+  - **After a race (D50)**: the name if the race made the table, the save if something changed, then back to this
+    screen, not the menu, the new entry lit; Escape from it to the menu. Tom, 2026-11-10: "Yes".
 - **The name (D39)**: up to 10 characters typed on the keyboard. The options screen already finds any key held from a
   table of key numbers (`opt_find`, `OptNumbers`, through `key_down`), so the name's screen is that with a table of
   A-Z, 0-9, space, Delete and Return and their characters (about 80 bytes), the typing loop and the drawing: about
