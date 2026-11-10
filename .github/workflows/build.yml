@@ -35,8 +35,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Fetch rich/baron and the beeb-port-kit
-        run: git submodule update --init --depth 1 rich/baron reference/beeb-port-kit
+      - name: Fetch rich/baron (with its extern/richc) and the beeb-port-kit
+        run: git submodule update --init --recursive --depth 1 rich/baron reference/beeb-port-kit
 
       - name: Install the packages for Baron and Hatari
         run: |
