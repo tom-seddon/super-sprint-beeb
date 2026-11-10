@@ -193,6 +193,11 @@ playing it though."
       space, `.` and `!` (the BBC's 39), and `-` and `'` (the ST's, 12 bytes more); no lower case and no colon, so a
       time is seconds, `12.40`, as the ST's winner's circle shows them (to 99.98, 4,999 fields, ESTIMATED as enough
       for a table's lap).
+      With the credits screen's SUPER SPRINT logo across the top instead of the title and the line of keys
+      (`build/ta/menu_a32_logo.png`): the logo is 34 lines (MEASURED, lines 73-106 of `build/gen/credits.bin`), the
+      rows 55 lines each, 254 of the 256 used. The logo is red and yellow, the maps green, yellow and white, so colour
+      1 is red over the logo and green below it: its 4 palette entries written at the logo's last line, timed from
+      the vsync (about 40 bytes, ESTIMATED), or the logo's red drawn in the maps' colours.
     - **B, a scrolling list**: a row a track, the map then the text (track and time, name, the upgrades in words),
       five rows shown in 32 rows (four in 26), the list moved a row at a time; each map packed on its own (about 300
       bytes, ESTIMATED) and drawn as its row comes into view, on the screen not shown, then flipped. Room for words,
