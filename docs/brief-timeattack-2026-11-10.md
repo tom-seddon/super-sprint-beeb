@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38; the name: D39). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -153,12 +153,21 @@ playing it though."
   (proved with the `beeb-identical-build` skill), and the whole suite still passes on it.
 - **Each track a file**, loaded on demand as now: the time attack variant's, with the pickups' and hazards' objects left
   out, so smaller.
-- **The menu**: text in the HUD's font, a row a track: its number, best time, name and upgrades. Then the upgrades
-  (5 points over three, forked from `upgrades.6502`), then the race. After Escape, a name for a new record (forked
-  from `initials.6502`), then the save, then the menu.
+- **The menu**: text in the MOS's font, drawn by `font_char` (LowFree, resident) as the options screen names keys
+  (the HUD's font has only 15 glyphs, its digits and a few more), a row a track: its number, best time, name and
+  upgrades, 29 of the row's 40 characters with a 10-letter name. Then the upgrades (5 points over three, forked from
+  `upgrades.6502`), then the race. After Escape, a name for a new record, then the save, then the menu.
+- **The name (D39)**: up to 10 characters typed on the keyboard. The options screen already finds any key held from a
+  table of key numbers (`opt_find`, `OptNumbers`, through `key_down`), so the name's screen is that with a table of
+  A-Z, 0-9, space, Delete and Return and their characters (about 80 bytes), the typing loop and the drawing: about
+  250 bytes (ESTIMATED), in its own file, not resident. Which characters beyond those (lower case, punctuation; the
+  MOS's font has them all) is for later.
 - **Saved**:
-  - A table, a few entries a track (time, name, upgrades), a few hundred bytes, saved like `SCORES` (`save.6502`: only
-    when changed, a failed save said once and ignored, D23).
+  - A table, a few entries a track, 13 bytes an entry (the time 2, the name 10, the upgrades 1: three levels that sum
+    to 5 or less are 56 combinations), so 8 * 13 = 104 bytes an entry a track: 520 for 5 entries, 1,040 for 10
+    (COUNTED). It stays in Shared, as `HiFile` does now, which time attack leaves about 1,550 free (ESTIMATED: the 267
+    free, the drone path's 996 and `HiFile`'s 295), and is saved like `SCORES` (`save.6502`: only when changed, a failed
+    save said once and ignored, D23).
   - A ghost a track, one file each (`GHOST1`-`GHOST8`, up to about 3K), saved when beaten. OSFILE can't save from a
     sideways RAM bank (the filing system's ROM is paged in while it runs), so the lap's copied first to main RAM, to
     the screen not shown.
@@ -171,7 +180,7 @@ playing it though."
 1. ~~The gates~~: the ST's schedule (D36, Tom, 2026-11-10), to be revisited after playing it (§5).
 2. ~~The ghost's look~~: a black car, solid, no flicker, from the green set (D37, Tom, 2026-11-10), to be revisited once running (§3).
 3. ~~The first lap~~: a standing start, timed, the ghost shown from the race's start (D38, Tom, 2026-11-10) (§3).
-4. The name: three initials, as the ST's table, or longer.
+4. ~~The name~~: up to 10 characters, typed on the keyboard (D39, Tom, 2026-11-10) (§6).
 5. How many entries a track's table keeps.
 6. Wrecks kept, as the ST's (§4).
 

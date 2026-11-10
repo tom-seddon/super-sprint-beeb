@@ -580,3 +580,14 @@ grid straddles the finish line (COUNTED: the first car's box against checkpoint 
 a standstill and the ghost leaves the same line at speed. Lap 1 is timed as any lap, and its record, if it's the best,
 starts from a standstill. A ghost that reaches the line before the player is put away there until the player crosses
 (proposed with it, not yet asked).
+
+### D39. Time attack's names: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Proposed: three initials, as the ST's table, or longer. Tom,
+2026-11-10: "I'd like 6 letters at least, ideally 10. Since there's only 1 player, I'm thinking that the front end
+should let the player enter their name using the keyboard, so length is less of an issue in UI terms. It's just a
+question of the memory requirements."
+The memory (COUNTED and ESTIMATED, brief §6): a table entry is 13 bytes with 10 characters (the time 2, the name 10,
+the upgrades 1), so 104 bytes for each entry a track over 8 tracks; 1,040 for 10 entries a track, against about
+1,550 free in Shared once the drone path and the ST's table go. The name's screen, forked from the options screen's
+key finding (`opt_find`), is about 250 bytes in its own file. The ghost's file carries the name too, 10 bytes.
+So: up to 10 characters, typed on the keyboard, drawn in the MOS's font (`font_char`). A-Z, 0-9 and space at first.

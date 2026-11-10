@@ -445,6 +445,7 @@ adds the logic.
 | D36 | Time attack's gates | Decided (Tom, 2026-11-10): the ST's schedule, kept; to be revisited after playing it |
 | D37 | Time attack's ghost | Decided (Tom, 2026-11-10): a black car, solid, no flicker; the green set alone, the player through `DataWhite`, the ghost `DataBlack`; to be revisited once running |
 | D38 | Time attack's first lap | Decided (Tom, 2026-11-10): a standing start, timed; the ghost shown from the race's start |
+| D39 | Time attack's names | Decided (Tom, 2026-11-10): up to 10 characters, typed on the keyboard |
 
 ## Risks
 
