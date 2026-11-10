@@ -626,5 +626,6 @@ The gates are a track's (tracks 3, 5 and 8), in every race. Wrecks can happen on
 squeezed between walls, a wall head-on at top speed), and on tracks 2 and 6 off a bridge edge or a jump. The rest
 come and go: water, oil and the yellow patch (the "sand") none in races 0 to 5, then `random(race / 6 + 1)`, at most
 3; cones from race 16, half the time; the pop-up barriers every third race; the tornado after race 3, half the time.
-So: time attack keeps the gates (D36) and wrecks, the helicopter and its wait (40 to 100 frames) as the ST's, the
-lap's clock running; the patches, cones, barriers, tornado, wrenches and bonus go.
+So: time attack keeps the gates (D36) and wrecks as the game has them: the ST's wait for its helicopter (40 to 100
+frames), with no helicopter drawn, the car blinking where it comes back and the sweep over the blink (D16), the lap's
+clock running; the patches, cones, barriers, tornado, wrenches and bonus go.

@@ -129,8 +129,9 @@ if they want."
 - **Hazards (D42)**: the ones a track always has on the ST stay; the ones that come and go with the race count or a
   coin flip go (`docs/st-logic.md` §3).
   - Kept: the gates (tracks 3, 5 and 8, every race; §5, D36) and wrecks (every track: leaving the area, squeezed
-    between walls, a wall head-on at top speed; and tracks 2 and 6's bridge edges and jumps), the helicopter and its
-    wait (40 to 100 frames) as the ST's, the lap's clock running.
+    between walls, a wall head-on at top speed; and tracks 2 and 6's bridge edges and jumps), as the game has them:
+    the ST's wait for its helicopter (40 to 100 frames), no helicopter drawn, the car blinking where it comes back
+    and the sweep over the blink (D16), the lap's clock running.
   - Gone: water, oil and the yellow patch (none in races 0 to 5, then `random(race / 6 + 1)`, at most 3), cones
     (from race 16, half the time), the pop-up barriers (every third race) and the tornado (after race 3, half the
     time). The wrenches and bonus go with them, as there's no score.
