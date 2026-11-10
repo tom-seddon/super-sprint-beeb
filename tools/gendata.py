@@ -4,6 +4,7 @@ cells and an ST race's car positions, as binaries and Baron source in build/gen.
 Usage: gendata.py TRACK TRACE.json OUTDIR [--logic]
 
 --play (with --logic): a build to play, three players on the keys and car 3 the drone: every car's frame set.
+--ta (with --play): the time attack variant's (docs/brief-timeattack-2026-11-10.md): GenTimeAttack = 1.
 
 --logic (Phase 4, step 8): the race is drawn from the BBC's own logic, not the trace, so every moving object's
 key the logic can draw is made (the explosion's 26 frames, the sparks' 41, the track's banner's 36, the
@@ -537,7 +538,7 @@ def lst(name, vals):
     return f'{name} = {{{", ".join(str(v) for v in vals)}}}\n'
 
 
-def main(track, tracepath, out, logic=False, play=False):
+def main(track, tracepath, out, logic=False, play=False, ta=False):
     os.makedirs(out, exist_ok=True)
     dat = open('orig/st/SUPER.DAT', 'rb').read()
     bg = np.load(f'build/conv/B_t{track}_bg.npy')
@@ -825,6 +826,7 @@ def main(track, tracepath, out, logic=False, play=False):
         f.write(f'TraceTrack = {track}\n')
         f.write(f'GenLogic = {1 if logic else 0}\n')
         f.write(f'GenPlay = {1 if play else 0}\n')
+        f.write(f'GenTimeAttack = {1 if ta else 0}\n')
     with open(f'{out}/font.6502', 'w') as f:
         f.write('\\\\ font.6502 - made by tools/gendata.py from tools/font.py: the HUD\'s glyphs, 8 lines each\n\n')
         f.write(lst('GenFont', [b for g in range(len(Glyphs)) for b in glyph_bytes(g)]))
@@ -836,4 +838,4 @@ def main(track, tracepath, out, logic=False, play=False):
 
 
 if __name__ == '__main__':
-    main(int(sys.argv[1]), sys.argv[2], sys.argv[3], '--logic' in sys.argv[4:], '--play' in sys.argv[4:])
+    main(int(sys.argv[1]), sys.argv[2], sys.argv[3], '--logic' in sys.argv[4:], '--play' in sys.argv[4:], '--ta' in sys.argv[4:])

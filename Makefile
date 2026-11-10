@@ -17,6 +17,7 @@ VENV = .venv/installed
 # logic trace's race on track 1, drawn from the BBC's own race logic (Phase 4, step 8); TRACE=logic4 the default
 # race (track 5, race 17, the hazards) drawn from the BBC's logic (step 11), and TRACE=h0 to h7 race 17 on
 # track 1 to 8 so (h4 is logic4); TRACE=play the same race to play (make play: build/play.ssd): three players on the keys (Q W E, V B N, , . /), car 3 a drone.
+# TRACE=ta: the time attack variant's play build (docs/brief-timeattack-2026-11-10.md; GenTimeAttack), make ta its discs.
 TRACE ?= race
 RACE = 17
 FORCE = tornado,cones
@@ -43,6 +44,11 @@ TRACK = 0
 TRACEFILE = build/trace/race_t0_r0_script.json
 GENFLAGS = --logic --play
 LOGICDEPS = build/lgen/tables.6502 build/lgen/sound.6502
+else ifeq ($(TRACE),ta)
+TRACK = 0
+TRACEFILE = build/trace/race_t0_r0_script.json
+GENFLAGS = --logic --play --ta
+LOGICDEPS = build/lgen/tables.6502 build/lgen/sound.6502
 else ifneq ($(filter heli1 heli2 heli3,$(TRACE)),)
 TRACK = 4
 TRACEFILE = build/trace/race_t4_r$(RACE)_$(TRACE).json
@@ -55,7 +61,7 @@ GEN = build/gen
 # A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
 .DELETE_ON_ERROR:
 
-.PHONY: all baron venv stfiles disasm tracks convert sheets viewer beeb play game check clean always version logictrace hazardtrace hazardrace logic logiccheck
+.PHONY: all baron venv stfiles disasm tracks convert sheets viewer beeb play game ta check clean always version logictrace hazardtrace hazardrace logic logiccheck
 
 all: disasm convert sheets viewer beeb
 
@@ -247,6 +253,11 @@ game: build/zx02 | $(VENV) build/trace/logic_t0_r0.json
 	tools/all_tracks.sh
 	$(PY) tools/make_game.py build/tracks build/zx02 build/game.ssd
 	$(PY) tools/adfs_disc.py build/game.ssd build/game.adl
+# The time attack variant's discs, build/ta.ssd and build/ta.adl, the same way from its own tracks' builds (build/tracks_ta).
+ta: build/zx02 | $(VENV) build/trace/logic_t0_r0.json
+	tools/all_tracks.sh ta
+	$(PY) tools/make_game.py build/tracks_ta build/zx02 build/ta.ssd
+	$(PY) tools/adfs_disc.py build/ta.ssd build/ta.adl
 
 # The ST's files the game's build reads, all made in the original running in Hatari (docs/st-traces.md): `make
 # stfiles` makes any missing, and build/stfiles.tar.gz packs them, for a machine where Hatari doesn't run, to be

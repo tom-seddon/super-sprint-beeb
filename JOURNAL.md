@@ -683,3 +683,12 @@
   finds 3 wrong.
   The suite: 42 of 42 on agentbox at f0d2009, `crash_check` among them. Merged untested on hardware, Tom: "There's
   not supposed to be any way to hit the BRK handler, so this will get ongoing testing just through general use."
+- **Time attack, the brief and step 1** (2026-11-10, branch `timeattack`). Tom's idea: a special version, one player,
+  endless laps, a ghost of the best lap, a table and ghosts saved per track. The brief,
+  `docs/brief-timeattack-2026-11-10.md`, then his answers one by one, D36-D50: the ST's gates; a black ghost from the
+  green car's set alone; a standing start, the ghost shown in it; 10-character names typed; 10 entries a track, all
+  resident; a race enters its best lap; wrecks and gates kept; the ghost waiting at the line; a front end in 32 rows
+  with the select screen's maps, the ST's small font and the credits' logo (mock-ups in `build/ta`, the chosen one
+  `docs/img/timeattack-menu.png`); a track's screen with its 10 and the upgrades; a name every time, for hot seat.
+  Step 1: `GenTimeAttack` and `make ta`, the game's discs the same byte for byte (`VERSION=ident` both), the suite 43
+  of 43 on agentbox.

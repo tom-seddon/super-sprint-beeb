@@ -1,6 +1,6 @@
 # Brief - a time attack version
 
-> **Status: PROPOSED (2026-11-10), nothing built.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
+> **Status: in progress (2026-11-10): step 1 done (§8).** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
 > benefit from having a special version, built from the same code and using the same basic game engine and tracks: a
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
@@ -301,6 +301,11 @@ Each becomes a row in `docs/decisions.md`, Proposed until Tom agrees.
 One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
 
 1. **The variant.** A time attack build from the same source, its own discs; the game's build proved unchanged.
+   **Done** (2026-11-10): `tools/gendata.py --ta` writes `GenTimeAttack` (beside `GenPlay`), `TRACE=ta` is the play
+   build with it, `tools/all_tracks.sh ta` builds every track's into `build/tracks_ta`, and `make ta` makes
+   `build/ta.ssd` and `build/ta.adl` from them as `make game` does. MEASURED: `make game VERSION=ident` before and
+   after, `build/game.ssd`, `build/game.adl` and every track's build the same byte for byte; `build/ta.ssd` the same as
+   the game's too (sha256 `5aa5fac010a698a3`), as nothing reads `GenTimeAttack` yet. The suite 43 of 43 on agentbox.
 2. **The race, one car.** One car set; no drones, pickups, oil, cones, barriers or tornado; endless laps; Escape out.
    Then the room measured on every track (`tools/all_tracks.sh`'s figures for the variant) and the frames' cycles
    (`tools/render_profile.mjs`).
