@@ -162,7 +162,8 @@ ENDIF
         JSR read_players                ; the players' keys
     .played                             ; (tools/disc_races.mjs gives a traced race's inputs here)
         LDA GmDemo:BNE @+
-        LDA #KeyF0:JSR key_down         ; F10 (D24: f0): the race abandoned, back to the attract mode
+        LDA #KeyF0 + (KeyEscape - KeyF0) * GenTimeAttack   ; F10 (D24: f0), or time attack's Escape: the race
+        JSR key_down                    ; abandoned, back to the attract mode
     .abandon                            ; (tools/game_check.mjs gives a traced press here)
         TAY:BPL @+
         LDA #1:STA GmAbandon
@@ -265,7 +266,7 @@ ENDIF
     LDA RcOrder,Y:TAY
     JSR record
     INC i
-    LDA i:CMP #4:BNE car
+    LDA i:CMP #Cars:BNE car
     STX CarCount
     RTS
 
@@ -582,6 +583,6 @@ ENDIF
     JSR hud_set
 .next
     INC c
-    LDA c:CMP #4:BNE car
+    LDA c:CMP #Cars:BNE car
     RTS
 }

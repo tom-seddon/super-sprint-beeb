@@ -692,3 +692,7 @@
   `docs/img/timeattack-menu.png`); a track's screen with its 10 and the upgrades; a name every time, for hot seat.
   Step 1: `GenTimeAttack` and `make ta`, the game's discs the same byte for byte (`VERSION=ident` both), the suite 43
   of 43 on agentbox.
+  Step 2: one car (`Cars`, 4 in the game), the green set alone drawn white, no pickups or optional hazards, endless
+  laps, Escape out. The cars' bank 8,228 bytes freer on every track. Tried in jsbeeb by scripts: past lap 4 on, the
+  demo still ending, a wreck put back as on the game's disc, no frames dropped. Tom: work in smaller steps here, each
+  tried ("there being no existing target to work against"); step 2's disc for his Master before step 3.

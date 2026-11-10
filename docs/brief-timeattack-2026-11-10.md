@@ -1,6 +1,6 @@
 # Brief - a time attack version
 
-> **Status: in progress (2026-11-10): step 1 done (§8).** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
+> **Status: in progress (2026-11-10): steps 1 and 2 done (§8), step 2 to be tried on Tom's Master.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
 > benefit from having a special version, built from the same code and using the same basic game engine and tracks: a
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
@@ -309,6 +309,20 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
 2. **The race, one car.** One car set; no drones, pickups, oil, cones, barriers or tornado; endless laps; Escape out.
    Then the room measured on every track (`tools/all_tracks.sh`'s figures for the variant) and the frames' cycles
    (`tools/render_profile.mjs`).
+   **Done, to be tried on Tom's Master** (2026-11-10). `Cars` (`race.6502`: 4, time attack 1) runs the loops that act
+   on the cars (control, `collide`'s pass, `build_cars`, the HUD's); no car-to-car or draw order with one; car 0 the
+   player's whoever joined; no barriers, tornado, oil-type patches, cones, bonus or wrench, the gates kept (D42); no
+   lap events or points, so the laps are endless, but in the attract mode's demo race, which they end; Escape, not
+   F10, abandons the race (to the attract mode, until step 6's front end). `tools/gendata.py --ta`: the green car's
+   set alone, car 0 through `DataWhite` (D37). The game's front end is still the way in.
+   MEASURED: the cars' bank 8,598 (track 6) to 10,440 (track 1) bytes free, 8,228 more than the game's on every track
+   (`make ta`'s `tools/all_tracks.sh ta`); the code for what time attack leaves out is still there (the fourth bank
+   95 free), for a later step. In jsbeeb (scripts, not yet in the suite): a race goes on 300 frames past car 0's laps
+   poked to 4 where the game's disc ends it, one car record every frame; the demo race ends (762 fields); a wreck at
+   the area's edge is put back at the same frame as on the game's disc (85 frames, the blink the same); 400 frames on
+   each track repeat 12 to 14 fields, as the game's disc does (12 to 16: the start's); Escape back to the attract
+   mode, by hand. The game's discs the same but for the README's commit link, every track's build byte for byte; the
+   suite 43 of 43 on agentbox.
 3. **The lap timer and HUD.**
 4. **The ghost.** Recorded and played back in the cars' bank. Its check: a scripted lap driven, then replayed, every
    frame's ghost record the same as the player's was (a headless oracle on `tools/jsbeeb.mjs`, in the suite).

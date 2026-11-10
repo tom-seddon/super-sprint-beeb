@@ -88,6 +88,9 @@ def set_of(sets, car, droned):
 # isn't a drone only in the demo, which draws it from the drone-driven set (D20): black, as in a race, not green
 # (its own frames have no value 1, so the attract trace's builds, which have them, draw the same)
 CarTable = {(0, 0): 0, (1, 0): 0, (2, 0): 1, (3, 0): 3, (0, 1): 2, (1, 1): 0, (2, 1): 1, (3, 1): 3}
+# time attack's (D37): one set, the green car's, so car 0, the player, is drawn white through DataWhite, and car 3's
+# id, the ghost's, black through DataBlack
+CarTableTA = {(0, 0): 2, (1, 0): 0, (2, 0): 1, (3, 0): 3, (0, 1): 2, (1, 1): 0, (2, 1): 1, (3, 1): 3}
 
 
 def cars(dat, sets):
@@ -548,6 +551,8 @@ def main(track, tracepath, out, logic=False, play=False, ta=False):
     sets = car_sets(frames)
     if logic:                           # the game's sets (D20): cars 0-2's own and the drone-driven, which
         sets = [(0, False), (1, False), (2, False), (None, True)]   # serve every mix of humans
+    if ta:                              # time attack's (D37): the green car's alone, every car drawn from it
+        sets = [(1, False)]
 
     data, fs, fr = cars(dat, sets)
     open(f'{out}/cars.bin', 'wb').write(data)
@@ -557,7 +562,7 @@ def main(track, tracepath, out, logic=False, play=False, ta=False):
         f.write(lst('GenFsOff', [o for d, w, o in fs]))
         f.write(lst('GenFrDY', [d for d, h in fr]))
         f.write(lst('GenFrH', [h for d, h in fr]))
-        f.write(lst('GenCarTable', [CarTable[(c & 3, c >> 2)] for c in range(8)]))
+        f.write(lst('GenCarTable', [(CarTableTA if ta else CarTable)[(c & 3, c >> 2)] for c in range(8)]))
         f.write(f'CarFrames = {len(fr)}\n')
         f.write(f'CarDataSize = {len(data)}\n')
 
@@ -808,9 +813,10 @@ def main(track, tracepath, out, logic=False, play=False, ta=False):
             assert all(k == list(range(k[0], k[0] + len(k))) for k in hk if k), "a helicopter frame's pieces in turn"
             f.write(lst('GenHeliFirst', [k[0] if k else 0 for k in hk]))
             f.write(lst('GenHeliCount', [len(k) for k in hk]))
-            f.write(lst('GenSetOf', [sets.index((None, True) if d else (c, False)) if ((None, True) if d else (c, False)) in sets
-                                     else sets.index((None, True)) if (None, True) in sets else 255   # (the demo's car 3, for now)
-                                     for c in range(4) for d in (0, 1)]))
+            f.write(lst('GenSetOf', [0] * 8 if ta else   # (time attack: the one set, D37)
+                        [sets.index((None, True) if d else (c, False)) if ((None, True) if d else (c, False)) in sets
+                         else sets.index((None, True)) if (None, True) in sets else 255   # (the demo's car 3, for now)
+                         for c in range(4) for d in (0, 1)]))
             f.write(lst('GenTorPiece', [movpieces[('tornado', fr_, x)][0] for fr_ in range(3) for x in range(4)]))
             f.write(lst('GenEntCode', ent_codes + [255] * (9 * 6 - len(ent_codes))))   # (6 instances' room, every track)
             f.write(f'GenGateInst0 = 3\n')

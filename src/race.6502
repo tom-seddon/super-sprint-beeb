@@ -8,6 +8,12 @@
 \\ Built so far: the set-up of the humans' cars, their control (human.6502), and of F_00E66A the coasting
 \\ phase, the area check, the walls (walls.6502), the track's cells (cells.6502) and the bounce, and the last
 \\ safe place. Not yet: car-to-car, drones, wrecks, scoring, the race's end, hazards, pickups placed.
+\\
+\\ Time attack (GenTimeAttack, docs/brief-timeattack-2026-11-10.md): one car, Cars, through the loops that act on
+\\ the cars; the state stays 4 cars wide. No car-to-car, no draw order (car 0 alone), no lap events or points but
+\\ the demo race's (its end).
+
+Cars = 4 - 3 * GenTimeAttack            ; the cars a race runs
 
 SECTION LogicVars
 .RcPX8Lo                                ; G_01E3CC: x8 before the move
@@ -245,6 +251,9 @@ ENDSECTION
     \\ a drone: onto its path's first entry (x from it, y the grid's: the difference its offset, times D),
     \\ speed car * 10, D 40, top 60 - track * 4 + car * 4 + race
 
+    IF GenTimeAttack
+        STZ RcDrone,X                   ; (time attack: car 0 the player's, whoever joined)
+    ENDIF
     LDA RcDrone,X
     IF GenPlay
         ORA GmDemo                      ; (F_00D1FA: every car driven, though its flag says not)
@@ -301,6 +310,7 @@ ENDSECTION
 
     STZ RcTornado
     STZ RcBarOn
+IF GenTimeAttack = 0                    ; (time attack: the gates alone, D42)
     LDA RcRace:INC A
 .mod3
     SEC:SBC #3
@@ -318,6 +328,7 @@ ENDSECTION
     JSR tornado_setup
 .calm
     JSR pickups_setup
+ENDIF
     JSR hazards_setup
     LDX #7                              ; each car's sparks' x cleared
 .sparks
@@ -364,11 +375,13 @@ ENDSECTION
     JSR gates_frame
 .@
     STZ RcSlotCount
-    JSR bonus_frame
-    LDA RcCones:BEQ @+
-    JSR cones_frame
-.@
-    JSR wrench_frame
+    IF GenTimeAttack = 0                ; (time attack: no pickups or cones, D42)
+        JSR bonus_frame
+        LDA RcCones:BEQ @+
+        JSR cones_frame
+    .@
+        JSR wrench_frame
+    ENDIF
 
     \\ the cars' control, not once 4 frames have passed since a car finished
 
@@ -390,14 +403,18 @@ ENDSECTION
     JSR drone                           ; (X preserved; in the logic's bank)
 .next
     INX
-    CPX #4:BNE control
+    CPX #Cars:BNE control
 
     \\ the lap events, the first in car order: a car's first frame on lap 3 shows the final lap's banner (once);
     \\ on lap 4 (and none yet), it has won: the banner, the engines off, the countdown (the ST tests each
     \\ against the HUD's shown lap, G_01DFC0, which is always behind at this point: the HUD runs later in
-    \\ the frame than the laps change)
+    \\ the frame than the laps change); time attack has none, its laps endless, and no points, but in the
+    \\ attract mode's demo race, which they end
 
 .events
+    IF GenTimeAttack
+        LDA GmDemo:BEQ pointed
+    ENDIF
     LDX #0
 .event
     LDA RcLaps,X
@@ -420,7 +437,7 @@ ENDSECTION
     BRA evented
 .nextcar
     INX
-    CPX #4:BNE event
+    CPX #Cars:BNE event
 .evented
 
     \\ every 64 frames while no car has finished, 10 points to every car
@@ -518,8 +535,10 @@ ENDSECTION
     LDA RcTornado:BEQ @+
     JSR tornado_cars                    ; F_00F1A8
 .@
-    JSR car_to_car
-    JSR draw_order
+    IF Cars > 1
+        JSR car_to_car
+        JSR draw_order
+    ENDIF
 
     STZ k
 .next
@@ -527,7 +546,7 @@ ENDSECTION
     LDX RcOrder,Y
     JSR collide_car
     INC k
-    LDA k:CMP #4:BNE next
+    LDA k:CMP #Cars:BNE next
     LDA #&FF:STA RcPush
     RTS
 }
