@@ -339,6 +339,9 @@ ENDIF
     LDA #0:JSR banner_start             ; the start's banner
     STZ RcFinished
     STZ RcFinalLap
+    IF GenTimeAttack
+        LDA #1:STA TaLap                ; (the rest of the lap timing 0, from logic_start)
+    ENDIF
     LDA #170:STA RcCountdown
     LDA #1:STA RcFrameLo                ; (the set-up's flips: frames 0 and 1)
     STZ RcFrameHi
