@@ -391,6 +391,10 @@ adds the logic.
   `font_char` into LowFree's top. The brief lists batch 2 and the levers that cost cycles, for when something needs them.
   Now: the `&3000` area 267 free, ANDY 237, the front end's code 34, the objects' bank 34 (track 5). New code for
   between races goes in the screens' files, in `game.6502` (the first 4K) or main RAM.
+- A time attack version (Tom, 2026-11-10): one player, endless laps, a ghost of the best lap, a table and the ghost
+  saved per track, a track menu for a front end; its own disc from the same source. Proposed, not built:
+  `docs/brief-timeattack-2026-11-10.md`, branch `timeattack`. The ghost's room is the cars' bank's three unused car
+  sets (about 8K, ESTIMATED). Tom's notes on it, and its §7 questions, still to come.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
