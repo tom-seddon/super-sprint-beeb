@@ -13,7 +13,7 @@ checkout's (2026-11-09, all 88 in the pack below). `docs/stfiles-sha256.txt` hol
 as made here (2026-11-10, with the clean track dumps): `sha256sum -c docs/stfiles-sha256.txt` checks a set.
 
 `tools/hatari.sh` looks for Hatari at `/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari`. Set `HATARI` to
-run another. Hatari 2.6.1 made all of these. A file is made if it's missing and then kept: a newer tracer or
+run another. Hatari 2.6.1 made all of these (2.5.0 or later is needed: `docs/brief-ci-hatari-2026-11-10.md`). A file is made if it's missing and then kept: a newer tracer or
 `tools/hatari.sh` doesn't make it again (their timestamps are only the last checkout's), so to make one again after
 changing its tracer, delete it.
 
@@ -34,7 +34,7 @@ Sizes are this checkout's (2026-11-09); "needs" says what reads them.
 | `build/trace/logic_tN_rR.json`, `race_tN_rR.json` (R 1, 2, 4, 17, 50) | The race count's hazards on every track | `make logictrace`, `make hazardtrace` | `hazardtrace` 3 hours | 3 GB | `tools/disc_races.sh`, `tools/tracks_check.sh`, `logic4_*` |
 | `build/trace/logic_tN_hCARS.json`, `race_tN_hCARS.json`, `logic_t0_hprobe.json` | Races with two or three humans, steered by `tools/steer_script.py`; the wall probes' race | `tools/human_traces.sh` | 2 hours | 3 GB | `tools/disc_races.sh` |
 | `build/trace/game_NAME.json`, `logic_tN_demoR.json` | Whole games (`tools/game_scripts`), the demo race on every track | `tools/game_traces.sh` | | 8 MB and 0.4 GB | `tools/disc_races.sh`'s `game_check`, `attract_check`, the demos |
-| `build/trace/hatari_*.log`, `obj_*.json` | Hatari's logs and the raw object traces, kept beside the rest | (with the above) | | 3.4 GB | nothing after |
+| `build/trace/w_*/hatari_*.log`, `obj_*.json` | Hatari's logs (with each trace's scripts, in a directory of its own) and the raw object traces | (with the above) | | 3.4 GB | nothing after |
 
 All of it together is about 11 GB here, most of it for the checks. The game's build needs about 89 MB, 2.5 MB packed.
 

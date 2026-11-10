@@ -334,7 +334,10 @@ adds the logic.
   Hatari 2.4.1 makes the same files as the 2.6.1 they were made with here (compare its `stfiles` with these: a
   difference shows as a different disc, or checks failing); whether the suite runs there too. Not built. The
   experiments for an agent on Tom's Linux PC: `docs/brief-ci-hatari-2026-11-10.md`, against
-  `docs/stfiles-sha256.txt` (the 120 files' hashes, made here).
+  `docs/stfiles-sha256.txt` (the 120 files' hashes, made here). Run (2026-11-10, branch `ci-hatari-2026-11-10`):
+  apt's Hatari 2.4.1 can't (its memory dumps break the race and sound tracers: 2.5.0 or later needed); 2.6.1
+  built from source on Linux makes all 120 the same and the discs the same, and the whole suite passes there,
+  with the tracers reading a dump after the debugger's prompt and running in parallel (`make -j16 stfiles` 45 s).
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.

@@ -143,6 +143,24 @@ slower loads showed up there before anyone knew why. Tool gaps only:
   His had it set, he suspects, because the tool writing his disc selected MODE 135, shadow MODE 7, so any machine or
   tool that boots in a shadow mode will do it. Worth a line in `gotchas.md`, and perhaps a way to boot jsbeeb that way.
 
+## Hatari
+
+### The debugger's prompt runs into a quiet breakpoint's first dump
+- **Found** (2026-11-10, Linux Mint 22.3, `docs/brief-ci-hatari-2026-11-10.md`): each breakpoint that isn't a
+  trace enters the debugger loop (`DebugUI()`, `src/debug/debugui.c`), which prints the prompt `> ` and reads
+  stdin, here `/dev/null`. With `:quiet :file`, 2.5.0 and later print nothing between, so the file's first output
+  lands on the prompt's line (`> 0001D30E: 00 51`). Seen in Hatari 2.6.1 built from source with GNU readline and
+  without readline (then `fprintf(stderr, "> ")`, line 916). The Mac's 2.6.1 doesn't (its traces have no lines
+  missing), presumably libedit printing no prompt when stdin isn't a terminal: not checked there.
+- **Here**: the tracers now take a leading `> ` (`7c2e218` on that branch).
+- **Could be**: no prompt when stdin isn't a terminal, or a newline after it before other output. To check
+  first: Hatari's latest release, and the Mac's build (`--parse` with stdin from `/dev/null`).
+
+### 2.4.1's `memdump` prints whole lines (fixed in 2.5.0)
+- `m ADDR N` gives whole 16-byte lines in 2.4.1, the Ubuntu 24.04 package (so GitHub's `ubuntu-latest`); the
+  tracers count the bytes. Fixed upstream in 2.5.0 ("memdump command always outputs only requested number of
+  items", its release notes). Nothing to raise; noted for anyone using a distribution's Hatari.
+
 ## Checked, nothing to raise
 
 - **Rich's projects**: `teddyboy` and `chasehq-beeb` write DDRB `&0F`, but their OS loads are all in
