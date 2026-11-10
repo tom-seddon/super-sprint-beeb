@@ -681,4 +681,5 @@
   BRKV each load puts back. `tools/crash_check.mjs` makes a BRK at the title and in the demo race at a frame showing
   one screen and writing the other (ACCCON `&14`), and reads the screen back; with the ACCCON fix broken in memory it
   finds 3 wrong.
-  The suite: 42 of 42 on agentbox at f0d2009, `crash_check` among them.
+  The suite: 42 of 42 on agentbox at f0d2009, `crash_check` among them. Merged untested on hardware, Tom: "There's
+  not supposed to be any way to hit the BRK handler, so this will get ongoing testing just through general use."

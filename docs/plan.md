@@ -305,7 +305,8 @@ adds the logic.
     the ROMSEL value at all. Do include the git commit in the version number screen. Then any investigation can be
     done offline."): by the time BRKV is called the MOS has paged in the language ROM (Tom), so ROMSEL is gone, and
     `&024A`, its copy of `&F4`, is only right where the game kept `&F4` in step (8 of its 47 ROMSEL writes).
-  - Built as that, with the SN76489's volumes off too, so a crash doesn't leave a tone sounding.
+  - Built as that, with the SN76489's volumes off too, so a crash doesn't leave a tone sounding. Merged untested on
+    hardware (Tom: "this will get ongoing testing just through general use").
 - A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
   loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room.
 - ~~Does the game build from a fresh clone?~~ (Tom, 2026-11-07): yes, done 2026-11-09. `git clone
