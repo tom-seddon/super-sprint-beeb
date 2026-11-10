@@ -307,15 +307,9 @@ adds the logic.
     `&024A`, its copy of `&F4`, is only right where the game kept `&F4` in step (8 of its 47 ROMSEL writes).
   - Built as that, with the SN76489's volumes off too, so a crash doesn't leave a tone sounding. Merged untested on
     hardware (Tom: "this will get ongoing testing just through general use").
-- A README on the disc: what's needed, the keys, installing on a hard disc, that a `*COPY` to another floppy
-  loses the ADFS layout (D32); the credits' text if the credits screen ever goes for room. Tom, 2026-11-10: "I will
-  write this. I think the actual file that goes on the disk image should be generated from a source file, a text
-  file (please create initial placeholder). The build process should form the full file that goes on the disk image
-  by appending a line giving a link to the README.md for the specific commit the build was made from". Built: the
-  source is `disc/README.txt` (a placeholder, for Tom's text); `tools/disc_readme.py` appends the link and ends its
-  lines in CR for `*TYPE`; `tools/make_game.py` puts it on both discs as `README`, last ("so it won't affect the
-  existing seeks": every other file where it was). Still to do: Tom's text, and the same file in the CI's zip
-  ("something for later").
+- ~~A README on the disc~~: off this list, 2026-11-10 (Tom: "Please remove the README from the open items list. I'll
+  track this myself using GitHub issues."). What's built: `disc/README.txt` (his text), `tools/disc_readme.py`
+  appending the link to README.md at the build's commit, `tools/make_game.py` putting it last on both discs.
 - ~~Does the game build from a fresh clone?~~ (Tom, 2026-11-07): yes, done 2026-11-09. `git clone
   --recurse-submodules` then `make game`, nothing by hand: 15 min 14 s on this machine, every ST trace made again
   in Hatari, and the discs byte for byte this checkout's (`game.ssd` 37fd99f7f367a9ff1a9370dd66efd107df2d78a9,
