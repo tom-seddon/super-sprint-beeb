@@ -568,3 +568,15 @@ the 16 facings (COUNTED, `build/ta/car_colours.png`): the green set 11 pixels fr
 car; the yellow set 83 and 29. Tom: "The green set".
 So: time attack keeps the green car's set alone; the player is drawn through `DataWhite`, the ghost, every frame,
 through `DataBlack`. The ghost's room in the cars' bank is about 8,070 bytes (ESTIMATED).
+
+### D38. Time attack's first lap: Decided (2026-11-10)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §3). Proposed: lap 1 a standing start from the grid, timed; the
+ghost starting at each crossing of the line. Tom, 2026-11-10: "The first lap should be a standing start for the
+player. If there's a ghost car, the ghost car should be shown in that lap too. The player will almost certainly fail
+to keep up, but that's OK, and fairly standard for time attack modes. It can give the player a chance to study its
+line if they want."
+So: the ghost starts with the race as well as at each crossing of the line, from its lap's first frame. Every track's
+grid straddles the finish line (COUNTED: the first car's box against checkpoint 4's cells), so lap 1 is a full lap from
+a standstill and the ghost leaves the same line at speed. Lap 1 is timed as any lap, and its record, if it's the best,
+starts from a standstill. A ghost that reaches the line before the player is put away there until the player crosses
+(proposed with it, not yet asked).

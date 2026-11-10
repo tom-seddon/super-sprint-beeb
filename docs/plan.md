@@ -444,6 +444,7 @@ adds the logic.
 | D35 | "Loading" from the boot's start | Agreed (Tom's, 2026-11-09): the boot's shadow screen says it while the files load; on his Master, "Looks much better" |
 | D36 | Time attack's gates | Decided (Tom, 2026-11-10): the ST's schedule, kept; to be revisited after playing it |
 | D37 | Time attack's ghost | Decided (Tom, 2026-11-10): a black car, solid, no flicker; the green set alone, the player through `DataWhite`, the ghost `DataBlack`; to be revisited once running |
+| D38 | Time attack's first lap | Decided (Tom, 2026-11-10): a standing start, timed; the ghost shown from the race's start |
 
 ## Risks
 

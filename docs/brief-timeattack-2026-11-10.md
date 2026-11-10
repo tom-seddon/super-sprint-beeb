@@ -5,7 +5,7 @@
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
 > a couple of notes but nothing significant I don't think. Please create a new branch for this and then write up the
-> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37). Tom, on the answers: "A
+> brief." His notes are still to come; §7's questions are being answered one by one (the gates: D36; the ghost's look: D37; the first lap: D38). Tom, on the answers: "A
 > number of the first pass answers will be slightly speculative, as this version is venturing into the unknown much
 > more so than the initial conversion. But it'll all become clearer as development goes on I think."
 >
@@ -99,8 +99,19 @@ y, elevated after, as the logic orders the cars). The ghost's on-top bit puts it
 see it running." Then, of the one-set ways to colour it: "The green set". If black on the road's checkerboard is hard
 to see, the same set draws it green or yellow (`DataId`, `DataYellow`) at no cost.
 
-**When it starts.** At each crossing of the finish line, with the best lap's first frame, so player and ghost cross
-together. The first lap is a standing start from the grid: timed, but almost never the best (§7).
+**When it starts (D38).** With the race, and again at each crossing of the finish line, from the best lap's first
+frame, so player and ghost start each lap together. Tom, 2026-11-10: "The first lap should be a standing start for the
+player. If there's a ghost car, the ghost car should be shown in that lap too. The player will almost certainly fail to
+keep up, but that's OK, and fairly standard for time attack modes. It can give the player a chance to study its line
+if they want."
+- The grid is on the line: on every track the first car's 16-pixel box straddles the finish's cells (COUNTED, grid x
+  from `tools/logic_maps.py summary` against `docs/st-logic.md` §6's checkpoint 4), and the start's crossing doesn't
+  count (checkpoints 1-3 come first). So lap 1 is a full lap from a standstill, and the ghost leaves the same line at
+  its lap's speed.
+- Lap 1 is timed like any other, and can be the best (and the ghost) if it's the only lap finished; its record starts
+  at the race's first frame, so that ghost starts from a standstill too.
+- A ghost that reaches the line first is put away there until the player crosses (proposed, the usual way; not yet
+  asked).
 
 ## 4. The race
 
@@ -159,7 +170,7 @@ playing it though."
 
 1. ~~The gates~~: the ST's schedule (D36, Tom, 2026-11-10), to be revisited after playing it (§5).
 2. ~~The ghost's look~~: a black car, solid, no flicker, from the green set (D37, Tom, 2026-11-10), to be revisited once running (§3).
-3. The first lap: a standing start, timed; the ghost starts at each crossing of the line (§3).
+3. ~~The first lap~~: a standing start, timed, the ghost shown from the race's start (D38, Tom, 2026-11-10) (§3).
 4. The name: three initials, as the ST's table, or longer.
 5. How many entries a track's table keeps.
 6. Wrecks kept, as the ST's (§4).
