@@ -107,29 +107,33 @@ sheets: convert | $(VENV)
 viewer: convert $(BARON) | $(VENV)
 	$(PY) tools/make_viewer.py
 
+# Each tracer's Hatari scripts and log go in a directory of the trace's own (TRACEDIR: tools/st_trace_logic.py),
+# so make -j can run several at once: build/trace/w_<the trace's name>.
+TRACEDIR = TRACEDIR=$(CURDIR)/build/trace/w_$(basename $(@F))
+
 # The ST's attract race on track 6: the four cars' places and frames, every frame (Hatari, about 15 s).
 build/trace/cars_t5.json: | tools/st_trace_cars.py tools/hatari.sh $(VENV)
 	$(PY) tools/st_trace_cars.py 5 $@
 
 # A real race (Hatari, about 20 s): every object drawing routine's calls logged, then turned into frames.
 build/trace/obj_t%_r$(RACE).json: | tools/st_trace_objects.py tools/hatari.sh $(VENV)
-	VBLS=$(RACEVBLS) $(PY) tools/st_trace_objects.py $* $(RACE) $@ $(if $(FORCE),$(FORCE),-)
+	VBLS=$(RACEVBLS) $(TRACEDIR) $(PY) tools/st_trace_objects.py $* $(RACE) $@ $(if $(FORCE),$(FORCE),-)
 build/trace/race_t%_r$(RACE).json: | tools/st_race.py build/trace/obj_t%_r$(RACE).json $(VENV)
 	$(PY) tools/st_race.py build/trace/obj_t$*_r$(RACE).json $@
 build/trace/obj_t4_r$(RACE)_heli%.json: | tools/st_trace_objects.py tools/hatari.sh $(VENV)
-	$(PY) tools/st_trace_objects.py 4 $(RACE) $@ $(FORCE),heli$*
+	$(TRACEDIR) $(PY) tools/st_trace_objects.py 4 $(RACE) $@ $(FORCE),heli$*
 build/trace/race_t4_r$(RACE)_heli%.json: | tools/st_race.py build/trace/obj_t4_r$(RACE)_heli%.json $(VENV)
 	$(PY) tools/st_race.py build/trace/obj_t4_r$(RACE)_heli$*.json $@
 
 # A race's logic (Phase 4, D9; Hatari, about 30 s): the blue car driven by tools/logic_scripts/tN.json (track
 # index N), every per-car variable, input and random number, every frame, race 0. `make logictrace`: track 1.
 build/trace/logic_t%_r0.json: | tools/st_trace_logic.py tools/hatari.sh tools/logic_scripts/t%.json $(VENV)
-	$(PY) tools/st_trace_logic.py $* 0 tools/logic_scripts/t$*.json $@
+	$(TRACEDIR) $(PY) tools/st_trace_logic.py $* 0 tools/logic_scripts/t$*.json $@
 # race 17's logic on track N (step 11, then every track): accelerate held, the tornado and cones forced, the
 # renderer's own race (race_tN_r17.json) from the logic's side; 14,000 VBLs (about 5 minutes), as the longest races
 # outrun the tracer's default 6,000
 build/trace/logic_t%_r$(RACE).json: | tools/st_trace_logic.py tools/hatari.sh $(VENV)
-	VBLS=$(RACEVBLS) $(PY) tools/st_trace_logic.py $* $(RACE) - $@ $(FORCE)
+	VBLS=$(RACEVBLS) $(TRACEDIR) $(PY) tools/st_trace_logic.py $* $(RACE) - $@ $(FORCE)
 logictrace: build/trace/logic_t0_r0.json $(foreach t,0 1 2 3 4 5 6 7,build/trace/logic_t$(t)_r$(RACE).json)
 # Phase 5, step 4: the race count's hazards on every track, for tools/disc_races.sh: race 1 none, 2 the barriers, 4
 # the tornado (forced), 50 the counter's end, all forced, each race's logic and draw calls. (Race 17 is the rule
@@ -158,13 +162,13 @@ build/logic.ssd: $(wildcard src/*.6502) build/lgen/tables.6502 build/lgen/sound.
 # The race's sound (step 10, D11): the ST's sound captured in Hatari (about 40 s each: the logic race, it with
 # oil poked across the start, the hazard race), and the effects cut from them and converted for the SN76489.
 build/trace/sound_t0_r0.json: | tools/st_trace_sound.py tools/hatari.sh tools/logic_scripts/t0.json $(VENV)
-	$(PY) tools/st_trace_sound.py 0 0 $@ - tools/logic_scripts/t0.json
+	$(TRACEDIR) $(PY) tools/st_trace_sound.py 0 0 $@ - tools/logic_scripts/t0.json
 build/trace/sound_t0_r0_oil.json: | tools/st_trace_sound.py tools/hatari.sh tools/logic_scripts/t0.json $(VENV)
-	$(PY) tools/st_trace_sound.py 0 0 $@ oil tools/logic_scripts/t0.json
+	$(TRACEDIR) $(PY) tools/st_trace_sound.py 0 0 $@ oil tools/logic_scripts/t0.json
 build/trace/sound_t6_r$(RACE).json: | tools/st_trace_sound.py tools/hatari.sh $(VENV)
-	$(PY) tools/st_trace_sound.py 6 $(RACE) $@ $(FORCE)
+	$(TRACEDIR) $(PY) tools/st_trace_sound.py 6 $(RACE) $@ $(FORCE)
 build/trace/sound_t4_r$(RACE)_hz.json: | tools/st_trace_sound.py tools/hatari.sh $(VENV)
-	$(PY) tools/st_trace_sound.py 4 $(RACE) $@ $(FORCE)
+	$(TRACEDIR) $(PY) tools/st_trace_sound.py 4 $(RACE) $@ $(FORCE)
 SOUNDCAPS = build/trace/sound_t0_r0.json build/trace/sound_t6_r$(RACE).json build/trace/sound_t0_r0_oil.json
 build/lgen/sound.6502: tools/sound_gen.py tools/ay2sn.py $(SOUNDCAPS) | $(VENV)
 	@mkdir -p build/lgen
@@ -180,7 +184,7 @@ logiccheck: build/logic.ssd $(LOGICDRAWS)
 # The same race's draw calls from the ST (Hatari, about 40 s): the renderer's model for it, and the draw
 # calls the BBC's logic must make (tools/logic_draws.mjs).
 build/trace/race_t0_r0_script.json: | tools/st_trace_objects.py tools/st_race.py tools/hatari.sh tools/logic_scripts/t0.json $(VENV)
-	$(PY) tools/st_trace_objects.py 0 0 build/trace/obj_t0_r0_script.json - tools/logic_scripts/t0.json
+	$(TRACEDIR) $(PY) tools/st_trace_objects.py 0 0 build/trace/obj_t0_r0_script.json - tools/logic_scripts/t0.json
 	$(PY) tools/st_race.py build/trace/obj_t0_r0_script.json $@
 
 # The renderer test's data, and its disc, assembled by $(BARON). $(GEN)/tracefile names the trace the
@@ -221,7 +225,7 @@ version:
 
 # The front end's tunes (Phase 5, step 9, D11): captured whole on the ST (about 35 s, in Hatari), converted and packed.
 build/trace/tunes.json: | tools/st_trace_tunes.py tools/hatari.sh $(VENV)
-	$(PY) tools/st_trace_tunes.py $@
+	$(TRACEDIR) $(PY) tools/st_trace_tunes.py $@
 $(GEN)/tunes_fixed.bin: tools/tune_gen.py tools/sound_gen.py tools/ay2sn.py build/trace/tunes.json | build/zx02 $(VENV)
 	mkdir -p $(GEN)
 	$(PY) tools/tune_gen.py build/trace/tunes.json $(GEN)

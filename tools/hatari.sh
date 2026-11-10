@@ -5,10 +5,13 @@
 set -e
 cd "$(dirname "$0")/.."
 HATARI=${HATARI:-/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari}   # (elsewhere: HATARI=...)
-mkdir -p build/stdisk
-cp -R orig/st/. build/stdisk/   # orig/st/. not orig/st/: GNU cp copies the directory itself for the latter
+# The game's files copied for this run alone (so several can run at once), and removed after.
+mkdir -p build
+disk=$(mktemp -d build/stdisk.XXXXXX)
+trap 'rm -rf "$disk"' EXIT
+cp -R orig/st/. "$disk/"   # orig/st/. not orig/st/: GNU cp copies the directory itself for the latter
 limit=$1; shift
-SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy exec perl -e 'alarm shift; exec @ARGV' "$limit" "$HATARI" \
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy perl -e 'alarm shift; exec @ARGV' "$limit" "$HATARI" \
     --confirm-quit no --alert-level fatal --sound off --fast-forward on --statusbar off \
     --machine st --memsize 1024 --tos orig/tos104uk-english-06-04-1989.img \
-    -d build/stdisk --protect-hd on "$@" < /dev/null
+    -d "$disk" --protect-hd on "$@" < /dev/null
