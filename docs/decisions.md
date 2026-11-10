@@ -551,3 +551,15 @@ strategic about how they time crossing the line. I may end up having to change m
 though."
 So: tracks 3, 5 and 8 keep their gates, on the ST's schedule from the race's start, as in the game. The ghost, drawn
 from its recorded positions, isn't affected by them. Revisited once Tom has played it.
+
+### D37. Time attack's ghost car: Decided (2026-11-10), to be revisited once running
+Time attack (`docs/brief-timeattack-2026-11-10.md` §3). Proposed: solid, in green, yellow or black, or flickering at
+25 Hz. Tom, 2026-11-10: "I think use the black car. I'm not very keen on the idea of flicker. Again, this may have to
+change once I see it running." And on all the first answers: "A number of the first pass answers will be slightly
+speculative, as this version is venturing into the unknown much more so than the initial conversion. But it'll all
+become clearer as development goes on I think."
+So: the ghost is drawn every frame from the drone-driven set through `DataBlack`, as car 3 is in a race. That's a
+second car set in the cars' bank (about 2,570 bytes, ESTIMATED): the brief had counted on one, but a data table
+recolours only a frame's value-1 pixels and the white car's body is value 3 (`tools/gendata.py`), so the player's own
+frames can't be drawn black. The ghost's room is about 5,500 bytes, not 8,070 (ESTIMATED). If that's wanted back, a
+256-byte table drawing the player's frames' white as black would do, with the outline lost in the body.

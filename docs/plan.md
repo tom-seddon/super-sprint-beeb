@@ -393,8 +393,8 @@ adds the logic.
   between races goes in the screens' files, in `game.6502` (the first 4K) or main RAM.
 - A time attack version (Tom, 2026-11-10): one player, endless laps, a ghost of the best lap, a table and the ghost
   saved per track, a track menu for a front end; its own disc from the same source. Proposed, not built:
-  `docs/brief-timeattack-2026-11-10.md`, branch `timeattack`. The ghost's room is the cars' bank's three unused car
-  sets (about 8K, ESTIMATED). Tom's notes on it, and its §7 questions, still to come.
+  `docs/brief-timeattack-2026-11-10.md`, branch `timeattack`. The ghost's room is the cars' bank's two unused car
+  sets (about 5.5K, ESTIMATED; the ghost is the black car, D37). Tom's notes on it, and its §7 questions, still to come.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
@@ -443,6 +443,7 @@ adds the logic.
 | D34 | The score pickups' digits | Agreed (Tom, 2026-11-08): black on the yellow box, seen on his CRT |
 | D35 | "Loading" from the boot's start | Agreed (Tom's, 2026-11-09): the boot's shadow screen says it while the files load; on his Master, "Looks much better" |
 | D36 | Time attack's gates | Decided (Tom, 2026-11-10): the ST's schedule, kept; to be revisited after playing it |
+| D37 | Time attack's ghost | Decided (Tom, 2026-11-10): the black car (the drone-driven set), solid, no flicker; to be revisited once running |
 
 ## Risks
 
