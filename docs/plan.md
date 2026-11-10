@@ -324,6 +324,15 @@ adds the logic.
   start over ssh), the build's ST files packed here (`make build/stfiles.tar.gz`, 2.5 MB) and unpacked in a fresh
   clone build the same discs, in 1 min 8 s, with `HATARI=/usr/bin/false`: `docs/st-traces.md`, which also lists
   every ST file, what makes it and what reads it. Not tried: Linux; Windows not supported for now (Tom).
+- A GitHub Actions build (Tom, 2026-11-10): "a GitHub Actions setup that builds the game and creates a zip file
+  with the .adl and .ssd files in it. The zip file and disk images inside it should be named with commit time and
+  date (in UTC) as well as the part of the commit hash shown in-game, so that it's easier to check which is the
+  newer version if you end up with multiple copies." Names like `super-sprint-20261110-1432-e6e28.zip` (Tom: "The
+  name format is fine"). The build reads the ST's files Hatari makes (`docs/st-traces.md`), which aren't in the
+  repository, so the runner makes them: Tom, "There's an apt-get package for hatari 2.41, so in principle it might be
+  possible to run on the CI server and generate the files there" (about 12 minutes from nothing). Open: whether
+  Hatari 2.4.1 makes the same files as the 2.6.1 they were made with here (compare its `stfiles` with these: a
+  difference shows as a different disc, or checks failing); whether the suite runs there too. Not built.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
