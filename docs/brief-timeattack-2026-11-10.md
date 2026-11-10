@@ -182,6 +182,10 @@ playing it though."
       upgrades). No scrolling, and the screen can be one packed picture, the maps in place, with the text drawn
       over. In 32 rows, rows of 56 lines with a title and a line of keys; in 26, rows of 52, no title, the maps all
       but touching.
+      A map (75 to 80 pixels) and 10 characters (80) fill a 160-pixel column, so a 10-character name runs into the
+      right-hand column's map, no gap (`build/ta/menu_a32_w.png`, every name `WWWWWWWWWW`). Nine characters leave
+      a character's gap (`build/ta/menu_a32_9.png`); the name under the map, the time and upgrades beside it, fits
+      10 but leaves 2 lines between rows and no line of keys (`build/ta/menu_a32_under.png`).
     - **B, a scrolling list**: a row a track, the map then the text (track and time, name, the upgrades in words),
       five rows shown in 32 rows (four in 26), the list moved a row at a time; each map packed on its own (about 300
       bytes, ESTIMATED) and drawn as its row comes into view, on the screen not shown, then flipped. Room for words,
