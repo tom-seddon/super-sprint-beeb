@@ -332,7 +332,9 @@ adds the logic.
   repository, so the runner makes them: Tom, "There's an apt-get package for hatari 2.41, so in principle it might be
   possible to run on the CI server and generate the files there" (about 12 minutes from nothing). Open: whether
   Hatari 2.4.1 makes the same files as the 2.6.1 they were made with here (compare its `stfiles` with these: a
-  difference shows as a different disc, or checks failing); whether the suite runs there too. Not built.
+  difference shows as a different disc, or checks failing); whether the suite runs there too. Not built. The
+  experiments for an agent on Tom's Linux PC: `docs/brief-ci-hatari-2026-11-10.md`, against
+  `docs/stfiles-sha256.txt` (the 120 files' hashes, made here).
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.

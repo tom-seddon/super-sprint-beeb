@@ -9,7 +9,8 @@ the original's files, by the tools here. That includes the models the render che
 (`build/trace/logic_tN_room.json`, made by `tools/all_tracks.sh`).
 
 Hatari's runs are deterministic. A fresh clone's files, all made again in Hatari, were the same byte for byte as this
-checkout's (2026-11-09, all 88 in the pack below).
+checkout's (2026-11-09, all 88 in the pack below). `docs/stfiles-sha256.txt` holds the hashes of the pack's 120 files
+as made here (2026-11-10, with the clean track dumps): `sha256sum -c docs/stfiles-sha256.txt` checks a set.
 
 `tools/hatari.sh` looks for Hatari at `/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari`. Set `HATARI` to
 run another. Hatari 2.6.1 made all of these. A file is made if it's missing and then kept: a newer tracer or
