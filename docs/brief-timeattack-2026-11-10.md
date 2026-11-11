@@ -429,5 +429,7 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      478), loaded back after a boot and drawn from the start, saved over when beaten, not by a demo race (one making a
      new ghost); 4 spoilt files refused; a read-only disc's error said once ("Disc read only - press a key"); ADFS
      too. The game's discs the same but for the README's commit link, every track's build byte for byte.
-6. **The front end.** The menu, the upgrades, the name; checks driven key by key as the screens' are now.
+6. **The front end.** The menu, the upgrades, the name; checks driven key by key as the screens' are now. No attract
+   mode or demo race (D51): what only the demo needed goes (the drones and their path, the demo's lap events, `GhNew`'s
+   `GmDemo` test).
 7. **Close**: the variant's suite, both discs, Tom's Master.

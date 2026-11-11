@@ -714,3 +714,12 @@ Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Proposed with D48 and D
 save, if any), back to the track's screen, not the menu, the new entry lit. Tom, 2026-11-10: "Yes".
 So: Escape, the name if the race made the table (D49), the save if something changed, then the track's screen with the
 upgrades as last picked; Return races again, Escape goes to the menu.
+
+### D51. Time attack has no attract mode: Decided (2026-11-11)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Until step 6 its races start from the game's front end, whose
+attract mode runs a demo race; step 5a kept a demo's laps from being saved and let a demo show the track's ghost. Tom,
+2026-11-11: "Regarding the attract mode demo race, I like the idea, but don't worry about this - the simplified front
+end will be just the menu screens, with no attract sequence and therefore no demo race."
+So: time attack's front end is the menu, the track's screen and the name (D44, D48, D49), nothing between; no title,
+credits, high scores or demo. What only the demo needs goes with the game's front end at step 6: the drones and their
+path (kept at step 3c for it), the demo's lap events (`race.6502`), `GhNew`'s test of `GmDemo` (`ghost.6502`).
