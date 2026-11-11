@@ -471,6 +471,26 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      menu. Any player's keys drive the car (D53). The game's screens' files (attract, title, select,
      upgrades, circle, prepare) off the disc, the drones and the demo's code out; the table loaded once at the boot
      and kept (nothing parked over it now). Tried on Tom's Master.
+     **Done but the drones** (2026-11-11, to be tried on Tom's Master; `docs/img/timeattack-menu-6b.png`):
+     `src/tagame.6502` in place of `game.6502` (its image in the fourth bank's first 4K, copied up by `game_go` as
+     before): after a race, or at the boot, the title's file (`TRACKF`) is loaded first, so the save's at that load's
+     start (the ghost, `TIMES`, and `SCORES`'s keys and sound), its pictures unused; then the menu, black, `TIME
+     ATTACK` and 8 rows of `TRACK n` and the track's best (`ta_track_best` reads the table in the cars' bank, main
+     RAM's), in the small font (`front_glyph`), a block marking the highlighted track (`GmTrack`, so it stays after
+     a race). Keys act once each press: 1-8 race that track, Return the highlighted one, any player's left and right
+     move it, round from 8 to 1 (D52); a number or Return first. Any player's keys drive the car (`logic_frame` ORs
+     the three players' inputs into car 0's, D53). The select, upgrades, circle, prepare and options files left out
+     of time attack's build (16 files on the disc, 88,064 bytes; were 21, 125,696), and front.6502's prepare and
+     park code; the table is loaded at every load (the menu's file's and a track's), not yet once at the boot. The
+     drones and the demo's code are still in: next, a small piece of their own.
+     MEASURED: the first 4K 168 to 2,634 bytes free, the front end's code 34 to 290, main RAM's code 472 to 444.
+     `tools/ta_menu_check.mjs` (not yet in the suite): from the boot, track 1 marked; any player's left and right
+     move the mark (a key held 40 fields: once; round from 1 to 8 and back); 3 races track 3, player 2's accelerate
+     drives, Escape back with `TIMES` saved and its row alone showing a time, the mark on it; Return races the
+     marked track; 5, made player 1's right too, races track 5. `ta_save_check` (its demo case gone, D51),
+     `ta_table_check` and `ta_ghost_check` still pass, waiting for the menu in the background's bank (its address
+     alone is reached in the ADFS ROM while it boots). The game's discs the same but for the README's commit link,
+     every track's build byte for byte.
    - **6c, 32 rows**: the front end's screen 32 rows, the race's 26 (D46): the CRTC switched with the palette black,
      and Shared (the `&3000` area's read-only data, which a 32-row screen overwrites) put back before each race from
      a packed copy in a bank. Checked as `boot_check`/`flash_check` do, field by field.

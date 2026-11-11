@@ -712,3 +712,7 @@
   it; no attract mode or demo race in time attack's front end (D51).
   Step 5b: the table, 10 entries a track in the cars' bank, a race's best entered as it ends, saved as `TIMES` with
   a sum when changed, loaded with each track until step 6; `tools/ta_table_check.mjs` against a model.
+  Step 6 planned in pieces, Tom's answers D52-D54 (the driving keys and 1-8 on the menu, any player's keys drive,
+  a simplified options screen). 6a: the tornado's frames out of the objects' bank (3,584 bytes). 6b: `tagame.6502`,
+  a plain menu in place of the game's front end, the game's other screens off time attack's disc;
+  `tools/ta_menu_check.mjs` drives it key by key.

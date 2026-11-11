@@ -1,0 +1,250 @@
+\\ tagame.6502 - time attack's game around the race (docs/brief-timeattack-2026-11-10.md §8, step 6b; D51-D53), in
+\\ place of game.6502: kept as its image is, in the fourth bank's first 4K, and copied by game_go to GameOrg in the
+\\ background's bank, beside front.6502, when a race ends or after a file's load.
+\\
+\\ No attract mode (D51): the menu, the 8 tracks a row each with the track's best (the table, tatable.6502), the
+\\ highlighted one marked. The driving keys (any player's, left and right) move the highlight, 1-8 race that track,
+\\ Return the highlighted one (D52). For now in the race's MODE 1 and the small font (front.6502's front_glyph);
+\\ step 6c gives it 32 rows, 6d its picture.
+\\
+\\ After a race the title's file (TRACKF) is loaded before the menu: the load's start saves what the race changed
+\\ (timeattack.6502's ta_save, and SCORES's keys and sound, save.6502), so a record's on the disc before the menu's
+\\ shown. Its pictures go unused.
+
+SECTION GameScratch
+.GsFields                               ; fields' count
+    SKIP 1
+.GsVsync                                ; the field a field's wait began
+    SKIP 1
+.TgLast                                 ; the menu's key last seen (tg_key's), so a held key acts once
+    SKIP 1
+ENDSECTION
+
+TgRow0 = 40                             ; the menu's first row's line, and the rows' spacing
+TgRowStep = 16
+TgTextX = 112                           ; "TRACK n"'s pixel across,
+TgTimeX = 172                           ; the time's,
+TgMarkCol = 24                          ; and the highlight's byte column
+GlyphPoint = 10                         ; the small font's glyphs (tools/screens.py): 0-9, the point, then A-Z
+GlyphA = 12
+FUNCTION Gl(c) = GlyphA + c - 'A'
+
+\\ From the frame loop (game_go): a race just ended, or a file's load. The stack is empty, the main screen shown and
+\\ written, this bank and ANDY paged in.
+
+.game_resume
+{
+    LDA GmFront:CMP #'F':BEQ menu       ; (a track's load, or the boot's: the title's file first, the save in its load)
+    LDA #'F' - '0':STA LoadWant
+    JMP load_go                         ; (back here through game_go)
+.menu
+    STZ GmDemo:STZ GmAbandon:STZ GmStage:STZ GmPicture
+    JSR say_clear
+    LDA acccon:STA fshadow              ; (front_glyph: the main screen, shown)
+    LDA #8:STA fy                       ; the heading
+    LDA #LO(160 - 6 * (HeadingEnd - Heading) DIV 2):STA fx
+    STZ fx+1
+    LDX #0
+.heading
+    LDA Heading,X
+    PHX
+    JSR front_glyph
+    LDA #6:JSR front_across
+    PLX
+    INX
+    CPX #HeadingEnd - Heading:BNE heading
+    LDX #7
+.rows
+    PHX
+    JSR tg_row
+    PLX
+    DEX
+    BPL rows
+    LDA #&FF:JSR tg_mark                ; the highlight
+    JSR tg_key:STA TgLast               ; (anything held as the menu comes up acts only once it's let go)
+
+    \\ each field: a key newly down acts
+
+.idle
+    LDA LoadWant:BEQ @+                 ; (a test's race: tools/ta_*_check.mjs)
+    JMP load_go
+.@
+    JSR tg_key
+    CMP TgLast:BEQ wait
+    STA TgLast
+    CMP #0:BEQ wait
+    CMP #9:BCC number
+    BEQ race                            ; (9: Return)
+    PHA
+    LDA #0:JSR tg_mark                  ; left or right: the highlight moved
+    PLA
+    CMP #10:BNE right
+    LDA GmTrack:DEC A
+    BRA moved
+.right
+    LDA GmTrack:INC A
+.moved
+    AND #7:STA GmTrack
+    LDA #&FF:JSR tg_mark
+.wait
+    LDA #1:JSR fields
+    BRA idle
+.number
+    DEC A:STA GmTrack                   ; (1-8)
+.race
+    LDA GmTrack:INC A:STA LoadWant
+    JMP load_go
+}
+
+.Heading                                ; TIME ATTACK
+    EQUB Gl('T'), Gl('I'), Gl('M'), Gl('E'), 38, Gl('A'), Gl('T'), Gl('T'), Gl('A'), Gl('C'), Gl('K')
+.HeadingEnd
+.TrackText                              ; TRACK
+    EQUB Gl('T'), Gl('R'), Gl('A'), Gl('C'), Gl('K')
+.TrackTextEnd
+
+\\ Track X's row: TRACK n and its best (none: nothing), as seconds and hundredths, " 9.56", to 99.98.
+\\
+\\ Inputs: X: the track; the table. A, X, Y corrupted.
+
+.tg_row
+{
+    STX tg_track
+    TXA:ASL A:ASL A:ASL A:ASL A         ; its line: TgRow0 + track * TgRowStep
+    CLC:ADC #TgRow0:STA fy
+    LDA #TgTextX:STA fx
+    STZ fx+1
+    LDX #0
+.text
+    LDA TrackText,X
+    PHX
+    JSR front_glyph
+    LDA #6:JSR front_across
+    PLX
+    INX
+    CPX #TrackTextEnd - TrackText:BNE text
+    LDA #6:JSR front_across
+    LDA tg_track:INC A:JSR front_glyph
+    LDX tg_track
+    JSR ta_track_best                   ; (timeattack.6502's: from the cars' bank)
+    STA fs:STY fs+1
+    ORA fs+1:BEQ done                   ; (none)
+    LDA #TgTimeX:STA fx
+    LDA fs:CMP #LO(TaMaxFrames + 1)     ; (at most 99.98)
+    LDA fs+1:SBC #HI(TaMaxFrames + 1)
+    BCC @+
+    LDA #LO(TaMaxFrames):STA fs
+    LDA #HI(TaMaxFrames):STA fs+1
+.@
+    LDX #2:JSR front_digit:BEQ tens     ; tens of seconds (500 fields), blank if 0
+    JSR front_glyph
+.tens
+    LDA #6:JSR front_across
+    LDX #1:JSR front_digit:JSR front_glyph  ; seconds (50)
+    LDA #6:JSR front_across
+    LDA #GlyphPoint:JSR front_glyph
+    LDA #6:JSR front_across
+    LDX #0:JSR front_digit:JSR front_glyph  ; tenths (5)
+    LDA #6:JSR front_across
+    LDA fs:ASL A:JSR front_glyph        ; hundredths: the fields left, 2 each
+.done
+    RTS
+}
+.tg_track
+    EQUB 0
+
+\\ The highlight's mark, a block left of GmTrack's row: A &FF drawn, 0 cleared.
+\\
+\\ Inputs: A; GmTrack. A, X, Y corrupted.
+
+.tg_mark
+{
+    STA tg_ink
+    LDA GmTrack:ASL A:ASL A:ASL A:ASL A
+    CLC:ADC #TgRow0:STA fy
+    LDA #6:STA tg_lines
+.line
+    LDA #TgMarkCol:JSR front_line
+    LDA tg_ink:STA (fp)
+    INC fy
+    DEC tg_lines
+    BNE line
+    RTS
+}
+.tg_ink
+    EQUB 0
+.tg_lines
+    EQUB 0
+
+\\ The menu's key now: 1-8 a number key, 9 Return, 10 left, 11 right (any player's driving keys, D52), 0 none. A
+\\ number or Return first, so a driving key that's one of them is that.
+\\
+\\ Inputs: none. Outputs: A. X, Y corrupted.
+
+.tg_key
+{
+    LDX #8
+.number
+    LDA TgKeys,X:JSR key_down:BMI found
+    DEX
+    BPL number
+    LDY #8
+.driving
+    LDA PlayerKeys,Y:JSR key_down:BPL next
+    LDX #10                             ; (left)
+    TYA:CMP #0:BEQ steer
+    CMP #3:BEQ steer
+    CMP #6:BEQ steer
+    INX                                 ; (right)
+    CMP #1:BEQ steer
+    CMP #4:BEQ steer
+    CMP #7:BEQ steer
+.next
+    DEY
+    BPL driving
+    LDA #0
+    RTS
+.steer
+    TXA
+    RTS
+.found
+    INX:TXA                             ; (1-9)
+    RTS
+}
+.TgKeys                                 ; 1-8 and Return (tools/screens.py's matrix: row * 16 + column, measured)
+    EQUB 48, 49, 17, 18, 19, 52, 36, 21, 73
+
+\\ A fields gone by, the tune's rings fed meanwhile (as game.6502's).
+
+.fields
+{
+    STA GsFields
+.field
+    LDA vsyncs:STA GsVsync
+    JSR tune_feed                       ; (the tune's rings: front.6502)
+    LDA GsVsync
+.wait
+    CMP vsyncs:BEQ wait
+    DEC GsFields
+    BNE field
+    RTS
+}
+
+\\ The screen black, and the display on (as game.6502's).
+
+.say_clear
+{
+    LDA #HI(HudAddr):STA row+2
+    LDX #HI(&8000 - HudAddr)
+    LDA #0:TAY
+.row
+    STA HudAddr,Y                       ; self-modified: the page
+    INY
+    BNE row
+    INC row+2
+    DEX
+    BNE row
+    LDA #8:STA &FE00                    ; CRTC: R8
+    LDA #&C0:STA &FE01                  ; display on, cursor off (a file's load left it off)
+    RTS
+}

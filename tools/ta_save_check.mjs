@@ -7,9 +7,6 @@
 //   bytes the file's; left with no new ghost: nothing written;
 // - beaten: on that machine the ghost's time poked longer (5,000 frames) as the race starts, so lap 1 beats it:
 //   GHOST1 written again, its time lap 1's;
-// - demo: the attract mode's demo races, on the saved disc, to one on track 1 and its end, its ghost's time poked
-//   longer after the start so a lap of it is a new ghost: none written (a demo's laps are never saved), the saved
-//   ghost drawn in it;
 // - spoilt: the saved disc with GHOST1 a byte short, its head's bytes one more, its time 0, or its length more
 //   than a buffer holds: no ghost (the HUD's time 0, nothing drawn but the car);
 // - read only: the disc write-protected, a ghost made and the race left: the OS's error in the HUD's row with
@@ -33,6 +30,15 @@ const Adfs = 8000000;
 let wrong = 0;
 const say = (t) => { console.log(t); wrong++; };
 
+// to the menu's wait in the background's bank (its address alone is reached in ROMs too, during a boot)
+async function toMenu(s) {
+    const cpu = s._machine.processor;
+    for (;;) {
+        await runToAny(s, [[syms["game_resume.idle"]]], 400000000);
+        if ((cpu.romsel & 15) === s.readMemory(syms.bankbg, 1)[0]) return;
+        await s.runFor(1000);
+    }
+}
 async function boot(disc, writeable = true, model = "Master", hold = undefined) {
     const s = await bootDisc(disc, model, hold);
     const cpu = s._machine.processor;
@@ -48,7 +54,7 @@ async function boot(disc, writeable = true, model = "Master", hold = undefined) 
         else if (pc === syms["load_track.waitkey"]) log.said = log.text;
         return false;
     });
-    await runToAny(s, [[syms["game_resume.idle"]]], 400000000);
+    await toMenu(s);
     const m = { s, cpu, peek, log, bankbg: peek(syms.bankbg), bt: peek(syms.banktrace), disc: () => cpu.fdc.drives[0].disc };
     if (!writeable) m.disc().isWriteable = false;
     return m;
@@ -127,26 +133,6 @@ if (!r.end.news || ghostSaves(m).join() !== "GHOST1") say(`beaten: the saves ${g
 else if (!f || (f.data[0] | (f.data[1] << 8)) !== r.end.time || r.end.time >= 5000) say(`beaten: GHOST1's time not lap 1's, ${r.end.time}`);
 const beaten = r.end.time;
 
-// demo: the attract mode left alone until a demo race on track 1, then to its end
-m = await boot(`${Out}/saved.ssd`);
-let demoCars = 0, demos = 0, demoTime = 0;
-for (let i = 0; i < 40 && !demoCars; i++) {
-    m.log.saves = [];
-    await runTo(m.s, syms.start, 2000000000);
-    if (!m.peek(syms.GmDemo)) continue;
-    demos++;
-    const track = m.peek(syms.TrackNum);
-    await runTo(m.s, syms["frame_loop.objects"], 40000000);
-    if (track === 0) demoCars = m.peek(syms.CarCount);
-    m.s.writeMemory(syms.TaGhostLo, [5000 & 255, 5000 >> 8]);    // (so its first lap is a new ghost)
-    await runTo(m.s, syms.load_go, 120 * 50 * 39936);
-    demoTime = word(m, syms.TaGhostLo);
-    await toIdle(m);
-    if (m.log.saves.some((n) => n.startsWith("GHOST"))) say(`demo: ${ghostSaves(m).join()} saved by a demo race`);
-    if (demoTime >= 5000) say(`demo: no new ghost in the demo race (its time ${demoTime})`);
-}
-if (demoCars !== 2) say(`demo: track 1's demo race (of ${demos}) drew ${demoCars} cars at its start, not 2 (the car and the saved ghost)`);
-
 // spoilt
 const at = discFiles(saved).GHOST1.data.byteOffset, entry = discFiles(saved).GHOST1.entry;
 const spoil = {
@@ -183,9 +169,9 @@ m.s.keyDown("ShiftLeft");
 m.s.reset(true);
 await m.s.runFor(Adfs);
 m.s.keyUp("ShiftLeft");
-await runToAny(m.s, [[syms["game_resume.idle"]]], 400000000);
+await toMenu(m.s);
 r = await race(m, 50);
 if (r.first.time !== timeA || r.first.cars !== 2) say(`ADFS: booted again, the start's time ${r.first.time} and ${r.first.cars} cars, not ${timeA} and 2`);
 
-console.log(wrong ? `${wrong} wrong` : `GHOST1 saved once a ghost (${file1.length} bytes, time ${time1}), loaded back and drawn from the start, saved over when beaten (time ${beaten}), not by a demo (of ${demos}, its new ghost ${demoTime}); 4 spoilt files refused; a read-only disc's error said once ("${text}"); ADFS too`);
+console.log(wrong ? `${wrong} wrong` : `GHOST1 saved once a ghost (${file1.length} bytes, time ${time1}), loaded back and drawn from the start, saved over when beaten (time ${beaten}); 4 spoilt files refused; a read-only disc's error said once ("${text}"); ADFS too`);
 process.exit(wrong ? 1 : 0);

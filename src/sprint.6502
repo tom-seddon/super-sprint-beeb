@@ -55,7 +55,11 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
 .loadcode_end
 .game_image                             ; (and the game's, copied to the background's bank to run: load.6502)
                 SECTION GameCode, org = GameOrg, guard = GameScratchOrg, cmos = TRUE
-                    INCLUDE "game.6502"
+                    IF GenTimeAttack
+                        INCLUDE "tagame.6502"   ; (time attack's: its menu, D51)
+                    ELSE
+                        INCLUDE "game.6502"
+                    ENDIF
                 ENDSECTION
 .game_end
                 PRINT "the first 4K: ", AndyOrg + &1000 - P%, " bytes free"
@@ -156,6 +160,7 @@ SECTION FrontFile, filename = "TRACKF", load = &FFFF0000+TrackFileAddr
     ENDSECTION
 ENDSECTION
 
+IF GenTimeAttack = 0                    ; (time attack: none of the game's screens but the title's file, D51)
 \\ Prepare to race's: its picture and panels, loaded over the rest (a race has overwritten them anyway)
 
 SECTION PrepareFile, filename = "TRACKP", load = &FFFF0000+TrackFileAddr
@@ -274,6 +279,7 @@ SECTION OptionsFile, filename = "TRACKO", load = &FFFF0000+TrackFileAddr
         PRINT "the options' file: ", GameScratchOrg - P%, " bytes free"
     ENDSECTION
 ENDSECTION
+ENDIF
 ENDIF
 
 \\ SPRINT loads at &3000, below the OS's MODE 7 screen; its loader (entry.6502) runs from its end and copies

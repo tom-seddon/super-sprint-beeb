@@ -64,7 +64,8 @@ What the skills look up, for this project:
   from its tracks' builds in `build/tracks_ta` (`tools/all_tracks.sh ta`). The game's build stays byte for byte.
   Its ghost is `src/ghost.6502`; `node tools/ta_ghost_check.mjs` checks it every frame and
   `node tools/ta_save_check.mjs` its files, `GHOST1`-`GHOST8`; its table is `src/tatable.6502`, saved as `TIMES`,
-  checked by `node tools/ta_table_check.mjs` (none of the three yet in the suite); the races driven by
+  checked by `node tools/ta_table_check.mjs`; its menu `src/tagame.6502` (in `game.6502`'s place), checked by
+  `node tools/ta_menu_check.mjs` (none of the four yet in the suite); the races driven by
   `tools/ta_pilot.mjs`, an autopilot along the drones' path.
 - **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes
   `build/sprint.ssd`, the listing `build/sprint.lst` (each bank's free bytes are printed in it) and the

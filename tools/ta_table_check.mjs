@@ -27,6 +27,15 @@ const N = 80, Len = syms.TaTableLen;
 let wrong = 0;
 const say = (t) => { console.log(t); wrong++; };
 
+// to the menu's wait in the background's bank (its address alone is reached in ROMs too, during a boot)
+async function toMenu(s) {
+    const cpu = s._machine.processor;
+    for (;;) {
+        await runToAny(s, [[syms["game_resume.idle"]]], 400000000);
+        if ((cpu.romsel & 15) === s.readMemory(syms.bankbg, 1)[0]) return;
+        await s.runFor(1000);
+    }
+}
 async function boot(disc, writeable = true) {
     const s = await bootDisc(disc);
     const cpu = s._machine.processor;
@@ -42,7 +51,7 @@ async function boot(disc, writeable = true) {
         else if (pc === syms["load_track.waitkey"]) log.said = log.text;
         return false;
     });
-    await runToAny(s, [[syms["game_resume.idle"]]], 400000000);
+    await toMenu(s);
     const m = { s, cpu, peek, log, bankbg: peek(syms.bankbg), bt: peek(syms.banktrace), bc: peek(syms.bankcars), disc: () => cpu.fdc.drives[0].disc };
     if (!writeable) m.disc().isWriteable = false;
     return m;

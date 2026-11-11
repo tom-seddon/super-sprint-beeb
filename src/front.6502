@@ -101,6 +101,7 @@ PanelRows = 6                           ; prepare's cell rows of panels (tools/s
     RTS
 }
 
+IF GenTimeAttack = 0                    ; (time attack: no prepare to race, D45, D51)
 \\ Prepare to race (F_018776): MODE 1, the race's palette, the picture and each car's panel. Inputs: RcDrone.
 \\ Outputs: GmPicture 1. A, X, Y corrupted.
 
@@ -190,6 +191,8 @@ PanelRows = 6                           ; prepare's cell rows of panels (tools/s
 .PanelBytes                             ; and its bytes a cell row
     EQUB 27 * 8, 27 * 8, 26 * 8
 }
+
+ENDIF
 
 \\ The high scores' and lap records' frame, in the shadow screen: MODE 1 in its palette. Outputs: GmPicture 1.
 \\ A, X, Y corrupted.
@@ -484,6 +487,7 @@ PanelRows = 6                           ; prepare's cell rows of panels (tools/s
     RTS
 }
 
+IF GenTimeAttack = 0                    ; (time attack: nothing kept between races, D45)
 \\ The upgrades' file from where it was kept (loadcode.6502) to where it runs. A, X, Y corrupted.
 
 .front_parked_upgrades
@@ -509,6 +513,8 @@ PanelRows = 6                           ; prepare's cell rows of panels (tools/s
     LDA #HI(FrontPicOrg):STA game_go.into+2
     LDX #ParkPreparePages
 }
+
+ENDIF
 
 \\ X pages by game_go's copy, from a page's start, its page in transit in the shadow screen. A, X, Y corrupted.
 
