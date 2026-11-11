@@ -186,6 +186,9 @@ ENDIF
 
     IF GenPlay
         LDA LoadWant:BEQ @+             ; a race over: the next track's loaded, the race from the top
+        IF GenTimeAttack
+            JSR ta_race_end             ; (timeattack.6502's: its best lap into the table)
+        ENDIF
         JMP load_go
     .@
     ENDIF

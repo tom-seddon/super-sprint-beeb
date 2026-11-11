@@ -53,6 +53,7 @@ async function boot(disc, writeable = true, model = "Master", hold = undefined) 
     if (!writeable) m.disc().isWriteable = false;
     return m;
 }
+const ghostSaves = (m) => m.log.saves.filter((n) => n.startsWith("GHOST"));   // (TIMES too: tools/ta_table_check.mjs's)
 const word = (m, a) => m.peek(a) | (m.peek(a + 1) << 8);
 const image = (m) => toSsdOrDsd(m.disc());
 const ghostFile = (m) => discFiles(image(m)).GHOST1;
@@ -101,7 +102,7 @@ let f = ghostFile(m);
 const time1 = r.end.time;
 if (r.first.time || r.first.len || r.first.cars !== 1) say(`saved: a ghost at the first race's start (time ${r.first.time}, ${r.first.len} bytes, ${r.first.cars} cars)`);
 if (!r.end.news || !time1) say(`saved: no new ghost in 600 frames (time ${time1})`);
-if (m.log.saves.join() !== "GHOST1") say(`saved: the saves ${m.log.saves.join() || "none"}, not GHOST1`);
+if (ghostSaves(m).join() !== "GHOST1") say(`saved: the saves ${ghostSaves(m).join() || "none"}, not GHOST1`);
 if (!f) say("saved: no GHOST1");
 else {
     const d = [...f.data];
@@ -117,12 +118,12 @@ m = await boot(`${Out}/saved.ssd`);
 r = await race(m, 400);
 if (r.first.time !== time1 || r.first.len !== file1.length - 4 || r.first.cars !== 2)
     say(`loaded: at the start time ${r.first.time}, ${r.first.len} bytes, ${r.first.cars} cars, not ${time1}, ${file1.length - 4}, 2`);
-if (m.log.saves.length) say(`loaded: the saves ${m.log.saves.join()} with no new ghost`);
+if (ghostSaves(m).length) say(`loaded: the saves ${ghostSaves(m).join()} with no new ghost`);
 
 // beaten
 r = await race(m, 600, 5000);
 f = ghostFile(m);
-if (!r.end.news || m.log.saves.join() !== "GHOST1") say(`beaten: the saves ${m.log.saves.join() || "none"}, not GHOST1`);
+if (!r.end.news || ghostSaves(m).join() !== "GHOST1") say(`beaten: the saves ${ghostSaves(m).join() || "none"}, not GHOST1`);
 else if (!f || (f.data[0] | (f.data[1] << 8)) !== r.end.time || r.end.time >= 5000) say(`beaten: GHOST1's time not lap 1's, ${r.end.time}`);
 const beaten = r.end.time;
 
@@ -141,7 +142,7 @@ for (let i = 0; i < 40 && !demoCars; i++) {
     await runTo(m.s, syms.load_go, 120 * 50 * 39936);
     demoTime = word(m, syms.TaGhostLo);
     await toIdle(m);
-    if (m.log.saves.some((n) => n.startsWith("GHOST"))) say(`demo: ${m.log.saves.join()} saved by a demo race`);
+    if (m.log.saves.some((n) => n.startsWith("GHOST"))) say(`demo: ${ghostSaves(m).join()} saved by a demo race`);
     if (demoTime >= 5000) say(`demo: no new ghost in the demo race (its time ${demoTime})`);
 }
 if (demoCars !== 2) say(`demo: track 1's demo race (of ${demos}) drew ${demoCars} cars at its start, not 2 (the car and the saved ghost)`);
@@ -167,17 +168,17 @@ for (const [what, fn] of Object.entries(spoil)) {
 m = await boot("build/ta.ssd", false);
 r = await race(m, 600);
 const text = m.log.said;
-if (m.log.brk !== 1 || m.log.saves.join() !== "GHOST1") say(`read only: ${m.log.brk} errors, the saves ${m.log.saves.join()}, not 1 and GHOST1`);
+if (m.log.brk !== 1 || ghostSaves(m).join() !== "GHOST1") say(`read only: ${m.log.brk} errors, the saves ${ghostSaves(m).join()}, not 1 and GHOST1`);
 if (!/^Disc read only - press a key$/.test(text)) say(`read only: the HUD's row said "${text}"`);
 if (ghostFile(m)) say("read only: GHOST1 written");
 r = await race(m, 100);
-if (m.log.saves.length || m.log.brk !== 1) say(`read only: the saves ${m.log.saves.join()} and ${m.log.brk} errors after another race, not none and 1`);
+if (ghostSaves(m).length || m.log.brk !== 1) say(`read only: the saves ${ghostSaves(m).join()} and ${m.log.brk} errors after another race, not none and 1`);
 
 // ADFS L
 m = await boot("build/ta.adl", true, "MasterADFS", Adfs);
 r = await race(m, 600);
 const timeA = r.end.time;
-if (m.log.saves.join() !== "GHOST1" || m.log.brk) say(`ADFS: the saves ${m.log.saves.join()}, ${m.log.brk} errors, not GHOST1 and 0`);
+if (ghostSaves(m).join() !== "GHOST1" || m.log.brk) say(`ADFS: the saves ${ghostSaves(m).join()}, ${m.log.brk} errors, not GHOST1 and 0`);
 m.s.keyDown("ShiftLeft");
 m.s.reset(true);
 await m.s.runFor(Adfs);

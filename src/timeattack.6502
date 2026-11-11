@@ -203,18 +203,49 @@ ASSERT TaLabelsEnd - TaLabels == TaGhostLabel - TaBestLabel + 5, "the labels: BE
 
 GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where the next file lands)
 
-\\ A new ghost from the race just run saved, once: a failed save (a write-protected disc) is said by load_track's
-\\ brk, which loads again without coming back here (D23's way).
+\\ At a load's start (load_track, the OS given back, before any file): what the race just run changed saved, once,
+\\ the ghost then the table. A failed save (a write-protected disc) is said by load_track's brk, which loads again
+\\ without coming back here (D23's way): both flags are cleared first, so neither is tried again, and a table
+\\ after a ghost that failed isn't tried at all.
 \\
-\\ Inputs: GhNew, GhTrack, GhGhost, GhLen, TaGhost (GameVars: load_track's clear_state comes after). Outputs:
-\\ GHOSTn written; GhNew 0. A, X, Y corrupted.
+\\ Inputs: GhNew, TaTableNew (GameVars: load_track's clear_state comes after). Outputs: GHOSTn, TIMES written;
+\\ GhNew, TaTableNew 0. A, X, Y corrupted.
+
+.ta_save
+{
+    LDA GhNew:STA ghost
+    LDA TaTableNew:STA table
+    STZ GhNew:STZ TaTableNew
+    LDA ghost:BEQ @+
+    JSR ta_save_ghost
+.@
+    LDA table:BEQ @+
+    JMP ta_save_table
+.@
+    RTS
+.ghost
+    EQUB 0
+.table
+    EQUB 0
+}
+
+\\ A track's file's load (load_track, before the file): the track's ghost, then the table (until step 6 the game's
+\\ screens park their files over the table between races, so it's loaded again with each track).
+\\
+\\ Inputs: LoadName. Outputs: as ta_load_ghost and ta_load_table. A, X, Y corrupted.
+
+.ta_load
+{
+    JSR ta_load_ghost
+    JMP ta_load_table
+}
+
+\\ The new ghost saved, GHOSTn.
+\\
+\\ Inputs: GhTrack, GhGhost, GhLen, TaGhost. Outputs: GHOSTn written. A, X, Y corrupted.
 
 .ta_save_ghost
 {
-    LDA GhNew:BNE @+
-    RTS
-.@
-    STZ GhNew
     LDA TaGhostLo:STA GhFileAddr        ; the file's head: the time, the bytes
     LDA TaGhostHi:STA GhFileAddr+1
     LDA GhLenLo:STA GhFileAddr+2:STA ta_copy.count
@@ -225,20 +256,15 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
     LDA #LO(GhFileAddr+4):STA ta_copy.to+1
     LDA #HI(GhFileAddr+4):STA ta_copy.to+2
     JSR ta_copy
-    JSR ta_block                        ; OSFILE's block: the name, then load, exec, start, end
     LDA GhTrack:CLC:ADC #'1':STA GhostName+5
+    LDX #LO(GhostName):LDY #HI(GhostName)
+    JSR ta_block                        ; OSFILE's block: the name, then load, exec, start, end
     LDA #LO(GhFileAddr):STA TaBlock+2:STA TaBlock+6:STA TaBlock+10
     LDA #HI(GhFileAddr):STA TaBlock+3:STA TaBlock+7:STA TaBlock+11
     CLC
     LDA #LO(GhFileAddr+4):ADC GhLenLo:STA TaBlock+14
     LDA #HI(GhFileAddr+4):ADC GhLenHi:STA TaBlock+15
-    LDA #&FF
-    FOR i = 0..2
-        STA TaBlock+4+i*4:STA TaBlock+5+i*4
-    NEXT
-    STA TaBlock+16:STA TaBlock+17
-    LDX #LO(TaBlock):LDY #HI(TaBlock)
-    LDA #0:JMP &FFDD                    ; OSFILE 0: save
+    JMP ta_save_block
 .BufLo
     EQUB LO(GhBufA), LO(GhBufB)
 .BufHi
@@ -254,6 +280,7 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
 .ta_load_ghost
 {
     LDA LoadName+5:STA GhostName+5
+    LDX #LO(GhostName):LDY #HI(GhostName)
     JSR ta_block
     LDX #LO(TaBlock):LDY #HI(TaBlock)
     LDA #5:JSR &FFDD                    ; OSFILE 5: its catalogue entry
@@ -266,12 +293,8 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
     LDA len:CMP #LO(GhBufLen + 1)
     LDA len+1:SBC #HI(GhBufLen + 1)
     BCS none
-    JSR ta_block                        ; loaded: at GhFileAddr (exec's low byte 0: the address given)
-    LDA #LO(GhFileAddr):STA TaBlock+2
-    LDA #HI(GhFileAddr):STA TaBlock+3
-    LDA #&FF:STA TaBlock+4:STA TaBlock+5
-    LDX #LO(TaBlock):LDY #HI(TaBlock)
-    JSR &FFDD                           ; OSFILE &FF: load
+    LDX #LO(GhostName):LDY #HI(GhostName)
+    JSR ta_load_file
     LDA GhFileAddr+2:CMP len:BNE none   ; its head's bytes the file's
     LDA GhFileAddr+3:CMP len+1:BNE none
     LDA GhFileAddr:ORA GhFileAddr+1:BEQ none    ; (a time)
@@ -294,20 +317,165 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
     EQUW 0
 }
 
-\\ OSFILE's block cleared, its name GhostName.
+\\ The table saved, TIMES: its 1,040 bytes as the cars' bank has them (tatable.6502), then their sum.
 \\
-\\ Inputs: none. Outputs: TaBlock. A, X corrupted.
+\\ Inputs: the table. Outputs: TIMES written. A, X, Y corrupted.
+
+.ta_save_table
+{
+    LDA #LO(TaTable):STA ta_copy.from+1
+    LDA #HI(TaTable):STA ta_copy.from+2
+    LDA #LO(GhFileAddr):STA ta_copy.to+1
+    LDA #HI(GhFileAddr):STA ta_copy.to+2
+    LDA #LO(TaTableLen):STA ta_copy.count
+    LDA #HI(TaTableLen):STA ta_copy.count+1
+    JSR ta_copy
+    JSR ta_sum
+    STA GhFileAddr+TaTableLen
+    STY GhFileAddr+TaTableLen+1
+    LDX #LO(TimesName):LDY #HI(TimesName)
+    JSR ta_block
+    LDA #LO(GhFileAddr):STA TaBlock+2:STA TaBlock+6:STA TaBlock+10
+    LDA #HI(GhFileAddr):STA TaBlock+3:STA TaBlock+7:STA TaBlock+11
+    LDA #LO(GhFileAddr+TaTableLen+2):STA TaBlock+14
+    LDA #HI(GhFileAddr+TaTableLen+2):STA TaBlock+15
+    \\ (falls into ta_save_block)
+}
+
+\\ OSFILE 0 with TaBlock, its name and start and end set: the rest of the addresses' high bytes &FF (the host's).
+\\
+\\ Inputs: TaBlock. Outputs: the file written. A, X, Y corrupted.
+
+.ta_save_block
+{
+    LDA #&FF
+    FOR i = 0..2
+        STA TaBlock+4+i*4:STA TaBlock+5+i*4
+    NEXT
+    STA TaBlock+16:STA TaBlock+17
+    LDX #LO(TaBlock):LDY #HI(TaBlock)
+    LDA #0:JMP &FFDD                    ; OSFILE 0: save
+}
+
+\\ The table loaded, TIMES, into the cars' bank; or every entry empty if there's no such file, or it's not the
+\\ table's: its length not 1,042, or its sum not its bytes'.
+\\
+\\ Inputs: none. Outputs: the table. A, X, Y corrupted.
+
+.ta_load_table
+{
+    LDX #LO(TimesName):LDY #HI(TimesName)
+    JSR ta_block
+    LDX #LO(TaBlock):LDY #HI(TaBlock)
+    LDA #5:JSR &FFDD                    ; OSFILE 5: its catalogue entry
+    CMP #1:BNE none                     ; (1: a file)
+    LDA TaBlock+10:CMP #LO(TaTableLen+2):BNE none
+    LDA TaBlock+11:CMP #HI(TaTableLen+2):BNE none
+    LDA TaBlock+12:ORA TaBlock+13:BNE none
+    LDX #LO(TimesName):LDY #HI(TimesName)
+    JSR ta_load_file
+    JSR ta_sum
+    CMP GhFileAddr+TaTableLen:BNE none
+    CPY GhFileAddr+TaTableLen+1:BEQ copy
+.none
+    LDA #LO(GhFileAddr):STA zero+1      ; an empty table: its bytes 0
+    LDA #HI(GhFileAddr):STA zero+2
+    LDX #HI(TaTableLen + &FF)
+    LDY #0
+    TYA
+.zero
+    STA &FFFF,Y                         ; self-modified: the page
+    INY
+    BNE zero
+    INC zero+2
+    DEX
+    BNE zero
+.copy
+    LDA #LO(GhFileAddr):STA ta_copy.from+1
+    LDA #HI(GhFileAddr):STA ta_copy.from+2
+    LDA #LO(TaTable):STA ta_copy.to+1
+    LDA #HI(TaTable):STA ta_copy.to+2
+    LDA #LO(TaTableLen):STA ta_copy.count
+    LDA #HI(TaTableLen):STA ta_copy.count+1
+    JMP ta_copy
+}
+
+\\ The table's sum, as GhFileAddr has it: a total of its bytes and a total of the totals, each a byte (so a byte
+\\ changed or two swapped shows).
+\\
+\\ Inputs: GhFileAddr's TaTableLen bytes. Outputs: A the total, Y the total of totals. X corrupted.
+
+.ta_sum
+{
+    STZ total:STZ totals
+    LDA #LO(GhFileAddr):STA byte+1
+    LDA #HI(GhFileAddr):STA byte+2
+    LDY #LO(TaTableLen):LDX #HI(TaTableLen) + 1  ; (Y: the bytes of the last page, X: the pages, the first two partial)
+.next
+.byte
+    LDA &FFFF                           ; self-modified: the byte
+    CLC:ADC total:STA total
+    CLC:ADC totals:STA totals
+    INC byte+1:BNE @+
+    INC byte+2
+.@
+    DEY:BNE next
+    DEX:BNE next
+    LDA total:LDY totals
+    RTS
+.total
+    EQUB 0
+.totals
+    EQUB 0
+}
+
+\\ OSFILE's block cleared, its name X, Y's.
+\\
+\\ Inputs: X, Y: the name. Outputs: TaBlock. A, X corrupted.
 
 .ta_block
 {
-    LDX #17
+    STX TaBlock
+    STY TaBlock+1
+    LDX #15
     LDA #0
 .clear
-    STA TaBlock,X
+    STA TaBlock+2,X
     DEX
     BPL clear
-    LDA #LO(GhostName):STA TaBlock
-    LDA #HI(GhostName):STA TaBlock+1
+    RTS
+}
+
+\\ A file loaded at GhFileAddr (exec's low byte 0: the address given).
+\\
+\\ Inputs: X, Y: its name. Outputs: the file. A, X, Y corrupted.
+
+.ta_load_file
+{
+    JSR ta_block
+    LDA #LO(GhFileAddr):STA TaBlock+2
+    LDA #HI(GhFileAddr):STA TaBlock+3
+    LDA #&FF:STA TaBlock+4:STA TaBlock+5
+    LDX #LO(TaBlock):LDY #HI(TaBlock)
+    LDA #&FF:JMP &FFDD                  ; OSFILE &FF: load
+}
+
+\\ The race over (main.6502's frame loop, as it goes to the load): its best lap into the table (tatable.6502),
+\\ unless there's none, or it's the demo's. Game time: the bank's paged as the frame loop pages them.
+\\
+\\ Inputs: TaBest (ANDY's), GmDemo. Outputs: TaEntry; the table, TaTableNew. A, X, Y corrupted.
+
+.ta_race_end
+{
+    LDA GmDemo:BNE done
+    LDA banktrace:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: the logic's bank, ANDY in: its state
+    LDA TaBestLo:STA TaEntryLo
+    LDA TaBestHi:STA TaEntryHi
+    ORA TaEntryLo:BEQ done
+    LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank, the table's
+    JMP ta_enter
+.done
     RTS
 }
 
@@ -347,5 +515,7 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
 
 .GhostName                              ; a ghost's file's name: "GHOSTn" and a CR
     EQUS "GHOST1", 13
+.TimesName                              ; the table's
+    EQUS "TIMES", 13
 .TaBlock                                ; OSFILE's block
     SKIP 18

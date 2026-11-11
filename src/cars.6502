@@ -388,6 +388,7 @@ CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
 
 IF GenTimeAttack
     INCLUDE "ghost.6502"                ; (time attack's ghost: its code here, its buffers at the bank's end)
+    INCLUDE "tatable.6502"              ; (and its table, below them)
 ENDIF
 
 \\ The frames, on a page (gendata.py's layout: each frame-shift in a page, 7 bytes in)
@@ -428,5 +429,5 @@ ENDIF
     INCBIN "../build/gen/prioclass.bin"
 .PrioSlotEnd
 IF GenTimeAttack
-    ASSERT PrioSlotEnd <= GhHead, "the track's priority cells below the ghost's buffers"
+    ASSERT PrioSlotEnd <= TaTable, "the track's priority cells below time attack's table and the ghost's buffers"
 ENDIF

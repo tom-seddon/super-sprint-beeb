@@ -1,0 +1,106 @@
+\\ tatable.6502 - time attack's table (D40, D41; docs/brief-timeattack-2026-11-10.md §6, step 5b): 10 entries a track,
+\\ 80 in all, each a lap's time (frames), its upgrades and a name, laid out a column a field, indexed by track * 10
+\\ + place: the menu reads places 0, 10, 20 and on, a track's screen its 10 in a row. A track's 10 kept in order,
+\\ best first; an empty entry's time is 0. In the cars' bank, below the ghost's buffers (cars.6502 asserts every
+\\ track's slot below it); saved and loaded as TIMES by timeattack.6502 (main RAM: OSFILE can't reach a bank).
+\\
+\\ The upgrades and the names are step 6's (the track's screen, the name): until then an entry's upgrades are 0 and
+\\ its name 10 zero bytes.
+
+TaEntries = 80
+TaNameLen = 10
+TaTableLen = TaEntries * (3 + TaNameLen) ; 1,040 bytes
+TaTable = GhHead - TaTableLen
+TaTimeLo = TaTable                      ; the columns: each entry's time,
+TaTimeHi = TaTimeLo + TaEntries
+TaUps = TaTimeHi + TaEntries            ; its upgrades,
+TaNames = TaUps + TaEntries             ; and its name, TaNameLen bytes an entry
+ASSERT TaNames + TaEntries * TaNameLen == GhHead, "the table: its columns end at the ghost's head"
+
+SECTION GameVars
+.TaEntryLo                              ; the race's best lap, to enter as it ends (timeattack.6502's ta_race_end)
+    SKIP 1
+.TaEntryHi
+    SKIP 1
+.TaTableNew                             ; the table changed: to save at the next load's start
+    SKIP 1
+ENDSECTION
+
+\\ The race's best lap entered in its track's 10 (D41): before the first entry it's under (a tie goes after) or the
+\\ first empty one, the slower moved down a place and the 10th's dropped; or nowhere, if it's under none and the
+\\ 10 are full. Its upgrades 0 and its name empty (until step 6).
+\\
+\\ Inputs: TaEntry (not 0), TrackNum; the cars' bank paged in. Outputs: the table; TaTableNew if it changed. A, X,
+\\ Y corrupted.
+
+.ta_enter
+{
+    ZA_AUTO1 first                      ; local: the track's first entry
+    ZA_AUTO1 e                          ; local: the entry
+    ZA_AUTO2 to                         ; local: a name's bytes, moved to
+    ZA_AUTO2 from                       ; local: and from
+
+    LDA TrackNum:ASL A:STA first        ; track * 10
+    ASL A:ASL A:CLC:ADC first:STA first
+    LDX first
+.find
+    LDA TaTimeLo,X:ORA TaTimeHi,X:BEQ found ; (empty)
+    LDA TaEntryLo:CMP TaTimeLo,X
+    LDA TaEntryHi:SBC TaTimeHi,X
+    BCC found                           ; (under it)
+    INX
+    TXA:SEC:SBC first:CMP #10:BNE find
+    RTS                                 ; (under none of the 10)
+.found
+    STX e
+
+    \\ from the 10th up to the place, each entry the one before's
+
+    LDA first:CLC:ADC #9:TAX
+.move
+    CPX e:BEQ moved
+    LDA TaTimeLo-1,X:STA TaTimeLo,X
+    LDA TaTimeHi-1,X:STA TaTimeHi,X
+    LDA TaUps-1,X:STA TaUps,X
+    TXA:JSR name_at                     ; its name's bytes
+    LDA to:STA from
+    LDA to+1:STA from+1
+    SEC:LDA from:SBC #TaNameLen:STA from
+    BCS @+
+    DEC from+1
+.@
+    LDY #TaNameLen-1
+.name
+    LDA (from),Y:STA (to),Y
+    DEY
+    BPL name
+    DEX
+    BRA move
+.moved
+    LDA TaEntryLo:STA TaTimeLo,X        ; the entry: the time, no upgrades, no name
+    LDA TaEntryHi:STA TaTimeHi,X
+    STZ TaUps,X
+    TXA:JSR name_at
+    LDY #TaNameLen-1
+    LDA #0
+.blank
+    STA (to),Y
+    DEY
+    BPL blank
+    INC TaTableNew
+    RTS
+
+    \\ to: entry A's name (A * 10 + TaNames). X preserved.
+.name_at
+    STZ to+1
+    ASL A:STA to                        ; A * 2 (A under 80: under 256)
+    ASL A:ROL to+1                      ; A * 8, to+1 its high byte
+    ASL A:ROL to+1
+    CLC:ADC to:STA to
+    LDA to+1:ADC #HI(TaNames):STA to+1
+    LDA to:CLC:ADC #LO(TaNames):STA to
+    BCC @+
+    INC to+1
+.@
+    RTS
+}

@@ -1,6 +1,6 @@
 # Brief - a time attack version
 
-> **Status: in progress (2026-11-10): steps 1 to 4 done (§8), 5a (the ghosts saved) to be tried on Tom's Master; then 5b, the table.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
+> **Status: in progress (2026-11-10): steps 1 to 5 done (§8): the ghosts and the table saved; step 6, the front end, next.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
 > benefit from having a special version, built from the same code and using the same basic game engine and tracks: a
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
@@ -429,6 +429,25 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      478), loaded back after a boot and drawn from the start, saved over when beaten, not by a demo race (one making a
      new ghost); 4 spoilt files refused; a read-only disc's error said once ("Disc read only - press a key"); ADFS
      too. The game's discs the same but for the README's commit link, every track's build byte for byte.
+   - **5b, the table** (done 2026-11-11): `src/tatable.6502`, 80 entries, 10 a track, a column a field (times' low
+     bytes, high bytes, upgrades, names of 10), indexed track * 10 + place, best first, an empty entry's time 0;
+     1,040 bytes in the cars' bank below the ghost's head (asserted above every track's slot). As a race ends (the
+     frame loop on its way to `load_go`, `ta_race_end`), its best lap (`TaBest`) entered in its track's 10
+     (`ta_enter`, D41): before the first it's under, a tie after, the 10th dropped; no lap, nothing; the demo's,
+     nothing. Its upgrades 0 and its name 10 zero bytes, until step 6. Saved as `TIMES` (the 1,040 bytes and a
+     2-byte sum: a total of the bytes and of the totals) at the next load's start after the ghost (`ta_save`: both
+     flags cleared first, so a failed save is said once and neither is tried again), only if it changed. Loaded
+     with each track, after its ghost (`ta_load`): until step 6 the game's screens park their files over it between
+     races (`ParkPrepare`), so it can't stay resident yet; an empty table if there's no `TIMES`, it's not 1,042
+     bytes, or its sum's wrong. Step 6 loads it once, at the boot.
+     MEASURED: the cars' bank 3,924 to 2,628 bytes free on track 1, 786 on track 6 (its largest slot; the objects'
+     bank's tornado frames and pickups' variants, still in time attack, are 3,100 and more, for when room's wanted);
+     main RAM's code 823 to 463. `tools/ta_table_check.mjs` (not yet in the suite): 19 races on tracks 1, 3 and 8 with
+     their bests poked (ties, none, past 10), each entered as its model has it, `TIMES` written only when the table
+     changed and as the model, the table loaded at each next race's start as the model; back after a boot; 5 spoilt
+     files refused; a read-only disc's error said once. With its model's order reversed it fails at race 2; ties
+     can't be told apart until entries have names. `tools/ta_save_check.mjs` and `tools/ta_ghost_check.mjs` still
+     pass. The game's discs the same but for the README's commit link, every track's build byte for byte.
 6. **The front end.** The menu, the upgrades, the name; checks driven key by key as the screens' are now. No attract
    mode or demo race (D51): what only the demo needed goes (the drones and their path, the demo's lap events, `GhNew`'s
    `GmDemo` test).

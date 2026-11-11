@@ -708,4 +708,7 @@
   frame's draw list against a model of the player's laps, 0 wrong over 19,200 frames; no frames dropped. Tom tried
   it: his car now always drawn over the ghost (he'd mixed them up), and a green player tried and reverted.
   Step 5a: each track's ghost saved as `GHOSTn` at the load after the race that made it, and loaded with the track,
-  so lap 1 has it; `tools/ta_save_check.mjs` for the files' cases, as `save_check.mjs` is for `SCORES`.
+  so lap 1 has it; `tools/ta_save_check.mjs` for the files' cases, as `save_check.mjs` is for `SCORES`. Tom tried
+  it; no attract mode or demo race in time attack's front end (D51).
+  Step 5b: the table, 10 entries a track in the cars' bank, a race's best entered as it ends, saved as `TIMES` with
+  a sum when changed, loaded with each track until step 6; `tools/ta_table_check.mjs` against a model.

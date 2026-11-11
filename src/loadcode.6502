@@ -46,7 +46,7 @@
     CLI
     LDA #143:LDX #11:LDY NmiOwner:JSR &FFF4 ; OSBYTE 143: the NMIs back to who had them
     IF GenTimeAttack
-        JSR ta_save_ghost               ; (timeattack.6502's: a new ghost from the race just run, once)
+        JSR ta_save                     ; (timeattack.6502's: a new ghost and the table if changed, once)
     ENDIF
 
 .again
@@ -57,7 +57,7 @@
     LDA #&C0:STA &FE01                  ; display on, cursor off
     IF GenTimeAttack
         LDA LoadName+5:CMP #'9':BCS another ; (a track's file: a digit; the screens' are letters)
-        JSR ta_load_ghost               ; (timeattack.6502's: the track's ghost, before its file lands there)
+        JSR ta_load                     ; (timeattack.6502's: the track's ghost and the table, before its file)
     ENDIF
 .another
     LDX #17                             ; OSFILE's block: the name, the load address (the host's), exec's
