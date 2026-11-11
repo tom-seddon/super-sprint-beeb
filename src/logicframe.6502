@@ -144,7 +144,9 @@ ENDIF
     LDA LfFrame:CMP #2:BCS race
     INC setup                           ; the set-up's flips: every car drawn, the hazards' and cones' slots, the
                                         ; gates and barriers (noted by the set-up), the banner, the tornado
-    JSR setup_slots
+    IF GenTimeAttack = 0                ; (time attack: no hazards' or cones' slots, D42)
+        JSR setup_slots
+    ENDIF
     LDA #&FF
     FOR c = 0..3
         STA RcExplFrame+c
@@ -216,6 +218,7 @@ ENDIF
 .@
     RTS
 
+    IF GenTimeAttack = 0                ; (time attack: no hazards' or cones' slots, D42)
     \\ the set-up's slot sprites (F_00C592's): the oil-type hazards (their type + &10), then the cones (&14)
 .setup_slots
     STZ RcSlotCount
@@ -239,6 +242,7 @@ ENDIF
     BRA cone
 .coned
     RTS
+    ENDIF
 
     \\ F_00C592's start: the start's sound on each channel (F_0131A8), the 50 VBLs' pause (F_010214(50)) with
     \\ the set-up's last frame shown, the engines on (F_013582)
@@ -515,6 +519,7 @@ ENDIF
     STZ yhi
     JSR pieces
 .nobanner
+    IF GenTimeAttack = 0                ; (time attack: no tornado, D42)
     LDA RcTornado:BEQ notornado          ; the tornado: its frame and x's shift's key, on a 4-pixel step
     LDA RcTorXLo:AND #3:STA first
     LDA RcTorFrame:ASL A:ASL A:ORA first:TAY
@@ -526,6 +531,7 @@ ENDIF
     LDA RcTorYHi:STA yhi
     JSR pieces
 .notornado
+    ENDIF
 .done
     RTS
 

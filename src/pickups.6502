@@ -59,6 +59,8 @@ ENDSECTION
 
 MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wrench 1; the hazards' and cones' set-up 7)
 
+IF GenTimeAttack = 0                    ; (time attack: no pickups, D42; their state stays, read as none)
+
 \\ F_0149B4's call: a slot sprite drawn, noted for the renderer.
 \\
 \\ Inputs:
@@ -393,3 +395,4 @@ MaxSlotDraws = 8                        ; (the bonus 2 a frame at most, the wren
     LDY RcWrenchX
     JMP slot_draw
 }
+ENDIF

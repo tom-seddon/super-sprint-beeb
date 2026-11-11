@@ -113,7 +113,11 @@ ENDSECTION
     BEQ class2
     JMP class3
 .class1
-    JMP class1_
+    IF GenTimeAttack
+        JMP next                        ; (time attack: no class 1 cells, D42)
+    ELSE
+        JMP class1_
+    ENDIF
 .class2
     JMP class2_
 .class0
@@ -300,6 +304,7 @@ class0s = {none0, up, ground, land, ramp, flag1000, nudge, flag2000, ramp, long}
     RTS
 }
 
+IF GenTimeAttack = 0                    ; (time attack: no class 1 cells, D42)
 \\ F_00BEEA's class 1: the patches, the pickups, the cones.
 \\
 \\ Inputs: cells' v (the cell, class 1), c (its pair), X (the car). Outputs: as cells'; it goes on to
@@ -392,6 +397,8 @@ class1s = {water, oil, yellow, wrench, bonus, cone, cone, cone, cone}
     ROR RcSpeedLo,X
     RTS
 }
+
+ENDIF
 
 \\ F_00BEEA's class 2: a checkpoint, n 1-4. The next in order becomes the last passed (the stripes counted
 \\ from it again); the 4th, the finish, ends a lap: the lap's frame kept, laps + 1, the checkpoint 0.

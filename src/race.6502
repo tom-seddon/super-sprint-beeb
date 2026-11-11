@@ -368,9 +368,11 @@ ENDIF
     \\ the track's objects: the barriers (if on), the gates (if any), the bonus, the cones (if any), the wrench
 
     STZ RcHazDrawCount
-    LDA RcBarOn:BEQ @+
-    JSR barriers_frame
-.@
+    IF GenTimeAttack = 0                ; (time attack: no barriers, D42)
+        LDA RcBarOn:BEQ @+
+        JSR barriers_frame
+    .@
+    ENDIF
     LDA RcGateCount:BEQ @+
     JSR gates_frame
 .@
@@ -463,9 +465,11 @@ ENDIF
 
     JSR sparks_frame
     JSR banner_frame
-    LDA RcTornado:BEQ @+
-    JSR tornado_frame
-.@
+    IF GenTimeAttack = 0                ; (time attack: no tornado, D42)
+        LDA RcTornado:BEQ @+
+        JSR tornado_frame
+    .@
+    ENDIF
     JMP heli_frame
 }
 
@@ -532,9 +536,11 @@ ENDIF
 .@
     STX RcPhase
 
-    LDA RcTornado:BEQ @+
-    JSR tornado_cars                    ; F_00F1A8
-.@
+    IF GenTimeAttack = 0                ; (time attack: no tornado, D42)
+        LDA RcTornado:BEQ @+
+        JSR tornado_cars                ; F_00F1A8
+    .@
+    ENDIF
     IF Cars > 1
         JSR car_to_car
         JSR draw_order
@@ -674,13 +680,16 @@ ASSERT FxBackLen == CueFrames, "the sweep's fields: the blink's frames"
     DEC RcImmune,X
     BNE done
 .@
-    LDA RcBitsLo,X:AND #2:BEQ done
-    LDA RcState,X:BNE done
-    JMP shove
+    IF Cars > 1                         ; (time attack: one car, no shove)
+        LDA RcBitsLo,X:AND #2:BEQ done
+        LDA RcState,X:BNE done
+        JMP shove
+    ENDIF
 .done
     RTS
 }
 
+IF Cars > 1                             ; (time attack: one car, no car-to-car)
 \\ F_00E66A's shove, hit by another car: 25 frames immune; travelling the way the other car faces at twice
 \\ the top speed's velocity (11 * D * vector / 2, which the smoothing fades); a drone's offset from its line
 \\ reduced by it; speed * 3 / 4; back where it was. The other car is the one in flags &000C (two hits in a
@@ -883,7 +892,7 @@ ASSERT FxBackLen == CueFrames, "the sweep's fields: the blink's frames"
     NEXT
     RTS
 }
-
+ENDIF
 
 \\ F_00E66A's bounce off a wall: back where the car was, travelling the push's way at (10 + speed) * 2 (an
 \\ impulse the smoothing fades), speed / 4 + D / 2, no input for 10 frames (5 a drone's).

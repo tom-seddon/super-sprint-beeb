@@ -1,6 +1,6 @@
 # Brief - a time attack version
 
-> **Status: in progress (2026-11-10): steps 1 to 3 done (§8); step 3's HUD to be tried on Tom's Master.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
+> **Status: in progress (2026-11-10): steps 1 to 3 done (§8), the dead code out; step 4, the ghost, next.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
 > benefit from having a special version, built from the same code and using the same basic game engine and tracks: a
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
@@ -355,6 +355,20 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      with the ghost poked to 100 frames, yellow for the two bests over it; 6,000 and 4,999 frames shown `99.98`;
      drawn on the screen as the text says. 12 to 13 fields repeated in 400 frames per track, as before (the start's).
      The game's tracks' builds byte for byte; the suite 43 of 43 on agentbox.
+   - **3c, the dead code out** (done 2026-11-11; Tom tried 3b on his Master: "works nicely"): what time attack never
+     runs, found by recording every instruction run over 1,500 driven frames on each track (`build/tracks_ta`), then
+     read: the pickups' code (`pickups.6502`, its state kept and read as none), the class 1 cells (the patches,
+     pickups and cones: `cells.6502`'s dispatch goes on to the next cell; no track's map has one at the start, in the
+     game or here), the barriers, cones and tornado (`hazards.6502`, the calls in `race.6502`, the set-up's slot
+     sprites and the tornado's mover in `logicframe.6502`), and car-to-car (`shove`, `car_to_car`, `draw_order`,
+     under `IF Cars > 1`). Kept: the drones and their path, which the attract mode's demo race drives car 0 with until
+     step 6's front end; the objects' bank's tornado frames and the pickups' variants (data, for when that bank's room
+     is wanted). MEASURED (track 1's build): the fourth bank 193 to 1,931 bytes free, main RAM's code 705 to 1,298.
+     The game's discs the same but for the README's commit link, every track's build byte for byte. Time attack before
+     and after (scripts in the scratchpad, not the suite): each track 2,400 frames driven by an autopilot along the
+     drones' path, as a drone takes its segments, steering for the segment's end (laps on 6 of the 8 tracks, track 3's
+     gates; it wedges on 5 and 8), every frame's car state, draw records, HUD text and both screens the same; the
+     demo race still ends (763 fields, as before).
 4. **The ghost.** Recorded and played back in the cars' bank. Its check: a scripted lap driven, then replayed, every
    frame's ghost record the same as the player's was (a headless oracle on `tools/jsbeeb.mjs`, in the suite).
 5. **Saving.** The table and the ghosts; a check as `tools/save_check.mjs`'s (saved, booted back, spoilt files

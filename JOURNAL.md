@@ -699,3 +699,6 @@
   Step 3: the lap timing (`ta_lap`, the ST's measure) and the HUD, the lap's time, the best and the ghost's (Tom
   dropped the lap number, asked for 0.00 shown when there's none, and added the ghost's time). Checked by a script
   reading the HUD's text each frame around three poked crossings, and on the screen.
+  Step 3c (2026-11-11, after Tom tried 3b): the code time attack never runs left out of its build, found by recording
+  what runs, then read (the drones kept: the demo race uses them). The fourth bank 193 to 1,931 bytes free, main RAM's
+  code 705 to 1,298. An autopilot along the drones' path drove every track before and after, the same every frame.
