@@ -33,9 +33,9 @@ async function toMenu() {
 const fields = (n) => s.runFor(n * 39936);
 async function press(key, hold = 3) { s.keyDown(key); await fields(hold); s.keyUp(key); await fields(3); }
 
-// the screen's byte at a play area line and byte column (the main screen, shown)
-const RowBytes = 640, Play = syms.PlayAddr;
-const at = (line, col) => Play + (line >> 3) * RowBytes + col * 8 + (line & 7);
+// the screen's byte at a line and byte column of the front end's 32 rows (the main screen, shown)
+const RowBytes = 640, Front = syms.FrontAddr;
+const at = (line, col) => Front + (line >> 3) * RowBytes + col * 8 + (line & 7);
 const mark = (t) => [...Array(6)].every((_, i) => peek(at(syms.TgRow0 + t * 16 + i, syms.TgMarkCol)) === 0xff);
 const marks = () => [...Array(8)].map((_, t) => mark(t));
 // a row's time drawn: any pixel in its box (the time's columns, 6 lines)

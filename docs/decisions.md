@@ -672,6 +672,9 @@ palette black, the front end flipping at the vsync (the race's timed flip, D17, 
 from Shared to a sideways bank (the objects' bank, which loses the tornado and pickups in time attack); Shared is put
 back in both screens before each race from a packed copy, about 1,500 bytes (ESTIMATED); a front end tune carries its
 own data. About 60 bytes of code for the change (ESTIMATED).
+Built at 6c (2026-11-11): Shared put back by each track's file (time attack's Shared slot is all of Shared, about
+1,080 bytes more a file, packed), not from a copy in a bank; SCORES's last sum kept in LowFree (`TaHiSum`), as the
+track's file puts `HiSum` back as built. 88 bytes of code and a 64-byte row table.
 
 ### D47. Time attack's menu: all eight tracks, the small font, the logo: Decided (2026-11-10)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §6, question 8). Proposed: layout A (all eight tracks at once, two

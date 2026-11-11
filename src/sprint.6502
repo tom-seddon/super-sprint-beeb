@@ -290,10 +290,15 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
     IF GenLogic
         SKIP SharedOrg - LoadAddr       ; (ScreenVars: set by start)
         SECTION Shared, org = SharedOrg, guard = HudAddr, cmos = TRUE
+            IF GenTimeAttack
+.SharedSlot                             ; (time attack: all of Shared, put back by each track's file: the front
+            ENDIF                       ; end's 32 rows overwrite it, D46)
             INCLUDE "../build/lgen/sound.6502"
             INCLUDE "../build/lgen/probes.6502"
             INCLUDE "sharedtabs.6502"
+            IF GenTimeAttack = 0
 .SharedSlot                             ; the track's part (Phase 5, 3a): the same size on every track
+            ENDIF
             IF GenTimeAttack            ; (time attack: no drones' path, D51; its place kept, under the tunes'
 .TrackNum                               ; rings: zeros, packed to nothing in the track's file)
                 EQUB LgTrack
@@ -309,7 +314,9 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             EQUB GenEntCode
 .TorPiece                               ; the tornado's piece, by frame * 4 + x's shift (the track's pieces'
             EQUB GenTorPiece            ; numbers)
+            IF GenTimeAttack = 0
 .SharedSlotEnd
+            ENDIF
             ASSERT SharedSlot <= TuneRing AND TuneRing + &400 <= SharedSlotEnd, "the tunes' rings and their block in Shared's slot"
             IF GenPlay
                 INCLUDE "tunes.6502"
@@ -331,6 +338,9 @@ LapRecords = HiFile + 279
 HiSumLen = HiSum - HiFile
 HiSaveLen = HiSumLen + 2                ; SCORES: the table, lap records, keys, sound and the sum
                 ASSERT HiKeys - HiFile == 295, "SSPRINT.HSC's 295 bytes"
+            ENDIF
+            IF GenTimeAttack
+.SharedSlotEnd
             ENDIF
 .SharedEnd
             PRINT "the &3000 area: ", HudAddr - SharedEnd, " bytes free after Shared"

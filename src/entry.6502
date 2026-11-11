@@ -297,7 +297,7 @@ IF GenPlay
 \     none
 \
 \ Outputs:
-\     HiFile to HiSum, SoundOff, PlayerKeys
+\     HiFile to HiSum, SoundOff, PlayerKeys (time attack: TaHiSum too)
 \     A, X, Y: corrupted
 
 .scores_load
@@ -342,6 +342,10 @@ IF GenPlay
     DEX
     BPL saved
 .done
+    IF GenTimeAttack
+        LDA HiSum:STA TaHiSum           ; (kept where no load writes it, D46)
+        LDA HiSum+1:STA TaHiSum+1
+    ENDIF
     RTS
 
 .sumhi

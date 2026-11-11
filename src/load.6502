@@ -108,6 +108,10 @@ ENDIF
     SKIP 8
 .GmSparks                               ; the sparks' arrays, LfSparks's order: their timers run on from race to race
     SKIP 64
+IF GenTimeAttack
+.TaHiSum                                ; time attack: SCORES's sum as last loaded or saved (HiSum's, which each
+    SKIP 2                              ; track's file puts back as built with the rest of Shared, D46)
+ENDIF
 ENDSECTION
 
 SECTION GameVars

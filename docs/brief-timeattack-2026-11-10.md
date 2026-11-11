@@ -516,6 +516,32 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
    - **6c, 32 rows**: the front end's screen 32 rows, the race's 26 (D46): the CRTC switched with the palette black,
      and Shared (the `&3000` area's read-only data, which a 32-row screen overwrites) put back before each race from
      a packed copy in a bank. Checked as `boot_check`/`flash_check` do, field by field.
+     **Done** (2026-11-11, to be tried on Tom's Master; `docs/img/timeattack-menu-6c.png`): the menu in 32 rows from
+     `&3000`. `tagame.6502`'s `tg_rows32` and `tg_rows26`: from a vsync (in the blank) the palette black, the CRTC's
+     R6, R7 (MODE 1's 34 for 32 rows, the race's 31 for 26) and R12/R13 written, the main screen cleared from the
+     new start, the display on, two fields more for a monitor to settle; `tg_colours` puts the palette back once
+     the menu's drawn, or before the load. Every way out of the menu to a race goes through `tg_rows26` (a test's
+     poked `LoadWant` too), so the loads and the race keep the 26 rows and their "Loading". `front.6502`'s
+     `front_line` and `front_glyph` take their lines from a 32-row table in time attack (`FrontRowLo`). The menu's
+     own wait no longer feeds a tune (`tune_feed` is in Shared; time attack plays none yet).
+     Shared put back: time attack's Shared slot is all of Shared (`sprint.6502`), so each track's file carries it
+     and the load puts it in the main screen before `shared_copy` copies it to the shadow's, rather than a packed
+     copy in a bank and code to unpack it (D46 allowed either). That makes the track's `HiSum` as built, so
+     SCORES's last sum is kept in `LowFree` too (`TaHiSum`, 2 bytes: `scores_load` sets it, `front_save` compares
+     with it and sets it), or SCORES would be written after every race. Nothing else reads Shared or ScreenVars
+     between: the interrupt's sound reads Shared only for an effect or a tune, and the menu plays neither.
+     MEASURED (track 1's build): the first 4K 2,637 to 2,549 bytes free, the front end's code 290 to 226; each
+     track's file about 1,080 bytes longer (Shared 3,517 bytes, 1,206 packed on track 1, was its slot's 128), the
+     disc 83,456 to 91,904 bytes; a track's load from the menu to the race's start 1.88 to 2.17 s (jsbeeb, the 8
+     tracks), was 1.70 to 1.93 at 6b's start (which also read `TIMES` each load). `tools/ta_rows_check.mjs` (new,
+     not yet in the suite), field by field as shown: from the boot's menu, 3 raced, Escape back, Return races it
+     again: nothing lit outside the 32 rows' lines, nor outside the 26's but while the menu's shown; nothing while
+     it's drawn; its heading on its 32-row line, not its 26-row one; only "Loading" between the menu and the race;
+     Shared as built in both screens at each race's start. 951 fields, 0 wrong. With the switch's palette not
+     blacked and Shared's slot the game's, it fails (the menu seen drawn, junk below the HUD's row, Shared not as
+     built); with `front_save` comparing Shared's `HiSum`, `tools/ta_table_check.mjs` fails (SCORES saved each
+     race). The other four checks pass (the menu check's lines now the 32 rows'); play the same, 19,200 frames,
+     0 different; the game's discs the same but for the README's commit link, every track's build byte for byte.
    - **6d, the menu's picture** (D44, D47): layout A, the 8 maps from the select screen, the SUPER SPRINT logo in red
      and yellow (colour 1 switched mid-screen), the text in the ST's small font (`front_glyph`), a file loaded once.
      Against the mock-up (`docs/img/timeattack-menu.png`). Tried.

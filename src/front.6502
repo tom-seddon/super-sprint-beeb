@@ -402,11 +402,16 @@ ENDIF
 {
     STA fglyph:ASL A:ADC fglyph:ASL A:STA fglyph    ; (6 bytes each; C clear: the glyph's under 64)
     LDA fx:AND #3:STA fshift
-    LDA fy:LSR A:LSR A:LSR A:TAX        ; (the play area's row)
+    LDA fy:LSR A:LSR A:LSR A:TAX        ; (the play area's row; time attack's front end's screen's)
     LDA fx:AND #&FC:ASL A:STA fp
     LDA fx+1:ROL A:STA fp+1
-    LDA fp:ADC RowLo,X:STA fp           ; (C clear from the ROL: fx+1's 0 or 1)
-    LDA fp+1:ADC RowHi,X:STA fp+1
+    IF GenTimeAttack
+        LDA fp:ADC FrontRowLo,X:STA fp  ; (C clear from the ROL: fx+1's 0 or 1)
+        LDA fp+1:ADC FrontRowHi,X:STA fp+1
+    ELSE
+        LDA fp:ADC RowLo,X:STA fp       ; (C clear from the ROL: fx+1's 0 or 1)
+        LDA fp+1:ADC RowHi,X:STA fp+1
+    ENDIF
     LDA fy:AND #7:TAY
     LDA #6:STA flines
     LDA fshadow:STA &FE34               ; ACCCON: the shadow screen written
@@ -441,7 +446,8 @@ ENDIF
     RTS
 }
 
-\\ Line fy's byte A across, in fp. A, X corrupted.
+\\ Line fy's byte A across, in fp: the play area's line (time attack: its front end's screen's, from FrontAddr). A, X
+\\ corrupted.
 
 .front_line
 {
@@ -456,10 +462,23 @@ ENDIF
     INC fp+1
     CLC
 .@
-    ADC RowLo,X:STA fp
-    LDA fp+1:ADC RowHi,X:STA fp+1
+    IF GenTimeAttack                    ; (time attack: the front end's 32 rows from &3000, D46)
+        ADC FrontRowLo,X:STA fp
+        LDA fp+1:ADC FrontRowHi,X:STA fp+1
+    ELSE
+        ADC RowLo,X:STA fp
+        LDA fp+1:ADC RowHi,X:STA fp+1
+    ENDIF
     RTS
 }
+IF GenTimeAttack
+FrontAddr = &3000                       ; time attack's front end: its screen's start, 32 rows (tagame.6502's tg_rows)
+FrontRows = 32
+.FrontRowLo
+    EQUB LO(FrontAddr + (0..<FrontRows) * RowBytes)
+.FrontRowHi
+    EQUB HI(FrontAddr + (0..<FrontRows) * RowBytes)
+ENDIF
 
 \\ 6 lines from fy cleared, X bytes from byte A, on the screen fshadow says. fy kept; A, X, Y corrupted.
 

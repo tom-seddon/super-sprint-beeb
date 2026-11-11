@@ -4,8 +4,8 @@
 \\
 \\ No attract mode (D51): the menu, the 8 tracks a row each with the track's best (the table, tatable.6502), the
 \\ highlighted one marked. The driving keys (any player's, left and right) move the highlight, 1-8 race that track,
-\\ Return the highlighted one (D52). For now in the race's MODE 1 and the small font (front.6502's front_glyph);
-\\ step 6c gives it 32 rows, 6d its picture.
+\\ Return the highlighted one (D52). In 32 rows (D46, step 6c: tg_rows), the small font (front.6502's front_glyph);
+\\ step 6d gives it its picture.
 \\
 \\ After a race the title's file (TRACKF) is loaded before the menu: the load's start saves what the race changed
 \\ (timeattack.6502's ta_save, and SCORES's keys and sound, save.6502), so a record's on the disc before the menu's
@@ -14,13 +14,12 @@
 SECTION GameScratch
 .GsFields                               ; fields' count
     SKIP 1
-.GsVsync                                ; the field a field's wait began
-    SKIP 1
 .TgLast                                 ; the menu's key last seen (tg_key's), so a held key acts once
     SKIP 1
 ENDSECTION
 
-TgRow0 = 40                             ; the menu's first row's line, and the rows' spacing
+TgHeading = 48                          ; the heading's line, the menu's first row's, and the rows' spacing
+TgRow0 = 80
 TgRowStep = 16
 TgTextX = 112                           ; "TRACK n"'s pixel across,
 TgTimeX = 172                           ; the time's,
@@ -39,9 +38,9 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     JMP load_go                         ; (back here through game_go)
 .menu
     STZ GmAbandon:STZ GmStage:STZ GmPicture
-    JSR say_clear
+    JSR tg_rows32                       ; (the palette black till it's drawn)
     LDA acccon:STA fshadow              ; (front_glyph: the main screen, shown)
-    LDA #8:STA fy                       ; the heading
+    LDA #TgHeading:STA fy               ; the heading
     LDA #LO(160 - 6 * (HeadingEnd - Heading) DIV 2):STA fx
     STZ fx+1
     LDX #0
@@ -61,14 +60,14 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     DEX
     BPL rows
     LDA #&FF:JSR tg_mark                ; the highlight
+    JSR tg_colours
+.shown                                  ; (tools/ta_rows_check.mjs)
     JSR tg_key:STA TgLast               ; (anything held as the menu comes up acts only once it's let go)
 
     \\ each field: a key newly down acts
 
 .idle
-    LDA LoadWant:BEQ @+                 ; (a test's race: tools/ta_*_check.mjs)
-    JMP load_go
-.@
+    LDA LoadWant:BNE go                 ; (a test's race: tools/ta_*_check.mjs)
     JSR tg_key
     CMP TgLast:BEQ wait
     STA TgLast
@@ -93,6 +92,9 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     DEC A:STA GmTrack                   ; (1-8)
 .race
     LDA GmTrack:INC A:STA LoadWant
+.go
+    JSR tg_rows26                       ; the race's 26 rows for its load (D46)
+    JSR tg_colours
     JMP load_go
 }
 
@@ -214,15 +216,13 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 .TgKeys                                 ; 1-8 and Return (tools/screens.py's matrix: row * 16 + column, measured)
     EQUB 48, 49, 17, 18, 19, 52, 36, 21, 73
 
-\\ A fields gone by, the tune's rings fed meanwhile (as game.6502's).
+\\ A fields gone by.
 
 .fields
 {
     STA GsFields
 .field
-    LDA vsyncs:STA GsVsync
-    JSR tune_feed                       ; (the tune's rings: front.6502)
-    LDA GsVsync
+    LDA vsyncs                          ; (no tune: tune_feed's in Shared, which 32 rows overwrite)
 .wait
     CMP vsyncs:BEQ wait
     DEC GsFields
@@ -230,21 +230,62 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     RTS
 }
 
-\\ The screen black, and the display on (as game.6502's).
+\\ The front end's screen (D46): 32 rows from FrontAddr for the menu (tg_rows32), the race's 26 from HudAddr around a
+\\ race's load (tg_rows26). Each switch made from a vsync with the palette black: the CRTC's rows (R6), sync (R7) and
+\\ start (R12, R13), the main screen cleared from its start, the display on, and two fields more, for a monitor to
+\\ settle on the new sync; the palette left black for tg_colours. The 32 rows overwrite the main screen's ScreenVars
+\\ and Shared: each track's file puts Shared back (time attack's slot is all of it, sprint.6502), start the
+\\ ScreenVars, and nothing between reads either.
+\\
+\\ Inputs: none. Outputs: the CRTC; the main screen 0 from its start. A, X, Y corrupted.
 
-.say_clear
+.tg_rows32
+    LDX #0
+    BRA tg_rows
+.tg_rows26
+    LDX #TgCrtc26 - TgCrtc
+.tg_rows
 {
-    LDA #HI(HudAddr):STA row+2
-    LDX #HI(&8000 - HudAddr)
-    LDA #0:TAY
-.row
-    STA HudAddr,Y                       ; self-modified: the page
-    INY
-    BNE row
-    INC row+2
+    PHX
+    LDA #1:JSR fields                   ; (just past a vsync: in the blank)
+    LDX #15
+.black
+    TXA:ASL A:ASL A:ASL A:ASL A
+    ORA #7:STA &FE21                    ; video ULA: logical X physical black (0, EOR 7)
     DEX
-    BNE row
-    LDA #8:STA &FE00                    ; CRTC: R8
-    LDA #&C0:STA &FE01                  ; display on, cursor off (a file's load left it off)
+    BPL black
+    PLX
+    LDY #6:LDA TgCrtc,X:JSR crtc        ; R6: the rows displayed
+    INY:LDA TgCrtc+1,X:JSR crtc         ; R7: the sync's row
+    LDY #12:LDA TgCrtc+2,X:JSR crtc     ; R12, R13: the start
+    INY:LDA TgCrtc+3,X:JSR crtc
+    LDA TgCrtc+4,X:STA clear+2
+    LDA #0:TAY
+.clear
+    STA &FF00,Y                         ; self-modified: the page
+    INY
+    BNE clear
+    INC clear+2
+    LDX clear+2:CPX #&80:BNE clear
+    LDY #8:LDA #&C0:JSR crtc            ; R8: display on, cursor off (a file's load left it off)
+    LDA #2:JMP fields
+.crtc
+    STY &FE00:STA &FE01                 ; CRTC: register Y, A
+    RTS
+}
+.TgCrtc                                 ; R6, R7, R12, R13 and the start's page: 32 rows (MODE 1's), then the race's 26
+    EQUB FrontRows, 34, HI(FrontAddr DIV 8), LO(FrontAddr DIV 8), HI(FrontAddr)
+.TgCrtc26
+    EQUB ScreenRows, ScreenVSyncPos, HI(HudAddr DIV 8), LO(HudAddr DIV 8), HI(HudAddr)
+
+\\ The palette's colours: the race's MODE 1 (front.6502's PalMode1). A, X corrupted.
+
+.tg_colours
+{
+    LDX #15
+.colour
+    LDA PalMode1,X:STA &FE21            ; video ULA: palette
+    DEX
+    BPL colour
     RTS
 }
