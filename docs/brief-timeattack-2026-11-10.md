@@ -1,6 +1,6 @@
 # Brief - a time attack version
 
-> **Status: in progress (2026-11-10): steps 1 to 3 done (§8), the dead code out; step 4, the ghost, next.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
+> **Status: in progress (2026-11-10): steps 1 to 4 done (§8); the ghost to be tried on Tom's Master, then step 5, saving.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
 > benefit from having a special version, built from the same code and using the same basic game engine and tracks: a
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
@@ -385,6 +385,21 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      as many frames as its time; 1.12 to 1.37 bytes a frame (the estimate 1.2), 588 to 1,204 bytes a lap. Buffer A's
      room poked to 100 bytes: lap 1 no ghost (its time not the ghost's). 12 or 13 fields repeated in 400 frames per
      track, as before (the start's). The game's discs the same but for the README's commit link, every track's build
+     byte for byte.
+   - **4b, the ghost drawn** (done 2026-11-11, to be tried on Tom's Master): `ghost.6502`'s playback, after the
+     recording each frame: at each crossing of the line (and the race's start) the ghost from its buffer's first
+     record, then a record a frame; its lap done first, its first record held until the player crosses (D43). Its
+     record into the draw list as car 3 (black, D37; an explosion's as it is), before the player's or after by y + 255
+     on top (`draw_order`'s key; the ghost after on a tie, as car 3 would be). No ghost in lap 1 until step 5 loads
+     one: the first lap finished is the first ghost.
+     MEASURED: the ghost's code 768 bytes in all; the cars' bank 3,672 (track 1) to 1,830 bytes free below the
+     buffers. `tools/ta_ghost_check.mjs` (not yet in the suite; with `tools/ta_pilot.mjs`, the autopilot): every
+     frame's draw list against a model built from the player's logged laps, 2,400 frames a track: 19,200 frames, the
+     ghost drawn on about 9,900 and waiting at the line on 264, 0 wrong; with the ghost's x poked a pixel out at a
+     frame, 25 frames wrong (to its next whole record). No fields repeated from frame 600 to 2,400 on any track, with
+     the ghost drawn. On the screen (jsbeeb): a black car with the white car's highlights, plain on the road's
+     checkerboard (`docs/img/timeattack-ghost.png`), harder to pick out against the walls' black shadows (D37 allows
+     `DataId` or `DataYellow`). The game's discs the same but for the README's commit link, every track's build
      byte for byte.
 5. **Saving.** The table and the ghosts; a check as `tools/save_check.mjs`'s (saved, booted back, spoilt files
    refused, a write-protected disc's error said once).

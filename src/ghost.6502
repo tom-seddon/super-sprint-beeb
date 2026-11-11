@@ -1,8 +1,11 @@
 \\ ghost.6502 - time attack's ghost (docs/brief-timeattack-2026-11-10.md §3, step 4): the player's lap recorded as
 \\ drawn, a record a frame, into one of two buffers at the cars' bank's end; a lap that becomes the ghost
-\\ (timeattack.6502's ta_lap) keeps its buffer, the next lap taking the other. In the cars' bank, before the frames
-\\ (the same for every track); the buffers above the largest track's priority cells (cars.6502), which no load
-\\ reaches.
+\\ (timeattack.6502's ta_lap) keeps its buffer, the next lap taking the other. The ghost played back from its
+\\ buffer a record a frame, from its first at each crossing of the line, so it and the player start each lap
+\\ together; its lap done first, it waits at its first record until the player crosses (D43). Drawn as car 3
+\\ (the black car: tools/gendata.py's time attack table, D37), in the draw order by y as the logic orders cars.
+\\ In the cars' bank, before the frames (the same for every track); the buffers above the largest track's
+\\ priority cells (cars.6502), which no load reaches.
 \\
 \\ A frame's record, coded from the last (car 0's: CarId, CarXLo, CarY, CarFlags):
 \\   0-80          a move: (dx + 4) * 9 + dy + 4, each -4 to 4 (x 9 bits: CarFlags' bit 7 its high bit)
@@ -46,36 +49,54 @@ SECTION GameVars
     SKIP 1
 .GhLastF                                ; and its facing and on-top bit (CarFlags AND &7F)
     SKIP 1
+.GhRdLo                                 ; the ghost's buffer: the next byte to play,
+    SKIP 1
+.GhRdHi
+    SKIP 1
+.GhEndLo                                ; and its end
+    SKIP 1
+.GhEndHi
+    SKIP 1
+.GhWait                                 ; its lap done: waiting at its first record
+    SKIP 1
+.GhId                                   ; the ghost's record now: CarId's (&FF nothing drawn),
+    SKIP 1
+.GhX                                    ; x, 9 bits,
+    SKIP 1
+.GhXHi
+    SKIP 1
+.GhY                                    ; y,
+    SKIP 1
+.GhF                                    ; and CarFlags'
+    SKIP 1
 ENDSECTION
 
-\\ The race's start (main.6502's start): no ghost (until step 5's), the first lap into buffer A.
+GhCarId = 3                             ; the ghost's CarId: car 3, drawn black (DataBlack, D37)
+
+\\ The race's start (main.6502's start): no ghost (until step 5's), the first lap into buffer A; the first
+\\ frame a lap's start (ghost_frame: the ghost, if any, from its first record).
 \\
-\\ Inputs: none. Outputs: the recorder's state. A corrupted.
+\\ Inputs: none. Outputs: the recorder's state. A, X corrupted.
 
 .ghost_start
 {
     STZ GhLenLo:STZ GhLenHi
     STZ GhCur
     LDA #1:STA GhGhost
-    STZ GhLapEnd
+    STA GhLapEnd
     JMP restart
 }
 
 \\ Each logic frame (main.6502's frame loop, after logic_frame): a lap that ended, its buffer the ghost's if it's
-\\ the ghost (the buffers swapped) and the next lap's from its start; then this frame's record, car 0's.
+\\ the ghost (the buffers swapped) and the next lap's from its start; this frame's record, car 0's; then the
+\\ ghost's next record (its first if a lap started), put in the draw order.
 \\
-\\ Inputs: GhLapEnd; CarCount, CarId, CarXLo, CarY, CarFlags. Outputs: the recorder's state, the current buffer.
-\\ A, X, Y corrupted.
+\\ Inputs: GhLapEnd; CarCount, CarId, CarXLo, CarY, CarFlags. Outputs: the recorder's and the ghost's state, the
+\\ current buffer; GhLapEnd 0; the ghost's record in CarCount, CarId, CarXLo, CarY, CarFlags. A, X, Y corrupted.
 
 .ghost_frame
 {
-    ZA_AUTO2 p                          ; local: the buffer's next byte
-    ZA_AUTO1 dx                         ; local: the move's x, then + 4
-    ZA_AUTO1 dy                         ; local: its y + 4
-    ZA_AUTO1 t                          ; local: a scratch
-
     LDA GhLapEnd:BEQ record
-    STZ GhLapEnd
     CMP #2:BNE next
     LDX GhCur                           ; the ghost: this lap's buffer, its length
     STX GhGhost
@@ -85,8 +106,36 @@ ENDSECTION
     TXA:EOR #1:STA GhCur
 .next
     JSR restart
-
 .record
+    JSR ghost_record
+    LDA GhLapEnd:STZ GhLapEnd
+    LDX GhLenLo:BNE some
+    LDX GhLenHi:BEQ none                ; (no ghost)
+.some
+    TAX:BEQ step
+    JSR ghost_rewind                    ; a lap started: the ghost from its first record
+    BRA draw
+.step
+    JSR ghost_step
+.draw
+    JMP ghost_draw
+.none
+    RTS
+}
+
+\\ This frame's record, car 0's, into the current lap's buffer (unless it's full: then no more, and no ghost
+\\ from it).
+\\
+\\ Inputs: CarCount, CarId, CarXLo, CarY, CarFlags. Outputs: GhPtr, GhFull, GhLast*, the buffer. A, X, Y
+\\ corrupted.
+
+.ghost_record
+{
+    ZA_AUTO2 p                          ; local: the buffer's next byte
+    ZA_AUTO1 dx                         ; local: the move's x, then + 4
+    ZA_AUTO1 dy                         ; local: its y + 4
+    ZA_AUTO1 t                          ; local: a scratch
+
     LDA GhFull:BNE done
     LDA GhPtrLo:STA p                   ; room for a whole record: p < the end - 4
     LDA GhPtrHi:STA p+1
@@ -160,6 +209,140 @@ ENDSECTION
     BCC @+
     INC GhPtrHi
 .@
+    RTS
+}
+
+\\ The ghost from its lap's first record, its lap not done.
+\\
+\\ Inputs: GhGhost, GhLen. Outputs: GhRd, GhEnd, GhWait 0; and as ghost_step. A, X, Y corrupted.
+
+.ghost_rewind
+{
+    LDX GhGhost
+    LDA GhBaseLo,X:STA GhRdLo
+    CLC:ADC GhLenLo:STA GhEndLo
+    LDA GhBaseHi,X:STA GhRdHi
+    ADC GhLenHi:STA GhEndHi
+    STZ GhWait
+    \\ (falls into ghost_step)
+}
+
+\\ The ghost's next record decoded (as ghost_record codes them); at its lap's end, its first again, held there
+\\ until a lap starts (D43).
+\\
+\\ Inputs: GhRd, GhEnd, GhWait, the ghost's record. Outputs: the ghost's record (GhId, GhX, GhY, GhF), GhRd,
+\\ GhWait. A, X, Y corrupted.
+
+.ghost_step
+{
+    ZA_AUTO2 q                          ; local: the record's bytes
+    ZA_AUTO1 t                          ; local: a scratch
+
+    LDA GhWait:BEQ @+                   ; waiting: still
+    RTS
+.@
+    LDA GhRdLo:CMP GhEndLo
+    LDA GhRdHi:SBC GhEndHi
+    BCC decode
+    INC GhWait                          ; its lap done: its first record, held
+    LDX GhGhost
+    LDA GhBaseLo,X:STA GhRdLo
+    LDA GhBaseHi,X:STA GhRdHi
+.decode
+    LDA GhRdLo:STA q
+    LDA GhRdHi:STA q+1
+    LDY #0
+    LDA (q),Y:INY
+    CMP #GhNone:BNE drawn
+    LDA #&FF:STA GhId                   ; nothing drawn
+    BRA read
+.drawn
+    CMP #GhWhole:BNE coded
+    LDA (q),Y:STA GhId:INY              ; whole
+    LDA (q),Y:STA GhX:INY
+    LDA (q),Y:STA GhY:INY
+    LDA (q),Y:STA GhF:INY
+    ASL A                               ; (a car's x's high bit: CarFlags' bit 7)
+    LDA #0:ROL A:STA GhXHi
+    BRA read
+.coded
+    CMP #GhTurn:BCC move
+    TAX                                 ; a turn: the facing and on-top bit, then the move
+    AND #&10:ASL A:ASL A:STA t
+    TXA:AND #15:ORA t:STA GhF
+    LDA (q),Y:INY
+.move
+    LDX #LO(-4)                         ; dx = the move DIV 9 - 4, in X; dy its MOD 9 - 4
+.div
+    CMP #9:BCC got
+    SBC #9                              ; (C set)
+    INX
+    BRA div
+.got
+    SEC:SBC #4
+    CLC:ADC GhY:STA GhY
+    TXA:BPL @+
+    DEC GhXHi                           ; (x + dx, 9 bits: a negative dx's high byte)
+.@
+    CLC:ADC GhX:STA GhX
+    BCC @+
+    INC GhXHi
+.@
+    LDA GhF:AND #&7F                    ; CarFlags' bit 7: x's high bit
+    LDX GhXHi:BEQ @+
+    ORA #&80
+.@
+    STA GhF
+.read
+    TYA:CLC:ADC GhRdLo:STA GhRdLo
+    BCC done
+    INC GhRdHi
+.done
+    RTS
+}
+
+\\ The ghost's record into the draw list (unless nothing's drawn), before the player's or after by its key:
+\\ y, + 255 on top (draw_order's in the game; the record's on-top bit is airborne too, which the logic's
+\\ isn't); the ghost after on a tie, as car 3 would be.
+\\
+\\ Inputs: GhId, GhX, GhY, GhF; CarCount and car 0's record. Outputs: CarCount, CarId, CarXLo, CarY, CarFlags.
+\\ A, X, Y corrupted.
+
+.ghost_draw
+{
+    ZA_AUTO2 kg                         ; local: the ghost's key
+    ZA_AUTO2 kp                         ; local: the player's
+
+    LDA GhId:CMP #&FF:BEQ done
+    LDX CarCount:BEQ put                ; (the player not drawn: the ghost alone)
+    LDA GhY:STA kg:STZ kg+1
+    LDA GhId:BMI @+                     ; (an explosion: on the ground)
+    BIT GhF:BVC @+
+    DEC kg:INC kg+1                     ; + 255 (y at least 2)
+.@
+    LDA CarY:STA kp:STZ kp+1
+    LDA CarId:BMI @+
+    BIT CarFlags:BVC @+
+    DEC kp:INC kp+1
+.@
+    LDA kg:CMP kp
+    LDA kg+1:SBC kp+1
+    BCS put                             ; (X 1: after)
+    LDA CarId:STA CarId+1               ; before: the player's record moved after
+    LDA CarXLo:STA CarXLo+1
+    LDA CarY:STA CarY+1
+    LDA CarFlags:STA CarFlags+1
+    LDX #0
+.put
+    LDA GhId:BMI @+                     ; (an explosion's CarId as it is)
+    LDA #GhCarId
+.@
+    STA CarId,X
+    LDA GhX:STA CarXLo,X
+    LDA GhY:STA CarY,X
+    LDA GhF:STA CarFlags,X
+    INC CarCount
+.done
     RTS
 }
 

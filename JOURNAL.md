@@ -702,3 +702,7 @@
   Step 3c (2026-11-11, after Tom tried 3b): the code time attack never runs left out of its build, found by recording
   what runs, then read (the drones kept: the demo race uses them). The fourth bank 193 to 1,931 bytes free, main RAM's
   code 705 to 1,298. An autopilot along the drones' path drove every track before and after, the same every frame.
+  Step 4 (2026-11-11): the ghost, recorded as drawn (car 0's record a frame, 1.1 to 1.4 bytes a frame coded from the
+  last) into two buffers at the cars' bank's end, the best lap's kept; played back from each crossing, waiting at
+  the line if its lap is done first, drawn as the black car in y order. `tools/ta_ghost_check.mjs` checks every
+  frame's draw list against a model of the player's laps, 0 wrong over 19,200 frames; no frames dropped.
