@@ -705,4 +705,7 @@
   Step 4 (2026-11-11): the ghost, recorded as drawn (car 0's record a frame, 1.1 to 1.4 bytes a frame coded from the
   last) into two buffers at the cars' bank's end, the best lap's kept; played back from each crossing, waiting at
   the line if its lap is done first, drawn as the black car in y order. `tools/ta_ghost_check.mjs` checks every
-  frame's draw list against a model of the player's laps, 0 wrong over 19,200 frames; no frames dropped.
+  frame's draw list against a model of the player's laps, 0 wrong over 19,200 frames; no frames dropped. Tom tried
+  it: his car now always drawn over the ghost (he'd mixed them up), and a green player tried and reverted.
+  Step 5a: each track's ghost saved as `GHOSTn` at the load after the race that made it, and loaded with the track,
+  so lap 1 has it; `tools/ta_save_check.mjs` for the files' cases, as `save_check.mjs` is for `SCORES`.

@@ -19,8 +19,11 @@ GhBufLen = 3000                         ; a buffer's bytes: 30 s of laps at 2 by
 GhTurn = &C0
 GhNone = &FE
 GhWhole = &FF
-GhBufA = SwramEnd - 2 * GhBufLen        ; (cars.6502 asserts the track's slot below them)
+GhBufA = SwramEnd - 2 * GhBufLen
 GhBufB = SwramEnd - GhBufLen
+GhHead = GhBufA - 4                     ; the track's ghost as loaded (timeattack.6502's ta_load_ghost, its file's
+                                        ; first 4 bytes): its time and its bytes (0: none), then buffer A its
+                                        ; records (cars.6502 asserts the track's slot below)
 
 SECTION GameVars
 .GhPtrLo                                ; the current lap's buffer: its next byte
@@ -59,6 +62,10 @@ SECTION GameVars
     SKIP 1
 .GhWait                                 ; its lap done: waiting at its first record
     SKIP 1
+.GhNew                                  ; a new ghost this race, to save as the race ends (ta_save_ghost; not the demo's)
+    SKIP 1
+.GhTrack                                ; the race's track (TrackNum), the ghost's file's
+    SKIP 1
 .GhId                                   ; the ghost's record now: CarId's (&FF nothing drawn),
     SKIP 1
 .GhX                                    ; x, 9 bits,
@@ -73,17 +80,22 @@ ENDSECTION
 
 GhCarId = 3                             ; the ghost's CarId: car 3, drawn black (DataBlack, D37)
 
-\\ The race's start (main.6502's start): no ghost (until step 5's), the first lap into buffer A; the first
-\\ frame a lap's start (ghost_frame: the ghost, if any, from its first record).
+\\ The race's start (main.6502's start, after hud_start): the track's ghost as loaded with it, in buffer A (none if
+\\ its bytes are 0), its time the HUD's; the first lap into buffer B; the first frame a lap's start (ghost_frame:
+\\ the ghost, if any, from its first record).
 \\
-\\ Inputs: none. Outputs: the recorder's state. A, X corrupted.
+\\ Inputs: GhHead; TrackNum. Outputs: the recorder's state, TaGhost, GhTrack. A, X corrupted.
 
 .ghost_start
 {
-    STZ GhLenLo:STZ GhLenHi
-    STZ GhCur
-    LDA #1:STA GhGhost
+    LDA GhHead+2:STA GhLenLo
+    LDA GhHead+3:STA GhLenHi
+    LDA GhHead:STA TaGhostLo
+    LDA GhHead+1:STA TaGhostHi
+    STZ GhGhost
+    LDA #1:STA GhCur
     STA GhLapEnd
+    LDA TrackNum:STA GhTrack
     JMP restart
 }
 
@@ -104,6 +116,8 @@ GhCarId = 3                             ; the ghost's CarId: car 3, drawn black 
     LDA GhPtrLo:SBC GhBaseLo,X:STA GhLenLo
     LDA GhPtrHi:SBC GhBaseHi,X:STA GhLenHi
     TXA:EOR #1:STA GhCur
+    LDA GmDemo:BNE next                 ; (the demo's laps never saved)
+    INC GhNew
 .next
     JSR restart
 .record

@@ -428,5 +428,5 @@ ENDIF
     INCBIN "../build/gen/prioclass.bin"
 .PrioSlotEnd
 IF GenTimeAttack
-    ASSERT PrioSlotEnd <= GhBufA, "the track's priority cells below the ghost's buffers"
+    ASSERT PrioSlotEnd <= GhHead, "the track's priority cells below the ghost's buffers"
 ENDIF

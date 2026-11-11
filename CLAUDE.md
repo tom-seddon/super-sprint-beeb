@@ -62,8 +62,9 @@ What the skills look up, for this project:
 - **Time attack** (`docs/brief-timeattack-2026-11-10.md`, branch `timeattack`): a variant from the same source,
   `GenTimeAttack` (`TRACE=ta`, `tools/gendata.py --ta`); `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl`,
   from its tracks' builds in `build/tracks_ta` (`tools/all_tracks.sh ta`). The game's build stays byte for byte.
-  Its ghost is `src/ghost.6502`; `node tools/ta_ghost_check.mjs` checks it every frame (not yet in the suite),
-  driven by `tools/ta_pilot.mjs`, an autopilot along the drones' path.
+  Its ghost is `src/ghost.6502`; `node tools/ta_ghost_check.mjs` checks it every frame and
+  `node tools/ta_save_check.mjs` its files, `GHOST1`-`GHOST8` (neither yet in the suite), driven by
+  `tools/ta_pilot.mjs`, an autopilot along the drones' path.
 - **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes
   `build/sprint.ssd`, the listing `build/sprint.lst` (each bank's free bytes are printed in it) and the
   symbols `build/sprint.json` (Baron's `--symbols`). No `-D` flags. The build's version, on the options screen, is git's (`make

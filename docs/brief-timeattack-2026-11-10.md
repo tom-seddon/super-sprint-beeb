@@ -1,6 +1,6 @@
 # Brief - a time attack version
 
-> **Status: in progress (2026-11-10): steps 1 to 4 done (§8); the ghost to be tried on Tom's Master, then step 5, saving.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
+> **Status: in progress (2026-11-10): steps 1 to 4 done (§8), 5a (the ghosts saved) to be tried on Tom's Master; then 5b, the table.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
 > benefit from having a special version, built from the same code and using the same basic game engine and tracks: a
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
@@ -410,6 +410,24 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      line). MEASURED: the cars' bank 3,672 to 3,928 bytes free on track 1 (the code shorter, the frames' page a page lower); `tools/ta_ghost_check.mjs`'s model the ghost first:
      19,200 frames, 0 wrong; `build/ta/ghost_under.png` the white car over the black where they overlap.
 5. **Saving.** The table and the ghosts; a check as `tools/save_check.mjs`'s (saved, booted back, spoilt files
-   refused, a write-protected disc's error said once).
+   refused, a write-protected disc's error said once). In two pieces, as the front end that will ask for names is
+   step 6: the ghosts first, then the table (its names blank until step 6).
+   - **5a, each track's ghost on the disc** (done 2026-11-11, to be tried on Tom's Master): `GHOST1`-`GHOST8`, each
+     its time (2 bytes), its records' bytes (2) and its records. Saved as the race that made it ends: at the start of
+     the next load, whatever's loaded (`load_track` calls `ta_save_ghost` once the OS has the machine, before any
+     file), so it doesn't wait for step 6's flow, and the ghost's buffers aren't yet touched (prepare's file is parked
+     over them, `ParkPrepare`). Loaded with its track, before the track's file (`ta_load_ghost`, for a file named
+     with a digit), into the cars' bank at `GhHead`, the head then buffer A; `ghost_start` takes it from there, the
+     HUD's ghost time with it, so lap 1 has the ghost. Through the main screen at `TrackFileAddr` (OSFILE can't reach
+     a bank). Refused, as no ghost: no file, a length not the head's bytes + 4, bytes 0 or over a buffer, time 0. A
+     failed save said once by `load_track`'s brk (`GhNew` cleared first, D23's way); a demo race's laps never
+     saved (`GmDemo`). In main RAM's code (it calls OSFILE): 443 bytes, 1,266 to 823 free; the load's first 4K 181
+     to 168.
+     MEASURED: `tools/ta_ghost_check.mjs` now races each track twice on one machine, the second race's ghost the one
+     the first saved, from the first frame, its time on the HUD, and each `GHOSTn` decoded against the model: 38,400
+     frames, 0 wrong. `tools/ta_save_check.mjs` (not yet in the suite): `GHOST1` saved once a ghost (592 bytes, time
+     478), loaded back after a boot and drawn from the start, saved over when beaten, not by a demo race (one making a
+     new ghost); 4 spoilt files refused; a read-only disc's error said once ("Disc read only - press a key"); ADFS
+     too. The game's discs the same but for the README's commit link, every track's build byte for byte.
 6. **The front end.** The menu, the upgrades, the name; checks driven key by key as the screens' are now.
 7. **Close**: the variant's suite, both discs, Tom's Master.

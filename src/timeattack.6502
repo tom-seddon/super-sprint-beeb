@@ -36,7 +36,8 @@ SECTION GameVars
     SKIP 1
 ENDSECTION
 
-\\ The race's start, from hud_start: BEST and GHOST, nothing held, no ghost yet (until steps 4 and 5).
+\\ The race's start, from hud_start: BEST and GHOST, nothing held, the ghost's time 0 (ghost.6502's ghost_start then
+\\ gives it the loaded ghost's).
 \\
 \\ Inputs: none. Outputs: HudWant's labels; TaHold, TaGhost 0. A, X corrupted.
 
@@ -192,3 +193,159 @@ ASSERT TaLabelsEnd - TaLabels == TaGhostLabel - TaBestLabel + 5, "the labels: BE
     TYA:ORA ink:STA HudWant+3,X
     RTS
 }
+
+\\ Each track's ghost on the disc, GHOST1-GHOST8 (step 5): its time (2 bytes), its records' bytes (2), its records
+\\ (ghost.6502's coding). Saved as the race that made it ends, at the next load's start (load_track: whatever's
+\\ loaded next, the ghost's buffers not yet touched), and loaded with its track, before the track's file, into the
+\\ cars' bank at GhHead. Through the main screen (GhFileAddr, where the file's about to land): OSFILE can't read or
+\\ write a sideways bank, its ROM being paged in there. Both run while the OS has the machine (load.6502), so no
+\\ zero page but the bank numbers: the copy's pointers are its own operands.
+
+GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where the next file lands)
+
+\\ A new ghost from the race just run saved, once: a failed save (a write-protected disc) is said by load_track's
+\\ brk, which loads again without coming back here (D23's way).
+\\
+\\ Inputs: GhNew, GhTrack, GhGhost, GhLen, TaGhost (GameVars: load_track's clear_state comes after). Outputs:
+\\ GHOSTn written; GhNew 0. A, X, Y corrupted.
+
+.ta_save_ghost
+{
+    LDA GhNew:BNE @+
+    RTS
+.@
+    STZ GhNew
+    LDA TaGhostLo:STA GhFileAddr        ; the file's head: the time, the bytes
+    LDA TaGhostHi:STA GhFileAddr+1
+    LDA GhLenLo:STA GhFileAddr+2:STA ta_copy.count
+    LDA GhLenHi:STA GhFileAddr+3:STA ta_copy.count+1
+    LDX GhGhost                         ; the records: from the ghost's buffer
+    LDA BufLo,X:STA ta_copy.from+1
+    LDA BufHi,X:STA ta_copy.from+2
+    LDA #LO(GhFileAddr+4):STA ta_copy.to+1
+    LDA #HI(GhFileAddr+4):STA ta_copy.to+2
+    JSR ta_copy
+    JSR ta_block                        ; OSFILE's block: the name, then load, exec, start, end
+    LDA GhTrack:CLC:ADC #'1':STA GhostName+5
+    LDA #LO(GhFileAddr):STA TaBlock+2:STA TaBlock+6:STA TaBlock+10
+    LDA #HI(GhFileAddr):STA TaBlock+3:STA TaBlock+7:STA TaBlock+11
+    CLC
+    LDA #LO(GhFileAddr+4):ADC GhLenLo:STA TaBlock+14
+    LDA #HI(GhFileAddr+4):ADC GhLenHi:STA TaBlock+15
+    LDA #&FF
+    FOR i = 0..2
+        STA TaBlock+4+i*4:STA TaBlock+5+i*4
+    NEXT
+    STA TaBlock+16:STA TaBlock+17
+    LDX #LO(TaBlock):LDY #HI(TaBlock)
+    LDA #0:JMP &FFDD                    ; OSFILE 0: save
+.BufLo
+    EQUB LO(GhBufA), LO(GhBufB)
+.BufHi
+    EQUB HI(GhBufA), HI(GhBufB)
+}
+
+\\ The track's ghost loaded, GHOSTn for track file TRACKn: into the cars' bank at GhHead, its head and its
+\\ records; or none (GhHead's bytes 0) if there's no such file, or it's not a ghost's: its length not the head's
+\\ bytes + 4, those 0 or more than a buffer holds, or its time 0.
+\\
+\\ Inputs: LoadName (TRACKn). Outputs: GhHead and buffer A, in the cars' bank. A, X, Y corrupted.
+
+.ta_load_ghost
+{
+    LDA LoadName+5:STA GhostName+5
+    JSR ta_block
+    LDX #LO(TaBlock):LDY #HI(TaBlock)
+    LDA #5:JSR &FFDD                    ; OSFILE 5: its catalogue entry
+    CMP #1:BNE none                     ; (1: a file)
+    LDA TaBlock+12:ORA TaBlock+13:BNE none
+    LDA TaBlock+10:SEC:SBC #4:STA len   ; the records' bytes: 1 to GhBufLen
+    LDA TaBlock+11:SBC #0:STA len+1
+    BCC none
+    ORA len:BEQ none
+    LDA len:CMP #LO(GhBufLen + 1)
+    LDA len+1:SBC #HI(GhBufLen + 1)
+    BCS none
+    JSR ta_block                        ; loaded: at GhFileAddr (exec's low byte 0: the address given)
+    LDA #LO(GhFileAddr):STA TaBlock+2
+    LDA #HI(GhFileAddr):STA TaBlock+3
+    LDA #&FF:STA TaBlock+4:STA TaBlock+5
+    LDX #LO(TaBlock):LDY #HI(TaBlock)
+    JSR &FFDD                           ; OSFILE &FF: load
+    LDA GhFileAddr+2:CMP len:BNE none   ; its head's bytes the file's
+    LDA GhFileAddr+3:CMP len+1:BNE none
+    LDA GhFileAddr:ORA GhFileAddr+1:BEQ none    ; (a time)
+    CLC
+    LDA len:ADC #4:STA ta_copy.count
+    LDA len+1:ADC #0:STA ta_copy.count+1
+    BRA copy
+.none
+    STZ GhFileAddr:STZ GhFileAddr+1     ; no ghost: a head of 0s
+    STZ GhFileAddr+2:STZ GhFileAddr+3
+    LDA #4:STA ta_copy.count
+    STZ ta_copy.count+1
+.copy
+    LDA #LO(GhFileAddr):STA ta_copy.from+1
+    LDA #HI(GhFileAddr):STA ta_copy.from+2
+    LDA #LO(GhHead):STA ta_copy.to+1
+    LDA #HI(GhHead):STA ta_copy.to+2
+    JMP ta_copy
+.len
+    EQUW 0
+}
+
+\\ OSFILE's block cleared, its name GhostName.
+\\
+\\ Inputs: none. Outputs: TaBlock. A, X corrupted.
+
+.ta_block
+{
+    LDX #17
+    LDA #0
+.clear
+    STA TaBlock,X
+    DEX
+    BPL clear
+    LDA #LO(GhostName):STA TaBlock
+    LDA #HI(GhostName):STA TaBlock+1
+    RTS
+}
+
+\\ count bytes copied, from main RAM to the cars' bank or the other way, while the OS has the machine (its
+\\ interrupts off meanwhile: the OS mustn't see its ROM gone, as load_track's park).
+\\
+\\ Inputs: count; from+1, to+1: the addresses. Outputs: the bytes. A, X, Y corrupted.
+
+.ta_copy
+{
+    SEI
+    LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank
+.next
+    LDA count:ORA count+1:BEQ done
+.from
+    LDA &FFFF                           ; self-modified: the source
+.to
+    STA &FFFF                           ; self-modified: the destination
+    INC from+1:BNE @+
+    INC from+2
+.@
+    INC to+1:BNE @+
+    INC to+2
+.@
+    LDA count:BNE @+
+    DEC count+1
+.@
+    DEC count
+    BRA next
+.done
+    LDA &F4:STA &FE30                   ; ROMSEL: the OS's
+    CLI
+    RTS
+.count
+    EQUW 0
+}
+
+.GhostName                              ; a ghost's file's name: "GHOSTn" and a CR
+    EQUS "GHOST1", 13
+.TaBlock                                ; OSFILE's block
+    SKIP 18
