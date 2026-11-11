@@ -4,7 +4,7 @@
 // its frames' records, from its crossing's frame to the one before the next; each frame after ghost_frame (the
 // frame loop's .objects) the draw list against the model's: the player's record and the ghost's, the ghost's lap's
 // record k (k the frames since this lap started, the crossing's frame 0) or, its lap done, its first (D43), as car 3
-// unless an explosion, ordered by y + 255 on top, the ghost after on a tie. So the recording's coding and the
+// unless an explosion, first in the list (the player's drawn over it). So the recording's coding and the
 // playback's decoding are checked together: what's drawn is what the player was.
 //
 // Exit status: 1 if any frame's list differs, or no ghost is drawn on any track; else 0.
@@ -21,7 +21,6 @@ await runTo(s, syms["game_resume.idle"], 80000000);
 const peek = (a) => s.readMemory(a, 1)[0];
 const bt = peek(syms.banktrace), bc = peek(syms.bankcars);
 const key = (r) => (r ? r.join(",") : "none");
-const sortKey = (r) => r[2] + (!(r[0] & 0x80) && (r[3] & 0x40) ? 255 : 0);
 let wrong = 0, total = 0, anyDrawn = 0;
 const TRACKS = (process.env.TRACKS || "0,1,2,3,4,5,6,7").split(",").map(Number);
 for (const t of TRACKS) {
@@ -52,7 +51,7 @@ for (const t of TRACKS) {
             if (g && !(g[0] & 0x80)) g = [3, g[1], g[2], g[3]];
             const want = [];
             if (player) want.push(player);
-            if (g) { if (player && sortKey(g) < sortKey(player)) want.unshift(g); else want.push(g); drawn++; }
+            if (g) { want.unshift(g); drawn++; }
             const n = peek(syms.CarCount), got = [];
             for (let i = 0; i < n; i++) got.push([peek(syms.CarId + i), peek(syms.CarXLo + i), peek(syms.CarY + i), peek(syms.CarFlags + i)]);
             if (got.map(key).join(" ") !== want.map(key).join(" ")) { bad++; if (!firstBad) firstBad = `frame ${f} (lap from ${lapStart}): want ${want.map(key).join(" ")}, got ${got.map(key).join(" ")}`; }

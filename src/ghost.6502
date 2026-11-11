@@ -3,7 +3,7 @@
 \\ (timeattack.6502's ta_lap) keeps its buffer, the next lap taking the other. The ghost played back from its
 \\ buffer a record a frame, from its first at each crossing of the line, so it and the player start each lap
 \\ together; its lap done first, it waits at its first record until the player crosses (D43). Drawn as car 3
-\\ (the black car: tools/gendata.py's time attack table, D37), in the draw order by y as the logic orders cars.
+\\ (the black car: tools/gendata.py's time attack table, D37), under the player's car.
 \\ In the cars' bank, before the frames (the same for every track); the buffers above the largest track's
 \\ priority cells (cars.6502), which no load reaches.
 \\
@@ -301,46 +301,30 @@ GhCarId = 3                             ; the ghost's CarId: car 3, drawn black 
     RTS
 }
 
-\\ The ghost's record into the draw list (unless nothing's drawn), before the player's or after by its key:
-\\ y, + 255 on top (draw_order's in the game; the record's on-top bit is airborne too, which the logic's
-\\ isn't); the ghost after on a tie, as car 3 would be.
+\\ The ghost's record into the draw list (unless nothing's drawn), first: the player's always drawn over it,
+\\ though by y it may be the ghost that's in front (Tom, 2026-11-11: "for this mode it'd be nice for the player car
+\\ always to be drawn on top, even if this would be visually wrong"). A bridge's priority cells hide either car
+\\ as before: the order only decides which of the two is over the other.
 \\
 \\ Inputs: GhId, GhX, GhY, GhF; CarCount and car 0's record. Outputs: CarCount, CarId, CarXLo, CarY, CarFlags.
-\\ A, X, Y corrupted.
+\\ A corrupted.
 
 .ghost_draw
 {
-    ZA_AUTO2 kg                         ; local: the ghost's key
-    ZA_AUTO2 kp                         ; local: the player's
-
     LDA GhId:CMP #&FF:BEQ done
-    LDX CarCount:BEQ put                ; (the player not drawn: the ghost alone)
-    LDA GhY:STA kg:STZ kg+1
-    LDA GhId:BMI @+                     ; (an explosion: on the ground)
-    BIT GhF:BVC @+
-    DEC kg:INC kg+1                     ; + 255 (y at least 2)
-.@
-    LDA CarY:STA kp:STZ kp+1
-    LDA CarId:BMI @+
-    BIT CarFlags:BVC @+
-    DEC kp:INC kp+1
-.@
-    LDA kg:CMP kp
-    LDA kg+1:SBC kp+1
-    BCS put                             ; (X 1: after)
-    LDA CarId:STA CarId+1               ; before: the player's record moved after
+    LDA CarCount:BEQ put                ; (the player not drawn: the ghost alone)
+    LDA CarId:STA CarId+1               ; the player's record moved after
     LDA CarXLo:STA CarXLo+1
     LDA CarY:STA CarY+1
     LDA CarFlags:STA CarFlags+1
-    LDX #0
 .put
     LDA GhId:BMI @+                     ; (an explosion's CarId as it is)
     LDA #GhCarId
 .@
-    STA CarId,X
-    LDA GhX:STA CarXLo,X
-    LDA GhY:STA CarY,X
-    LDA GhF:STA CarFlags,X
+    STA CarId
+    LDA GhX:STA CarXLo
+    LDA GhY:STA CarY
+    LDA GhF:STA CarFlags
     INC CarCount
 .done
     RTS

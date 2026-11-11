@@ -389,8 +389,8 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
    - **4b, the ghost drawn** (done 2026-11-11, to be tried on Tom's Master): `ghost.6502`'s playback, after the
      recording each frame: at each crossing of the line (and the race's start) the ghost from its buffer's first
      record, then a record a frame; its lap done first, its first record held until the player crosses (D43). Its
-     record into the draw list as car 3 (black, D37; an explosion's as it is), before the player's or after by y + 255
-     on top (`draw_order`'s key; the ghost after on a tie, as car 3 would be). No ghost in lap 1 until step 5 loads
+     record into the draw list as car 3 (black, D37; an explosion's as it is), at first before the player's or after by
+     y + 255 on top (`draw_order`'s key), then always before (below). No ghost in lap 1 until step 5 loads
      one: the first lap finished is the first ghost.
      MEASURED: the ghost's code 768 bytes in all; the cars' bank 3,672 (track 1) to 1,830 bytes free below the
      buffers. `tools/ta_ghost_check.mjs` (not yet in the suite; with `tools/ta_pilot.mjs`, the autopilot): every
@@ -401,6 +401,14 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      checkerboard (`docs/img/timeattack-ghost.png`), harder to pick out against the walls' black shadows (D37 allows
      `DataId` or `DataYellow`). The game's discs the same but for the README's commit link, every track's build
      byte for byte.
+     **The player over the ghost** (2026-11-11): Tom, after trying it, found the cars sometimes confused, "at least
+     part of the problem is that the ghost car is sometimes drawn on top of the player car ... for this mode it'd be
+     nice for the player car always to be drawn on top, even if this would be visually wrong". So the ghost's record
+     goes first in the draw list, always (a bridge's priority cells still hide either car). Tried and dropped first:
+     the player green (`DataId`), Tom: "Please revert"; mocked up and not built: the ghost dithered
+     (`build/ta/ghost_dither.png`: stripes from its table alone, a checkerboard needing the plotter to switch tables a
+     line). MEASURED: the cars' bank 3,672 to 3,928 bytes free on track 1 (the code shorter, the frames' page a page lower); `tools/ta_ghost_check.mjs`'s model the ghost first:
+     19,200 frames, 0 wrong; `build/ta/ghost_under.png` the white car over the black where they overlap.
 5. **Saving.** The table and the ghosts; a check as `tools/save_check.mjs`'s (saved, booted back, spoilt files
    refused, a write-protected disc's error said once).
 6. **The front end.** The menu, the upgrades, the name; checks driven key by key as the screens' are now.
