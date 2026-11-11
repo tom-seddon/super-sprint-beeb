@@ -38,7 +38,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     LDA #'F' - '0':STA LoadWant
     JMP load_go                         ; (back here through game_go)
 .menu
-    STZ GmDemo:STZ GmAbandon:STZ GmStage:STZ GmPicture
+    STZ GmAbandon:STZ GmStage:STZ GmPicture
     JSR say_clear
     LDA acccon:STA fshadow              ; (front_glyph: the main screen, shown)
     LDA #8:STA fy                       ; the heading

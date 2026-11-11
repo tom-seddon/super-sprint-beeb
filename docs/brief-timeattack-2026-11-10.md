@@ -491,6 +491,19 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      `ta_table_check` and `ta_ghost_check` still pass, waiting for the menu in the background's bank (its address
      alone is reached in the ADFS ROM while it boots). The game's discs the same but for the README's commit link,
      every track's build byte for byte.
+     **The drones and the demo out** (2026-11-11; Tom tried the menu on his Master: "Looks good!"): with no demo
+     race (D51), what only it ran is left out of time attack's build: `drone.6502`'s code (its state kept:
+     `RcGateLane` is the gates'), the drones' set-up in `race.6502`'s start and the control loop's call, the lap
+     events and points (the demo's end), `race_end` and the logic's tests of it and of `GmDemo`, `ghost.6502`'s and
+     `ta_race_end`'s `GmDemo` tests. The drones' path in Shared's slot is now `TrackNum` and 995 bytes of room, kept
+     in place under the tunes' rings (`TuneRing`, asserted in the slot); its zeros pack to nothing in the track's
+     file. The autopilot (`tools/ta_pilot.mjs`) reads the path from `orig/st/SUPER.DAT` as `tools/gen_logic.py`
+     does, every track's entries the same as the build's tables (a script, all 8 tracks).
+     MEASURED (track 1's build): the fourth bank 1,919 to 2,707 bytes free, main RAM's code 445 to 785, the first 4K
+     2,634 to 2,637; the disc 88,064 to 83,456 bytes. Time attack before and after (the autopilot, each track 2,400
+     frames, car state, draw records, HUD text and both screens every frame): 19,200 frames, 0 different. The four
+     time attack checks pass; the game's discs the same but for the README's commit link, every track's build byte
+     for byte; the suite 43 of 43 on agentbox.
    - **6c, 32 rows**: the front end's screen 32 rows, the race's 26 (D46): the CRTC switched with the palette black,
      and Shared (the `&3000` area's read-only data, which a 32-row screen overwrites) put back before each race from
      a packed copy in a bank. Checked as `boot_check`/`flash_check` do, field by field.

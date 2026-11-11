@@ -715,4 +715,6 @@
   Step 6 planned in pieces, Tom's answers D52-D54 (the driving keys and 1-8 on the menu, any player's keys drive,
   a simplified options screen). 6a: the tornado's frames out of the objects' bank (3,584 bytes). 6b: `tagame.6502`,
   a plain menu in place of the game's front end, the game's other screens off time attack's disc;
-  `tools/ta_menu_check.mjs` drives it key by key.
+  `tools/ta_menu_check.mjs` drives it key by key. Tom tried it: "Looks good!". Then the drones and the demo's code
+  out of time attack's build (D51), the path's place in Shared kept as room; the autopilot reads the path from the
+  ST's data instead. The fourth bank 788 bytes freer, main RAM's code 340; play the same every frame.

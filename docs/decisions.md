@@ -723,6 +723,7 @@ end will be just the menu screens, with no attract sequence and therefore no dem
 So: time attack's front end is the menu, the track's screen and the name (D44, D48, D49), nothing between; no title,
 credits, high scores or demo. What only the demo needs goes with the game's front end at step 6: the drones and their
 path (kept at step 3c for it), the demo's lap events (`race.6502`), `GhNew`'s test of `GmDemo` (`ghost.6502`).
+Done at 6b (2026-11-11): time attack's build runs no drone or demo code, the path's place in Shared left as room.
 
 ### D52. Picking a track on time attack's menu: Decided (2026-11-11)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §6; D48's "exact mechanism to be determined"). Asked: cursor keys

@@ -252,8 +252,8 @@ ENDSECTION
     \\ speed car * 10, D 40, top 60 - track * 4 + car * 4 + race
 
     IF GenTimeAttack
-        STZ RcDrone,X                   ; (time attack: car 0 the player's, whoever joined)
-    ENDIF
+        STZ RcDrone,X                   ; (time attack: car 0 the player's, whoever joined; no drones or demo, D51)
+    ELSE
     LDA RcDrone,X
     IF GenPlay
         ORA GmDemo                      ; (F_00D1FA: every car driven, though its flag says not)
@@ -293,6 +293,7 @@ ENDSECTION
     LDA #40:JSR mul_s16
     LDA num:STA RcOffYLo,X
     LDA num+1:STA RcOffYHi,X
+    ENDIF
 .human
     DEX
     BMI order
@@ -393,16 +394,20 @@ ENDIF
     LDX #0
 .control
     LDA RcState,X:BNE next              ; a wrecked car: no control
-    LDA RcDrone,X
-    IF GenPlay
-        ORA GmDemo
+    IF GenTimeAttack = 0                ; (time attack: no drones or demo, D51)
+        LDA RcDrone,X
+        IF GenPlay
+            ORA GmDemo
+        ENDIF
+        BNE driven
     ENDIF
-    BNE driven
     JSR human                           ; (X preserved)
     JSR engine                          ; F_012BA2 (sound.6502)
-    BRA next
-.driven
-    JSR drone                           ; (X preserved; in the logic's bank)
+    IF GenTimeAttack = 0
+        BRA next
+    .driven
+        JSR drone                       ; (X preserved; in the logic's bank)
+    ENDIF
 .next
     INX
     CPX #Cars:BNE control
@@ -410,13 +415,11 @@ ENDIF
     \\ the lap events, the first in car order: a car's first frame on lap 3 shows the final lap's banner (once);
     \\ on lap 4 (and none yet), it has won: the banner, the engines off, the countdown (the ST tests each
     \\ against the HUD's shown lap, G_01DFC0, which is always behind at this point: the HUD runs later in
-    \\ the frame than the laps change); time attack has none, its laps endless, and no points, but in the
-    \\ attract mode's demo race, which they end
+    \\ the frame than the laps change); time attack has none, its laps endless, and no points (and no demo
+    \\ race, D51)
 
 .events
-    IF GenTimeAttack
-        LDA GmDemo:BEQ pointed
-    ENDIF
+    IF GenTimeAttack = 0
     LDX #0
 .event
     LDA RcLaps,X
@@ -457,6 +460,7 @@ ENDIF
     JSR score_add
     DEX
     BPL points
+    ENDIF
 .pointed
     JSR collide
 
@@ -473,6 +477,7 @@ ENDIF
     JMP heli_frame
 }
 
+IF GenTimeAttack = 0                    ; (time attack: no race's end but Escape, D51)
 \\ After a race frame and its flip, F_00C592's end: the countdown run out, the race is over, its frame the
 \\ winner's finish, and any other car that finished in the 4 frames put back to lap 3, checkpoint 5, 99
 \\ stripes.
@@ -514,6 +519,7 @@ ENDIF
 .done
     RTS
 }
+ENDIF
 
 \\ F_00E66A: the coasting cycle on; then each car in draw order: the area it must stay in, its walls and the
 \\ track's cells, a bounce or a wreck, its last safe place, and a car-to-car shove. Built: the cycle, the

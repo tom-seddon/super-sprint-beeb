@@ -156,7 +156,9 @@ ENDIF
     LDA LfFrame+1:BNE @+                ; the first race frame: the ST's start, then its 1 s pause
     LDA LfFrame:CMP #2:BNE @+
     IF GenPlay
-        LDA GmDemo:BNE @+               ; (the demo starts at once)
+        IF GenTimeAttack = 0
+            LDA GmDemo:BNE @+           ; (the demo starts at once)
+        ENDIF
     ENDIF
     JSR start_pause
 .@
@@ -167,7 +169,9 @@ ENDIF
             LDA RcInput:ORA RcInput+1:ORA RcInput+2
             STA RcInput                 ; (time attack: any player's keys drive the one car, D53)
         ENDIF
-        LDA GmDemo:BNE @+
+        IF GenTimeAttack = 0
+            LDA GmDemo:BNE @+
+        ENDIF
         LDA #KeyF0 + (KeyEscape - KeyF0) * GenTimeAttack   ; F10 (D24: f0), or time attack's Escape: the race
         JSR key_down                    ; abandoned, back to the attract mode
     .abandon                            ; (tools/game_check.mjs gives a traced press here)
@@ -203,6 +207,7 @@ ENDIF
         JSR build_hud
     ENDIF
 .built                                  ; (tools/disc_races.mjs: the state the ST's flip dumps)
+    IF GenTimeAttack = 0                ; (time attack: no race's end but Escape, no demo, D51)
     LDA setup:BNE count                 ; (the set-up's flips: no race frame)
     JSR race_end                        ; after the frame's records: the ST's runs after its flip
     IF GenPlay
@@ -214,6 +219,7 @@ ENDIF
         TAY:BPL count
     .ended
         LDA #&FF:STA LoadWant
+    ENDIF
     ENDIF
 .count
     INC LfFrame

@@ -294,7 +294,16 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             INCLUDE "../build/lgen/probes.6502"
             INCLUDE "sharedtabs.6502"
 .SharedSlot                             ; the track's part (Phase 5, 3a): the same size on every track
-            INCLUDE "../build/lgen/path.6502"
+            IF GenTimeAttack            ; (time attack: no drones' path, D51; its place kept, under the tunes'
+.TrackNum                               ; rings: zeros, packed to nothing in the track's file)
+                EQUB LgTrack
+.TaSharedRoom
+                SKIP 1 + 7 * 142        ; (the path's bytes: PathCount and 7 arrays of PathMax, tools/gen_logic.py)
+.TaSharedRoomEnd
+                PRINT "Shared's slot: ", TaSharedRoomEnd - TaSharedRoom, " bytes free (the drones' path's place)"
+            ELSE
+                INCLUDE "../build/lgen/path.6502"
+            ENDIF
             INCLUDE "../build/lgen/hazards.6502"
 .EntCode                                ; a gate's or barrier's entry, by instance * 9 + code (logicframe.6502)
             EQUB GenEntCode

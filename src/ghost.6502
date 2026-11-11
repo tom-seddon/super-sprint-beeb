@@ -62,7 +62,7 @@ SECTION GameVars
     SKIP 1
 .GhWait                                 ; its lap done: waiting at its first record
     SKIP 1
-.GhNew                                  ; a new ghost this race, to save as the race ends (ta_save_ghost; not the demo's)
+.GhNew                                  ; a new ghost this race, to save as the race ends (ta_save_ghost)
     SKIP 1
 .GhTrack                                ; the race's track (TrackNum), the ghost's file's
     SKIP 1
@@ -116,7 +116,6 @@ GhCarId = 3                             ; the ghost's CarId: car 3, drawn black 
     LDA GhPtrLo:SBC GhBaseLo,X:STA GhLenLo
     LDA GhPtrHi:SBC GhBaseHi,X:STA GhLenHi
     TXA:EOR #1:STA GhCur
-    LDA GmDemo:BNE next                 ; (the demo's laps never saved)
     INC GhNew
 .next
     JSR restart

@@ -1,20 +1,33 @@
-// An autopilot for car 0, for time attack's checks (tools/ta_ghost_check.mjs): along the drones' path (Shared's Path
-// tables) as a drone takes its segments (drone.6502's next_segment, an even car's lane), steering for the segment's
-// end, lifting off to turn (a turn accelerating costs speed) and not turning below speed 6. Crude: it laps 6 of the 8
-// tracks; on tracks 5 and 8 it wedges against a wall. Lost (put back after a wreck), it takes the nearest segment.
+// An autopilot for car 0, for time attack's checks (tools/ta_ghost_check.mjs): along the drones' path (the ST's, read
+// from SUPER.DAT as tools/gen_logic.py does) as a drone takes its segments (drone.6502's next_segment, an even car's
+// lane), steering for the segment's end, lifting off to turn (a turn accelerating costs speed) and not turning below
+// speed 6. Crude: it laps 6 of the 8 tracks; on tracks 5 and 8 it wedges against a wall. Lost (put back after a
+// wreck), it takes the nearest segment.
 //
 // Usage: const pilot = makePilot(s, syms) at logic_frame.played (the logic's bank and ANDY in), then pilot() there
 // each frame: RcInput's byte for car 0.
+import { readFileSync } from "node:fs";
+
+// The path from the ST's data, as tools/gen_logic.py's path() reads it (time attack's build has none, D51): SUPER.DAT's
+// entries at G_01E2A6, each x8, y8, length and direction word, big-endian; G_01D158's start and G_01D168's count a track.
+const Super = readFileSync(new URL("../orig/st/SUPER.DAT", import.meta.url));
+const PathOff = 0x2ce3a, PathStart = [0, 0x2a2, 0x554, 0x826, 0xc78, 0xfaa, 0x13fc, 0x17ce];
+const PathCount = [0x54, 0x56, 0x5a, 0x8a, 0x66, 0x8a, 0x7a, 0x7c];
+function path(track) {
+    const base = PathOff + PathStart[track] + 2;
+    const word = (k) => Super.readInt16BE(base + 2 * k);
+    return [...Array(PathCount[track])].map((_, i) => {
+        const d = word(4 * i + 3) & 0xffff;
+        return { x: word(4 * i), y: word(4 * i + 1), len: word(4 * i + 2) & 255, dlo: d & 255, dhi: d >> 8 };
+    });
+}
+
 export function makePilot(s, syms) {
     const cpu = s._machine.processor;
     const m = (a) => cpu.readmem(a);
     const s8 = (v) => (v & 0x80 ? v - 256 : v);
     const w16 = (lo, hi) => { const v = m(lo) | (m(hi) << 8); return v & 0x8000 ? v - 65536 : v; };
-    const n = m(syms.PathCount);
-    const P = [...Array(n)].map((_, i) => ({
-        x: w16(syms.PathX8Lo + i, syms.PathX8Hi + i), y: w16(syms.PathY8Lo + i, syms.PathY8Hi + i),
-        dlo: m(syms.PathDirLo + i), dhi: m(syms.PathDirHi + i), len: m(syms.PathLen + i),
-    }));
+    const P = path(m(syms.TrackNum)), n = P.length;
     const DX = [...Array(16)].map((_, f) => s8(m(syms.DirX + f))), DY = [...Array(16)].map((_, f) => s8(m(syms.DirY + f)));
     for (const p of P) { const t = p.dlo & 15; p.ex = p.x + p.len * DX[t]; p.ey = p.y + p.len * DY[t]; }
     let idx = 0;

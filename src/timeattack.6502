@@ -470,13 +470,12 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
 }
 
 \\ The race over (main.6502's frame loop, as it goes to the load): its best lap into the table (tatable.6502),
-\\ unless there's none, or it's the demo's. Game time: the bank's paged as the frame loop pages them.
+\\ unless there's none. Game time: the bank's paged as the frame loop pages them.
 \\
-\\ Inputs: TaBest (ANDY's), GmDemo. Outputs: TaEntry; the table, TaTableNew. A, X, Y corrupted.
+\\ Inputs: TaBest (ANDY's). Outputs: TaEntry; the table, TaTableNew. A, X, Y corrupted.
 
 .ta_race_end
 {
-    LDA GmDemo:BNE done
     LDA banktrace:ORA #RomselAndy
     STA &FE30                           ; ROMSEL: the logic's bank, ANDY in: its state
     LDA TaBestLo:STA TaEntryLo

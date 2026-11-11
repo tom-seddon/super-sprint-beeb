@@ -19,6 +19,8 @@ SECTION LogicVars
     SKIP 4
 ENDSECTION
 
+IF GenTimeAttack = 0                    ; (time attack: no drones, D51; RcGateLane the gates')
+
 \\ Inputs:
 \\     X: the car, a drone, racing
 \\
@@ -306,3 +308,5 @@ ENDSECTION
     LDA RcY8Hi,X:ADC num+1:STA RcEndY8Hi,X
     RTS
 }
+
+ENDIF
