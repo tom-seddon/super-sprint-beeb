@@ -460,6 +460,9 @@ adds the logic.
 | D49 | Time attack's upgrades and names | Decided (Tom, 2026-11-10): the upgrades on the track's screen, the last race's at first; a name asked, empty, for every entry |
 | D50 | Time attack after a race | Decided (Tom, 2026-11-10): back to the track's screen, the new entry lit |
 | D51 | Time attack's attract mode | Decided (Tom, 2026-11-11): none, so no demo race; the menu screens alone; the drones and the demo's code go at step 6 |
+| D52 | Picking a track on time attack's menu | Decided (Tom, 2026-11-11): the driving keys move the highlight, 1-8 pick, Return opens; a number or Return wins over a driving key |
+| D53 | Time attack's driving keys | Decided (Tom, 2026-11-11): any of the three players' sets drives the car |
+| D54 | Time attack's options | Decided (Tom, 2026-11-11): its own simplified screen, mostly text with the logo; keys and sound as the game's |
 
 ## Risks
 

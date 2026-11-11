@@ -450,5 +450,32 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      pass. The game's discs the same but for the README's commit link, every track's build byte for byte.
 6. **The front end.** The menu, the upgrades, the name; checks driven key by key as the screens' are now. No attract
    mode or demo race (D51): what only the demo needed goes (the drones and their path, the demo's lap events, `GhNew`'s
-   `GmDemo` test).
+   `GmDemo` test). Planned 2026-11-11 in pieces, each tried, the visible ones on Tom's Master (the game's between-race
+   code is `game.6502` in the background's bank, the pictures' `front.6502` beside it, each screen's file loaded into
+   the main screen and copied up; time attack gets its own in their place):
+   - **6a, room**: the objects' bank's tornado frames (`mov_tornado`, 3,609 bytes) and the pickups', oil's, cones'
+     and barriers' variants in each track's `ObjSlot` out of time attack's build, as 3c did for code: play the same
+     frame by frame (the autopilot's races before and after), the room measured. Where the packed Shared (6c) and
+     the menu's code can go.
+   - **6b, the skeleton**: time attack's own between-race code in place of `game.6502`'s flow: the boot to a plain
+     menu, in the race's 26 rows and the MOS's font (as the load's row text), each track's best time and the track
+     picked as D52 (the driving keys move a highlight, 1-8 pick, Return opens); Return races it; Escape back to the
+     menu. Any player's keys drive the car (D53). The game's screens' files (attract, title, select,
+     upgrades, circle, prepare) off the disc, the drones and the demo's code out; the table loaded once at the boot
+     and kept (nothing parked over it now). Tried on Tom's Master.
+   - **6c, 32 rows**: the front end's screen 32 rows, the race's 26 (D46): the CRTC switched with the palette black,
+     and Shared (the `&3000` area's read-only data, which a 32-row screen overwrites) put back before each race from
+     a packed copy in a bank. Checked as `boot_check`/`flash_check` do, field by field.
+   - **6d, the menu's picture** (D44, D47): layout A, the 8 maps from the select screen, the SUPER SPRINT logo in red
+     and yellow (colour 1 switched mid-screen), the text in the ST's small font (`front_glyph`), a file loaded once.
+     Against the mock-up (`docs/img/timeattack-menu.png`). Tried.
+   - **6e, the track's screen** (D48): its 10 entries; Return races, Escape back to the menu. Tried.
+   - **6f, the upgrades** (D49): picked on the track's screen, 5 points over top speed, turbo and traction, as the
+     last race's; given to the race as the ST's set-up does, kept in the entry and the ghost's file. Tried.
+   - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen
+     with the new entry lit. Ties' order then checkable (`tools/ta_table_check.mjs`). Tried.
+   - **6i, the options** (D54): a screen of its own from the menu, mostly text with the logo: the three key sets
+     redefined and the sound on or off, as the game's options do, saved as now. Tried.
+   - **6h, the turnaround** (D45): measured from Escape to the next race; the same track again loading nothing, if
+     the front end's files keep clear of the track's slots and the ghost's buffers.
 7. **Close**: the variant's suite, both discs, Tom's Master.

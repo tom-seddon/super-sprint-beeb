@@ -723,3 +723,26 @@ end will be just the menu screens, with no attract sequence and therefore no dem
 So: time attack's front end is the menu, the track's screen and the name (D44, D48, D49), nothing between; no title,
 credits, high scores or demo. What only the demo needs goes with the game's front end at step 6: the drones and their
 path (kept at step 3c for it), the demo's lap events (`race.6502`), `GhNew`'s test of `GmDemo` (`ghost.6502`).
+
+### D52. Picking a track on time attack's menu: Decided (2026-11-11)
+Time attack (`docs/brief-timeattack-2026-11-10.md` §6; D48's "exact mechanism to be determined"). Asked: cursor keys
+and 1-8, cursor keys only, number keys only, or the driving keys. Tom, 2026-11-11: "Driving keys and number keys/return.
+Number keys and return take priority if they are driving keys too."
+So: the driving keys (left and right, any player's set, D53) move the highlight through the tracks; the number keys
+1-8 pick a track straight away; Return opens the highlighted track's screen. A key that's both (a driving key
+redefined to a number or Return) acts as the number or Return. (Whether accelerate also opens a track, as fire
+starts the game's: to be settled when Tom tries it.)
+
+### D53. Time attack's driving keys: Decided (2026-11-11)
+Time attack. Until now car 0 has been driven by player 1's keys (Q, W, E unless the options change them). Tom,
+2026-11-11, of the three sets: "Any of the 3 key sets", proposed so that in hot seat play each driver can use the set
+they're used to.
+So: player 1's, 2's and 3's keys all drive the one car (left, right, accelerate from any set, together).
+
+### D54. Time attack's options: Decided (2026-11-11)
+Time attack. Asked whether to keep the game's options screen (keys and sound), drop it, or decide later. Tom,
+2026-11-11: "The functionality should be about the same, in terms of defining keys and sound on/off options, but have a
+simplified screen that's mostly text (plus the logo on top ideally). There's no need to reproduce the main game's screen
+exactly, and it'll presumably save some memory/reduce load times if it doesn't."
+So: an options screen of its own, from the menu: the three key sets redefined and the sound on or off, as the game's
+does (`options.6502`'s key finding), saved as now; drawn as text in the small font with the logo on top.
