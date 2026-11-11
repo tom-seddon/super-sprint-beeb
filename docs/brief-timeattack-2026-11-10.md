@@ -504,6 +504,15 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      frames, car state, draw records, HUD text and both screens every frame): 19,200 frames, 0 different. The four
      time attack checks pass; the game's discs the same but for the README's commit link, every track's build byte
      for byte; the suite 43 of 43 on agentbox.
+     **The table loaded once** (2026-11-11): `ta_load_table` reads `TIMES` at the boot's first load only (the title's
+     file's), `TaTableIn` set after its reads (so a disc error tries again) in `LowFree`'s byte that was the demo's
+     next track (`GmDemoTrack`, the boot zeroes it), and the table's kept from then on: no load writes the cars' bank
+     above every track's slot, and nothing's parked there now. A save that failed (a write-protected disc) leaves the
+     race's entry in the table until the machine's off, where before the next load put the disc's back.
+     MEASURED: main RAM's code 785 to 776 bytes free. `tools/ta_table_check.mjs` now counts the OSFILE reads of
+     `TIMES`: some at the boot, none in the 20 races' loads after (each race's start the table as the model); with
+     the flag's test taken out, it fails. The other three checks pass; the game's discs the same but for the README's
+     commit link, every track's build byte for byte.
    - **6c, 32 rows**: the front end's screen 32 rows, the race's 26 (D46): the CRTC switched with the palette black,
      and Shared (the `&3000` area's read-only data, which a 32-row screen overwrites) put back before each race from
      a packed copy in a bank. Checked as `boot_check`/`flash_check` do, field by field.

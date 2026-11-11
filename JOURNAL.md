@@ -718,3 +718,4 @@
   `tools/ta_menu_check.mjs` drives it key by key. Tom tried it: "Looks good!". Then the drones and the demo's code
   out of time attack's build (D51), the path's place in Shared kept as room; the autopilot reads the path from the
   ST's data instead. The fourth bank 788 bytes freer, main RAM's code 340; play the same every frame.
+  And the table read only at the boot's first load, kept from then on in the cars' bank.

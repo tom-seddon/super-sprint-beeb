@@ -87,7 +87,11 @@ SECTION LowFree                         ; &0900-&0AFF, kept across loads (D26)
     SKIP 1
 .GmDemo                                 ; 1 the race is the attract mode's demo
     SKIP 1
+IF GenTimeAttack
+.TaTableIn                              ; time attack: its table's loaded, at the boot's first load (no demo, D51)
+ELSE
 .GmDemoTrack                            ; its next track
+ENDIF
     SKIP 1
 .GmSeeded                               ; the generator's been seeded
     SKIP 1

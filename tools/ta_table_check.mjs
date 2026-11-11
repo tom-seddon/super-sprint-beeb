@@ -4,7 +4,8 @@
 // - entered: a run of races on tracks 1, 3 and 8, their bests chosen to fill track 1's 10 and go past it (ties,
 //   none, slower than all 10): after each, the model's entry (D41: before the first it's under, a tie after, the
 //   10th dropped; no lap, nothing), TIMES on the disc as the model (the times, upgrades and names 0, the sum) and
-//   written only if the table changed, and at the next race's start the table loaded into the cars' bank as it;
+//   written only if the table changed, and at the next race's start the table in the cars' bank as it, TIMES read
+//   only at the boot's first load (its catalogue entry and the file), kept from then on;
 // - loaded: the disc as written booted again: the table back at the first race's start;
 // - spoilt: that disc with a byte of TIMES changed, two bytes swapped, either byte of its sum changed, or the file
 //   a byte short: the table empty at the race's start;
@@ -40,18 +41,20 @@ async function boot(disc, writeable = true) {
     const s = await bootDisc(disc);
     const cpu = s._machine.processor;
     const peek = (a) => s.readMemory(a, 1)[0];
-    const log = { saves: [], brk: 0, text: "", said: "" };
+    const log = { saves: [], reads: 0, brk: 0, text: "", said: "" };
     cpu.debugInstruction.add((pc) => {
-        if (pc === 0xffdd && cpu.a === 0) {
+        if (pc === 0xffdd && (cpu.a === 0 || cpu.a === 5 || cpu.a === 255)) {
             const blk = cpu.x | (cpu.y << 8), at = peek(blk) | (peek(blk + 1) << 8);
             let name = ""; for (let i = 0; i < 10 && peek(at + i) !== 13; i++) name += String.fromCharCode(peek(at + i));
-            log.saves.push(name);
+            if (cpu.a === 0) log.saves.push(name);
+            else if (name === "TIMES") log.reads++;
         } else if (pc === syms["load_track.brk"]) { log.brk++; log.text = ""; }
         else if (pc === syms.row_char && log.brk) log.text += String.fromCharCode(cpu.a);
         else if (pc === syms["load_track.waitkey"]) log.said = log.text;
         return false;
     });
     await toMenu(s);
+    if (!log.reads) say(`${disc}: TIMES not read by the menu`);
     const m = { s, cpu, peek, log, bankbg: peek(syms.bankbg), bt: peek(syms.banktrace), bc: peek(syms.bankcars), disc: () => cpu.fdc.drives[0].disc };
     if (!writeable) m.disc().isWriteable = false;
     return m;
@@ -116,6 +119,7 @@ const model = empty();
 const runs = [[0, 500], [0, 400], [0, 600], [0, 0], [0, 450], [0, 450], [2, 555], [0, 700], [0, 300], [0, 800],
     [0, 900], [7, 444], [0, 1000], [0, 350], [0, 1100], [0, 2000], [0, 250], [2, 333], [0, 450]];
 let file = null, tablesChecked = 0;
+const readsAtBoot = m.log.reads;
 for (let i = 0; i <= runs.length; i++) {
     const [t, best] = runs[i] ?? [0, 0];
     const start = await race(m, t, best);
@@ -129,6 +133,7 @@ for (let i = 0; i <= runs.length; i++) {
     if (!file && changed) say(`entered: no TIMES after race ${i + 1}`);
     else if (file && !same([...file.data], [...want, ...sum(want)])) say(`entered: TIMES after race ${i + 1} not the model's (track 1: ${show([...file.data], 0)} for ${show(want, 0)})`);
 }
+if (m.log.reads !== readsAtBoot) say(`entered: TIMES read ${m.log.reads - readsAtBoot} times after the boot, by ${runs.length + 1} races' loads`);
 const saved = Uint8Array.from(toSsdOrDsd(m.disc()));
 writeFileSync(`${Out}/saved.ssd`, saved);
 const final = bytes(model);
@@ -166,5 +171,5 @@ if (!/^Disc read only - press a key$/.test(text)) say(`read only: the HUD's row 
 await race(m, 0, 0);
 if (m.log.saves.length || m.log.brk !== 1) say(`read only: the saves ${m.log.saves.join()} and ${m.log.brk} errors after another race, not none and 1`);
 
-console.log(wrong ? `${wrong} wrong` : `${runs.length} races entered as the model (track 1's 10: ${show(final, 0)}; track 3's: ${show(final, 2)}), TIMES saved when changed and loaded with each track (${tablesChecked} checked), back after a boot; 5 spoilt files refused; a read-only disc's error said once`);
+console.log(wrong ? `${wrong} wrong` : `${runs.length} races entered as the model (track 1's 10: ${show(final, 0)}; track 3's: ${show(final, 2)}), TIMES saved when changed, read only at the boot and the table kept through every load (${tablesChecked} checked), back after a boot; 5 spoilt files refused; a read-only disc's error said once`);
 process.exit(wrong ? 1 : 0);

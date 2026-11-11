@@ -56,7 +56,7 @@
     LDA #8:STA &FE00                    ; CRTC: R8
     LDA #&C0:STA &FE01                  ; display on, cursor off
     IF GenTimeAttack
-        JSR ta_load_table               ; (timeattack.6502's: the table, before any file)
+        JSR ta_load_table               ; (timeattack.6502's: the table, at the first load)
         LDA LoadName+5:CMP #'9':BCS another ; (a track's file: a digit; the screens' are letters)
         JSR ta_load_ghost               ; (and a track's ghost, before its file lands there)
     ENDIF

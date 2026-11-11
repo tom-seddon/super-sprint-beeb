@@ -366,13 +366,15 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
     LDA #0:JMP &FFDD                    ; OSFILE 0: save
 }
 
-\\ The table loaded, TIMES, into the cars' bank; or every entry empty if there's no such file, or it's not the
-\\ table's: its length not 1,042, or its sum not its bytes'.
+\\ The table loaded, TIMES, into the cars' bank, once: at the boot's first load (TaTableIn, which the boot zeroes);
+\\ or every entry empty if there's no such file, or it's not the table's: its length not 1,042, or its sum not its
+\\ bytes'. Kept from then on: no load writes it (cars.6502 asserts every track's slot below it).
 \\
-\\ Inputs: none. Outputs: the table. A, X, Y corrupted.
+\\ Inputs: TaTableIn. Outputs: the table, TaTableIn. A, X, Y corrupted.
 
 .ta_load_table
 {
+    LDA TaTableIn:BNE done              ; (loaded at the boot's first load, and kept: nothing else writes it)
     LDX #LO(TimesName):LDY #HI(TimesName)
     JSR ta_block
     LDX #LO(TaBlock):LDY #HI(TaBlock)
@@ -406,7 +408,10 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
     LDA #HI(TaTable):STA ta_copy.to+2
     LDA #LO(TaTableLen):STA ta_copy.count
     LDA #HI(TaTableLen):STA ta_copy.count+1
+    INC TaTableIn                       ; (after the reads: a disc error tries again)
     JMP ta_copy
+.done
+    RTS
 }
 
 \\ The table's sum, as GhFileAddr has it: a total of its bytes and a total of the totals, each a byte (so a byte
