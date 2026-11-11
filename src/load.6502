@@ -16,7 +16,7 @@
 GameBuf = &7F00                         ; game_go's page in transit: the main screen's end
 TrackFileAddr = &4200                   ; where a track's file lands: the main screen, after the HUD's row
 LoadCodeOrg = &7C00                     ; where the load's code runs: the main screen's end
-ParkUpgrades = &9A00                    ; files read as a race ends and wanted before the next, kept where only a track's load writes: the objects' bank's ObjSlot,
+ParkUpgrades = ObjSlot                  ; files read as a race ends and wanted before the next, kept where only a track's load writes: the objects' bank's ObjSlot,
 ParkUpgradesPages = 28
 ParkLowPages = 14                       ; its part under ANDY
 ParkPrepare = &B000                     ; and the cars' bank's PrioSlot

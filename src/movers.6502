@@ -28,6 +28,7 @@
     JMP objmov.mov_plot
 }
 
+IF GenTimeAttack = 0                    ; (time attack: no tornado, D42)
 \\ The tornado: one of its frame-shifts, compiled (tools/gendata.py), drawn into the screen being drawn
 \\ through 16 pointers, one a line: its line's cell in the box's first byte column, or TorJunk for a line
 \\ outside the play area (the ST's tornado goes from 16 lines above it to its last line). Each line's
@@ -144,3 +145,4 @@
 
     INCLUDE "../build/gen/tornado.6502"
 }
+ENDIF

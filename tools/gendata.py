@@ -671,7 +671,8 @@ def main(track, tracepath, out, logic=False, play=False, ta=False):
     if logic:                           # every key the logic can draw, in an order the same on every track
         bx, by = BannerPlace[track]     # (Phase 5, 3a: the bank's code, the tornado's compiled, the same)
         movkeys = ([('explosion', f) for f in range(26)] + [('spark', f) for f in range(41)]
-                   + [('banner', f, bx & 3) for f in range(36)] + [('tornado', f, x) for f in range(3) for x in range(4)])
+                   + [('banner', f, bx & 3) for f in range(36)]
+                   + ([] if ta else [('tornado', f, x) for f in range(3) for x in range(4)]))   # (time attack: none, D42)
     for fr_ in frames:
         cars_, movers = frame_draws(fr_, heli)
         for k in [d[1] for d in cars_ if d[0] == 'explosion'] + [m[0] for m in movers]:
@@ -680,7 +681,8 @@ def main(track, tracepath, out, logic=False, play=False, ta=False):
     if logic:                           # every key the logic can draw
         bx, by = BannerPlace[track]
         for k in ([('explosion', f) for f in range(26)] + [('spark', f) for f in range(41)]
-                  + [('banner', f, bx & 3) for f in range(36)] + [('tornado', f, x) for f in range(3) for x in range(4)]):
+                  + [('banner', f, bx & 3) for f in range(36)]
+                  + ([] if ta else [('tornado', f, x) for f in range(3) for x in range(4)])):
             if k not in movkeys:
                 movkeys.append(k)
     movers_, movpieces = [], {}
@@ -817,7 +819,8 @@ def main(track, tracepath, out, logic=False, play=False, ta=False):
                         [sets.index((None, True) if d else (c, False)) if ((None, True) if d else (c, False)) in sets
                          else sets.index((None, True)) if (None, True) in sets else 255   # (the demo's car 3, for now)
                          for c in range(4) for d in (0, 1)]))
-            f.write(lst('GenTorPiece', [movpieces[('tornado', fr_, x)][0] for fr_ in range(3) for x in range(4)]))
+            f.write(lst('GenTorPiece', [0] * 12 if ta else   # (time attack: no tornado, its table unread)
+                        [movpieces[('tornado', fr_, x)][0] for fr_ in range(3) for x in range(4)]))
             f.write(lst('GenEntCode', ent_codes + [255] * (9 * 6 - len(ent_codes))))   # (6 instances' room, every track)
             f.write(f'GenGateInst0 = 3\n')
         tdata, nframes, events = b'', len(frames), b''

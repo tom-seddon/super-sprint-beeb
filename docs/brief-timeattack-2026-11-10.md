@@ -457,6 +457,14 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      and barriers' variants in each track's `ObjSlot` out of time attack's build, as 3c did for code: play the same
      frame by frame (the autopilot's races before and after), the room measured. Where the packed Shared (6c) and
      the menu's code can go.
+     **Done for the tornado** (2026-11-11): `tools/gendata.py --ta` makes no tornado keys (its compiled frames a stub,
+     `GenTorPiece` zeros), `movers.6502`'s `mov_tornado` and its frames and `mov_all`'s call to it under
+     `GenTimeAttack = 0`; `ParkUpgrades` is `ObjSlot` (`&9A00` in the game, as before), so the park moves down with
+     the slot until 6b drops it. MEASURED: the objects' bank 4,322 to 7,906 bytes free on track 1, 34 to 3,618 on
+     track 5 (its largest slot); main RAM's code 463 to 472. Time attack before and after (the autopilot, each track
+     2,400 frames, car state, draw records, HUD text and both screens every frame): the same. The game's discs the
+     same but for the README's commit link, every track's build byte for byte. The pickups' and hazards' variants in
+     `ObjSlot` (per track) left: their indices are the slot sprites' numbers; not needed for room yet.
    - **6b, the skeleton**: time attack's own between-race code in place of `game.6502`'s flow: the boot to a plain
      menu, in the race's 26 rows and the MOS's font (as the load's row text), each track's best time and the track
      picked as D52 (the driving keys move a highlight, 1-8 pick, Return opens); Return races it; Escape back to the

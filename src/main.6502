@@ -344,9 +344,11 @@ ENDIF
         CMP #HeliVar0:BCS heli
     ENDIF
     LDY bankobj:STY &FE30               ; ROMSEL: the objects' bank
-    CMP #MovVariants:BCC plot
-    JSR mov_tornado
-    BRA drawn
+    IF GenTimeAttack = 0                ; (time attack: no tornado, D42)
+        CMP #MovVariants:BCC plot
+        JSR mov_tornado
+        BRA drawn
+    ENDIF
 .plot
     STA objmov.mov_plot.v
     LDA MovXLo,X:STA objmov.mov_plot.x
