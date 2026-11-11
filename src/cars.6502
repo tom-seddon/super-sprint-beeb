@@ -386,6 +386,10 @@ CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
 .CarFrH
     EQUB GenFrH
 
+IF GenTimeAttack
+    INCLUDE "ghost.6502"                ; (time attack's ghost: its code here, its buffers at the bank's end)
+ENDIF
+
 \\ The frames, on a page (gendata.py's layout: each frame-shift in a page, 7 bytes in)
 
     PADTO (P% + &FF) AND &FF00
@@ -423,3 +427,6 @@ CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
 .PrioClass
     INCBIN "../build/gen/prioclass.bin"
 .PrioSlotEnd
+IF GenTimeAttack
+    ASSERT PrioSlotEnd <= GhBufA, "the track's priority cells below the ghost's buffers"
+ENDIF

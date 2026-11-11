@@ -127,6 +127,10 @@ ZA_AUTO1 carnum                         ; the car being drawn
         LDA banktrace:ORA #RomselAndy
         STA &FE30                       ; ROMSEL: the logic's bank (the fourth), ANDY in (D15)
         JSR logic_start
+        IF GenTimeAttack
+            LDA bankcars:STA &FE30      ; ROMSEL: the cars' bank, the ghost's (ghost.6502)
+            JSR ghost_start
+        ENDIF
     ENDIF
     LDA #8:STA &FE00                    ; CRTC: R8
     LDA #&C0:STA &FE01                  ; display on, cursor off
@@ -189,6 +193,10 @@ ENDIF
         LDA banktrace:ORA #RomselAndy
         STA &FE30                       ; ROMSEL: the logic's bank (the fourth), ANDY in (D15)
         JSR logic_frame                 ; the race's next frame, from the logic (logicframe.6502)
+        IF GenTimeAttack
+            LDA bankcars:STA &FE30      ; ROMSEL: the cars' bank, the ghost's (ghost.6502)
+            JSR ghost_frame
+        ENDIF
     ELSE
     \\ the race's next frame: the cars drawn (their count, then 4 bytes each), then the background object
     \\ events (their count, then 4 bytes each)

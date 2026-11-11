@@ -371,6 +371,21 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      demo race still ends (763 fields, as before).
 4. **The ghost.** Recorded and played back in the cars' bank. Its check: a scripted lap driven, then replayed, every
    frame's ghost record the same as the player's was (a headless oracle on `tools/jsbeeb.mjs`, in the suite).
+   - **4a, the recording** (done 2026-11-11): `src/ghost.6502` in the cars' bank's code (256 bytes), called from the
+     frame loop after `logic_frame` (`ghost_frame`) and at the race's start (`ghost_start`): car 0's draw record each
+     frame, coded from the last (a byte for a move of up to 4 pixels each way; a byte more when the facing or on-top
+     bit changes; `&FE` nothing drawn; `&FF` and the 4 bytes whole: the first, after nothing, an explosion's, a jump),
+     into one of two 3,000-byte buffers at the bank's end, above every track's priority cells (asserted). A lap's
+     buffer holds its frames from the crossing (or the race's first) to the frame before the next, as many as its time.
+     `ta_lap` makes a lap the ghost only if its recording fitted (`GhFull`), and tells the recorder (`GhLapEnd`), which
+     keeps that buffer as the ghost's and takes the other for the next lap. Nothing drawn yet.
+     MEASURED: the cars' bank 4,184 (track 1) to 2,342 (track 6) bytes free below the buffers; main RAM's code 1,298 to
+     1,266. In jsbeeb (a script, the autopilot driving 2,400 frames a track): each lap that became the ghost decoded
+     from its buffer against car 0's records drawn in that lap, frame by frame: 14 ghosts on 6 tracks, 0 wrong, each
+     as many frames as its time; 1.12 to 1.37 bytes a frame (the estimate 1.2), 588 to 1,204 bytes a lap. Buffer A's
+     room poked to 100 bytes: lap 1 no ghost (its time not the ghost's). 12 or 13 fields repeated in 400 frames per
+     track, as before (the start's). The game's discs the same but for the README's commit link, every track's build
+     byte for byte.
 5. **Saving.** The table and the ghosts; a check as `tools/save_check.mjs`'s (saved, booted back, spoilt files
    refused, a write-protected disc's error said once).
 6. **The front end.** The menu, the upgrades, the name; checks driven key by key as the screens' are now.

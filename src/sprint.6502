@@ -36,7 +36,11 @@ ENDSECTION
 SECTION CarsFile, filename = "SPRINTB", load = &FFFF0000+LoadAddr
     SECTION CarsBank, org = SwramOrg, guard = SwramEnd, cmos = TRUE
         INCLUDE "cars.6502"
-        PRINT "the cars' bank: ", SwramEnd - P%, " bytes free"
+        IF GenTimeAttack
+            PRINT "the cars' bank: ", GhBufA - P%, " bytes free"   ; (below the ghost's buffers, ghost.6502)
+        ELSE
+            PRINT "the cars' bank: ", SwramEnd - P%, " bytes free"
+        ENDIF
     ENDSECTION
 ENDSECTION
 

@@ -1,0 +1,187 @@
+\\ ghost.6502 - time attack's ghost (docs/brief-timeattack-2026-11-10.md §3, step 4): the player's lap recorded as
+\\ drawn, a record a frame, into one of two buffers at the cars' bank's end; a lap that becomes the ghost
+\\ (timeattack.6502's ta_lap) keeps its buffer, the next lap taking the other. In the cars' bank, before the frames
+\\ (the same for every track); the buffers above the largest track's priority cells (cars.6502), which no load
+\\ reaches.
+\\
+\\ A frame's record, coded from the last (car 0's: CarId, CarXLo, CarY, CarFlags):
+\\   0-80          a move: (dx + 4) * 9 + dy + 4, each -4 to 4 (x 9 bits: CarFlags' bit 7 its high bit)
+\\   &C0-&DF       the facing or the on-top bit changed: &C0 | on top << 4 | facing; a move follows
+\\   &FE           nothing drawn (the blink's off frames)
+\\   &FF i x y f   the record whole: the first, after nothing, an explosion's, or a move too far
+\\ A lap's buffer holds its frames from the one it starts on (the line crossed, or the race's first) to the one
+\\ before the next crossing: as many as the lap's time (ta_lap's measure).
+
+GhBufLen = 3000                         ; a buffer's bytes: 30 s of laps at 2 bytes a frame (§3)
+GhTurn = &C0
+GhNone = &FE
+GhWhole = &FF
+GhBufA = SwramEnd - 2 * GhBufLen        ; (cars.6502 asserts the track's slot below them)
+GhBufB = SwramEnd - GhBufLen
+
+SECTION GameVars
+.GhPtrLo                                ; the current lap's buffer: its next byte
+    SKIP 1
+.GhPtrHi
+    SKIP 1
+.GhCur                                  ; which buffer is the current lap's, 0 or 1
+    SKIP 1
+.GhGhost                                ; and the ghost's
+    SKIP 1
+.GhLenLo                                ; the ghost's bytes (0: no ghost)
+    SKIP 1
+.GhLenHi
+    SKIP 1
+.GhFull                                 ; the current lap's buffer full: no ghost from it
+    SKIP 1
+.GhLapEnd                               ; from ta_lap: 1 a lap ended this frame, 2 and it's the ghost
+    SKIP 1
+.GhLastId                               ; the last record coded: its CarId (&FF none, so the next is whole),
+    SKIP 1
+.GhLastX                                ; its x, 9 bits,
+    SKIP 1
+.GhLastXHi
+    SKIP 1
+.GhLastY                                ; its y,
+    SKIP 1
+.GhLastF                                ; and its facing and on-top bit (CarFlags AND &7F)
+    SKIP 1
+ENDSECTION
+
+\\ The race's start (main.6502's start): no ghost (until step 5's), the first lap into buffer A.
+\\
+\\ Inputs: none. Outputs: the recorder's state. A corrupted.
+
+.ghost_start
+{
+    STZ GhLenLo:STZ GhLenHi
+    STZ GhCur
+    LDA #1:STA GhGhost
+    STZ GhLapEnd
+    JMP restart
+}
+
+\\ Each logic frame (main.6502's frame loop, after logic_frame): a lap that ended, its buffer the ghost's if it's
+\\ the ghost (the buffers swapped) and the next lap's from its start; then this frame's record, car 0's.
+\\
+\\ Inputs: GhLapEnd; CarCount, CarId, CarXLo, CarY, CarFlags. Outputs: the recorder's state, the current buffer.
+\\ A, X, Y corrupted.
+
+.ghost_frame
+{
+    ZA_AUTO2 p                          ; local: the buffer's next byte
+    ZA_AUTO1 dx                         ; local: the move's x, then + 4
+    ZA_AUTO1 dy                         ; local: its y + 4
+    ZA_AUTO1 t                          ; local: a scratch
+
+    LDA GhLapEnd:BEQ record
+    STZ GhLapEnd
+    CMP #2:BNE next
+    LDX GhCur                           ; the ghost: this lap's buffer, its length
+    STX GhGhost
+    SEC
+    LDA GhPtrLo:SBC GhBaseLo,X:STA GhLenLo
+    LDA GhPtrHi:SBC GhBaseHi,X:STA GhLenHi
+    TXA:EOR #1:STA GhCur
+.next
+    JSR restart
+
+.record
+    LDA GhFull:BNE done
+    LDA GhPtrLo:STA p                   ; room for a whole record: p < the end - 4
+    LDA GhPtrHi:STA p+1
+    LDX GhCur
+    LDA p:CMP GhRoomLo,X
+    LDA p+1:SBC GhRoomHi,X
+    BCC room
+    INC GhFull
+.done
+    RTS
+.room
+    LDY #0
+    LDA CarCount:BNE drawn
+    LDA #GhNone:STA (p),Y:INY
+    LDA #&FF:STA GhLastId
+    JMP stored
+.drawn
+    LDA CarId:BMI whole                 ; an explosion's
+    CMP GhLastId:BNE whole
+    LDA CarFlags:AND #&30:BEQ delta     ; (a set but the first: none in time attack, gendata.py)
+.whole
+    LDA #GhWhole:STA (p),Y:INY
+    LDA CarId:STA (p),Y:INY
+    LDA CarXLo:STA (p),Y:INY
+    LDA CarY:STA (p),Y:INY
+    LDA CarFlags:STA (p),Y:INY
+    BRA keep
+
+    \\ the move: dx = x - the last x (9 bits), -4 to 4; dy the same
+
+.delta
+    LDA CarFlags:ASL A                  ; C: x's high bit
+    LDA #0:ROL A:STA t
+    SEC
+    LDA CarXLo:SBC GhLastX:STA dx
+    LDA t:SBC GhLastXHi
+    BEQ right
+    CMP #&FF:BNE whole
+    LDA dx:CMP #LO(-4):BCC whole
+    BRA across
+.right
+    LDA dx:CMP #5:BCS whole
+.across
+    CLC:ADC #4:STA dx
+    SEC
+    LDA CarY:SBC GhLastY
+    CLC:ADC #4                          ; (y 2 to 185: no wrap)
+    CMP #9:BCS whole
+    STA dy
+
+    \\ a turn first, if the facing or the on-top bit changed
+
+    LDA CarFlags:AND #&7F:CMP GhLastF:BEQ move
+    TAX
+    AND #&40:LSR A:LSR A:STA t
+    TXA:AND #15:ORA t:ORA #GhTurn
+    STA (p),Y:INY
+.move
+    LDA dx:ASL A:ASL A:ASL A            ; dx * 9 + dy
+    CLC:ADC dx:ADC dy
+    STA (p),Y:INY
+.keep
+    LDA CarId:STA GhLastId
+    LDA CarXLo:STA GhLastX
+    LDA CarFlags:ASL A
+    LDA #0:ROL A:STA GhLastXHi
+    LDA CarY:STA GhLastY
+    LDA CarFlags:AND #&7F:STA GhLastF
+.stored
+    TYA:CLC:ADC GhPtrLo:STA GhPtrLo
+    BCC @+
+    INC GhPtrHi
+.@
+    RTS
+}
+
+\\ The current lap's buffer from its start, its first record whole.
+\\
+\\ Inputs: GhCur. Outputs: GhPtr, GhFull 0, GhLastId &FF. A, X corrupted.
+
+.restart
+{
+    LDX GhCur
+    LDA GhBaseLo,X:STA GhPtrLo
+    LDA GhBaseHi,X:STA GhPtrHi
+    STZ GhFull
+    LDA #&FF:STA GhLastId
+    RTS
+}
+
+.GhBaseLo                               ; each buffer's start,
+    EQUB LO(GhBufA), LO(GhBufB)
+.GhBaseHi
+    EQUB HI(GhBufA), HI(GhBufB)
+.GhRoomLo                               ; and where a whole record no longer fits
+    EQUB LO(GhBufA + GhBufLen - 4), LO(GhBufB + GhBufLen - 4)
+.GhRoomHi
+    EQUB HI(GhBufA + GhBufLen - 4), HI(GhBufB + GhBufLen - 4)
