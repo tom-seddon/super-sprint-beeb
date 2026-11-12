@@ -775,3 +775,4 @@
   Step 7, the close: `tools/ta_checks.sh` runs time attack's eleven checks in parallel (the ghost's on the ADFS disc
   too), and `tools/suite.sh` runs it after time attack's build. On agentbox the whole suite 5 min, time attack's part
   104 s, all passing. The game's discs from this branch and from `main` the same byte for byte.
+  Tom tried the discs: "looks good". `timeattack` merged into `main` (a fast-forward), not pushed.
