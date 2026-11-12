@@ -780,6 +780,24 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      Tom tried that on his Master (2026-11-12): "Looks good." 6g done.
    - **6i, the options** (D54): a screen of its own from the menu, mostly text with the logo: the three key sets
      redefined and the sound on or off, as the game's options do, saved as now. Tried.
+     **Done** (2026-11-12, to be tried on Tom's Master; `docs/img/timeattack-options-6i.png`): as Tom agreed (D54):
+     F1 on the menu, F0 or Escape back to it (the highlight kept); the logo, then a column a player in its colour
+     (white, green, yellow), PLAYER n and Fn TO CHANGE, then LEFT, RIGHT and ACCEL. in white in the small font beside
+     each key's name in the MOS's font; the status line as the game's (F9 SOUND ON, F0 EXIT, KEYS MAY CLASH, the
+     version in green). The game's `options.6502`, its time attack parts under `IF GenTimeAttack`: the screen made from
+     the menu's picture (`opt_ta_screen`: `tg_picture`, everything under the logo cleared, the words), the fields and
+     the status line in the 32 rows, Escape out too; the rest the game's (keys found, refused if taken or the game's
+     own, Escape while asking puts them back, names lit while held, the clash's warning, F9). In the title's file
+     (TRACKF), where the game's options file loads (FrontPicOrg, empty in time attack): no load of its own, copied in
+     with the menu; saved in SCORES at the next title's load, as before.
+     MEASURED (track 1's build): the front end's file 3,840 to 2,377 bytes free (TRACKF 1.5K longer, 6 sectors), the
+     first 4K 987 to 961. In jsbeeb F1 to the options shown 0.76 s, Escape to the menu shown 0.54 s.
+     `tools/ta_options_check.mjs` (new), as `tools/options_check.mjs` for the game's: the screen byte for byte
+     against a model (the menu's picture over its cells, the small font's words, the MOS's names, the status line),
+     names lit while held, F2-F4 with refusals and Escape, 40 random layouts' warnings against the clash model, F9
+     and the sound's field, F0 and Escape back to the menu, and a redefined key (S) driving the race's car (fails with
+     `fx`'s high byte left set: 110 bytes of player 3's words astray). All eight checks pass, and `boot_check --ta`;
+     play the same; the game's discs the same but for the README's commit link, every track's build byte for byte.
    - **6h, the turnaround** (D45): measured from Escape to the next race; the same track again loading nothing, if
      the front end's files keep clear of the track's slots and the ghost's buffers.
 7. **Close**: the variant's suite, both discs, Tom's Master. After the merge, not before: the game's two load faults

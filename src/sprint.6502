@@ -158,8 +158,10 @@ SECTION FrontFile, filename = "TRACKF", load = &FFFF0000+TrackFileAddr
         PADTO BgOrg + ((P% - BgOrg + &FF) AND &FF00)    ; (whole pages, for the load's copy)
 .front_pics_end
     ENDSECTION
-    SECTION FrontHigh, org = FrontPicOrg, guard = GameScratchOrg
-    IF GenTimeAttack = 0
+    SECTION FrontHigh, org = FrontPicOrg, guard = GameScratchOrg, cmos = TRUE
+    IF GenTimeAttack
+        INCLUDE "options.6502"          ; (time attack's options, D54: with the menu, no load of their own)
+    ELSE
 .TitlePic
         INCBIN "../build/gen/title.zx02"
 .RecordsPic                             ; (the heading's cell rows)

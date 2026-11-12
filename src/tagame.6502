@@ -148,6 +148,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     BEQ open                            ; (9: Return)
     CMP #13:BEQ open                    ; (accelerate)
     CMP #10:BEQ wait                    ; (Escape: nothing)
+    CMP #14:BEQ options                 ; (F1)
     PHA
     JSR tg_mark                         ; left or right: the highlight moved
     PLA
@@ -170,6 +171,11 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     JSR tg_colours
     SEC:JSR ta_keep                     ; Shared's part every track has, put back (D55): the track's file has the rest
     JMP load_go
+.options
+    JSR options_go                      ; F1 on the menu: the options (D54, options.6502's); back when they're left
+    JSR tg_black
+    JSR tg_picture
+    JMP cells
 }
 
 .TrackText                              ; TRACK
@@ -864,7 +870,8 @@ TgPanelBytes = 26                       ; (the panel's 104 pixels, under the map
 }
 
 \\ The menu's key now: 1-8 a number key, 9 Return, 10 Escape, 11 left, 12 right, 13 accelerate (any player's driving
-\\ keys, D52), 0 none. A number, Return or Escape first, so a driving key that's one of them is that.
+\\ keys, D52), 14 F1 (the options, D54), 0 none. A number, Return or Escape first, so a driving key that's one of them
+\\ is that.
 \\
 \\ Inputs: none. Outputs: A. X, Y corrupted.
 
@@ -883,6 +890,10 @@ TgPanelBytes = 26                       ; (the panel's 104 pixels, under the map
 .next
     DEY
     BPL driving
+    LDA #KeyF1:JSR key_down:BPL none    ; (F1: the options, 14)
+    LDA #14
+    RTS
+.none
     LDA #0
     RTS
 .found

@@ -5,23 +5,43 @@
 \\ which no load touches. The wording's the small font's. The picture comes from tools/screens.py. The build's version is in
 \\ the status line's right end, in green (tools/version.py).
 
+\\
+\\ Time attack's (D54, step 6i): no picture of its own, but the menu's logo, the rest text in the small font, the
+\\ names in the MOS's still; in the title's file (TRACKF), no load, F1 on the menu (tagame.6502), F0 or Escape back.
+\\ A column a player, its colour's: PLAYER n, Fn TO CHANGE, then LEFT, RIGHT and ACCEL. by its keys' names.
+
 OptRows = 3                             ; a car's keys
 OptSlots = 3 * OptRows
+OptNameBytes = 7 * 16                   ; 7 characters, a field's bytes
+IF GenTimeAttack
+FUNCTION OptCol(car) = 8 + car * 104    ; a player's column: its text's pixel across, its names' 44 on
+OptHeadY = 44                           ; PLAYER n's line, Fn TO CHANGE's,
+OptChangeY = 54
+OptKeyRow = 8                           ; and the cell row of a car's first key (2 rows between)
+OptLineY = 248                          ; the status line: the 32 rows' last cell row
+OptLineAddr = FrontAddr + 31 * 640
+ASSERT OptCol(2) + 44 + 56 <= 320, "the options: a name past the screen's edge"
+ELSE
 OptFirstRow = 2                         ; the cell row of a car's first key
 OptNameCol = 10                         ; the name's byte across in the panel
-OptNameBytes = 7 * 16                   ; 7 characters, a field's bytes
 OptLineY = 192                          ; the status line: the last cell row
 OptLineAddr = PlayAddr + 24 * 640
+ENDIF
 OptNodes = 8 + 13                       ; the matrix's rows and columns
 VersionAddr = OptLineAddr + VersionX DIV 4 * 8   ; the version's first byte, to the line's end
 
 .options_go
 {
-    JSR front_mode1
-    LDA #1:STA GmPicture
-    LDA #LO(OptionsPic):STA zxsrc
-    LDA #HI(OptionsPic):STA zxsrc+1
-    JSR front_shadow
+    IF GenTimeAttack
+        LDA acccon:STA fshadow          ; (the main screen, shown)
+        JSR opt_ta_screen               ; (the palette black till tg_split)
+    ELSE
+        JSR front_mode1
+        LDA #1:STA GmPicture
+        LDA #LO(OptionsPic):STA zxsrc
+        LDA #HI(OptionsPic):STA zxsrc+1
+        JSR front_shadow
+    ENDIF
     LDX #OptSlots - 1
 .name
     STZ OptHeld,X
@@ -31,8 +51,12 @@ VersionAddr = OptLineAddr + VersionX DIV 4 * 8   ; the version's first byte, to 
     DEX
     BPL name
     JSR opt_status
-    JSR front_wipe_in
-    LDA acccon:STA fshadow              ; (from here on, it's the screen shown that's drawn on)
+    IF GenTimeAttack
+        JSR tg_split                    ; (tagame.6502's: shown, colour 1 switched under the logo)
+    ELSE
+        JSR front_wipe_in
+        LDA acccon:STA fshadow          ; (from here on, it's the screen shown that's drawn on)
+    ENDIF
 }
 
 .options_shown
@@ -40,6 +64,9 @@ VersionAddr = OptLineAddr + VersionX DIV 4 * 8   ; the version's first byte, to 
 .loop
     JSR opt_markers
     LDA #KeyF0:JSR key_down:BMI leave
+    IF GenTimeAttack
+        LDA #KeyEscape:JSR key_down:BMI leave   ; (Escape too: back, as everywhere in time attack)
+    ENDIF
     LDA #KeyF9:JSR key_down:BPL cars
     LDA SoundOff:EOR #1:STA SoundOff
     JSR opt_status
@@ -59,8 +86,65 @@ VersionAddr = OptLineAddr + VersionX DIV 4 * 8   ; the version's first byte, to 
     BRA loop
 .leave
     JSR opt_release
-    JMP front_leave
+    IF GenTimeAttack
+        RTS                             ; (the menu's drawn again: tagame.6502)
+    ELSE
+        JMP front_leave
+    ENDIF
 }
+
+IF GenTimeAttack
+\\ Time attack's screen: the menu's picture, its logo kept and the rest cleared, then each player's words, in the
+\\ player's colour and white. A, X, Y corrupted.
+
+.opt_ta_screen
+{
+    JSR tg_black                        ; (tagame.6502's)
+    JSR tg_picture
+    LDA #TaMenuTop:STA fy               ; (under the logo)
+    LDA #256 - TaMenuTop:STA tg_lines
+    LDA #0:JSR tg_blank
+    LDX #2
+.player
+    STX OptCar
+    TXA:ASL A:ADC OptCar:TAY            ; (its first slot: C clear)
+    LDA OptMasks,Y:STA fink             ; its colour
+    LDA OptColLeft,X:STA fx
+    STZ fx+1
+    LDA #OptHeadY:STA fy
+    LDA OptHeadAt,X:TAX:JSR opt_text    ; PLAYER n
+    LDX OptCar
+    LDA OptColLeft,X:STA fx
+    STZ fx+1                            ; (each text's: PLAYER 3 passes pixel 255)
+    LDA #OptChangeY:STA fy
+    LDA OptChangeAt,X:TAX:JSR opt_text  ; Fn TO CHANGE
+    LDA #&FF:STA fink                   ; (white)
+    LDY #0
+.label
+    PHY
+    LDX OptCar:LDA OptColLeft,X:STA fx
+    STZ fx+1
+    LDA OptLabelY,Y:STA fy
+    LDA OptLabelAt,Y:TAX:JSR opt_text   ; LEFT, RIGHT, ACCEL.
+    PLY
+    INY
+    CPY #OptRows:BNE label
+    LDX OptCar
+    DEX
+    BPL player
+    RTS
+}
+.OptColLeft
+    EQUB OptCol(0), OptCol(1), OptCol(2)
+.OptHeadAt
+    EQUB OptHead1 - OptTexts, OptHead2 - OptTexts, OptHead3 - OptTexts
+.OptChangeAt
+    EQUB OptChange1 - OptTexts, OptChange2 - OptTexts, OptChange3 - OptTexts
+.OptLabelAt
+    EQUB OptLeft - OptTexts, OptRight - OptTexts, OptAccel - OptTexts
+.OptLabelY                              ; (the small font's 6 lines in the name's 8)
+    EQUB OptKeyRow * 8 + 1, OptKeyRow * 8 + 17, OptKeyRow * 8 + 33
+ENDIF
 
 \\ Every key's name shown in inverse while it's held. A, X, Y corrupted.
 
@@ -307,6 +391,9 @@ VersionAddr = OptLineAddr + VersionX DIV 4 * 8   ; the version's first byte, to 
     DEX
     BNE part
     LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    IF GenTimeAttack
+        LDA #&FF:STA fink               ; (front_glyph's colour: white)
+    ENDIF
     IF VersionX < 320
         LDA #LO(VersionX):STA fx
         LDA #HI(VersionX):STA fx+1
@@ -387,6 +474,19 @@ VersionAddr = OptLineAddr + VersionX DIV 4 * 8   ; the version's first byte, to 
 .OptCarKeys                             ; f2, f3, f4
     EQUB KeyF2, KeyF3, KeyF4
 .OptFieldLo                             ; each key's field, and its colour: the car's, logical 3, 1, 2
+IF GenTimeAttack
+    FOR car = 0..2
+        FOR row = 0..<OptRows
+            EQUB LO(FrontAddr + (OptKeyRow + row * 2) * 640 + (OptCol(car) + 44) DIV 4 * 8)
+        NEXT
+    NEXT
+.OptFieldHi
+    FOR car = 0..2
+        FOR row = 0..<OptRows
+            EQUB HI(FrontAddr + (OptKeyRow + row * 2) * 640 + (OptCol(car) + 44) DIV 4 * 8)
+        NEXT
+    NEXT
+ELSE
     FOR car = 0..2
         FOR row = 0..<OptRows
             EQUB LO(PlayAddr + (OptFirstRow + row) * 640 + (car * 27 + OptNameCol) * 8)
@@ -398,6 +498,7 @@ VersionAddr = OptLineAddr + VersionX DIV 4 * 8   ; the version's first byte, to 
             EQUB HI(PlayAddr + (OptFirstRow + row) * 640 + (car * 27 + OptNameCol) * 8)
         NEXT
     NEXT
+ENDIF
 .OptMasks
     EQUB &FF, &FF, &FF, &0F, &0F, &0F, &F0, &F0, &F0
 
@@ -425,6 +526,26 @@ OptAll = P% - OptNumbers
     EQUB OptTextUsed
 .OptVersion
     EQUB VersionGlyphs
+IF GenTimeAttack
+.OptHead1
+    EQUB TaOptHead1
+.OptHead2
+    EQUB TaOptHead2
+.OptHead3
+    EQUB TaOptHead3
+.OptChange1
+    EQUB TaOptChange1
+.OptChange2
+    EQUB TaOptChange2
+.OptChange3
+    EQUB TaOptChange3
+.OptLeft
+    EQUB TaOptLeft
+.OptRight
+    EQUB TaOptRight
+.OptAccel
+    EQUB TaOptAccel
+ENDIF
     ASSERT P% - OptTexts <= 256, "the texts: indexed by X"
 
 .OptCar                                 ; the car being asked about
@@ -440,5 +561,7 @@ OptAll = P% - OptNumbers
 .OptParent                              ; opt_clash's nodes
     SKIP OptNodes
 
+IF GenTimeAttack = 0
 .OptionsPic
     INCBIN "../build/gen/options.zx02"
+ENDIF
