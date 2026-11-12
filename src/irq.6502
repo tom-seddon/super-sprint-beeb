@@ -1,6 +1,7 @@
 \\ irq.6502 - the field's interrupts: the vsync (System VIA CA1) counts fields and starts the two timers; T1,
 \\ just after the display's end, opens the blank and shows the screen just drawn if one's waiting; T2, just
-\\ before the next display's start, closes the blank (D17). In main RAM, so it's there whatever's paged in.
+\\ before the next display's start, closes the blank (D17). In main RAM, so it's there whatever's paged in. Time
+\\ attack's menu moves T2 to its logo's end, to switch colour 1 there (TaSplit).
 \\
 \\ Shared with the main loop: a frame drawn during the display sets swapreq, and T1 shows it at the display's
 \\ end, flipping ACCCON's D, and clears swapreq; one drawn during the blank (inblank) the main loop shows at once
@@ -30,6 +31,17 @@ StartLines = (ScreenVTotal - ScreenVSyncPos) * 8              ; the next display
 TimeEnd = (EndLines + Margin - VsyncLate) * 64 - 2
 TimeStart = (StartLines - Margin - VsyncLate) * 64 - 2
 
+IF GenTimeAttack                        ; time attack's menu (D47, tagame.6502): colour 1 the logo's red, then the maps' green
+SECTION GameVars
+.TaSplit                                ; 1: colour 1 red from the vsync, green from TimeSplit (the menu shown)
+    SKIP 1
+ENDSECTION
+SplitLines = (ScreenVTotal - FrontVSyncPos) * 8 + TaLogoLines  ; the logo's end, lines from the vsync in the 32 rows (74)
+TimeSplit = (SplitLines - VsyncLate) * 64 + 32 - 2  ; (measured in jsbeeb: during line 36, of lines 27-77 without colour 1)
+PhysRed = 1
+PhysGreen = PalPhys[1]                  ; (the race's colour 1)
+ENDIF
+
 \\ The IRQ1V handler.
 \\
 \\ Inputs:
@@ -52,6 +64,16 @@ TimeStart = (StartLines - Margin - VsyncLate) * 64 - 2
     LDA #HI(TimeStart):STA &FE49        ; T2 counter, high: started, its flag cleared
     LDA #2:STA &FE4D                    ; IFR: CA1 cleared
     INC vsyncs
+    IF GenTimeAttack
+        LDA TaSplit:BEQ split
+        LDA #LO(TimeSplit):STA &FE48    ; T2 counter, low: the logo's end, not the display's start
+        LDA #HI(TimeSplit):STA &FE49    ; T2 counter, high: started again
+        LDA #&20 + (PhysRed EOR 7):STA &FE21    ; video ULA: colour 1 (logical 2, 3, 6 and 7) red
+        LDA #&30 + (PhysRed EOR 7):STA &FE21
+        LDA #&60 + (PhysRed EOR 7):STA &FE21
+        LDA #&70 + (PhysRed EOR 7):STA &FE21
+.split
+    ENDIF
     IF GenLogic
         IF GenPlay
             LDA SoundOff:BNE notvsync   ; (F9, in the options)
@@ -79,6 +101,14 @@ TimeStart = (StartLines - Margin - VsyncLate) * 64 - 2
     \\ the display about to start: the blank closed; a field with no flip in it shows the last frame again
 
     STA &FE4D                           ; IFR: T2 cleared
+    IF GenTimeAttack
+        LDA TaSplit:BEQ blank           ; (the menu: the logo's end)
+        LDA #&20 + (PhysGreen EOR 7):STA &FE21  ; video ULA: colour 1 green
+        LDA #&30 + (PhysGreen EOR 7):STA &FE21
+        LDA #&60 + (PhysGreen EOR 7):STA &FE21
+        LDA #&70 + (PhysGreen EOR 7):STA &FE21
+.blank
+    ENDIF
     STZ inblank
     LDA flipped:BNE done
     INC Repeats

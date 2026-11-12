@@ -2,10 +2,11 @@
 // tagame.6502's tg_rows), field by field as shown (the frame buffer, as tools/flash_check.mjs reads it), on
 // build/ta.ssd from a fresh boot: to the menu, 3 raced, Escape back to the menu, Return races the highlighted track (3):
 // - from the first menu on, nothing lit outside the 32 rows' lines, nor outside the 26 rows' but while the menu's
-//   shown;
+//   shown (to the grace's end on leaving it: its logo reaches the 32 rows' first lines);
 // - the menu, from its start (two fields' grace: the one being shown and tg_rows's wait for a vsync) until it's all
-//   drawn (game_resume.shown): nothing lit; then shown in 32 rows: its heading lit on its lines there (TgHeading from
-//   the 32 rows' top), and nothing on the lines it would have in the race's 26;
+//   drawn (game_resume.shown): nothing lit; then shown in 32 rows: its logo lit on its lines there (TaLogoLines from
+//   the 32 rows' top: 20,588 of the frame buffer's pixels, at least 10,000 asked), its first lines too (in the race's
+//   26 they'd be above the display);
 // - leaving it for a race (game_resume.go, the same grace) to the race's first frame: nothing lit below the HUD's
 //   row, which says "Loading" at some point;
 // - at each race's start, Shared (SharedOrg to SharedEnd) in both screens as the track's build has it: its file puts
@@ -79,7 +80,7 @@ for (let left = Field; ;) {
     const out = lit(0, Top32) + lit(Bottom32, lines);
     if (out) say(`${out} pixels outside the 32 rows' lines`);
     const out26 = lit(Top32, Top) + lit(Bottom, Bottom32);
-    if (out26 && state !== "menu") say(`${out26} pixels outside the 26 rows' lines, ${state}`);
+    if (out26 && state !== "menu" && !(state === "loading" && grace > 0)) say(`${out26} pixels outside the 26 rows' lines, ${state}`);
     if (grace > 0) grace--;
     else if (state === "drawing") {
         const n = lit(0, lines);
@@ -90,10 +91,9 @@ for (let left = Field; ;) {
         if (lit(Top, Hud)) said = true;
     } else if (state === "menu") {
         if (++shownFields === 3) {
-            const head = Top32 + 2 * syms.TgHeading;
-            if (!lit(head, head + 12)) say("the menu's heading not on its 32 rows' lines");
-            const head26 = Top + 2 * (syms.TgHeading - 8 * (syms.HudAddr - syms.FrontAddr) / 640);
-            if (lit(head26, head26 + 12)) say("the menu's heading where the race's 26 rows would show it");
+            const logo = Top32 + 2 * syms.TaLogoLines;
+            if (lit(Top32, logo) < 10000) say("the menu's logo not on its 32 rows' lines");
+            if (!lit(Top32, Top32 + 2 * 8)) say("the menu's first lines not lit, as in the race's 26 rows they'd be");
             const key = Keys[menus - 1];
             if (!key) break;
             s.keyDown(key[0]);

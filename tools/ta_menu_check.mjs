@@ -1,11 +1,11 @@
 // Time attack's menu (docs/brief-timeattack-2026-11-10.md, step 6b; tagame.6502; D51-D53), driven key by key on
 // build/ta.ssd from a fresh boot:
-// - the boot to the menu, track 1 highlighted (its mark drawn, no other);
+// - the boot to the menu, track 1 highlighted (its box drawn, no other);
 // - the driving keys move the highlight: player 1's right (W), player 2's right (.), player 3's left (keypad 5), and
 //   left from track 1 to track 8; a key held 40 fields moves it once;
 // - 3 races track 3 (its file loaded: TrackNum 2); in the race player 2's accelerate (/) drives the car (D53); its
 //   best poked and Escape: back to the menu through the title's file (TIMES saved at its load's start), track 3's
-//   row showing a time and the others none, the highlight on track 3;
+//   cell showing a time and the others none, the highlight on track 3;
 // - Return races the highlighted track; Escape back;
 // - player 1's right redefined as 5: 5 races track 5 (a number wins over a driving key, D52).
 //
@@ -36,10 +36,12 @@ async function press(key, hold = 3) { s.keyDown(key); await fields(hold); s.keyU
 // the screen's byte at a line and byte column of the front end's 32 rows (the main screen, shown)
 const RowBytes = 640, Front = syms.FrontAddr;
 const at = (line, col) => Front + (line >> 3) * RowBytes + col * 8 + (line & 7);
-const mark = (t) => [...Array(6)].every((_, i) => peek(at(syms.TgRow0 + t * 16 + i, syms.TgMarkCol)) === 0xff);
+// a track's cell (D47, step 6d): its first byte across and line; its box, yellow along its top and bottom lines
+const cell = (t) => [(t >> 2) * 40, syms.TaMenuTop + (t & 3) * syms.TaMenuRow];
+const mark = (t) => { const [c0, y0] = cell(t); return [...Array(40)].every((_, c) => (peek(at(y0, c0 + c)) & 0xf0) === 0xf0 && (peek(at(y0 + syms.TaMenuRow - 1, c0 + c)) & 0xf0) === 0xf0); };
 const marks = () => [...Array(8)].map((_, t) => mark(t));
-// a row's time drawn: any pixel in its box (the time's columns, 6 lines)
-const timeShown = (t) => [...Array(6)].some((_, i) => { for (let c = syms.TgTimeX >> 2; c < (syms.TgTimeX >> 2) + 8; c++) if (peek(at(syms.TgRow0 + t * 16 + i, c))) return true; return false; });
+// a track's time drawn: any pixel where it goes (its columns, 6 lines)
+const timeShown = (t) => { const [c0, y0] = cell(t), x = c0 + (syms.TaMenuTextX >> 2); return [...Array(6)].some((_, i) => { for (let c = x; c < x + 8; c++) if (peek(at(y0 + syms.TgTimeLine + i, c))) return true; return false; }); };
 const highlight = () => { const m = marks(); return m.filter(Boolean).length === 1 ? m.indexOf(true) : -1; };
 
 await toMenu();

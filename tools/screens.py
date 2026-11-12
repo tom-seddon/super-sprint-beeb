@@ -489,6 +489,51 @@ def initials_files(out, zx02):
     return at + ['InWordGlyphs = {' + ', '.join(map(str, text)) + '}']
 
 
+TaLogo = (73, 34)                       # time attack's menu (D47): the credits' SUPER SPRINT, its first line and lines,
+TaMenuTop = TaLogo[1] + 1               # then the 8 tracks in two columns of four, from this line, each cell 160 pixels
+TaMenuRow = 55                          # by this many lines: its map, from the select screen's, and the text past it
+TaMenuMapX = 2                          # (the map's pixels in from the cell's edge, the yellow box's room)
+TaMenuTextX = 86                        # the text's first pixel into its cell
+TaSplitLines = 3                        # colour 1's switch from red to green (irq.6502: in jsbeeb during line 36): no colour 1 this
+                                        # many lines before the logo's end nor twice as many after it
+SelectRect = ((28, 34, 87), (53, 34, 87), (53, 88, 141), (53, 145, 199), (28, 145, 199), (3, 145, 199), (3, 88, 141), (3, 34, 87))    # select.6502's RectCol, RectTop, RectBottom
+
+
+def ta_menu_files(out, zx02):
+    """Time attack's menu (D47, docs/img/timeattack-menu.png): its 32 rows (MODE 1's 256 lines) as one picture, the credits' logo in
+    its red and yellow (colours 1 and 2) over the maps from the select screen in the race's palette (colour 1 green below the logo,
+    the interrupt switching it): tamenu.zx02, and tamenu.bin, the screen's 20,480 bytes, for the checks. The text and the yellow box
+    round the highlighted track are tagame.6502's. Returns the layout's lines for front.6502."""
+    look = Looks['credits']
+    logo = O.render(O.Screens['credits'](F.dat())[0], look['table'], look['pal'])[TaLogo[0]:TaLogo[0] + TaLogo[1]]
+    assert logo.max() <= 2 and logo[0].any() and logo[-1].any(), 'the logo: red, yellow and black, its lines all of it'
+    d, event = F.dat(), F.shot('select1')[1]
+    frame = O.select_frame(SS.rgb(T.decode_map(d, 10), event), Prepare['pal'])
+    lidx = np.zeros((256, 320), np.uint8)
+    lidx[:TaLogo[1]] = logo
+    box = np.zeros((256, 320), bool)
+    for t, (col, top, bottom) in enumerate(SelectRect):
+        cut = frame[top:bottom + 1, col * 4:col * 4 + 104]
+        ys, xs = np.nonzero(cut.any(1))[0], np.nonzero(cut.any(0))[0]
+        m = cut[ys[0]:ys[-1] + 1, xs[0]:xs[-1] + 1]
+        h, w = m.shape
+        x0, y0 = t // 4 * 160, TaMenuTop + t % 4 * TaMenuRow
+        x, y = x0 + TaMenuMapX + (80 - w) // 2, y0 + (TaMenuRow - h) // 2
+        assert w <= 80 and h <= TaMenuRow - 4 and x + w <= x0 + TaMenuTextX - 2, f'track {t + 1}\'s map: {w} x {h}'
+        lidx[y:y + h, x:x + w] = m
+        box[y0, x0:x0 + 160] = box[y0 + TaMenuRow - 1, x0:x0 + 160] = True
+        box[y0:y0 + TaMenuRow, x0] = box[y0:y0 + TaMenuRow, x0 + 159] = True
+    assert not lidx[box].any(), 'the boxes: over something'
+    assert not (lidx[TaLogo[1] - TaSplitLines:TaLogo[1] + 2 * TaSplitLines] == 1).any(), 'colour 1 where the interrupt switches it'
+    raw = mode1_bytes(lidx)
+    open(f'{out}/tamenu.bin', 'wb').write(raw)
+    packed = dfs.compress(raw, exe=zx02, name='tamenu')
+    open(f'{out}/tamenu.zx02', 'wb').write(packed)
+    print(f'time attack\'s menu: {len(packed):,} bytes packed')
+    return [f'TaLogoLines = {TaLogo[1]}', f'TaMenuTop = {TaMenuTop}', f'TaMenuRow = {TaMenuRow}', f'TaMenuTextX = {TaMenuTextX}',
+            f'TaSplitLines = {TaSplitLines}']
+
+
 def main(out, zx02):
     lines = ['\\\\ front.6502 - the front end\'s tables (tools/screens.py)', 'Mode1Wipe = {' + ', '.join(map(str, table(mask1))) + '}',
              'Mode2Wipe = {' + ', '.join(map(str, table(mask2))) + '}',
@@ -512,6 +557,7 @@ def main(out, zx02):
     lines += upgrades_files(out, zx02)
     lines += circle_files(out, zx02)
     lines += initials_files(out, zx02)
+    lines += ta_menu_files(out, zx02)
     prepare(out, zx02)
     frame = mode1_bytes(O.prepare(F.options_frame(F.first_dump(), Options), **Prepare))
     open(f'{out}/options.bin', 'wb').write(frame)

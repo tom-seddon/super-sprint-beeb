@@ -35,6 +35,7 @@ ZA_AUTO1 frows                          ; a panel's cell rows
 
 PanelRows = 6                           ; prepare's cell rows of panels (tools/screens.py)
 
+IF GenTimeAttack = 0                    ; (time attack: neither picture in its title's file, tagame.6502's menu's instead)
 \\ The title: MODE 2, wiped in over the black the screen was left in. Outputs: GmPicture 2. A, X, Y corrupted.
 
 .front_title
@@ -62,8 +63,9 @@ PanelRows = 6                           ; prepare's cell rows of panels (tools/s
     BPL palette
     LDA #1:STA GmPicture
     LDA #LO(CreditsPic):STA zxsrc
-    LDA #HI(CreditsPic):STA zxsrc+1
+    LDA #HI(CreditsPic):STA zxsrc+1     ; (on into front_show)
 }
+ENDIF
 
 \\ zxsrc's picture unpacked into the shadow screen, and wiped in. Inputs: GmPicture. A, X, Y corrupted.
 
@@ -194,6 +196,7 @@ IF GenTimeAttack = 0                    ; (time attack: no prepare to race, D45,
 
 ENDIF
 
+IF GenTimeAttack = 0                    ; (time attack: no table or lap records in SCORES, D55)
 \\ The high scores' and lap records' frame, in the shadow screen: MODE 1 in its palette. Outputs: GmPicture 1.
 \\ A, X, Y corrupted.
 
@@ -210,7 +213,6 @@ ENDIF
     JMP front_shadow
 }
 
-IF GenTimeAttack = 0                    ; (time attack: no table or lap records in SCORES, D55)
 \\ The lap records (F_01BF34): the frame, its own heading over the high scores', and the table as the ST places it.
 \\ Outputs: GmPicture 1. A, X, Y corrupted.
 
@@ -400,7 +402,8 @@ ENDIF
     RTS
 }
 
-\\ F_016C7A: glyph A OR'd in at fx, fy on the shadow screen, the main screen written again after. fx kept; A, X, Y corrupted.
+\\ F_016C7A: glyph A OR'd in at fx, fy on the screen fshadow says (time attack: in fink's colour), the main screen written
+\\ again after. fx kept; A, X, Y corrupted.
 
 .front_glyph
 {
@@ -431,12 +434,21 @@ ENDIF
     BNE shift
 .placed
     LDX fleft
-    LDA PExpHi,X:ORA (fp),Y:STA (fp),Y
-    TYA:CLC:ADC #8:TAY
-    LDA PExpLo,X:ORA (fp),Y:STA (fp),Y
-    TYA:CLC:ADC #8:TAY
-    LDX fleft+1
-    LDA PExpHi,X:ORA (fp),Y:STA (fp),Y
+    IF GenTimeAttack                    ; (time attack: its colour, fink)
+        LDA PExpHi,X:AND fink:ORA (fp),Y:STA (fp),Y
+        TYA:CLC:ADC #8:TAY
+        LDA PExpLo,X:AND fink:ORA (fp),Y:STA (fp),Y
+        TYA:CLC:ADC #8:TAY
+        LDX fleft+1
+        LDA PExpHi,X:AND fink:ORA (fp),Y:STA (fp),Y
+    ELSE
+        LDA PExpHi,X:ORA (fp),Y:STA (fp),Y
+        TYA:CLC:ADC #8:TAY
+        LDA PExpLo,X:ORA (fp),Y:STA (fp),Y
+        TYA:CLC:ADC #8:TAY
+        LDX fleft+1
+        LDA PExpHi,X:ORA (fp),Y:STA (fp),Y
+    ENDIF
     TYA:SEC:SBC #15:TAY
     CPY #8:BNE same
     LDA fp:CLC:ADC #LO(640):STA fp      ; (the next row of cells)
@@ -478,10 +490,13 @@ ENDIF
 IF GenTimeAttack
 FrontAddr = &3000                       ; time attack's front end: its screen's start, 32 rows (tagame.6502's tg_rows)
 FrontRows = 32
+FrontVSyncPos = 34                      ; (R7: MODE 1's)
 .FrontRowLo
     EQUB LO(FrontAddr + (0..<FrontRows) * RowBytes)
 .FrontRowHi
     EQUB HI(FrontAddr + (0..<FrontRows) * RowBytes)
+.fink                                   ; front_glyph's colour: &FF white (3), &F0 yellow (2), &0F green (1)
+    EQUB &FF
 ENDIF
 
 \\ 6 lines from fy cleared, X bytes from byte A, on the screen fshadow says. fy kept; A, X, Y corrupted.

@@ -571,7 +571,7 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      once; ADFS booted back. With `scores_load`'s sum not made and its first byte not checked, it fails (21 wrong:
      saved at every load, a spoilt sum taken). Play the same, 19,200 frames, 0 different; the other five checks
      pass; the game's discs the same but for the README's commit link, every track's build byte for byte.
-     **Shared kept in the fourth bank** (2026-11-12, to be tried on Tom's Master): Shared's slot where the game has
+     **Shared kept in the fourth bank** (2026-11-12; Tom tried it on his Master: "it looks good"): Shared's slot where the game has
      it again (`SharedSlot` after `sharedtabs`: `TrackNum`, the hazards, `EntCode`, `TorPiece`), and the part before
      it, the same on every track (the sound effects' data, probes, sharedtabs: 1,560 bytes), kept in the fourth
      bank (`TaKeep`, after its code): `timeattack.6502`'s `ta_keep`, in main RAM as it pages the bank in, copies it
@@ -591,6 +591,33 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
    - **6d, the menu's picture** (D44, D47): layout A, the 8 maps from the select screen, the SUPER SPRINT logo in red
      and yellow (colour 1 switched mid-screen), the text in the ST's small font (`front_glyph`), a file loaded once.
      Against the mock-up (`docs/img/timeattack-menu.png`). Tried.
+     **Done** (2026-11-12, to be tried on Tom's Master; `docs/img/timeattack-menu-6d.png`, bests poked): the
+     picture is `tools/screens.py`'s `ta_menu_files`, the credits' logo (34 lines) over the select screen's 8 maps in
+     two columns of four, cells of 160 pixels by 55 lines, as the mock-up, the whole 32 rows packed as one
+     (`tamenu.zx02`, 2,937 bytes), in place of the game's four pictures in time attack's title's file (`TRACKF`,
+     loaded after every race anyway for the save, as a race overwrites the background's bank). `tagame.6502` unpacks
+     it into the main screen with the palette black (so the 32 rows aren't cleared first now), then each track's
+     `TRACK n` in white and its best in yellow (`front_glyph`'s new colour, `fink`), and a yellow box round the
+     highlighted track's cell, EOR'd in and out (its pixels black in the picture: asserted). Colour 1 is red over
+     the logo and green under it: `irq.6502` (time attack's only), while `TaSplit` is set, writes colour 1's four
+     palette entries red at the vsync and moves T2 to the logo's end to write them green (8 writes a field); set
+     from a vsync once the menu's drawn, the other colours written in that blank, and ended by `tg_rows` before its
+     palette goes black, so neither the logo green nor the maps red is ever shown. The logo's red ends at line 26 and
+     the maps' first green is at line 78, so the switch (in jsbeeb during line 36) has 51 lines it can land in;
+     `screens.py` asserts no colour 1 on the 3 lines before the logo's end nor the 6 after. No name or upgrades yet
+     (6f, 6g); a track with no best shows nothing under its name.
+     MEASURED (track 1's build): main RAM's code 889 to 828 bytes free (the interrupt's switch), the first 4K 2,545
+     to 2,424 (the menu), the front end's code 658 to 730 (the game's title and credits code out), the pictures
+     under ANDY 775 free; `TRACKF` 7,322 to 3,152 bytes, the disc 81,408 to 77,824. Escape to the menu shown: 3.05 s
+     (2.88 the load, 0.17 drawing) to 2.75 (2.26 and 0.49: 20K unpacked, where 6c cleared it), jsbeeb, tracks 1 and 6.
+     `tools/ta_picture_check.mjs` (new, not yet in the suite): the bests poked (none, under 10 s, over, 99.98 and
+     past it), the menu's 32 rows in main RAM byte for byte as a model (`tamenu.bin`, the build's font, the times
+     formatted, the box), again with the box moved; and every field from the boot to a race as shown, no green on
+     the logo's lines nor red under them, the menu's every line's colours counted against the model's (20 fields).
+     It fails with the switch 10 lines early (line 26 green), 45 late (line 78 red), the hundredths not doubled, and
+     the box's right edge a pixel out; 4 lines early it passes, rightly, as the screen's the same. `ta_menu_check`
+     and `ta_rows_check` now read the box and the logo; the other five checks pass; play the same, 19,200 frames,
+     0 different; the game's discs the same but for the README's commit link, every track's build byte for byte.
    - **6e, the track's screen** (D48): its 10 entries; Return races, Escape back to the menu. Tried.
    - **6f, the upgrades** (D49): picked on the track's screen, 5 points over top speed, turbo and traction, as the
      last race's; given to the race as the ST's set-up does, kept in the entry and the ghost's file. Tried.

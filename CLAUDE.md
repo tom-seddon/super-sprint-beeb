@@ -66,7 +66,9 @@ What the skills look up, for this project:
   `node tools/ta_save_check.mjs` its files, `GHOST1`-`GHOST8`; its table is `src/tatable.6502`, saved as `TIMES`,
   checked by `node tools/ta_table_check.mjs`; its menu `src/tagame.6502` (in `game.6502`'s place), checked by
   `node tools/ta_menu_check.mjs`, and its 32 rows (D46) by `node tools/ta_rows_check.mjs`; its `SCORES` is the keys
-  and sound alone (D55), checked by `node tools/ta_scores_check.mjs` (none of the six yet in the suite); no tunes
+  and sound alone (D55), checked by `node tools/ta_scores_check.mjs`; its menu's picture (`tools/screens.py`'s
+  `ta_menu_files`, colour 1 switched under the logo by `irq.6502`'s `TaSplit`) by `node tools/ta_picture_check.mjs`
+  (none of the seven yet in the suite); no tunes
   (`GenTunes` 0); the races driven by
   `tools/ta_pilot.mjs`, an autopilot along the drones' path.
 - **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes

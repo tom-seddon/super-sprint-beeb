@@ -729,3 +729,8 @@
   Then Shared's part every track has kept in the fourth bank from the boot and put back before each track's load
   (Tom chose it over copying back from the shadow screen, which keeps the shadow screen free): track 1's file 6,001
   bytes, a load from the menu 1.73 to 1.95 s in jsbeeb, was 1.88 to 2.17.
+  Tom tried those on his Master (2026-11-12): "it looks good". 6d: the menu's picture, the SUPER SPRINT logo in red
+  and yellow over the 8 tracks' maps, each track's name and best beside its map, a yellow box round the highlighted
+  one, as the mock-up; one packed picture in the title's file in place of the game's four, and colour 1 switched by
+  the interrupt from the logo's red to the maps' green. `tools/ta_picture_check.mjs` checks the screen byte for byte
+  and every field's colours against a model. Escape to the menu shown 0.3 s quicker (the title's file 4K shorter).
