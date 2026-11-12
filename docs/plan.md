@@ -360,6 +360,10 @@ adds the logic.
   Still to do (Tom, 2026-11-10: "Putting the disk README into the zip should be part of the GitHub Actions item. Please
   move it there and leave the GitHub Actions item open."): the disc's README in the zip too, as `tools/disc_readme.py`
   makes it (Tom, earlier: "That same file should also be added to the zip somehow").
+  Also still to do (Tom, 2026-11-12: "the GitHub CI setup should build a time attack disk image as well"): `make ta`
+  after `make game` in the workflow, and time attack's discs (`build/ta.ssd`, `build/ta.adl`) in the release. Open:
+  whether they go in the same zip or one of their own, and their names (`super-sprint-ta-…`, say). It reads the same
+  ST files, so no more Hatari time; its tracks take about as long as the game's.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
