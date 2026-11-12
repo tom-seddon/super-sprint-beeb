@@ -10,10 +10,11 @@
 //   character the font has, a full 10, none and empty entries), each its place in green, time in yellow and name in
 //   white, and its upgrades in green (S2 A1 T2), byte for byte; under the map the upgrades' panel (step 6f, D49):
 //   SPEED, ACCEL., TRACTION and their levels, the wrench and the upgrades left, RACE, the cursor's item in yellow;
-//   the panel driven by keys (right and accelerate) to speed 3, acceleration 2, traction 1: one too many, the count -1 in
-//   red (colour 1 switched red for its line by the interrupt), and Return then racing nothing; traction round to 0,
-//   the cursor to RACE; then Escape, the menu again as before; then 5, the highlighted track's number: its screen
-//   again (the box not copied with the map, the levels kept, the cursor on RACE), and Return races it;
+//   the panel driven by keys (right and accelerate) to speed 3, acceleration 2, traction 1: one too many, the count -1
+//   and RACE in red (colour 1 switched red for each one's line by the interrupt), the cursor passing over RACE right
+//   and left, and Return then racing nothing; then Escape, the menu again as before; then 5, the highlighted track's
+//   number: its screen again (the box not copied with the map, the levels kept, the cursor on SPEED as there are too
+//   many), traction round to 0, the cursor to RACE, white again, and Return races it;
 // - as shown, every field from the boot's menu to a race's first frame (the frame buffer, as tools/ta_rows_check.mjs
 //   reads it): no green on the logo's lines (colour 1 red there, the interrupt's TaSplit) and no red under them; and
 //   while the menu's up, each of its 256 lines' colours as the model's, pixel for pixel counted (two of the frame
@@ -88,12 +89,12 @@ function trackModel(track, entries, levels = [0, 0, 0], cursor = 3) {
     l.set(p.subarray(0, Top * 320));
     for (let y = 0; y < syms.TaMenuRow; y++) for (let x = 0; x < 4 * syms.TgMapBytes; x++) l[(Top + y) * 320 + x] = p[(y0 + y) * 320 + x0 + x];
     text(l, `TRACK ${track + 1}`, syms.TtTitleX, syms.TtTitleY, 3);
+    const left = 5 - levels[0] - levels[1] - levels[2];
     ["SPEED", "ACCEL.", "TRACTION", "RACE"].forEach((label, i) => {
-        const y = i < 3 ? syms.TpSpeedY + i * syms.TpStep : syms.TpRaceY, ink = i === cursor ? 2 : 3;
+        const y = i < 3 ? syms.TpSpeedY + i * syms.TpStep : syms.TpRaceY, ink = i === 3 && left < 0 ? 1 : i === cursor ? 2 : 3;
         text(l, label, syms.TpX, y, ink);
         if (i < 3) text(l, String(levels[i]), syms.TpValueX, y, ink);
     });
-    const left = 5 - levels[0] - levels[1] - levels[2];
     text(l, "{}", syms.TpX, syms.TpLeftY, 3);
     text(l, String(left), syms.TpX + 18, syms.TpLeftY, left < 0 ? 1 : 3);
     entries.forEach(([t, name, ups = 0], i) => {
@@ -123,13 +124,13 @@ const kind = (v) => {
     return 5;
 };
 const Rgb = [[0, 1, 3, 4], [0, 2, 3, 4]];   // (logical colours' kinds: over the logo, then under it)
-let field = 0, steady = 0, checked = 0, onTrack = false;   // (a track's screen: colour 1 red on its upgrades' line too)
+let field = 0, steady = 0, checked = 0, onTrack = false;   // (a track's screen: colour 1 red on its upgrades left's and RACE's lines too)
 function shown(want) {
     field++;
     for (let y = 0; y < Lines; y++) for (const half of [0, 1]) {
         const row = (Top32 + 2 * y + half) * Width, count = [0, 0, 0, 0, 0, 0];
         for (let x = 0; x < Width; x++) count[kind(fb[row + x])]++;
-        const red = y < Logo || onTrack && y >= syms.TaRedTop && y <= syms.TaRedBottom;
+        const red = y < Logo || onTrack && (y >= syms.TaRedTop && y <= syms.TaRedBottom || y >= syms.TaRaceTop && y <= syms.TaRaceBottom);
         if (red ? count[2] : count[1] || count[5]) {
             say(`field ${field}, line ${y}: ${count[2]} green, ${count[1]} red, ${count[5]} other`);
             return;
@@ -215,18 +216,18 @@ onTrack = true;
 if (peek(syms.TgOn) !== 1) say(`Return: TgOn ${peek(syms.TgOn)}, not 1`);
 screen("track 5's screen", trackModel(4, entries));
 await run(10, trackModel(4, entries));
-// the upgrades: speed 3, acceleration 2, traction 1 (one too many), and Return racing nothing; traction round to 0, the cursor to RACE
+// the upgrades: speed 3, acceleration 2, traction 1 (one too many), the cursor passing over RACE, and Return racing nothing
 const key = async (k) => { s.keyDown(k); await run(3, null); s.keyUp(k); await run(3, null); };
 for (const k of ["KeyW", "KeyE", "KeyE", "KeyE", "KeyW", "KeyE", "KeyE", "KeyW", "KeyE"]) await key(k);
 screen("the upgrades 3, 2, 1: -1 left", trackModel(4, entries, [3, 2, 1], 2));
 await run(10, trackModel(4, entries, [3, 2, 1], 2));
+await key("KeyW");
+screen("-1 left, right from TRACTION: SPEED", trackModel(4, entries, [3, 2, 1], 0));
+await key("KeyQ");
+screen("-1 left, left from SPEED: TRACTION", trackModel(4, entries, [3, 2, 1], 2));
 await key("Enter");
 await run(10, null);
 if (peek(syms.LoadWant) || peek(syms.TgOn) !== 1) say(`Return with -1 left: LoadWant ${peek(syms.LoadWant)}, TgOn ${peek(syms.TgOn)}`);
-for (let n = 0; n < 5; n++) await key("KeyE");
-await key("KeyW");
-screen("traction round to 0, the cursor on RACE", trackModel(4, entries, [3, 2, 0], 3));
-await run(10, trackModel(4, entries, [3, 2, 0], 3));
 s.keyDown("Escape");
 await run(3, null);
 s.keyUp("Escape");
@@ -241,12 +242,18 @@ s.keyUp("Digit5");
 await toMenu();
 onTrack = true;
 if (peek(syms.TgOn) !== 1 || peek(syms.GmTrack) !== 4) say(`5: TgOn ${peek(syms.TgOn)}, GmTrack ${peek(syms.GmTrack)}, not track 5's screen`);
-screen("5: track 5's screen", trackModel(4, entries, [3, 2, 0]));
-await run(10, trackModel(4, entries, [3, 2, 0]));
+screen("5: track 5's screen, -1 left", trackModel(4, entries, [3, 2, 1], 0));
+await run(10, trackModel(4, entries, [3, 2, 1], 0));
+// traction round to 0, the cursor to RACE
+await key("KeyQ");
+for (let n = 0; n < 5; n++) await key("KeyE");
+await key("KeyW");
+screen("traction round to 0, the cursor on RACE", trackModel(4, entries, [3, 2, 0], 3));
+await run(10, trackModel(4, entries, [3, 2, 0], 3));
 s.keyDown("Enter");
 if (!await run(4000, null, syms.start)) say("Return on track 5's screen raced nothing");
 s.keyUp("Enter");
 await run(5, null);                     // (the race's first fields: nothing red, as the logo's lines go)
 
-console.log(bad ? `${bad} wrong` : `the menu's and the track's screen's 32 rows as the model (${checked} screens: the picture, the 8 tracks' text and bests, the box moved, track 5's screen, its upgrades set and over, put right, the menu again, track 5's by its number); ${field} fields from the boot to a race: no green on the logo's lines nor red under them, and ${steady} of the menu's every line's colours as the model's`);
+console.log(bad ? `${bad} wrong` : `the menu's and the track's screen's 32 rows as the model (${checked} screens: the picture, the 8 tracks' text and bests, the box moved, track 5's screen, its upgrades set and over, the cursor over RACE both ways, the menu again, track 5's by its number, put right); ${field} fields from the boot to a race: no green on the logo's lines nor red under them, and ${steady} of the menu's every line's colours as the model's`);
 process.exit(bad ? 1 : 0);

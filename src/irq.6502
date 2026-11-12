@@ -2,7 +2,7 @@
 \\ just after the display's end, opens the blank and shows the screen just drawn if one's waiting; T2, just
 \\ before the next display's start, closes the blank (D17). In main RAM, so it's there whatever's paged in. Time
 \\ attack's front end moves T2 to its logo's end, to switch colour 1 there, and on a track's screen on to switch it
-\\ red and back for the upgrades' line (TaSplit).
+\\ red and back for the upgrades left's line and again for RACE's (TaSplit).
 \\
 \\ Shared with the main loop: a frame drawn during the display sets swapreq, and T1 shows it at the display's
 \\ end, flipping ACCCON's D, and clears swapreq; one drawn during the blank (inblank) the main loop shows at once
@@ -45,12 +45,18 @@ PhysRed = 1
 PhysGreen = PalPhys[1]                  ; (the race's colour 1)
 TaSplitMenu = 1                         ; TaSplit: the menu's steps (TaSplitPhys's first),
 TaSplitTrack = 3                        ; a track's screen's (its third)
-TaRedTop = 150                          ; a track's screen: the lines colour 1 can be red in, the upgrades' line's
+TaRedTop = 150                          ; a track's screen: the lines colour 1 can be red in, the upgrades left's line's
 TaRedBottom = 163                       ; (between two of the table's rows: tagame.6502 asserts none there)
 TaSplitRed = 151                        ; where the switches land (the logo's on line 36, measured; each step lands about a line
 TaSplitGreen = 161                      ; after its ticks: jsbeeb, 2026-11-12, red on 151-152, green 161-162)
+TaRaceTop = 170                         ; and RACE's line's (red while there are too many upgrades, Tom, 2026-11-12),
+TaRaceBottom = 183                      ; the next gap between the table's rows
+TaRaceRed = 171
+TaRaceGreen = 181                       ; (the last step: the beam's past the upgrades' panel, tagame.6502 asserts)
 TimeTrackRed = (TaSplitRed - 36 - 1) * 64 + 32 - 2  ; ticks from the logo's end's switch
 TimeTrackGreen = (TaSplitGreen - TaSplitRed - 1) * 64 - 2
+TimeRaceRed = (TaRaceRed - TaSplitGreen - 1) * 64 - 2
+TimeRaceGreen = (TaRaceGreen - TaRaceRed - 1) * 64 - 2
 ENDIF
 
 \\ The IRQ1V handler.
@@ -145,10 +151,10 @@ ENDIF
 
 IF GenTimeAttack
 \\ TaSplit's steps: each one's colour 1, written at T2, and the ticks to it from the step before (high byte 0: no
-\\ step, the display's start's blank then). A track's screen's switch colour 1 red for the upgrades' line
-\\ (TaRedTop-TaRedBottom) and back.
-TaSplitTimes = { 0, 0, 0, TimeTrackRed, TimeTrackGreen, 0 }
-ASSERT HI(TimeTrackRed) != 0 AND HI(TimeTrackGreen) != 0, "TaSplitTimes: a step's high byte 0 ends them"
+\\ step, the display's start's blank then). A track's screen's switch colour 1 red for the upgrades left's line
+\\ (TaRedTop-TaRedBottom) and back, then for RACE's (TaRaceTop-TaRaceBottom) and back.
+TaSplitTimes = { 0, 0, 0, TimeTrackRed, TimeTrackGreen, TimeRaceRed, TimeRaceGreen, 0 }
+ASSERT HI(TimeTrackRed) != 0 AND HI(TimeTrackGreen) != 0 AND HI(TimeRaceRed) != 0 AND HI(TimeRaceGreen) != 0, "TaSplitTimes: a step's high byte 0 ends them"
 .TaSplitLo
     EQUB LO(TaSplitTimes)
 .TaSplitHi
@@ -156,6 +162,8 @@ ASSERT HI(TimeTrackRed) != 0 AND HI(TimeTrackGreen) != 0, "TaSplitTimes: a step'
 .TaSplitPhys                            ; (as &FE21 takes it, logical 2's: &20 + (physical EOR 7))
     EQUB &20 + (PhysGreen EOR 7), 0     ; the menu: the logo's end; (none)
     EQUB &20 + (PhysGreen EOR 7)        ; a track's screen: the logo's end,
-    EQUB &20 + (PhysRed EOR 7)          ; the upgrades' line,
+    EQUB &20 + (PhysRed EOR 7)          ; the upgrades left's line,
+    EQUB &20 + (PhysGreen EOR 7)        ; after it,
+    EQUB &20 + (PhysRed EOR 7)          ; RACE's line,
     EQUB &20 + (PhysGreen EOR 7), 0     ; and after it; (none)
 ENDIF

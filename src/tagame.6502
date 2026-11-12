@@ -15,7 +15,7 @@
 \\ time, name and upgrades (tg_screen). Under the map the upgrades for the race (D49, step 6f): SPEED, ACCEL. and
 \\ TRACTION, each 0-5, the wrench and the upgrades left of 5, and RACE; left and right move the cursor among the four
 \\ (drawn yellow), from RACE; accelerate on an upgrade adds one (past 5: 0), on RACE races; Return races. While the
-\\ upgrades left are under 0 (shown red, minus) neither races. Escape goes back to the menu. After a race, back to the
+\\ upgrades left are under 0 (shown red, minus) neither races, RACE is red and the cursor passes over it. Escape goes back to the menu. After a race, back to the
 \\ track's screen (D50), the upgrades as they were (car 0's GmTopUp, GmTurbo and GmTraction: the race's, and kept).
 \\
 \\ After a race the title's file (TRACKF) is loaded before the menu: the load's start saves what the race changed
@@ -46,17 +46,19 @@ TtTimeX = TtPlaceX + 18
 TtNameX = TtTimeX + 42
 TtUpsX = TtNameX + 6 * TaNameLen + 12   ; an entry's upgrades: S2 A1 T2
 ASSERT TtUpsX + 6 * 8 <= 320, "the track's screen: the upgrades past the screen's edge"
-FOR i = 0..9                             ; (no colour 1 on the upgrades' line's lines but its own: the table's rows)
-    ASSERT TtRowY + i * TtRowStep + 6 <= TaRedTop OR TtRowY + i * TtRowStep > TaRedBottom, "the track's screen: a row on the upgrades' red"
+FOR i = 0..9                             ; (no colour 1 on the red lines but the panel's own: the table's rows)
+    ASSERT TtRowY + i * TtRowStep + 6 <= TaRedTop OR TtRowY + i * TtRowStep > TaRedBottom, "the track's screen: a row on the upgrades left's red"
+    ASSERT TtRowY + i * TtRowStep + 6 <= TaRaceTop OR TtRowY + i * TtRowStep > TaRaceBottom, "the track's screen: a row on RACE's red"
 NEXT
 TpX = 12                                ; the upgrades' panel under the map: the labels,
 TpValueX = TpX + 9 * 6                  ; the levels,
 TpSpeedY = TtTitleY + 16                ; and the lines: SPEED, ACCEL., TRACTION (TpStep apart),
 TpStep = 14
 TpLeftY = 154                           ; the wrench and the upgrades left,
-TpRaceY = TpLeftY + 18                  ; RACE
+TpRaceY = TpLeftY + TtRowStep           ; RACE
 ASSERT TpSpeedY + 2 * TpStep + 6 <= TaRedTop, "the track's screen: TRACTION on the upgrades' red"
 ASSERT TpLeftY > TaSplitRed AND TpLeftY + 6 <= TaSplitGreen, "the track's screen: the upgrades left not where colour 1's red"
+ASSERT TpRaceY > TaRaceRed AND TpRaceY + 6 <= TaRaceGreen, "the track's screen: RACE not where colour 1's red"
 GlyphMinus = 39                         ; time attack's glyphs (front.6502: tools/screens.py's ta_glyphs)
 GlyphWrench = 40                        ; (and 41)
 ASSERT GmTopUp == GmTurbo + 4 AND GmTraction == GmTurbo + 8, "the upgrades: car 0's levels GmTurbo + TpLevel"
@@ -355,11 +357,15 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 .TpUpLetter                             ; (each unique, Tom, 2026-11-12)
     EQUB Gl('S'), Gl('A'), Gl('T')
 
-\\ The upgrades' panel: the cursor on RACE, and its lines drawn. A, X, Y corrupted.
+\\ The upgrades' panel: the cursor on RACE (on SPEED if there are too many upgrades to race), and its lines drawn.
+\\ A, X, Y corrupted.
 
 .tg_panel
 {
     LDA #3:STA TgCursor
+    JSR tg_left:BPL @+
+    STZ TgCursor
+.@
     LDX #3
 .item
     PHX
@@ -371,21 +377,27 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 }
 
 \\ Item X of the panel drawn again (0-2 an upgrade, 3 RACE): its line cleared, its label (yellow if the cursor's on it,
-\\ else white) and an upgrade's level. A, X, Y corrupted.
+\\ else white; RACE in colour 1, red on its line, while there are too many upgrades) and an upgrade's level. A, X, Y
+\\ corrupted.
 
 .tg_item
 {
     STX tg_n
     LDA TpItemY,X:STA fy
     LDA #0:LDX #TgPanelBytes:JSR front_clear
+    LDX tg_n:CPX #3:BNE ink
+    JSR tg_left:BPL ink                 ; (RACE)
+    LDA #TgGreen
+    BRA inked
+.ink
     LDA #TgWhite
-    LDX tg_n:CPX TgCursor:BNE @+
+    LDX tg_n:CPX TgCursor:BNE inked
     LDA #TgYellow
-.@
+.inked
     STA fink
     LDA #TpX:STA fx
     STZ fx+1
-    LDY TpTextAt,X
+    LDX tg_n:LDY TpTextAt,X              ; (tg_left corrupts X)
 .text
     LDA TpTexts,Y:BMI done
     PHY
@@ -461,8 +473,8 @@ TgPanelBytes = 26                       ; (the panel's 104 pixels, under the map
 }
 
 \\ A key on a track's screen (tg_key's, but Escape): Return races; accelerate races on RACE, or adds one to the
-\\ cursor's upgrade (past 5: 0); left and right move the cursor (round the four). Racing waits for the upgrades left
-\\ to be 0 or more.
+\\ cursor's upgrade (past 5: 0); left and right move the cursor (round the four, passing over RACE while there are too
+\\ many upgrades). Racing waits for the upgrades left to be 0 or more.
 \\
 \\ Inputs: A: the key. Outputs: C set: race. A, X, Y corrupted.
 
@@ -479,18 +491,25 @@ TgPanelBytes = 26                       ; (the panel's 104 pixels, under the map
     STA GmTurbo,Y
     JSR tg_item
     JSR tg_left_line
+    LDX #3:JSR tg_item                  ; (RACE: red or not)
     CLC
     RTS
 .turn
-    LDX TgCursor
-    CMP #11:BNE right
-    DEX
-    BRA moved
-.right
-    CMP #12:BNE no
-    INX
+    LDY #1                              ; (right: one on, round the four;
+    CMP #12:BEQ moved
+    LDY #3                              ; left: three on)
+    CMP #11:BNE no
 .moved
-    TXA:AND #3
+    STY tg_x
+    LDA TgCursor
+.step
+    CLC:ADC tg_x:AND #3
+    CMP #3:BNE set
+    JSR tg_left:BPL race_on
+    LDA #3:BRA step                     ; (RACE passed over while there are too many upgrades, Tom, 2026-11-12)
+.race_on
+    LDA #3
+.set
     LDX TgCursor
     STA TgCursor
     JSR tg_item                         ; (the old item white, then the new yellow)
@@ -592,7 +611,7 @@ TgPanelBytes = 26                       ; (the panel's 104 pixels, under the map
 
 .tg_track
     EQUB 0
-.tg_x                                   ; the text's pixel across, or the box's byte
+.tg_x                                   ; the text's pixel across, the box's byte, or the cursor's step
     EQUB 0
 
 \\ The highlight: a yellow box round GmTrack's cell, its edges where the picture's black (tools/screens.py asserts
