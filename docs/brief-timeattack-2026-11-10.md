@@ -571,6 +571,23 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      once; ADFS booted back. With `scores_load`'s sum not made and its first byte not checked, it fails (21 wrong:
      saved at every load, a spoilt sum taken). Play the same, 19,200 frames, 0 different; the other five checks
      pass; the game's discs the same but for the README's commit link, every track's build byte for byte.
+     **Shared kept in the fourth bank** (2026-11-12, to be tried on Tom's Master): Shared's slot where the game has
+     it again (`SharedSlot` after `sharedtabs`: `TrackNum`, the hazards, `EntCode`, `TorPiece`), and the part before
+     it, the same on every track (the sound effects' data, probes, sharedtabs: 1,560 bytes), kept in the fourth
+     bank (`TaKeep`, after its code): `timeattack.6502`'s `ta_keep`, in main RAM as it pages the bank in, copies it
+     there at the boot (`entry.6502`, after `shared_copy`) and back before each track's load (`tagame.6502`'s way
+     to a race, after `tg_rows26`); the track's file puts its slot over it, then `shared_copy` as before. Offered
+     instead, the shadow screen's copy, which the menu leaves alone (measured: the same as built after the boot and
+     three races), copied back with no bank room; Tom kept the bank, so the shadow screen stays free for the front
+     end. `TaFxRoom` (256 bytes) asserted free in Shared's room and the fourth bank, for the front end's sound
+     effects.
+     MEASURED (track 1's build): the fourth bank 3,710 to 2,150 bytes free, main RAM's code 976 to 888 (`ta_keep`),
+     the first 4K 2,549 to 2,545; track 1's file 6,641 to 6,001 bytes (Shared's slot 358 bytes, 119 packed: was
+     128 at 6b), the disc 86,016 to 80,896; a track's load from the menu to the race's start 1.73 to 1.95 s
+     (jsbeeb, the 8 tracks), was 1.88 to 2.17 at 6c. Play the same, 19,200 frames, 0 different; the six time
+     attack checks pass (`ta_rows_check`: Shared as built in both screens at each race's start); with the menu's
+     put-back taken out, it fails at both races. The game's discs the same but for the README's commit link,
+     every track's build byte for byte.
    - **6d, the menu's picture** (D44, D47): layout A, the 8 maps from the select screen, the SUPER SPRINT logo in red
      and yellow (colour 1 switched mid-screen), the text in the ST's small font (`front_glyph`), a file loaded once.
      Against the mock-up (`docs/img/timeattack-menu.png`). Tried.

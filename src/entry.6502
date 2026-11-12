@@ -119,6 +119,9 @@ LoadingChars = {'L', 'o', 'a', 'd', 'i', 'n', 'g'}   ; loadcode.6502's LoadingTe
     IF GenLogic
         LDA bankobj:STA &FE30           ; ROMSEL: the objects' bank, where shared_copy is
         JSR shared_copy
+        IF GenTimeAttack
+            CLC:JSR ta_keep             ; Shared's part the same on every track kept in the fourth bank (D55)
+        ENDIF
 
         \\ and ANDY filled from its image, a page at a time (whole pages: the overrun lands in the logic's
         \\ state, zeroed by logic_start), now the filing system is done with &8000 (D15)

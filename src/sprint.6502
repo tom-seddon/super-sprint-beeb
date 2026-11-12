@@ -14,6 +14,8 @@ INCLUDE "../build/gen/font.6502"        ; the HUD's glyphs (Font: in Shared in t
 INCLUDE "../build/gen/tunes_fixed.6502" ; TunesFixedLen
 INCLUDE "../build/gen/version.6502"     ; the build's version (VersionGlyphs, VersionX: options.6502)
 GenTunes = GenPlay * (1 - GenTimeAttack) ; the front end's tunes (step 9, D11): the game's; time attack has none
+TaFxRoom = 256                          ; time attack: room kept for the front end's sound effects (D55), in Shared
+                                        ; and in the fourth bank's keep of it
 
 IF GenLogic
     INCLUDE "../build/gen/logickeys.6502"
@@ -92,6 +94,12 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
                 ASSERT P% == SwramEnd, "the tunes kept: at the bank's end"
                 ASSERT SwramEnd - (TunesFixed AND &FF00) <= &400, "the tunes kept: in 4 pages, copied to TuneRing"
             ELSE
+                IF GenTimeAttack
+.TaKeep                                 ; Shared's part the same on every track (SharedOrg to SharedSlot: the effects,
+                    SKIP TaKeepLen      ; probes, sharedtabs), kept from the boot, put back before each track's load
+                                        ; (D55: timeattack.6502's ta_keep), as the menu's 32 rows overwrite it
+                    ASSERT SwramEnd - P% >= TaFxRoom, "time attack: room in the fourth bank for the front end's sound effects"
+                ENDIF
                 PRINT "the fourth bank: ", SwramEnd - P%, " bytes free"
             ENDIF
         ELSE
@@ -291,15 +299,11 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
     IF GenLogic
         SKIP SharedOrg - LoadAddr       ; (ScreenVars: set by start)
         SECTION Shared, org = SharedOrg, guard = HudAddr, cmos = TRUE
-            IF GenTimeAttack
-.SharedSlot                             ; (time attack: all of Shared, put back by each track's file: the front
-            ENDIF                       ; end's 32 rows overwrite it, D46)
             INCLUDE "../build/lgen/sound.6502"
             INCLUDE "../build/lgen/probes.6502"
             INCLUDE "sharedtabs.6502"
-            IF GenTimeAttack = 0
-.SharedSlot                             ; the track's part (Phase 5, 3a): the same size on every track
-            ENDIF
+.SharedSlot                             ; the track's part (Phase 5, 3a): the same size on every track (time attack:
+                                        ; the rest, the same on every track, kept in the fourth bank, D55: TaKeep)
             IF GenTimeAttack            ; (time attack: no drones' path, D51, and no tunes' rings)
 .TrackNum
                 EQUB LgTrack
@@ -311,9 +315,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             EQUB GenEntCode
 .TorPiece                               ; the tornado's piece, by frame * 4 + x's shift (the track's pieces'
             EQUB GenTorPiece            ; numbers)
-            IF GenTimeAttack = 0
 .SharedSlotEnd
-            ENDIF
             IF GenTunes
                 ASSERT SharedSlot <= TuneRing AND TuneRing + &400 <= SharedSlotEnd, "the tunes' rings and their block in Shared's slot"
                 INCLUDE "tunes.6502"
@@ -338,10 +340,10 @@ HiSaveLen = HiSumLen + 2                ; SCORES: the table, lap records, keys, 
                 ASSERT HiKeys - HiFile == 295, "SSPRINT.HSC's 295 bytes"
             ENDIF
             ENDIF
-            IF GenTimeAttack
-.SharedSlotEnd
-            ENDIF
 .SharedEnd
+            IF GenTimeAttack
+                ASSERT HudAddr - SharedEnd >= TaFxRoom, "time attack: room in Shared for the front end's sound effects"
+            ENDIF
             PRINT "the &3000 area: ", HudAddr - SharedEnd, " bytes free after Shared"
         ENDSECTION
         ENDIF

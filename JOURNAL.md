@@ -726,3 +726,6 @@
   sound effects), and SCORES the keys and sound alone. Then the tunes out of time attack's build, and the drones'
   path's room that sat under their rings: Shared 1,292 bytes smaller, each track's file 276 bytes shorter.
   Then SCORES the keys and sound alone, 12 bytes saved from main RAM, `tools/ta_scores_check.mjs` its cases.
+  Then Shared's part every track has kept in the fourth bank from the boot and put back before each track's load
+  (Tom chose it over copying back from the shadow screen, which keeps the shadow screen free): track 1's file 6,001
+  bytes, a load from the menu 1.73 to 1.95 s in jsbeeb, was 1.88 to 2.17.

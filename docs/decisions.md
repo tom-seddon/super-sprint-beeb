@@ -761,4 +761,6 @@ The other stuff is redundant. There are no scores in Time Attack mode, so the sc
 records are also redundant, as those are stored in the Time Attack data".
 So: no tunes' code, data or rings in time attack's build; room kept for front-end sound effects (about 256 bytes, in
 Shared with the race's, and in the bank's copy); `SCORES` the keys and sound alone, with its sum. Shared's part that's
-the same on every track kept in the fourth bank (`docs/brief-timeattack-2026-11-10.md` §8, 6c's follow-up).
+the same on every track kept in the fourth bank (`docs/brief-timeattack-2026-11-10.md` §8, 6c's follow-up). Asked
+again as it was built (2026-11-12), whether to copy it back from the shadow screen's copy instead (no bank room, but
+the front end then keeps off the shadow screen's Shared): "Fourth bank, as agreed".

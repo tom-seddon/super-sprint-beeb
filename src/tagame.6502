@@ -95,6 +95,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 .go
     JSR tg_rows26                       ; the race's 26 rows for its load (D46)
     JSR tg_colours
+    SEC:JSR ta_keep                     ; Shared's part every track has, put back (D55): the track's file has the rest
     JMP load_go
 }
 

@@ -229,6 +229,51 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
     EQUB 0
 }
 
+\\ Shared's part the same on every track (SharedOrg to SharedSlot) copied to its keep in the fourth bank (TaKeep), at
+\\ the boot, or back, before a track's load: the menu's 32 rows overwrite the main screen's (D46, D55), and the
+\\ track's file has the rest, its slot. Here in main RAM as the fourth bank's paged in.
+\\
+\\ Inputs: C clear: kept, set: put back; main RAM's &3000 area paged in (ACCCON's X clear). Outputs: ROMSEL the
+\\ background's bank, ANDY in. A, X, Y corrupted.
+
+TaKeepLen = SharedSlot - SharedOrg
+
+.ta_keep
+{
+    ASSERT LO(TaKeepLen) != 0, "ta_keep: its last page part of one"
+    BCS back
+    LDA #LO(SharedOrg):STA get+1        ; kept: from Shared to the keep
+    LDA #HI(SharedOrg):STA get+2
+    LDA #LO(TaKeep):STA put+1
+    LDA #HI(TaKeep):STA put+2
+    BRA copy
+.back
+    LDA #LO(TaKeep):STA get+1           ; put back: from the keep to Shared
+    LDA #HI(TaKeep):STA get+2
+    LDA #LO(SharedOrg):STA put+1
+    LDA #HI(SharedOrg):STA put+2
+.copy
+    LDA banktrace:STA &FE30             ; ROMSEL: the fourth bank
+    LDX #HI(TaKeepLen) + 1              ; pages, the last part of one
+    LDY #0
+.get
+    LDA &FFFF,Y                         ; self-modified: from
+.put
+    STA &FFFF,Y                         ; self-modified: to
+    INY
+    CPX #1:BNE more
+    CPY #LO(TaKeepLen):BEQ done
+.more
+    TYA:BNE get
+    INC get+2:INC put+2
+    DEX
+    BRA get
+.done
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: the background's bank, ANDY in (the menu's)
+    RTS
+}
+
 \\ Track X's best time, the table's (the cars' bank's), for the menu (tagame.6502, in the background's bank).
 \\
 \\ Inputs: X: the track. Outputs: A, Y: the time, low and high (0 none); ROMSEL the background's bank, ANDY in. X
