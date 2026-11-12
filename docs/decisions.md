@@ -736,6 +736,10 @@ So: the driving keys (left and right, any player's set, D53) move the highlight 
 1-8 pick a track straight away; Return opens the highlighted track's screen. A key that's both (a driving key
 redefined to a number or Return) acts as the number or Return. (Whether accelerate also opens a track, as fire
 starts the game's: to be settled when Tom tries it.)
+Tom, 2026-11-12, having tried 6d's menu on his Master: "the driving keys only partially work: Q and W work to move the
+highlight, but you can't use E to select", and "The highlight should probably go in a circular order, so
+1-5-6-7-8-4-3-2 when moving clockwise". So accelerate (any player's) acts as Return, and right moves the highlight
+clockwise round the two columns of cells (1, 5, 6, 7, 8, 4, 3, 2, back to 1), left the other way.
 
 ### D53. Time attack's driving keys: Decided (2026-11-11)
 Time attack. Until now car 0 has been driven by player 1's keys (Q, W, E unless the options change them). Tom,

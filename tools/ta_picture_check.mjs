@@ -157,9 +157,9 @@ s.keyDown("KeyW");                      // (player 1's right)
 await run(3, null);
 s.keyUp("KeyW");
 await run(3, null);
-if (peek(syms.GmTrack) !== 1) say(`right: GmTrack ${peek(syms.GmTrack)}, not 1`);
-screen("the highlight moved to track 2", model(times, 1));
-await run(10, model(times, 1));
+if (peek(syms.GmTrack) !== 4) say(`right: GmTrack ${peek(syms.GmTrack)}, not 4`);
+screen("the highlight moved to track 5", model(times, 4));
+await run(10, model(times, 4));
 s.keyDown("Digit6");
 if (!await run(4000, null, syms.start)) say("6 raced nothing");
 s.keyUp("Digit6");

@@ -6,8 +6,8 @@
 \\ logo in red and yellow across the top and the 8 tracks' maps in two columns of four (tools/screens.py), with each
 \\ track's name and best (the table, tatable.6502) beside its map in the small font (front.6502's front_glyph), and a
 \\ yellow box round the highlighted track. Colour 1 is red over the logo and green under it, switched by the
-\\ interrupt (irq.6502's TaSplit). The driving keys (any player's, left and right) move the highlight, 1-8 race that
-\\ track, Return the highlighted one (D52).
+\\ interrupt (irq.6502's TaSplit). The driving keys (any player's) move the highlight round the cells, right clockwise
+\\ (1, 5, 6, 7, 8, 4, 3, 2) and left back, 1-8 race that track, Return or accelerate the highlighted one (D52).
 \\
 \\ After a race the title's file (TRACKF) is loaded before the menu: the load's start saves what the race changed
 \\ (timeattack.6502's ta_save, and SCORES's keys and sound, save.6502), so a record's on the disc before the menu's
@@ -62,17 +62,13 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     STA TgLast
     CMP #0:BEQ wait
     CMP #9:BCC number
-    BEQ race                            ; (9: Return)
+    BEQ race                            ; (9: Return or accelerate)
     PHA
     JSR tg_mark                         ; left or right: the highlight moved
     PLA
-    CMP #10:BNE right
-    LDA GmTrack:DEC A
-    BRA moved
-.right
-    LDA GmTrack:INC A
-.moved
-    AND #7:STA GmTrack
+    ASL A:ASL A:ASL A                   ; (10, left: &50; 11, right: &58)
+    ORA GmTrack:TAX
+    LDA TgTurn - 10 * 8,X:STA GmTrack
     JSR tg_mark
 .wait
     LDA #1:JSR fields
@@ -91,6 +87,9 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 .TrackText                              ; TRACK
     EQUB Gl('T'), Gl('R'), Gl('A'), Gl('C'), Gl('K')
 .TrackTextEnd
+.TgTurn                                 ; the track left of each, then right: round the cells clockwise, 1, 5, 6, 7,
+    EQUB 1, 2, 3, 7, 0, 4, 5, 6         ; 8, 4, 3, 2 (Tom, 2026-11-12)
+    EQUB 4, 0, 1, 2, 5, 6, 7, 3
 .TgCellY                                ; each row of cells' first line
     EQUB TaMenuTop + (0..<4) * TaMenuRow
 
@@ -229,8 +228,8 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     RTS
 }
 
-\\ The menu's key now: 1-8 a number key, 9 Return, 10 left, 11 right (any player's driving keys, D52), 0 none. A
-\\ number or Return first, so a driving key that's one of them is that.
+\\ The menu's key now: 1-8 a number key, 9 Return or accelerate, 10 left, 11 right (any player's driving keys, D52), 0
+\\ none. A number or Return first, so a driving key that's one of them is that.
 \\
 \\ Inputs: none. Outputs: A. X, Y corrupted.
 
@@ -244,26 +243,19 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     LDY #8
 .driving
     LDA PlayerKeys,Y:JSR key_down:BPL next
-    LDX #10                             ; (left)
-    TYA:CMP #0:BEQ steer
-    CMP #3:BEQ steer
-    CMP #6:BEQ steer
-    INX                                 ; (right)
-    CMP #1:BEQ steer
-    CMP #4:BEQ steer
-    CMP #7:BEQ steer
+    LDA TgDriving,Y
+    RTS
 .next
     DEY
     BPL driving
     LDA #0
     RTS
-.steer
-    TXA
-    RTS
 .found
     INX:TXA                             ; (1-9)
     RTS
 }
+.TgDriving                              ; PlayerKeys's as the menu's: left, right, accelerate (as Return)
+    EQUB 10, 11, 9, 10, 11, 9, 10, 11, 9
 .TgKeys                                 ; 1-8 and Return (tools/screens.py's matrix: row * 16 + column, measured)
     EQUB 48, 49, 17, 18, 19, 52, 36, 21, 73
 

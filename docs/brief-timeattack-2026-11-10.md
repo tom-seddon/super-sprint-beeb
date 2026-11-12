@@ -618,6 +618,14 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      the box's right edge a pixel out; 4 lines early it passes, rightly, as the screen's the same. `ta_menu_check`
      and `ta_rows_check` now read the box and the logo; the other five checks pass; play the same, 19,200 frames,
      0 different; the game's discs the same but for the README's commit link, every track's build byte for byte.
+     Tom tried it on his Master (2026-11-12): "Looks great", with two changes (D52): accelerate (any player's) opens
+     the highlighted track as Return does, and right moves the highlight clockwise round the cells, 1, 5, 6, 7, 8, 4,
+     3, 2, left back (a table, `TgTurn`, in place of the track's number plus or minus 1, and one for the driving keys'
+     meanings, `TgDriving`: the first 4K 2,424 to 2,431 bytes free). `ta_menu_check` now goes right all the way
+     round, races by E and by player 2's accelerate (/), and holds / through Escape to the menu: nothing till it's
+     let go (with the menu's first key read taken out, it fails there); `ta_picture_check` moves the box to track 5.
+     All seven checks pass; the game's discs the same but for the README's commit link, every track's build byte
+     for byte.
    - **6e, the track's screen** (D48): its 10 entries; Return races, Escape back to the menu. Tried.
    - **6f, the upgrades** (D49): picked on the track's screen, 5 points over top speed, turbo and traction, as the
      last race's; given to the race as the ST's set-up does, kept in the entry and the ghost's file. Tried.

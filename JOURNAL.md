@@ -734,3 +734,5 @@
   one, as the mock-up; one packed picture in the title's file in place of the game's four, and colour 1 switched by
   the interrupt from the logo's red to the maps' green. `tools/ta_picture_check.mjs` checks the screen byte for byte
   and every field's colours against a model. Escape to the menu shown 0.3 s quicker (the title's file 4K shorter).
+  Tom tried 6d on his Master: "Looks great". Accelerate now opens the highlighted track too, and the driving keys move
+  the highlight round the cells clockwise, 1, 5, 6, 7, 8, 4, 3, 2 (D52).
