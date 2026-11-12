@@ -396,7 +396,22 @@ adds the logic.
   `docs/brief-timeattack-2026-11-10.md`, branch `timeattack`, its questions answered (D36-D50). The ghost's room is the
   cars' bank's three unused car sets (about 8K, ESTIMATED: the green set alone, drawn white for the player and black
   for the ghost, D37). Steps 1 to 3 done (`make ta`: `build/ta.ssd`, `build/ta.adl`; one car, endless laps, Escape out; the lap's time,
-  the best and the ghost's on the HUD; the dead code out, the fourth bank 1,931 bytes free); step 4, the ghost, recorded and drawn; step 5, each track's ghost and the table saved and loaded; step 6 in pieces (6a room; 6b a plain menu, tried by Tom, then the drones and the demo's code out and the table loaded once; 6c the menu in 32 rows, tried by Tom; then the tunes out, SCORES the keys and sound, Shared kept in the fourth bank, D55, tried by Tom; 6d the menu's picture, the logo and the maps, tried by Tom; then accelerate opens a track and the highlight goes round the cells, tried by Tom; 6e the track's screen, its 10 entries, tried by Tom; then the numbers open a track's screen too, tried by Tom; 6f the upgrades picked on the track's screen, for Tom to try), D51-D55.
+  the best and the ghost's on the HUD; the dead code out, the fourth bank 1,931 bytes free); step 4, the ghost, recorded and drawn; step 5, each track's ghost and the table saved and loaded; step 6 in pieces (6a room; 6b a plain menu, tried by Tom, then the drones and the demo's code out and the table loaded once; 6c the menu in 32 rows, tried by Tom; then the tunes out, SCORES the keys and sound, Shared kept in the fourth bank, D55, tried by Tom; 6d the menu's picture, the logo and the maps, tried by Tom; then accelerate opens a track and the highlight goes round the cells, tried by Tom; 6e the track's screen, its 10 entries, tried by Tom; then the numbers open a track's screen too, tried by Tom; 6f the upgrades picked on the track's screen, tried by Tom; then his four changes to it, for Tom to try), D51-D55.
+- The game's loads' two screen faults, found in time attack (2026-11-12) and fixed there only, under `IF GenTimeAttack`
+  in `src/loadcode.6502`. For once time attack's merged into one branch (Tom, 2026-11-12: "Please leave the game alone
+  for now, but make notes for later, as it'll be worth fixing once everything is merged back into one branch."):
+  - The first load's "Loading" redrawn too soon: `load_track.again` clears and redraws the HUD's row from OSBYTE 19's
+    vsync, 64 lines before the row's shown, and the redraw takes 72. Time attack's disc ended it about 4 lines late,
+    so the g's last line was cleared for one field (Tom saw it on his Master). The game's ends it at line 0 in jsbeeb,
+    about 6 lines to spare, but where it ends hangs on the OS's interrupts around the vsync. Time attack's fix: 90
+    lines' wait after the vsync (`.past`, 9 bytes), so the redraw runs from about line 32 to 94.
+  - The display switched off mid-row: `rows_back` writes R8 &F0 whenever a load ends, so about 8 lines in 312 (1 load
+    in 40) a field shows the row's first lines alone. Time attack's fix: from a vsync, CA1's flag polled (`.edge`,
+    interrupts off at both calls).
+  To do: drop the two `IF GenTimeAttack`s so the game has both (the game's build then differs: LoadCode 20 bytes
+  more, every load up to a field longer), then the game's suite, `boot_check` (DFS and ADFS), `flash_check` and
+  `load_check` the ones that watch it. `boot_check` caught both in time attack (`--ta`, `--ta --adfs`); the game's
+  passes only because its loads happen to end elsewhere, so a fault test is to move one by a few lines.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile

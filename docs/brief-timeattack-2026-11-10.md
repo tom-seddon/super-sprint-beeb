@@ -731,4 +731,5 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      redefined and the sound on or off, as the game's options do, saved as now. Tried.
    - **6h, the turnaround** (D45): measured from Escape to the next race; the same track again loading nothing, if
      the front end's files keep clear of the track's slots and the ghost's buffers.
-7. **Close**: the variant's suite, both discs, Tom's Master.
+7. **Close**: the variant's suite, both discs, Tom's Master. After the merge, not before: the game's two load faults
+   fixed as time attack's are (`docs/plan.md`, "After Phase 5", Tom, 2026-11-12).
