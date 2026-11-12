@@ -1,6 +1,6 @@
 // Time attack's options (docs/brief-timeattack-2026-11-10.md, step 6i; D54; options.6502 as time attack builds it),
 // driven on build/ta.ssd as tools/options_check.mjs drives the game's: F1 from the menu; the screen byte for byte
-// against a model (the menu's picture above its cells, the rest cleared; each player's PLAYER n, Fn TO CHANGE in its
+// against a model (the menu's picture above its cells, the rest cleared; each key set's SET n, Fn TO CHANGE in its
 // colour and LEFT, RIGHT, ACCEL. in white in the small font; each key's name in the MOS's font in the player's
 // colour, in inverse while held; the status line as the game's, the build's version in its right end); F2-F4 asking
 // for keys, refusing the game's own and those taken, Escape putting them back; the warning against tools/keys_ghost.py's
@@ -68,7 +68,7 @@ function text(str, x, y, ink) {
 }
 const Col = (car) => 8 + car * 104, Ink = [3, 1, 2];   // (a player's column, D54's layout; white, green, yellow)
 for (let car = 0; car < 3; car++) {
-    text(`PLAYER ${car + 1}`, Col(car), syms.OptHeadY, Ink[car]);
+    text(`SET ${car + 1}`, Col(car), syms.OptHeadY, Ink[car]);
     text(`F${car + 2} TO CHANGE`, Col(car), syms.OptChangeY, Ink[car]);
     ["LEFT", "RIGHT", "ACCEL."].forEach((w, row) => text(w, Col(car), (syms.OptKeyRow + row * 2) * 8 + 1, 3));
 }

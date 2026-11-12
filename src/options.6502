@@ -8,14 +8,15 @@
 \\
 \\ Time attack's (D54, step 6i): no picture of its own, but the menu's logo, the rest text in the small font, the
 \\ names in the MOS's still; in the title's file (TRACKF), no load, F1 on the menu (tagame.6502), F0 or Escape back.
-\\ A column a player, its colour's: PLAYER n, Fn TO CHANGE, then LEFT, RIGHT and ACCEL. by its keys' names.
+\\ A column a key set, its colour's: SET n (one player only, Tom, 2026-11-12), Fn TO CHANGE, then LEFT, RIGHT and
+\\ ACCEL. by its keys' names.
 
 OptRows = 3                             ; a car's keys
 OptSlots = 3 * OptRows
 OptNameBytes = 7 * 16                   ; 7 characters, a field's bytes
 IF GenTimeAttack
 FUNCTION OptCol(car) = 8 + car * 104    ; a player's column: its text's pixel across, its names' 44 on
-OptHeadY = 44                           ; PLAYER n's line, Fn TO CHANGE's,
+OptHeadY = 44                           ; SET n's line, Fn TO CHANGE's,
 OptChangeY = 54
 OptKeyRow = 8                           ; and the cell row of a car's first key (2 rows between)
 OptLineY = 248                          ; the status line: the 32 rows' last cell row
@@ -112,10 +113,10 @@ IF GenTimeAttack
     LDA OptColLeft,X:STA fx
     STZ fx+1
     LDA #OptHeadY:STA fy
-    LDA OptHeadAt,X:TAX:JSR opt_text    ; PLAYER n
+    LDA OptHeadAt,X:TAX:JSR opt_text    ; SET n
     LDX OptCar
     LDA OptColLeft,X:STA fx
-    STZ fx+1                            ; (each text's: PLAYER 3 passes pixel 255)
+    STZ fx+1                            ; (each text's: F4 TO CHANGE passes pixel 255)
     LDA #OptChangeY:STA fy
     LDA OptChangeAt,X:TAX:JSR opt_text  ; Fn TO CHANGE
     LDA #&FF:STA fink                   ; (white)

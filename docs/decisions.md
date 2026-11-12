@@ -786,8 +786,9 @@ exactly, and it'll presumably save some memory/reduce load times if it doesn't."
 So: an options screen of its own, from the menu: the three key sets redefined and the sound on or off, as the game's
 does (`options.6502`'s key finding), saved as now; drawn as text in the small font with the logo on top.
 How, Tom, 2026-11-12 (step 6i), agreeing the proposal: F1 on the menu, F0 or Escape back ("we can think about the
-hints later"); the logo, then a column a player in its colour, PLAYER n, Fn TO CHANGE and its three keys; "use the same
+hints later"); the logo, then a column a key set in its colour, its heading, Fn TO CHANGE and its three keys; "use the same
 approach as the main game: MOS font for the key names, and everything else in the small font".
+Having tried it: the columns headed SET 1, SET 2 and SET 3, "as there's only ever 1 player in Time Attack mode".
 
 ### D55. Time attack's tunes and SCORES: Decided (2026-11-12)
 Time attack. After 6c each track's file carried all of Shared, about 1,080 bytes more packed: the sound effects'

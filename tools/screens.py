@@ -569,7 +569,7 @@ def main(out, zx02):
              'OptTextOn = {' + glyphs(OptionsOn) + '}', 'OptTextOff = {' + glyphs(OptionsOff) + '}',
              'OptTextClash = {' + glyphs(b'keys may clash') + '}', 'OptTextPrompt = {' + glyphs(b'press the new keys   escape to cancel') + '}',
              'OptTextUsed = {' + glyphs(b'that key is in use') + '}',
-             *(f'TaOptHead{n} = {{' + glyphs(b'player %d' % n) + '}' for n in (1, 2, 3)),     # (time attack's options, D54)
+             *(f'TaOptHead{n} = {{' + glyphs(b'set %d' % n) + '}' for n in (1, 2, 3)),     # (time attack's options, D54)
              *(f'TaOptChange{n} = {{' + glyphs(b'f%d to change' % (n + 1)) + '}' for n in (1, 2, 3)),
              'TaOptLeft = {' + glyphs(b'left') + '}', 'TaOptRight = {' + glyphs(b'right') + '}',
              'TaOptAccel = {' + glyphs(b'accel.') + '}',
