@@ -759,3 +759,4 @@
   the entry's row with a flashing block, then a trip of its own saves the ghost and the table, and the screen's drawn
   again. The cursor couldn't be a glyph: the small font's index is a byte, and time attack's 42 glyphs fill it.
   `ta_picture_check` checks the typing field by field; the table check's races each type their own name.
+  Tom tried it: the saving time fine; the cursor made white and RACE white while typing, then "Looks good". 6g done.

@@ -777,6 +777,7 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      visually distinct from the text", and RACE "shown in white while typing as well, so it's clear that it's not
      active or focussed" (`tg_panel` lights no item while `TaNew`'s set; the save's trip draws the screen again
      after). `ta_picture_check`'s model the same, and it passes; the first 4K 987 bytes free.
+     Tom tried that on his Master (2026-11-12): "Looks good." 6g done.
    - **6i, the options** (D54): a screen of its own from the menu, mostly text with the logo: the three key sets
      redefined and the sound on or off, as the game's options do, saved as now. Tried.
    - **6h, the turnaround** (D45): measured from Escape to the next race; the same track again loading nothing, if
