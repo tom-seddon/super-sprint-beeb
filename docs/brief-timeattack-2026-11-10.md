@@ -732,6 +732,15 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      between the table's 4th and 5th rows (110-123): red on line 111, green on 121, measured in jsbeeb as aimed. The
      slowest redraw still ends about line 86, before the count. All seven checks pass, and `boot_check --ta`; play the
      same.
+     Tom asked whether the loads had changed ("It felt to me like the disk drive was making slightly different
+     noises"). MEASURED in jsbeeb, 6f's disc (593b468) against 01453fb's, both DFS and ADFS, the same script: the boot,
+     then for each track the menu to its screen, Return to the race, Escape to its screen, Escape to the menu (32
+     steps, with the disc controller's commands logged). Every command the same and in the same order, the head's
+     movements the same. Times: the race's load and the boot 0.01-0.02 s longer (the two waits), the menu 0.02 s
+     quicker; twice in 66 a load 0.2 s longer, one turn of the disc, where the waits moved a read past its sector (DFS
+     track 4's Escape, 2.81 to 3.01 s; the ADFS boot, 11.43 to 11.63). The loads in jsbeeb, both builds: a track's
+     race 1.7-1.9 s with the motor still on from the boot, else 3.1-3.5 s (from the motor off: its spin-up and a
+     restore to track 0 take about 1.3-1.5 s of it); Escape to the track's screen 2.8-3.0 s.
    - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen
      with the new entry lit. Ties' order then checkable (`tools/ta_table_check.mjs`). Tried.
    - **6i, the options** (D54): a screen of its own from the menu, mostly text with the logo: the three key sets
