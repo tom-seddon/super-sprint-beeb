@@ -704,6 +704,15 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
         showed the row's first 2 lines alone; any load can, about 8 lines in 312 (the game's too, as it stays: its
         checks pass by where its loads end). In time attack `rows_back` now waits for a vsync (CA1's flag polled,
         interrupts off there), so the row's never cut short. LoadCode 38 bytes free.
+     2. "the upgrades menu is a bit flickery when navigating and changing the option. Does it need a wait for vsync at
+        some point?": it had one, keys act just after the vsync, but a key's redraw (each item cleared, then its glyphs,
+        about 8 lines each) ran from the blank to about line 113, and the panel starts at 112: the second item of a
+        cursor's move, or the count, was still being drawn as the beam passed it, so a field showed it part cleared
+        (17 fields of `ta_picture_check`'s keys, measured). On a track's screen the idle loop now also waits for the
+        interrupt's last colour step (`TaStep` negative), RACE's band's end on line 181, so keys act from line 194 and
+        the slowest redraw (accelerate: the item, the count and RACE) ends about line 86 of the next field, before the
+        panel. `ta_picture_check` now has every field of each panel key, held and let go, as the screen before the key
+        or after it (fails 17 fields without the wait). The first 4K 1,511 to 1,501 bytes free.
      3. The upgrades renamed (D49): SPEED, ACCEL. and TRACTION, a row's S2 A1 T2, the letters each unique (the point
         the small font's glyph 10). `ta_picture_check`'s model the same.
      4. "if you've selected too many upgrades, it'd be nice if the `RACE` option could become red and unselectable

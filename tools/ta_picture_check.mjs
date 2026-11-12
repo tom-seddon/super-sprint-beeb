@@ -14,7 +14,8 @@
 //   and RACE in red (colour 1 switched red for each one's line by the interrupt), the cursor passing over RACE right
 //   and left, and Return then racing nothing; then Escape, the menu again as before; then 5, the highlighted track's
 //   number: its screen again (the box not copied with the map, the levels kept, the cursor on SPEED as there are too
-//   many), traction round to 0, the cursor to RACE, white again, and Return races it;
+//   many), traction round to 0, the cursor to RACE, white again, and Return races it; every field of each of the
+//   panel's keys, held and let go, the screen before it or after it, nothing half drawn between;
 // - as shown, every field from the boot's menu to a race's first frame (the frame buffer, as tools/ta_rows_check.mjs
 //   reads it): no green on the logo's lines (colour 1 red there, the interrupt's TaSplit) and no red under them; and
 //   while the menu's up, each of its 256 lines' colours as the model's, pixel for pixel counted (two of the frame
@@ -125,8 +126,12 @@ const kind = (v) => {
 };
 const Rgb = [[0, 1, 3, 4], [0, 2, 3, 4]];   // (logical colours' kinds: over the logo, then under it)
 let field = 0, steady = 0, checked = 0, onTrack = false;   // (a track's screen: colour 1 red on its upgrades left's and RACE's lines too)
+// a field shown: its colours, and if want's given every line's as want's (a model), or as one of want's (an array:
+// before and after a key, nothing half drawn between)
 function shown(want) {
     field++;
+    const wants = !want ? [] : Array.isArray(want) ? want : [want], ok = wants.map(() => true);
+    let first = "";
     for (let y = 0; y < Lines; y++) for (const half of [0, 1]) {
         const row = (Top32 + 2 * y + half) * Width, count = [0, 0, 0, 0, 0, 0];
         for (let x = 0; x < Width; x++) count[kind(fb[row + x])]++;
@@ -135,15 +140,20 @@ function shown(want) {
             say(`field ${field}, line ${y}: ${count[2]} green, ${count[1]} red, ${count[5]} other`);
             return;
         }
-        if (!want || half) continue;
-        const expect = [0, 0, 0, 0, 0, 0];
-        for (let x = 0; x < 320; x++) expect[Rgb[red ? 0 : 1][want[y * 320 + x]]] += 2;
-        if ([1, 2, 3, 4].some((k) => count[k] !== expect[k])) {
-            say(`field ${field}, line ${y}: ${[1, 2, 3, 4].map((k) => `${count[k]} ${Names[k]}`).join(", ")}, not ${[1, 2, 3, 4].map((k) => expect[k]).join(", ")}`);
-            return;
-        }
+        if (half) continue;
+        wants.forEach((w, i) => {
+            if (!ok[i]) return;
+            const expect = [0, 0, 0, 0, 0, 0];
+            for (let x = 0; x < 320; x++) expect[Rgb[red ? 0 : 1][w[y * 320 + x]]] += 2;
+            if ([1, 2, 3, 4].some((k) => count[k] !== expect[k])) {
+                ok[i] = false;
+                first ||= `line ${y}: ${[1, 2, 3, 4].map((k) => `${count[k]} ${Names[k]}`).join(", ")}, not ${[1, 2, 3, 4].map((k) => expect[k]).join(", ")}`;
+            }
+        });
     }
-    if (want) steady++;
+    if (!wants.length) return;
+    if (ok.some(Boolean)) steady++;
+    else say(`field ${field}, ${wants.length > 1 ? "neither before the key nor after, " : ""}${first}`);
 }
 
 // fields run, each shown checked; stopped early at stop (an address in the background's bank, or the race's start)
@@ -216,8 +226,22 @@ onTrack = true;
 if (peek(syms.TgOn) !== 1) say(`Return: TgOn ${peek(syms.TgOn)}, not 1`);
 screen("track 5's screen", trackModel(4, entries));
 await run(10, trackModel(4, entries));
-// the upgrades: speed 3, acceleration 2, traction 1 (one too many), the cursor passing over RACE, and Return racing nothing
-const key = async (k) => { s.keyDown(k); await run(3, null); s.keyUp(k); await run(3, null); };
+// the upgrades: speed 3, acceleration 2, traction 1 (one too many), the cursor passing over RACE, and Return racing
+// nothing. Each key's fields, held and let go, either the screen before it or after (D49's rules, as below), nothing
+// half drawn between.
+const panel = { levels: [0, 0, 0], cursor: 3 };
+const key = async (k) => {
+    const left = () => 5 - panel.levels.reduce((a, b) => a + b);
+    const before = trackModel(4, entries, panel.levels, panel.cursor);
+    if (k === "KeyE" && panel.cursor < 3) panel.levels[panel.cursor] = (panel.levels[panel.cursor] + 1) % 6;
+    const d = { KeyW: 1, KeyQ: 3 }[k];
+    if (d) {
+        panel.cursor = (panel.cursor + d) % 4;
+        if (panel.cursor === 3 && left() < 0) panel.cursor = (panel.cursor + d) % 4;
+    }
+    const after = trackModel(4, entries, panel.levels, panel.cursor);
+    s.keyDown(k); await run(3, [before, after]); s.keyUp(k); await run(3, [before, after]);
+};
 for (const k of ["KeyW", "KeyE", "KeyE", "KeyE", "KeyW", "KeyE", "KeyE", "KeyW", "KeyE"]) await key(k);
 screen("the upgrades 3, 2, 1: -1 left", trackModel(4, entries, [3, 2, 1], 2));
 await run(10, trackModel(4, entries, [3, 2, 1], 2));
@@ -242,6 +266,7 @@ s.keyUp("Digit5");
 await toMenu();
 onTrack = true;
 if (peek(syms.TgOn) !== 1 || peek(syms.GmTrack) !== 4) say(`5: TgOn ${peek(syms.TgOn)}, GmTrack ${peek(syms.GmTrack)}, not track 5's screen`);
+panel.cursor = 0;
 screen("5: track 5's screen, -1 left", trackModel(4, entries, [3, 2, 1], 0));
 await run(10, trackModel(4, entries, [3, 2, 1], 0));
 // traction round to 0, the cursor to RACE

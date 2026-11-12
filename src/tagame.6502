@@ -58,7 +58,7 @@ TpLeftY = 154                           ; the wrench and the upgrades left,
 TpRaceY = TpLeftY + TtRowStep           ; RACE
 ASSERT TpSpeedY + 2 * TpStep + 6 <= TaRedTop, "the track's screen: TRACTION on the upgrades' red"
 ASSERT TpLeftY > TaSplitRed AND TpLeftY + 6 <= TaSplitGreen, "the track's screen: the upgrades left not where colour 1's red"
-ASSERT TpRaceY > TaRaceRed AND TpRaceY + 6 <= TaRaceGreen, "the track's screen: RACE not where colour 1's red"
+ASSERT TpRaceY > TaRaceRed AND TpRaceY + 6 <= TaRaceGreen, "the track's screen: RACE not where colour 1's red"   ; (and the panel above the last step: game_resume.past)
 GlyphMinus = 39                         ; time attack's glyphs (front.6502: tools/screens.py's ta_glyphs)
 GlyphWrench = 40                        ; (and 41)
 ASSERT GmTopUp == GmTurbo + 4 AND GmTraction == GmTurbo + 8, "the upgrades: car 0's levels GmTurbo + TpLevel"
@@ -144,7 +144,11 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     JSR tg_mark
 .wait
     LDA #1:JSR fields
-    BRA idle
+    LDA TgOn:BEQ idle
+.past
+    BIT TaStep:BPL past                 ; a track's screen: on past its colour switch's last step (irq.6502's), RACE's
+    BRA idle                            ; line's end, so the panel's drawn again after the beam's passed it, never seen
+                                        ; half drawn (Tom, 2026-11-12: "a bit flickery")
 .race
     LDA GmTrack:INC A:STA LoadWant      ; (TgOn 1: back to its screen after the race, D50)
 .go
