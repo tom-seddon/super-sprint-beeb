@@ -207,9 +207,10 @@ ASSERT TaLabelsEnd - TaLabels == TaGhostLabel - TaBestLabel + 5, "the labels: BE
 
 GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where the next file lands)
 
-\\ At a load's start (load_track, the OS given back, before any file): what the race just run changed saved, once,
-\\ the ghost then the table; unless the race's entry is still to be named (step 6g: then at the save's own trip,
-\\ tagame.6502's, once it's typed). A failed save (a write-protected disc) is said by load_track's brk, which loads
+\\ At a load's start (load_track, the OS given back, before any file): SCORES (the keys and sound) if they changed
+\\ (ta_save_keys: at any load, as TRACKF isn't loaded after a race, 6h); then what the race just run changed saved,
+\\ once, the ghost then the table; unless the race's entry is still to be named (step 6g: then at the save's own
+\\ trip, tagame.6502's, once it's typed). A failed save (a write-protected disc) is said by load_track's brk, which loads
 \\ again without coming back here (D23's way): both flags are cleared first, so neither is tried again, and a table
 \\ after a ghost that failed isn't tried at all.
 \\
@@ -218,6 +219,7 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
 
 .ta_save
 {
+    JSR ta_save_keys
     LDA TaNew:BNE named                 ; (a name to come first)
     LDA GhNew:STA ghost
     LDA TaTableNew:STA table
@@ -233,6 +235,37 @@ GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where t
     EQUB 0
 .table
     EQUB 0
+}
+
+\\ SCORES saved, time attack's (D55: the keys and sound, then their sum), if they've changed since it was loaded or
+\\ last saved (KeysSum): the sum's taken first, so a save that fails isn't tried again till something else changes
+\\ (save.6502's way, which the game's TRACKF runs; time attack's at any load's start, 6h). OSFILE writes the file's
+\\ length and attributes back into its block, so it's made again each time (TaBlock, as the ghost's and the table's).
+\\
+\\ Inputs: SoundOff, PlayerKeys, KeysSum. Outputs: KeysSum; SCORES written if they changed. A, X, Y corrupted.
+
+.ta_save_keys
+{
+    KEYS_SUM SoundOff, sumhi
+    CMP KeysSum:BNE save
+    LDX sumhi:CPX KeysSum+1
+    BEQ done
+.save
+    STA KeysSum
+    LDA sumhi:STA KeysSum+1
+    LDX #LO(name):LDY #HI(name)
+    JSR ta_block
+    LDA #LO(SoundOff):STA TaBlock+2:STA TaBlock+6:STA TaBlock+10
+    LDA #HI(SoundOff):STA TaBlock+3:STA TaBlock+7:STA TaBlock+11
+    LDA #LO(SoundOff + KeysSaveLen):STA TaBlock+14
+    LDA #HI(SoundOff + KeysSaveLen):STA TaBlock+15
+    JMP ta_save_block
+.done
+    RTS
+.sumhi
+    EQUB 0
+.name
+    EQUS "SCORES", 13
 }
 
 \\ Shared's part the same on every track (SharedOrg to SharedSlot) copied to its keep in the fourth bank (TaKeep), at

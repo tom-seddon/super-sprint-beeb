@@ -171,11 +171,14 @@ SECTION FrontFile, filename = "TRACKF", load = &FFFF0000+TrackFileAddr
 .front_high_end
     ENDSECTION
     \ save.6502, run where it lands in the main screen: the end of the file (copied into the background's bank
-    \ with the pictures, harmlessly, as far as it reaches below GameScratchOrg)
+    \ with the pictures, harmlessly, as far as it reaches below GameScratchOrg). Time attack's SCORES is saved at
+    \ any load's start instead (timeattack.6502's ta_save_keys), as TRACKF's kept between races (6h)
+    IF GenTimeAttack = 0
     FrontSaveOrg = TrackFileAddr + (front_pics_end - BgOrg) + (front_high_end - FrontPicOrg)
     SECTION FrontSave, org = FrontSaveOrg, guard = LoadCodeOrg, cmos = TRUE
         INCLUDE "save.6502"
     ENDSECTION
+    ENDIF
 ENDSECTION
 
 IF GenTimeAttack = 0                    ; (time attack: none of the game's screens but the title's file, D51)

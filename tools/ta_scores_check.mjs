@@ -1,12 +1,12 @@
-// Time attack's SCORES (D55): the keys and sound alone, SoundOff and PlayerKeys then KeysSum, saved at the title's
-// file's load (TRACKF, after each race and on its own) and loaded at the boot, on build/ta.ssd, each case from a fresh
-// boot, as tools/save_check.mjs does for the game's:
+// Time attack's SCORES (D55): the keys and sound alone, SoundOff and PlayerKeys then KeysSum, saved at any load's
+// start (timeattack.6502's ta_save_keys, 6h: a race's, the title's file's, the save after a name) and loaded at the
+// boot, on build/ta.ssd, each case from a fresh boot, as tools/save_check.mjs does for the game's:
 // - fresh: no SCORES, so the assembled keys, KeysSum their sum; a title's load writes nothing;
-// - a race and back (Escape): nothing written (6c's track files put the game's HiSum back each race, D46);
+// - a race and back (Escape): nothing written at its loads (6c's track files put the game's HiSum back each race, D46);
 // - changed: the sound off and a key changed, then a title's load writes SCORES once, its 12 bytes the keys, sound and
-//   sum; another load writes nothing;
+//   sum; a race's loads write nothing;
 // - loaded: the disc jsbeeb wrote booted again: the keys and sound back, nothing written at the next load; then the
-//   sound on again, and SCORES saved over;
+//   sound on again, and SCORES saved over; then a key changed, and a race's own load saves it;
 // - spoilt: that disc with a key changed, two bytes swapped, either byte of the sum changed, the file a byte short,
 //   or the game's length (307 bytes, as 6c's builds saved it): the assembled keys, nothing from the file;
 // - read only: the disc write-protected, a change, and the load: the OS's error in the HUD's row with " - press a
@@ -51,8 +51,8 @@ async function boot(disc, writeable = true, model = "Master", hold = undefined) 
     const peek = (a) => s.readMemory(a, 1)[0];
     const log = { saves: 0, entries: 0, brk: 0, text: "" };
     cpu.debugInstruction.add((pc) => {
-        if (pc === 0xffdd && cpu.a === 0 && (cpu.x | (cpu.y << 8)) === syms["front_save.SaveBlock"]) log.saves++;   // (SCORES's, not the ghost's or TIMES)
-        else if (pc === syms.front_save && peek(syms.LoadName + 5) === F) log.entries++;
+        if (pc === 0xffdd && cpu.a === 0 && (cpu.x | (cpu.y << 8)) === syms.TaBlock && (peek(syms.TaBlock) | peek(syms.TaBlock + 1) << 8) === syms["ta_save_keys.name"]) log.saves++;   // (SCORES's, not the ghost's or TIMES)
+        else if (pc === syms.ta_save_keys) log.entries++;   // (a load's start, or again after a disc error)
         else if (pc === syms["load_track.brk"]) { log.brk++; log.text = ""; }
         else if (pc === syms.row_char && log.brk) log.text += String.fromCharCode(cpu.a);
         else if (pc === syms["load_track.waitkey"]) log.said = log.text;   // (what's on the row while it waits)
@@ -60,7 +60,7 @@ async function boot(disc, writeable = true, model = "Master", hold = undefined) 
     });
     const m = { s, cpu, log, peek, disc: () => cpu.fdc.drives[0].disc };
     await toMenu(m);
-    if (log.entries !== 1 || log.saves || log.brk) say(`${disc}: the boot's ${log.entries} title loads, ${log.saves} saves, ${log.brk} errors, not 1, 0, 0`);
+    if (log.entries !== 1 || log.saves || log.brk) say(`${disc}: the boot's ${log.entries} loads, ${log.saves} saves, ${log.brk} errors, not 1, 0, 0`);
     log.entries = 0;                    // (from here, the case's own loads)
     if (!writeable) m.disc().isWriteable = false;
     return m;
@@ -87,7 +87,8 @@ async function titleLoad(m) {
     await toMenu(m);
 }
 
-// a race on track 1, 50 fields, Escape back (TRACKF loaded on the way)
+// a race on track 1, 50 fields, Escape back: RaceLoads loads (the track's, and TRACKF's on the way back)
+const RaceLoads = 2;
 async function race(m) {
     m.s.writeMemory(syms.LoadWant, [1]);
     await runTo(m.s, syms.start, 400000000);
@@ -109,9 +110,10 @@ let m = await boot("build/ta.ssd");
 const keys0 = [...m.s.readMemory(syms.SoundOff, Len)];
 holds(m, "fresh", keys0);
 await titleLoad(m);
-if (m.log.entries !== 1 || m.log.saves) say(`fresh: ${m.log.entries} title loads, ${m.log.saves} saves, not 1 and 0`);
+if (m.log.entries !== 1 || m.log.saves) say(`fresh: ${m.log.entries} loads, ${m.log.saves} saves, not 1 and 0`);
+m.log.entries = 0;
 await race(m);
-if (m.log.entries !== 2 || m.log.saves) say(`a race and back: ${m.log.entries} title loads, ${m.log.saves} saves, not 2 and 0`);
+if (m.log.entries !== RaceLoads || m.log.saves) say(`a race and back: ${m.log.entries} loads, ${m.log.saves} saves, not ${RaceLoads} and 0`);
 if (discFiles(toSsdOrDsd(m.disc())).SCORES) say("fresh: SCORES written");
 
 // changed: the sound off, player 1's left A
@@ -119,8 +121,9 @@ const keys1 = [...keys0];
 keys1[0] = 1;
 keys1[1] = 65;
 m.s.writeMemory(syms.SoundOff, keys1);
+m.log.entries = 0;
 await titleLoad(m);
-if (m.log.entries !== 3 || m.log.saves !== 1 || m.log.brk) say(`changed: ${m.log.entries} title loads, ${m.log.saves} saves, ${m.log.brk} errors, not 3, 1, 0`);
+if (m.log.entries !== 1 || m.log.saves !== 1 || m.log.brk) say(`changed: ${m.log.entries} loads, ${m.log.saves} saves, ${m.log.brk} errors, not 1, 1, 0`);
 const image = toSsdOrDsd(m.disc());
 const file = discFiles(image).SCORES;
 const want1 = [...keys1, ...sum(keys1)];
@@ -135,7 +138,7 @@ writeFileSync(`${Out}/saved.ssd`, image);
 m = await boot(`${Out}/saved.ssd`);
 holds(m, "loaded", keys1);
 await titleLoad(m);
-if (m.log.entries !== 1 || m.log.saves) say(`loaded: ${m.log.entries} title loads, ${m.log.saves} saves, not 1 and 0`);
+if (m.log.entries !== 1 || m.log.saves) say(`loaded: ${m.log.entries} loads, ${m.log.saves} saves, not 1 and 0`);
 // and saved over: the sound on again
 const keys2 = [0, ...keys1.slice(1)];
 m.s.writeMemory(syms.SoundOff, [0]);
@@ -143,6 +146,14 @@ await titleLoad(m);
 const again = discFiles(toSsdOrDsd(m.disc())).SCORES;
 const want2 = [...keys2, ...sum(keys2)];
 if (m.log.saves !== 1 || !again || !same([...again.data], want2)) say(`saved over: ${m.log.saves} saves, SCORES ${again ? [...again.data] : "gone"}`);
+// and at a race's own load (6h): a key changed, then a race
+const keys3 = [...keys2];
+keys3[2] = 81;                          // (player 1's right: S)
+m.s.writeMemory(syms.SoundOff, keys3);
+m.log.saves = 0;
+await race(m);
+const third = discFiles(toSsdOrDsd(m.disc())).SCORES, want3 = [...keys3, ...sum(keys3)];
+if (m.log.saves !== 1 || !third || !same([...third.data], want3)) say(`a race's load: ${m.log.saves} saves, SCORES ${third ? [...third.data] : "gone"}, not 1 and ${want3}`);
 
 // spoilt
 const at = file.data.byteOffset;
@@ -169,7 +180,7 @@ m = await boot("build/ta.ssd", false);
 m.s.writeMemory(syms.SoundOff, keys1);
 await titleLoad(m);
 const text = m.log.said;
-if (m.log.brk !== 1 || m.log.saves !== 1 || m.log.entries !== 2) say(`read only: ${m.log.brk} errors, ${m.log.saves} saves, ${m.log.entries} title loads, not 1, 1, 2`);
+if (m.log.brk !== 1 || m.log.saves !== 1 || m.log.entries !== 2) say(`read only: ${m.log.brk} errors, ${m.log.saves} saves, ${m.log.entries} loads (again after the error), not 1, 1, 2`);
 if (!/^Disc read only - press a key$/.test(text)) say(`read only: the HUD's row said "${text}"`);
 if (discFiles(toSsdOrDsd(m.disc())).SCORES) say("read only: SCORES written");
 await titleLoad(m);
@@ -179,7 +190,7 @@ if (m.log.saves !== 1 || m.log.brk !== 1) say(`read only: ${m.log.saves} saves a
 m = await boot("build/ta.adl", true, "MasterADFS", Adfs);
 m.s.writeMemory(syms.SoundOff, keys1);
 await titleLoad(m);
-if (m.log.entries !== 1 || m.log.saves !== 1 || m.log.brk) say(`ADFS: ${m.log.entries} title loads, ${m.log.saves} saves, ${m.log.brk} errors, not 1, 1, 0`);
+if (m.log.entries !== 1 || m.log.saves !== 1 || m.log.brk) say(`ADFS: ${m.log.entries} loads, ${m.log.saves} saves, ${m.log.brk} errors, not 1, 1, 0`);
 m.s.keyDown("ShiftLeft");
 m.s.reset(true);
 await m.s.runFor(Adfs);
@@ -188,5 +199,5 @@ await toMenu(m);
 holds(m, "ADFS, booted again", keys1);
 if (m.log.saves !== 1 || m.log.brk) say(`ADFS: ${m.log.saves} saves, ${m.log.brk} errors by the boot again, not 1 and 0`);
 
-console.log(wrong ? `${wrong} wrong` : `SCORES the keys and sound, ${want1.length} bytes: none saved fresh or after a race unchanged, saved once a change, loaded back and saved over, on DFS and ADFS; 6 spoilt files refused (the game's length among them); a read-only disc's error said once ("${text}")`);
+console.log(wrong ? `${wrong} wrong` : `SCORES the keys and sound, ${want1.length} bytes: none saved fresh or after a race unchanged, saved once a change, loaded back and saved over (at a race's load too), on DFS and ADFS; 6 spoilt files refused (the game's length among them); a read-only disc's error said once ("${text}")`);
 process.exit(wrong ? 1 : 0);

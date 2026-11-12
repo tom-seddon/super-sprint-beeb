@@ -803,5 +803,19 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      Tom tried that (2026-11-12): "looks good". 6i done.
    - **6h, the turnaround** (D45): measured from Escape to the next race; the same track again loading nothing, if
      the front end's files keep clear of the track's slots and the ghost's buffers.
+     MEASURED before (jsbeeb, 2026-11-12, 6f's disc and after): Escape to the track's screen 2.8-3.0 s (TRACKF read,
+     the motor off by then: its spin-up and a restore about 1.3-1.5 s of it), Return to the race 3.1-3.5 s (1.7-1.9 s
+     with the motor still on). The same track loading nothing can't be: the front end runs in the background's bank
+     (tagame at &9000, front.6502 at &A000, TRACKF's pictures and the options), so the track's background is gone
+     by the menu. What can be: Escape loading nothing. TRACKF is 4.6K, 12 pages of pictures under ANDY and 6 of the
+     options' code; the objects' bank has 3,618 bytes free above every track's slot (track 5's the least) and the
+     fourth bank 2,150 after TaKeep (256 of it the sound effects' room, D55). So TRACKF kept there from the boot's
+     load, and put back as a race ends, no disc. Two pieces:
+     1. SCORES (the keys and sound) saved at any load's start (`timeattack.6502`'s `ta_save_keys`, from `ta_save`),
+        not by `save.6502` at TRACKF's end, as TRACKF won't be loaded after a race; TRACKF 79 bytes shorter. OSFILE
+        writes the file's length and attributes back into its block (the game's SaveBlock comes fresh with each
+        TRACKF), so the block's made again each time, as the ghost's and table's are: a second save in one boot
+        said "Disc full" until it was. `ta_scores_check` counts SCORES's saves at any load and saves a change at a
+        race's own load (which found that). Main RAM's code 687 to 603 bytes free, LoadCode 11 to 21.
 7. **Close**: the variant's suite, both discs, Tom's Master. After the merge, not before: the game's two load faults
    fixed as time attack's are (`docs/plan.md`, "After Phase 5", Tom, 2026-11-12).
