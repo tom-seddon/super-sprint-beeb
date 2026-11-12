@@ -10,25 +10,30 @@
 // Exit status: 1 if "Loading" comes late or not at all, if any field after it differs, or if the title's file
 // never loads; else 0.
 //
-// Usage (from the repo root, after make game): node tools/boot_check.mjs [--adfs] [--show FIELD OUT.png]
+// With --ta, time attack's (build/ta.ssd, or build/ta.adl with --adfs) to its menu's file, as the title's.
+//
+// Usage (from the repo root, after make game, or make ta for --ta): node tools/boot_check.mjs [--adfs] [--ta]
+// [--show FIELD OUT.png]
 
 import { writeFileSync } from "node:fs";
-import { adfs, gameArgs, gameDisc, jsbeebModule, ram, settle, symbols } from "./jsbeeb.mjs";
+import { adfs, gameArgs as args, gameDisc, jsbeebModule, ram, settle, symbols } from "./jsbeeb.mjs";
 
 const Field = 39936, Width = 1024, Top = 128, Hud = 144;   // (the frame buffer's lines: two a scan line)
+const ta = args.includes("--ta"), gameArgs = args.filter((a) => a !== "--ta");
 const show = gameArgs[0] === "--show" ? [Number(gameArgs[1]), gameArgs[2]] : null;
 const Soon = 15;                                        // fields from !BOOT's start (its loading and the
                                                         // OS's start-up, SHIFT held, come before: the harness's)
-const syms = symbols("build/tracks/t0.json");
+const syms = symbols(ta ? "build/tracks_ta/t0.json" : "build/tracks/t0.json");
+const disc = ta ? `build/ta.${adfs ? "adl" : "ssd"}` : gameDisc;
 const { MachineSession } = await jsbeebModule("machine-session.js");
 const s = new MachineSession(adfs ? "MasterADFS" : "Master");
 await s.initialise();
-s.loadDisc(gameDisc);
+s.loadDisc(disc);
 s.keyDown("ShiftLeft");
 s.reset(true);
 const hold = adfs ? 8000000 : 2000000, cpu = s._machine.processor;
 const b = s._completeFb8, fb = new Uint32Array(b.buffer, b.byteOffset, b.byteLength / 4), lines = fb.length / Width;
-const title = syms["game_resume.loaded"];
+const title = syms[ta ? "game_resume.menu" : "game_resume.loaded"];
 s.addBreakpoint("execute", title);
 s.addBreakpoint("execute", syms.boot_entry);
 
@@ -72,5 +77,5 @@ for (let left = Field; ;) {
 if (booted < 0) say("!BOOT never ran");
 else if (first - booted > Soon) say(`"Loading" ${first - booted} fields after !BOOT started: more than ${Soon}`);
 if (!done && first >= 0 && bad === 0) say("the title's file never loaded");
-console.log(`${adfs ? "ADFS" : "DFS"}: !BOOT from field ${booted}, "Loading" from ${first}, the title's file loaded at ${field}${bad ? `; ${bad} fields wrong` : ": nothing else seen"}`);
+console.log(`${ta ? "time attack, " : ""}${adfs ? "ADFS" : "DFS"}: !BOOT from field ${booted}, "Loading" from ${first}, the title's file loaded at ${field}${bad ? `; ${bad} fields wrong` : ": nothing else seen"}`);
 process.exit(bad ? 1 : 0);

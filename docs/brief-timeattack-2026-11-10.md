@@ -689,6 +689,16 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      each race its own levels: the race's car has them and the entry records them, as the model. All seven checks
      pass; play the same (the digests byte for byte 6d's); the game's discs the same but for the README's commit
      link, every track's build byte for byte.
+     Tom tried 6f on his Master (2026-11-12): "It looks good and works well. The red count looks fine." Four comments,
+     each its own change:
+     1. "when first loading, there's a one-off very brief flicker on the word `Loading`": the first load's redraw of
+        the HUD's row (`loadcode.6502`, clear then "Loading", the same as the boot wrote) starts at the vsync, 64 lines
+        before the row's shown, and takes 72; on time attack's disc it ended about 4 lines into the row, and the g's
+        last line was clear for a field (field 351 of the boot in jsbeeb, 28 pixels; the game's disc ends it at line
+        0, about 6 lines to spare, the same race, and stays as it is). In time attack the redraw now waits 90 lines
+        from the vsync (9 * 1,284 cycles, 9 bytes), so it runs from about line 32 to 94, after the row's shown.
+        `tools/boot_check.mjs --ta` (and `--ta --adfs`) checks time attack's boot as the game's, to the menu's file:
+        it failed on 6f's disc (field 351, 28 pixels of the row changed) and passes now.
    - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen
      with the new entry lit. Ties' order then checkable (`tools/ta_table_check.mjs`). Tried.
    - **6i, the options** (D54): a screen of its own from the menu, mostly text with the logo: the three key sets

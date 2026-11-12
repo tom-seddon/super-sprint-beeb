@@ -51,7 +51,14 @@
 
 .again
     LDA #19:JSR &FFF4                   ; OSBYTE 19, vsync: the row's redrawn before it's next shown (at the
-    JSR row_clear                       ; first load it says "Loading" already, from the boot)
+    IF GenTimeAttack                    ; first load it says "Loading" already, from the boot)
+        LDX #9                          ; (time attack: 9 * 1,284 cycles, 90 lines on, so after it's shown: the
+        LDY #0                          ; redraw takes 72 lines and the vsync is 64 before the row, so from the
+    .past                               ; vsync it ended as the row was shown, its last line cleared in a field
+        DEY:BNE past                    ; when the OS's interrupts held it up, Tom, 2026-11-12. The game's build
+        DEX:BNE past                    ; stays as it was, about 6 lines to spare in jsbeeb)
+    ENDIF
+    JSR row_clear
     LDX #LoadingText - LoadTexts:JSR row_text
     LDA #8:STA &FE00                    ; CRTC: R8
     LDA #&C0:STA &FE01                  ; display on, cursor off

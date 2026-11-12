@@ -67,8 +67,8 @@ What the skills look up, for this project:
   checked by `node tools/ta_table_check.mjs`; its menu and each track's screen `src/tagame.6502` (in `game.6502`'s place), checked by
   `node tools/ta_menu_check.mjs`, and its 32 rows (D46) by `node tools/ta_rows_check.mjs`; its `SCORES` is the keys
   and sound alone (D55), checked by `node tools/ta_scores_check.mjs`; its menu's picture (`tools/screens.py`'s
-  `ta_menu_files`, colour 1 switched under the logo by `irq.6502`'s `TaSplit`) and the track's screen by `node tools/ta_picture_check.mjs`
-  (none of the seven yet in the suite); no tunes
+  `ta_menu_files`, colour 1 switched under the logo by `irq.6502`'s `TaSplit`) and the track's screen by `node tools/ta_picture_check.mjs`; its boot by `node tools/boot_check.mjs --ta` (and with `--adfs`)
+  (none of these yet in the suite); no tunes
   (`GenTunes` 0); the races driven by
   `tools/ta_pilot.mjs`, an autopilot along the drones' path.
 - **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes
