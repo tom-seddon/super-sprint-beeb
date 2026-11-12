@@ -652,6 +652,14 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      held it through the race) and Returns on track 3's screen. All seven checks pass; play the same (the digests
      byte for byte 6d's, 8 tracks); the game's discs the same but for the README's commit link, every track's build
      byte for byte.
+     Tom tried it on his Master (2026-11-12): layout and colours good ("this can always be tweaked"), the small font
+     fine as the ST's. A line of keys perhaps later, maybe squeezed in around the logo. One change (D52): the numbers
+     on the menu open that track's screen, not its race ("alternative ways of going through the flow, rather than a
+     shortcut"); the highlight's box taken out first, as Return's is (the first 4K 1,995 to 1,990 bytes free).
+     `ta_menu_check` opens track 3's and 5's screens by number and races from them; `ta_picture_check` presses 5 with
+     track 5 highlighted and checks its screen byte for byte (fails with the box left in: its top line copied with
+     the map); `ta_rows_check` goes by each screen shown (3, Return, Return). All seven pass; the game's discs the
+     same but for the README's commit link, every track's build byte for byte.
    - **6f, the upgrades** (D49): picked on the track's screen, 5 points over top speed, turbo and traction, as the
      last race's; given to the race as the ST's set-up does, kept in the entry and the ghost's file. Tried.
    - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen

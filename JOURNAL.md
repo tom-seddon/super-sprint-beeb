@@ -740,3 +740,5 @@
   entries (place, time, name) under the logo, made from the menu's picture in place; Return races, Escape back to the
   menu, and a race comes back to it (D50). Its state outlives a race in LowFree (GameVars is cleared at every load),
   and a screen now waits for every key to be let go before any acts.
+  Tom tried 6e: the layout, colours and font good, a line of keys perhaps later. The number keys on the menu now open
+  the track's screen rather than racing (D52: another way through, not a shortcut).

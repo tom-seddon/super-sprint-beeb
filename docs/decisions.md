@@ -740,6 +740,10 @@ Tom, 2026-11-12, having tried 6d's menu on his Master: "the driving keys only pa
 highlight, but you can't use E to select", and "The highlight should probably go in a circular order, so
 1-5-6-7-8-4-3-2 when moving clockwise". So accelerate (any player's) acts as Return, and right moves the highlight
 clockwise round the two columns of cells (1, 5, 6, 7, 8, 4, 3, 2, back to 1), left the other way.
+Tom, 2026-11-12, having tried 6e: "pressing a number key from the main menu should take you to the track's high score
+table rather than straight to the race. The number keys are alternative ways of going through the flow, rather than a
+shortcut." So 1-8 on the menu open that track's screen (D48), as Return on the highlighted one does; only Return or
+accelerate on a track's screen race.
 
 ### D53. Time attack's driving keys: Decided (2026-11-11)
 Time attack. Until now car 0 has been driven by player 1's keys (Q, W, E unless the options change them). Tom,

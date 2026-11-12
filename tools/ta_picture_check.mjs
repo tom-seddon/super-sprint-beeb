@@ -8,7 +8,8 @@
 // - the track's screen (step 6e, D48), Return on the menu: the logo kept, the track's map moved from its cell to the first
 //   cell's place, the rest cleared, "TRACK n" in white under it, and its 10 entries (poked: times, names of every
 //   character the font has, a full 10, none and empty entries), each its place in green, time in yellow and name in
-//   white, byte for byte; then Escape, the menu again as before;
+//   white, byte for byte; then Escape, the menu again as before; then 5, the highlighted track's number: its screen
+//   again (the box not copied with the map), and Return races it;
 // - as shown, every field from the boot's menu to a race's first frame (the frame buffer, as tools/ta_rows_check.mjs
 //   reads it): no green on the logo's lines (colour 1 red there, the interrupt's TaSplit) and no red under them; and
 //   while the menu's up, each of its 256 lines' colours as the model's, pixel for pixel counted (two of the frame
@@ -202,10 +203,17 @@ await toMenu();
 if (peek(syms.TgOn) !== 0) say(`Escape: TgOn ${peek(syms.TgOn)}, not 0`);
 screen("Escape: the menu again", model(times, 4));
 await run(10, model(times, 4));
-s.keyDown("Digit6");
-if (!await run(4000, null, syms.start)) say("6 raced nothing");
-s.keyUp("Digit6");
+s.keyDown("Digit5");
+await run(3, null);
+s.keyUp("Digit5");
+await toMenu();
+if (peek(syms.TgOn) !== 1 || peek(syms.GmTrack) !== 4) say(`5: TgOn ${peek(syms.TgOn)}, GmTrack ${peek(syms.GmTrack)}, not track 5's screen`);
+screen("5: track 5's screen", trackModel(4, entries));
+await run(10, trackModel(4, entries));
+s.keyDown("Enter");
+if (!await run(4000, null, syms.start)) say("Return on track 5's screen raced nothing");
+s.keyUp("Enter");
 await run(5, null);                     // (the race's first fields: nothing red, as the logo's lines go)
 
-console.log(bad ? `${bad} wrong` : `the menu's and the track's screen's 32 rows as the model (${checked} screens: the picture, the 8 tracks' text and bests, the box moved, track 5's screen, the menu again); ${field} fields from the boot to a race: no green on the logo's lines nor red under them, and ${steady} of the menu's every line's colours as the model's`);
+console.log(bad ? `${bad} wrong` : `the menu's and the track's screen's 32 rows as the model (${checked} screens: the picture, the 8 tracks' text and bests, the box moved, track 5's screen, the menu again, track 5's by its number); ${field} fields from the boot to a race: no green on the logo's lines nor red under them, and ${steady} of the menu's every line's colours as the model's`);
 process.exit(bad ? 1 : 0);

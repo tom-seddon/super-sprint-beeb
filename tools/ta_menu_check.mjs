@@ -5,14 +5,15 @@
 //   player 2's right (.), player 3's left (keypad 5), left from track 1 to track 2, and right all the way round; a key
 //   held 40 fields moves it once;
 // - Escape on the menu does nothing;
-// - 3 races track 3 (its file loaded: TrackNum 2); in the race player 2's accelerate (/) drives the car (D53); its
+// - 3 opens track 3's screen (D52: the numbers another way through, Tom, 2026-11-12), with the highlight elsewhere;
+//   Return races it (its file loaded: TrackNum 2); in the race player 2's accelerate (/) drives the car (D53); its
 //   best poked and Escape: through the title's file (TIMES saved at its load's start) to track 3's screen (D50), the
 //   Escape still held there doing nothing; the driving keys and numbers do nothing there either; Escape: the menu,
 //   track 3's cell showing a time and the others none, the highlight on track 3;
 // - Return opens the highlighted track's screen (D48), Return there races it, Escape back to its screen and again to
 //   the menu; player 1's accelerate (E) opens the highlighted one's screen and races it too, and player 2's (/) after
 //   Escape, its hold as the screen came up let go first;
-// - player 1's right redefined as 5: 5 races track 5 (a number wins over a driving key, D52).
+// - player 1's right redefined as 5: 5 opens track 5's screen (a number wins over a driving key, D52), Return races it.
 //
 // Exit status: 1 if anything's wrong, else 0.
 //
@@ -70,10 +71,12 @@ await press("KeyQ");
 await press("Escape");
 if (on() || peek(syms.LoadWant) || highlight() !== 0) say(`Escape on the menu: TgOn ${on()}, LoadWant ${peek(syms.LoadWant)}, the highlight ${highlight()}`);
 
-// 3 races track 3
-s.keyDown("Digit3");
+// 3 opens track 3's screen, Return races it
+await screenKey("Digit3");
+if (on() !== 1 || peek(syms.GmTrack) !== 2 || peek(syms.LoadWant) || highlight() !== -1) say(`3 on the menu: TgOn ${on()}, GmTrack ${peek(syms.GmTrack)}, LoadWant ${peek(syms.LoadWant)}, the highlight ${highlight()}, not track 3's screen`);
+s.keyDown("Enter");
 await runTo(s, syms.start, 400000000);
-s.keyUp("Digit3");
+s.keyUp("Enter");
 if (peek(syms.TrackNum) !== 2) say(`3: track ${peek(syms.TrackNum) + 1} loaded, not 3`);
 const bt = peek(syms.banktrace);
 s.keyDown("Slash");                     // (player 2's accelerate)
@@ -143,10 +146,12 @@ await screenKey("Escape");
 
 // a number over a driving key
 s.writeMemory(syms.PlayerKeys + 1, [19]);   // (player 1's right: the 5 key, tools/screens.py's matrix)
-s.keyDown("Digit5");
+await screenKey("Digit5");
+if (on() !== 1 || peek(syms.GmTrack) !== 4) say(`5 as a driving key too: TgOn ${on()}, GmTrack ${peek(syms.GmTrack)}, not track 5's screen`);
+s.keyDown("Enter");
 await runTo(s, syms.start, 400000000);
-s.keyUp("Digit5");
-if (peek(syms.TrackNum) !== 4) say(`5 as a driving key too: track ${peek(syms.TrackNum) + 1} loaded, not 5`);
+s.keyUp("Enter");
+if (peek(syms.TrackNum) !== 4) say(`5 as a driving key too, then Return: track ${peek(syms.TrackNum) + 1} loaded, not 5`);
 
-console.log(wrong ? `${wrong} wrong` : "the menu: highlight by any player's left and right round the cells (held: once), Return and accelerate (E) open the track's screen and race from it (/: a hold from the race ignored), 3 and 5 (a driving key too) race their tracks, player 2's keys drive, Escape back to the track's screen with TIMES saved, again to the menu with the new best shown");
+console.log(wrong ? `${wrong} wrong` : "the menu: highlight by any player's left and right round the cells (held: once), Return, accelerate (E) and the numbers (3, 5: a driving key too) open the track's screen, Return and accelerate race from it (/: a hold from the race ignored), player 2's keys drive, Escape back to the track's screen with TIMES saved, again to the menu with the new best shown");
 process.exit(wrong ? 1 : 0);

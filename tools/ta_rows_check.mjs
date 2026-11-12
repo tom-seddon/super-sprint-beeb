@@ -1,6 +1,7 @@
 // Time attack's 32-row front end and the race's 26 rows (docs/brief-timeattack-2026-11-10.md, step 6c; D46;
 // tagame.6502's tg_rows), field by field as shown (the frame buffer, as tools/flash_check.mjs reads it), on
-// build/ta.ssd from a fresh boot: to the menu, 3 raced, Escape back to track 3's screen (D50), Return races it:
+// build/ta.ssd from a fresh boot: to the menu, 3 for track 3's screen, Return races it, Escape back to track 3's
+// screen (D50), Return races it again:
 // - from the first menu on, nothing lit outside the 32 rows' lines, nor outside the 26 rows' but while the menu's
 //   shown (to the grace's end on leaving it: its logo reaches the 32 rows' first lines);
 // - the menu, from its start (two fields' grace: the one being shown and tg_rows's wait for a vsync) until it's all
@@ -34,11 +35,11 @@ const lit = (from, to) => {
 
 const G = (n) => syms[`game_resume.${n}`];
 const at = { menu: G("menu"), shown: G("shown"), go: G("go"), start: syms.start, frame: syms.frame_loop };
-const Keys = [["Digit3", 2], ["Enter", 2]];             // (each from the screen shown, the menu then track 3's: the key, and the track it races)
+const Keys = ["Digit3", "Enter", "Enter"];              // (each screen's key, as it's shown: the menu, track 3's, track 3's again)
 
 let bad = 0, field = 0;
 const say = (t) => { if (bad++ < 20) console.log(`field ${field}: ${t}`); };
-let state = "boot", grace = 0, said = false, menus = 0, races = 0, sharedChecked = 0, shownFields = 0, raceFields = 0;
+let state = "boot", grace = 0, said = false, menus = 0, shows = 0, races = 0, sharedChecked = 0, shownFields = 0, raceFields = 0;
 const shared = (n) => {
     const sprint = discFiles(`build/tracks_ta/t${n}.ssd`).SPRINT.data;
     return sprint.subarray(syms.SharedOrg - 0x3000, syms.SharedEnd - 0x3000);
@@ -59,8 +60,8 @@ for (let left = Field; ;) {
     if (hit && ours(hit.address)) {
         const a = hit.address;
         if (a === at.menu) { state = "drawing"; grace = 2; menus++; s.keyUp("Escape"); }
-        else if (a === at.shown) { state = "menu"; shownFields = 0; }
-        else if (a === at.go) { state = "loading"; grace = 2; said = false; for (const [k] of Keys) s.keyUp(k); }
+        else if (a === at.shown) { state = "menu"; shownFields = 0; shows++; for (const k of Keys) s.keyUp(k); }
+        else if (a === at.go) { state = "loading"; grace = 2; said = false; for (const k of Keys) s.keyUp(k); }
         else if (a === at.start && state === "loading") {
             const n = ram(s, syms.TrackNum, 1)[0], want = shared(n);
             const main = ram(s, syms.SharedOrg, want.length), shadow = ram(s, syms.SharedOrg, want.length, true);
@@ -94,14 +95,12 @@ for (let left = Field; ;) {
             const logo = Top32 + 2 * syms.TaLogoLines;
             if (lit(Top32, logo) < 10000) say("the menu's logo not on its 32 rows' lines");
             if (!lit(Top32, Top32 + 2 * 8)) say("the menu's first lines not lit, as in the race's 26 rows they'd be");
-            const key = Keys[menus - 1];
+            const key = Keys[shows - 1];
             if (!key) break;
-            s.keyDown(key[0]);
-        } else if (shownFields === 6) {
-            for (const [k] of Keys) s.keyUp(k);
+            s.keyDown(key);
         }
     } else if (state === "race" && ++raceFields === 100) {
-        if (races === Keys.length) break;
+        if (races === 2) break;
         s.keyDown("Escape");
     } else if (state === "race" && raceFields === 103) s.keyUp("Escape");
     if (field > 5000) { say(`stuck: ${state}, ${menus} menus, ${races} races`); break; }

@@ -7,13 +7,13 @@
 \\ track's name and best (the table, tatable.6502) beside its map in the small font (front.6502's front_glyph), and a
 \\ yellow box round the highlighted track. Colour 1 is red over the logo and green under it, switched by the
 \\ interrupt (irq.6502's TaSplit). The driving keys (any player's) move the highlight round the cells, right clockwise
-\\ (1, 5, 6, 7, 8, 4, 3, 2) and left back, 1-8 race that track, Return or accelerate open the highlighted one's screen
-\\ (D52).
+\\ (1, 5, 6, 7, 8, 4, 3, 2) and left back, Return or accelerate open the highlighted one's screen, 1-8 that track's
+\\ (D52: another way through, not a shortcut to the race).
 \\
 \\ The track's screen (D48, step 6e): the menu's picture made into it, the logo kept, the track's map moved to the first
 \\ cell's place and the rest cleared, "TRACK n" under the map, and the track's 10 entries beside it, each its place,
 \\ time and name (tg_screen). Return or accelerate race the track, Escape goes back to the menu. After a race, back to
-\\ the track's screen (D50), whatever started it.
+\\ the track's screen (D50).
 \\
 \\ After a race the title's file (TRACKF) is loaded before the menu: the load's start saves what the race changed
 \\ (timeattack.6502's ta_save, and SCORES's keys and sound, save.6502), so a record's on the disc before the menu's
@@ -70,9 +70,16 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     BPL rows
     JSR tg_mark                         ; the highlight
     BRA shown
+.number
+    DEC A:PHA                           ; 1-8 on the menu: that track's screen
+    JSR tg_black
+    JSR tg_mark                         ; (the highlight out)
+    PLA:STA GmTrack
+    BRA opened
 .open
     JSR tg_black                        ; Return on the menu: its track's screen
     JSR tg_mark                         ; (the highlight out: none moved with the map)
+.opened
     LDA #1:STA TgOn
 .track
     JSR tg_screen
@@ -112,11 +119,8 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 .wait
     LDA #1:JSR fields
     BRA idle
-.number
-    DEC A:STA GmTrack                   ; (1-8)
 .race
-    LDA #1:STA TgOn                     ; (back to its screen after the race, D50)
-    LDA GmTrack:INC A:STA LoadWant
+    LDA GmTrack:INC A:STA LoadWant      ; (TgOn 1: back to its screen after the race, D50)
 .go
     JSR tg_rows26                       ; the race's 26 rows for its load (D46)
     JSR tg_colours
