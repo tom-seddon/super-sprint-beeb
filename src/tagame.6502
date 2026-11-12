@@ -471,7 +471,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 }
 
 \\ The name typed so far drawn again in its row (tg_type's), and the cursor after it if TgBlinks's bit 4's clear and
-\\ there's room, a yellow block 5 pixels by 5 (not a glyph: front_glyph's index is a byte, 6 a glyph, and time
+\\ there's room, a white block 5 pixels by 5 (not a glyph: front_glyph's index is a byte, 6 a glyph, and time
 \\ attack's 42 fill it): from just after a vsync (fields), the beam let past the row first. A, X, Y corrupted.
 
 ASSERT TtNameX MOD 4 == 0, "the track's screen: a name not at a byte's start"
@@ -522,10 +522,10 @@ ASSERT TtNameX + 6 * TaNameLen < 256, "the track's screen: a name past pixel 255
 .done
     RTS
 }
-.TgCursorLeft                           ; the cursor's 5 pixels, yellow, from a byte's pixel 0 or 2: its first byte's,
-    EQUB &F0, &30
+.TgCursorLeft                           ; the cursor's 5 pixels, white (apart from the name's yellow, Tom, 2026-11-12),
+    EQUB &FF, &33                       ; from a byte's pixel 0 or 2: its first byte's,
 .TgCursorRight                          ; and the next's
-    EQUB &80, &E0
+    EQUB &88, &EE
 .TgNameKeys                             ; the name's keys (tools/screens.py's ta_name_keys), and each one's character:
     EQUB TaNameKeys                     ; A-Z, 0-9, space, the point, minus; Return 13, Delete 127, Escape 27
 .TgNameChars
@@ -535,14 +535,17 @@ ASSERT TtNameX + 6 * TaNameLen < 256, "the track's screen: a name past pixel 255
 .TpUpLetter                             ; (each unique, Tom, 2026-11-12)
     EQUB Gl('S'), Gl('A'), Gl('T')
 
-\\ The upgrades' panel: the cursor on RACE (on SPEED if there are too many upgrades to race), and its lines drawn.
-\\ A, X, Y corrupted.
+\\ The upgrades' panel: the cursor on RACE (on SPEED if there are too many upgrades to race; on none while a name's
+\\ to be typed, so RACE is white, not lit, Tom, 2026-11-12), and its lines drawn. A, X, Y corrupted.
 
 .tg_panel
 {
     LDA #3:STA TgCursor
     JSR tg_left:BPL @+
     STZ TgCursor
+.@
+    LDA TaNew:BEQ @+
+    LDA #&FF:STA TgCursor               ; (the name's tg_type; the save's trip draws the screen again after)
 .@
     LDX #3
 .item

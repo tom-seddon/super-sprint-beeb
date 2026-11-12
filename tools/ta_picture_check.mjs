@@ -87,7 +87,7 @@ function model(times, track) {
 }
 // the track's screen: the picture's lines above the cells, the track's map (its cell's first 84 pixels) in the first
 // cell's place, the title and the entries; lit, the place of the entry just made (step 6g): its row all yellow, and if
-// typed is given its name that and the cursor (#) after it if shown and there's room
+// typed is given its name that and the cursor (#, white) after it if shown and there's room
 function trackModel(track, entries, levels = [0, 0, 0], cursor = 3, { lit = -1, typed = null, blink = false } = {}) {
     const p = decode(picture), l = new Uint8Array(Lines * 320), [x0, y0] = cell(track), Top = syms.TaMenuTop;
     l.set(p.subarray(0, Top * 320));
@@ -103,7 +103,10 @@ function trackModel(track, entries, levels = [0, 0, 0], cursor = 3, { lit = -1, 
     text(l, String(left), syms.TpX + 18, syms.TpLeftY, left < 0 ? 1 : 3);
     entries.forEach(([t, name, ups = 0], i) => {
         const y = syms.TtRowY + i * syms.TtRowStep, on = i === lit;
-        if (on && typed !== null) name = typed + (blink && typed.length < 10 ? "#" : "");
+        if (on && typed !== null) {
+            name = typed;
+            if (blink && typed.length < 10) text(l, "#", syms.TtNameX + 6 * typed.length, y, 3);   // (the cursor white)
+        }
         text(l, String(i + 1).padStart(2), syms.TtPlaceX, y, on ? 2 : 1);
         if (t) {
             text(l, time(t), syms.TtTimeX, y, 2), text(l, name, syms.TtNameX, y, on ? 2 : 3);
@@ -286,7 +289,7 @@ s.keyUp("Enter");
 await run(5, null);                     // (the race's first fields: nothing red, as the logo's lines go)
 
 // the name (step 6g, D39, D49, D50): the race's best poked, Escape: its entry the first of track 5's 10, the row lit,
-// the name typed with the cursor after it (Delete, ! by SHIFT and 1, to 10 and an 11th ignored), every field of each key the row before it or after it (the cursor shown
+// the name typed with the cursor after it in white, RACE white not lit (Delete, ! by SHIFT and 1, to 10 and an 11th ignored), every field of each key the row before it or after it (the cursor shown
 // or not), nothing half drawn; Return: "Saving" in the HUD's row, nothing else lit till the screen's drawn again, no
 // file read; TIMES then holding the name; track 5's screen again, the row lit; Escape and 5: the row as the others
 const bt = peek(syms.banktrace), Best = 400, Ups = 3 * 36 + 2 * 6;
@@ -296,7 +299,7 @@ let named = [[Best, "", Ups], ...entries.slice(0, 9)];
 s.keyDown("Escape");
 await runToAny(s, [[syms["tg_type.field"], peek(syms.bankbg)]], 400000000);   // (the race's own screen not checked here)
 let typed = "";
-const naming = (t) => [false, true].map((blink) => trackModel(4, named, [3, 2, 0], 3, { lit: 0, typed: t, blink }));
+const naming = (t) => [false, true].map((blink) => trackModel(4, named, [3, 2, 0], -1, { lit: 0, typed: t, blink }));   // (no item lit: RACE white)
 await run(10, naming(""));              // (Escape still held: nothing typed)
 s.keyUp("Escape");
 await run(5, naming(""));

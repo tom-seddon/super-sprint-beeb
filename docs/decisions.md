@@ -743,6 +743,7 @@ save is a trip of its own, no file read, "Saving" in the HUD's row, then the scr
 saves nothing when a name's to come, the ghost and the table saved together after it. The new entry lit: "it'd be nice
 to have the new entry in a different colour after it's been entered, so it's highlighted. This only applies after just
 entering the name and before leaving the screen; on next entry to the screen, draw everything in the normal colour."
+Having tried it: the cursor white, apart from the name's yellow, and RACE white while the name's typed, not lit.
 
 ### D51. Time attack has no attract mode: Decided (2026-11-11)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Until step 6 its races start from the game's front end, whose
