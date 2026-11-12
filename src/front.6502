@@ -689,12 +689,15 @@ ENDIF
 
 .pace
 {
-    JSR tune_feed
+    IF GenTunes
+        JSR tune_feed
+    ENDIF
     LDA vsyncs:SEC:SBC fstart
     CMP #3:BCC pace
     RTS
 }
 
+IF GenTunes                             ; (time attack: no tunes)
 \\ The front end's tunes (step 9, D11): the ST's own, captured whole and converted (tools/tune_gen.py), each channel a
 \\ stream of steps, packed. The select's, prepare's, the join's and the ding's are kept at the fourth bank's end
 \\ (TunesFixed), the circle's five in its file (CircleTunes): a block of descriptors, 10 bytes a tune, then the tunes.
@@ -786,6 +789,7 @@ ENDSECTION
     LDA acccon:STA &FE34                ; ACCCON: the main screen written
     RTS
 }
+ENDIF
 
 
 .flimit                                 ; Y's end in a page: 0, after 16 steps, or 128

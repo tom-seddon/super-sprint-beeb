@@ -722,3 +722,6 @@
   6c: the menu in 32 rows, switched to and from the race's 26 with the palette black; each track's file now puts
   back the whole of Shared, which the menu's rows overwrite (SCORES's sum kept in LowFree so it isn't saved each
   race). `tools/ta_rows_check.mjs` checks the screen field by field around the switches.
+  Tom tried 6c on his Master (2026-11-12) and answered D55: no tunes in time attack (room kept for the front end's
+  sound effects), and SCORES the keys and sound alone. Then the tunes out of time attack's build, and the drones'
+  path's room that sat under their rings: Shared 1,292 bytes smaller, each track's file 276 bytes shorter.

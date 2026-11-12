@@ -542,6 +542,20 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      built); with `front_save` comparing Shared's `HiSum`, `tools/ta_table_check.mjs` fails (SCORES saved each
      race). The other four checks pass (the menu check's lines now the 32 rows'); play the same, 19,200 frames,
      0 different; the game's discs the same but for the README's commit link, every track's build byte for byte.
+   - **6c's follow-up, Shared's room** (D55; Tom tried 6c on his Master, 2026-11-12: "it looked good"): the tracks'
+     files back to their size, in three commits: the tunes out of time attack's build; `SCORES` the keys and sound
+     alone; the part of Shared the same on every track kept in the fourth bank and put back before each load, room
+     left in both for the front end's sound effects. Tried (the loads).
+     **The tunes out** (2026-11-12): `GenTunes` (`sprint.6502`: the play build's, not time attack's) over
+     `tunes.6502`, `TunesFixed` at the fourth bank's end, `front.6502`'s tune code and `pace`'s feed, `sound.6502`'s
+     tune state and the interrupt's tune steps. The drones' path's room in Shared, kept since 6b under the tunes'
+     rings, goes too: time attack's Shared slot is `TrackNum`, the hazards, `EntCode` and `TorPiece` now, past the
+     sound effects' data, probes and sharedtabs, and `HiFile`.
+     MEASURED (track 1's build): the fourth bank 2,707 to 3,710 bytes free, main RAM's code 776 to 978, the front
+     end's code 226 to 384, the `&3000` area 211 to 1,503 free after Shared (3,517 to 2,225 bytes); each track's
+     file 276 bytes shorter on track 1 (7,088 to 6,812; Shared 930 packed, was 1,206), the disc 91,904 to 88,064 bytes. Play
+     the same, 19,200 frames, 0 different; the five time attack checks pass; the game's discs the same but for the
+     README's commit link, every track's build byte for byte.
    - **6d, the menu's picture** (D44, D47): layout A, the 8 maps from the select screen, the SUPER SPRINT logo in red
      and yellow (colour 1 switched mid-screen), the text in the ST's small font (`front_glyph`), a file loaded once.
      Against the mock-up (`docs/img/timeattack-menu.png`). Tried.

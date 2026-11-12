@@ -222,7 +222,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 {
     STA GsFields
 .field
-    LDA vsyncs                          ; (no tune: tune_feed's in Shared, which 32 rows overwrite)
+    LDA vsyncs
 .wait
     CMP vsyncs:BEQ wait
     DEC GsFields

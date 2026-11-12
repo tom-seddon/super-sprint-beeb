@@ -42,6 +42,7 @@ SECTION GameVars
     SKIP 3
 .SndNoise                               ; the noise control written last (&FF none), and its attenuation
     SKIP 2
+IF GenTunes                             ; (time attack: no tunes)
 .TuneOn                                 ; bit 7: a tune plays (front.6502), from the ring in Shared, a field a vsync
     SKIP 1
 .TuneLeft                               ; its fields still to play
@@ -58,6 +59,7 @@ SECTION GameVars
     SKIP 3
 .TuneLvl                                ; and its YM level
     SKIP 3
+ENDIF
 ENDSECTION
 
 IF DEFINED(SoundLog)
@@ -100,7 +102,7 @@ IF DEFINED(SoundLog) = 0                ; (the game's: the logic test sets the s
     DEX
     BPL channel
     LDA #&FF:STA SndNoise
-    IF GenPlay
+    IF GenTunes
         STZ TuneOn                      ; (no tune into a race)
     ENDIF
     RTS
@@ -316,7 +318,7 @@ ENDIF
     STA SndPrio,X
     LDA #&FF:STA SndPrioNext,X
 .@
-    IF GenPlay
+    IF GenTunes
         BIT TuneOn:BPL effect
         JMP tune
     .effect
@@ -376,7 +378,7 @@ ENDIF
 
     \\ the noise: its control when it changed (writing it restarts the noise), its attenuation
 .noises
-    IF GenPlay
+    IF GenTunes
         BIT TuneOn:BPL @+               ; a tune's field played: at its last, it's over
         LDA TuneLeft:BNE dec
         DEC TuneLeft+1
@@ -402,7 +404,7 @@ ENDIF
 .done
     RTS
 
-    IF GenPlay
+    IF GenTunes
     \\ a tune's step, from its ring page
 .tune
     STZ p

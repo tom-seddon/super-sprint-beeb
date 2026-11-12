@@ -13,6 +13,7 @@ INCLUDE "../build/gen/trace.6502"       ; (GenLogic: the race drawn from the log
 INCLUDE "../build/gen/font.6502"        ; the HUD's glyphs (Font: in Shared in the game, main RAM in the test)
 INCLUDE "../build/gen/tunes_fixed.6502" ; TunesFixedLen
 INCLUDE "../build/gen/version.6502"     ; the build's version (VersionGlyphs, VersionX: options.6502)
+GenTunes = GenPlay * (1 - GenTimeAttack) ; the front end's tunes (step 9, D11): the game's; time attack has none
 
 IF GenLogic
     INCLUDE "../build/gen/logickeys.6502"
@@ -83,7 +84,7 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
             INCLUDE "../build/lgen/cells.6502"
 .CellsSlotEnd
             INCLUDE "../build/lgen/pshift.6502"
-            IF GenPlay
+            IF GenTunes
                 PRINT "the fourth bank: ", SwramEnd - TunesFixedLen - P%, " bytes free"
                 PADTO SwramEnd - TunesFixedLen
 .TunesFixed                             ; the select's, prepare's, the join's and the ding's tunes (front.6502),
@@ -299,13 +300,9 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             IF GenTimeAttack = 0
 .SharedSlot                             ; the track's part (Phase 5, 3a): the same size on every track
             ENDIF
-            IF GenTimeAttack            ; (time attack: no drones' path, D51; its place kept, under the tunes'
-.TrackNum                               ; rings: zeros, packed to nothing in the track's file)
+            IF GenTimeAttack            ; (time attack: no drones' path, D51, and no tunes' rings)
+.TrackNum
                 EQUB LgTrack
-.TaSharedRoom
-                SKIP 1 + 7 * 142        ; (the path's bytes: PathCount and 7 arrays of PathMax, tools/gen_logic.py)
-.TaSharedRoomEnd
-                PRINT "Shared's slot: ", TaSharedRoomEnd - TaSharedRoom, " bytes free (the drones' path's place)"
             ELSE
                 INCLUDE "../build/lgen/path.6502"
             ENDIF
@@ -317,8 +314,8 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
             IF GenTimeAttack = 0
 .SharedSlotEnd
             ENDIF
-            ASSERT SharedSlot <= TuneRing AND TuneRing + &400 <= SharedSlotEnd, "the tunes' rings and their block in Shared's slot"
-            IF GenPlay
+            IF GenTunes
+                ASSERT SharedSlot <= TuneRing AND TuneRing + &400 <= SharedSlotEnd, "the tunes' rings and their block in Shared's slot"
                 INCLUDE "tunes.6502"
             ENDIF
             IF GenPlay = 0

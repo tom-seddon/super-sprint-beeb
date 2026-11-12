@@ -750,3 +750,15 @@ simplified screen that's mostly text (plus the logo on top ideally). There's no 
 exactly, and it'll presumably save some memory/reduce load times if it doesn't."
 So: an options screen of its own, from the menu: the three key sets redefined and the sound on or off, as the game's
 does (`options.6502`'s key finding), saved as now; drawn as text in the small font with the logo on top.
+
+### D55. Time attack's tunes and SCORES: Decided (2026-11-12)
+Time attack. After 6c each track's file carried all of Shared, about 1,080 bytes more packed: the sound effects'
+data, probes and sharedtabs, the tunes' code and `HiFile` (the game's `SCORES`), none of it the track's. Proposed: keep
+what doesn't change in the fourth bank, put back before each load, and asked whether time attack has tunes, and what
+its `SCORES` needs. Tom, 2026-11-12: "Tunes - no tunes planned. Though the front end might end up needing some sound
+effects, to be confirmed, so please budget for that" and "Time attack's SCORES file should be just the keys and sound.
+The other stuff is redundant. There are no scores in Time Attack mode, so the scores data can go; and the best lap
+records are also redundant, as those are stored in the Time Attack data".
+So: no tunes' code, data or rings in time attack's build; room kept for front-end sound effects (about 256 bytes, in
+Shared with the race's, and in the bank's copy); `SCORES` the keys and sound alone, with its sum. Shared's part that's
+the same on every track kept in the fourth bank (`docs/brief-timeattack-2026-11-10.md` §8, 6c's follow-up).
