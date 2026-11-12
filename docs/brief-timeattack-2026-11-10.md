@@ -556,6 +556,21 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      file 276 bytes shorter on track 1 (7,088 to 6,812; Shared 930 packed, was 1,206), the disc 91,904 to 88,064 bytes. Play
      the same, 19,200 frames, 0 different; the five time attack checks pass; the game's discs the same but for the
      README's commit link, every track's build byte for byte.
+     **SCORES the keys and sound** (2026-11-12): time attack's `SCORES` is `SoundOff`, `PlayerKeys` and `KeysSum`,
+     their sum (`KEYS_SUM`, `macros.6502`: `HI_SUM`'s two totals over 10 bytes), 12 bytes saved straight from main
+     RAM's code, where no load writes them (`keyboard.6502`); `scores_load` and `front_save` take them in time
+     attack's build, the game's code as it was. `HiFile` (the table, the lap records, `HiKeys`, `HiSum`) out of
+     time attack's Shared, `TaHiSum` out of `LowFree`, and `front.6502`'s lap records and high scores screens out
+     of its build. A `SCORES` from 6c's builds (307 bytes) is refused at the boot, as any of the wrong length: the
+     keys and sound as assembled, saved in the new form at the first change.
+     MEASURED (track 1's build): the front end's code 384 to 658 bytes free, the `&3000` area 1,503 to 1,810, main
+     RAM's code 978 to 976; track 1's file 6,812 to 6,641 bytes (Shared 930 to 759 packed), the disc 88,064 to
+     86,016. `tools/ta_scores_check.mjs` (new), as `save_check.mjs` is for the game's: fresh, no save at a title's
+     load nor after a race; a change saved once, 12 bytes as its model; booted back and saved over; 6 spoilt files
+     refused (a key, two bytes swapped, either sum byte, a byte short, the game's 307); a read-only disc's error said
+     once; ADFS booted back. With `scores_load`'s sum not made and its first byte not checked, it fails (21 wrong:
+     saved at every load, a spoilt sum taken). Play the same, 19,200 frames, 0 different; the other five checks
+     pass; the game's discs the same but for the README's commit link, every track's build byte for byte.
    - **6d, the menu's picture** (D44, D47): layout A, the 8 maps from the select screen, the SUPER SPRINT logo in red
      and yellow (colour 1 switched mid-screen), the text in the ST's small font (`front_glyph`), a file loaded once.
      Against the mock-up (`docs/img/timeattack-menu.png`). Tried.

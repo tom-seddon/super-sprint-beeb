@@ -291,30 +291,42 @@ IF GenPlay
 \ it's there, its size right and its sum good, then copied over HiFile's (the main screen's: shared_copy
 \ makes the shadow screen's after) and into SoundOff and PlayerKeys. Without it, HiFile's as assembled and the
 \ keys and sound as they are, with their sum made, so the first save is when something changes. A disc error
-\ is the OS's, as SPRINT's own load would be. The OS has the machine.
+\ is the OS's, as SPRINT's own load would be. The OS has the machine. Time attack's SCORES is the keys and sound
+\ alone (D55): SoundOff, PlayerKeys and KeysSum.
 \
 \ Inputs:
 \     none
 \
 \ Outputs:
-\     HiFile to HiSum, SoundOff, PlayerKeys (time attack: TaHiSum too)
+\     HiFile to HiSum, SoundOff, PlayerKeys (time attack: SoundOff to KeysSum)
 \     A, X, Y: corrupted
 
 .scores_load
 {
-    LDX #HiSumLen - (HiKeys - HiFile) - 1
-.keys
-    LDA SoundOff,X:STA HiKeys,X
-    DEX
-    BPL keys
-    HI_SUM HiFile, sumhi
-    STA HiSum
-    LDA sumhi:STA HiSum+1
+    IF GenTimeAttack
+        KEYS_SUM SoundOff, sumhi
+        STA KeysSum
+        LDA sumhi:STA KeysSum+1
+    ELSE
+        LDX #HiSumLen - (HiKeys - HiFile) - 1
+    .keys
+        LDA SoundOff,X:STA HiKeys,X
+        DEX
+        BPL keys
+        HI_SUM HiFile, sumhi
+        STA HiSum
+        LDA sumhi:STA HiSum+1
+    ENDIF
     LDX #LO(ScoresBlock):LDY #HI(ScoresBlock)
     LDA #5:JSR &FFDD                    ; OSFILE 5: SCORES's catalogue entry
     CMP #1:BNE done                     ; (1: a file)
-    LDA ScoresBlock+10:CMP #LO(HiSaveLen):BNE done
-    LDA ScoresBlock+11:CMP #HI(HiSaveLen):BNE done
+    IF GenTimeAttack
+        LDA ScoresBlock+10:CMP #LO(KeysSaveLen):BNE done
+        LDA ScoresBlock+11:CMP #HI(KeysSaveLen):BNE done
+    ELSE
+        LDA ScoresBlock+10:CMP #LO(HiSaveLen):BNE done
+        LDA ScoresBlock+11:CMP #HI(HiSaveLen):BNE done
+    ENDIF
     LDA ScoresBlock+12:ORA ScoresBlock+13:BNE done
     LDX #4
 .block
@@ -323,29 +335,36 @@ IF GenPlay
     BPL block
     LDX #LO(ScoresBlock):LDY #HI(ScoresBlock)
     LDA #&FF:JSR &FFDD                  ; OSFILE: load, at LowFree
-    HI_SUM LowFreeOrg, sumhi
-    CMP LowFreeOrg+HiSumLen:BNE done
-    LDA sumhi:CMP LowFreeOrg+HiSumLen+1:BNE done
-    LDX #0
-.low
-    LDA LowFreeOrg,X:STA HiFile,X
-    INX
-    BNE low
-    LDX #HiSaveLen-&100-1
-.high
-    LDA LowFreeOrg+&100,X:STA HiFile+&100,X
-    DEX
-    BPL high
-    LDX #HiSumLen - (HiKeys - HiFile) - 1
-.saved
-    LDA HiKeys,X:STA SoundOff,X
-    DEX
-    BPL saved
-.done
     IF GenTimeAttack
-        LDA HiSum:STA TaHiSum           ; (kept where no load writes it, D46)
-        LDA HiSum+1:STA TaHiSum+1
+        KEYS_SUM LowFreeOrg, sumhi
+        CMP LowFreeOrg+KeysLen:BNE done
+        LDA sumhi:CMP LowFreeOrg+KeysLen+1:BNE done
+        LDX #KeysSaveLen-1
+    .saved
+        LDA LowFreeOrg,X:STA SoundOff,X ; (the sum too)
+        DEX
+        BPL saved
+    ELSE
+        HI_SUM LowFreeOrg, sumhi
+        CMP LowFreeOrg+HiSumLen:BNE done
+        LDA sumhi:CMP LowFreeOrg+HiSumLen+1:BNE done
+        LDX #0
+    .low
+        LDA LowFreeOrg,X:STA HiFile,X
+        INX
+        BNE low
+        LDX #HiSaveLen-&100-1
+    .high
+        LDA LowFreeOrg+&100,X:STA HiFile+&100,X
+        DEX
+        BPL high
+        LDX #HiSumLen - (HiKeys - HiFile) - 1
+    .saved
+        LDA HiKeys,X:STA SoundOff,X
+        DEX
+        BPL saved
     ENDIF
+.done
     RTS
 
 .sumhi

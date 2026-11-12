@@ -323,6 +323,7 @@ SECTION Sprint, org = LoadAddr, load = &FFFF0000+LoadAddr, exec = &FFFF0000+entr
                 INCBIN "../build/lgen/inputs.rle" ; the traced race's inputs, as runs (tools/gen_logic.py)
             ENDIF
             IF GenPlay
+            IF GenTimeAttack = 0                ; (time attack's SCORES: the keys and sound alone, D55)
 .HiFile                                 ; SSPRINT.HSC: 31 entries of 6 digits (the first unused), their initials,
                 INCBIN "../orig/st/SSPRINT.HSC"     ; and each track's lap record, big-endian: changed by game.6502
 HiScores = HiFile
@@ -335,6 +336,7 @@ LapRecords = HiFile + 279
 HiSumLen = HiSum - HiFile
 HiSaveLen = HiSumLen + 2                ; SCORES: the table, lap records, keys, sound and the sum
                 ASSERT HiKeys - HiFile == 295, "SSPRINT.HSC's 295 bytes"
+            ENDIF
             ENDIF
             IF GenTimeAttack
 .SharedSlotEnd

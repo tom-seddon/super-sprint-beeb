@@ -210,6 +210,7 @@ ENDIF
     JMP front_shadow
 }
 
+IF GenTimeAttack = 0                    ; (time attack: no table or lap records in SCORES, D55)
 \\ The lap records (F_01BF34): the frame, its own heading over the high scores', and the table as the ST places it.
 \\ Outputs: GmPicture 1. A, X, Y corrupted.
 
@@ -268,6 +269,7 @@ ENDIF
 .Lines                                  ; each row's first line
     EQUB &86, &92, &9E, &AA
 }
+ENDIF
 
 \\ How many times step X (0-2: 5, 50, 500) goes into fs, the rest left there. Outputs: A, Z its digit. X kept, Y corrupted.
 
@@ -306,6 +308,7 @@ ENDIF
     RTS
 }
 
+IF GenTimeAttack = 0                    ; (time attack: the same)
 \\ The high scores (F_0172EA): the frame, and the table over it as the ST places it. Outputs: GmPicture 1.
 \\ A, X, Y corrupted.
 
@@ -335,6 +338,7 @@ ENDIF
 .Columns                                ; each column's x, first line and entries
     EQUB &7A, &33, 3, &1E, &76, 9, &7A, &76, 9, &D6, &76, 9
 }
+ENDIF
 
 \\ F_0171B6: a high score's line, at fcolx and fy, in the text's colour, logical 3, so the frame's colour needn't
 \\ be known. The table's read with the main screen written, where it's kept up to date. fs, fnames and the number on.

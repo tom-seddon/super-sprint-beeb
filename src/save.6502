@@ -10,31 +10,32 @@
 \\     the main screen paged in (ACCCON's X clear), the OS's zero page in
 \\
 \\ Outputs:
-\\     HiKeys, HiSum (time attack: TaHiSum); SCORES written if they changed
+\\     HiKeys, HiSum (time attack: KeysSum); SCORES written if they changed
 \\     A, X, Y: corrupted
 
 .front_save
 {
-    LDX #HiSumLen - (HiKeys - HiFile) - 1
-.keys
-    LDA SoundOff,X:STA HiKeys,X
-    DEX
-    BPL keys
-    HI_SUM HiFile, sumhi
-    IF GenTimeAttack                    ; (time attack: HiSum's put back as built with Shared by each track's
-        CMP TaHiSum:BNE save            ; file, D46; TaHiSum's kept)
-        LDX sumhi:CPX TaHiSum+1
+    IF GenTimeAttack                    ; (time attack: the keys and sound alone, D55)
+        KEYS_SUM SoundOff, sumhi
+        CMP KeysSum:BNE save
+        LDX sumhi:CPX KeysSum+1
+        BEQ done
+    .save
+        STA KeysSum
+        LDA sumhi:STA KeysSum+1
     ELSE
+        LDX #HiSumLen - (HiKeys - HiFile) - 1
+    .keys
+        LDA SoundOff,X:STA HiKeys,X
+        DEX
+        BPL keys
+        HI_SUM HiFile, sumhi
         CMP HiSum:BNE save
         LDX sumhi:CPX HiSum+1
-    ENDIF
-    BEQ done
-.save
-    STA HiSum
-    LDA sumhi:STA HiSum+1
-    IF GenTimeAttack
-        LDA HiSum:STA TaHiSum
-        LDA HiSum+1:STA TaHiSum+1
+        BEQ done
+    .save
+        STA HiSum
+        LDA sumhi:STA HiSum+1
     ENDIF
     LDX #LO(SaveBlock):LDY #HI(SaveBlock)
     LDA #0:JSR &FFDD                    ; OSFILE 0: save (the block's loaded with TRACKF each time)
@@ -45,10 +46,17 @@
     EQUB 0
 .SaveBlock                              ; OSFILE's block: the name, load, exec, start and end (the main screen's)
     EQUW ScoresName
-    EQUD &FFFF0000 + HiFile
-    EQUD &FFFF0000 + HiFile
-    EQUD &FFFF0000 + HiFile
-    EQUD &FFFF0000 + HiFile + HiSaveLen
+    IF GenTimeAttack
+        EQUD &FFFF0000 + SoundOff
+        EQUD &FFFF0000 + SoundOff
+        EQUD &FFFF0000 + SoundOff
+        EQUD &FFFF0000 + SoundOff + KeysSaveLen
+    ELSE
+        EQUD &FFFF0000 + HiFile
+        EQUD &FFFF0000 + HiFile
+        EQUD &FFFF0000 + HiFile
+        EQUD &FFFF0000 + HiFile + HiSaveLen
+    ENDIF
 .ScoresName
     EQUS "SCORES", 13
 }

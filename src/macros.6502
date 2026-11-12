@@ -87,6 +87,21 @@ ENDMACRO
 \\     A: the first total; sumhi: the second
 \\     X, Y, C: corrupted
 
+\\ Time attack's SCORES's sum (D55): the same, over KeysLen bytes from base, the last first.
+
+MACRO KEYS_SUM base, sumhi
+    LDA #0:STA sumhi
+    LDY #KeysLen - 1
+    CLC
+.byte
+    ADC base,Y
+    TAX
+    ADC sumhi:STA sumhi
+    TXA
+    DEY
+    BPL byte
+ENDMACRO
+
 MACRO HI_SUM base, sumhi
     ASSERT HiSumLen > &100 AND HiSumLen < &200, "HI_SUM: a page and part of one"
     LDA #0:STA sumhi

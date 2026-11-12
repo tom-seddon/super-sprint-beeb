@@ -85,6 +85,12 @@ KeyF9 = 119
     EQUB KeyComma, KeyPeriod, KeySlash
     EQUB KeyPad5, KeyPad6, KeyPadDelete
     ASSERT P% - SoundOff == 10, "SoundOff and PlayerKeys: HiKeys's 10 bytes, saved with the table"
+IF GenTimeAttack
+.KeysSum                                ; time attack's SCORES is SoundOff and PlayerKeys, then this, their sum
+    EQUW 0                              ; (KEYS_SUM) as last loaded or saved (D55: entry.6502, save.6502)
+KeysLen = KeysSum - SoundOff
+KeysSaveLen = KeysLen + 2
+ENDIF
 .PlayerOf
     EQUB 0, 0, 0, 1, 1, 1, 2, 2, 2
 .PlayerBit
