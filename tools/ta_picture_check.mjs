@@ -8,9 +8,9 @@
 // - the track's screen (step 6e, D48), Return on the menu: the logo kept, the track's map moved from its cell to the first
 //   cell's place, the rest cleared, "TRACK n" in white under it, and its 10 entries (poked: times, names of every
 //   character the font has, a full 10, none and empty entries), each its place in green, time in yellow and name in
-//   white, and its upgrades in green (S2 T1 R2), byte for byte; under the map the upgrades' panel (step 6f, D49):
-//   SPEED, TURBO, TRACTION and their levels, the wrench and the upgrades left, RACE, the cursor's item in yellow;
-//   the panel driven by keys (right and accelerate) to speed 3, turbo 2, traction 1: one too many, the count -1 in
+//   white, and its upgrades in green (S2 A1 T2), byte for byte; under the map the upgrades' panel (step 6f, D49):
+//   SPEED, ACCEL., TRACTION and their levels, the wrench and the upgrades left, RACE, the cursor's item in yellow;
+//   the panel driven by keys (right and accelerate) to speed 3, acceleration 2, traction 1: one too many, the count -1 in
 //   red (colour 1 switched red for its line by the interrupt), and Return then racing nothing; traction round to 0,
 //   the cursor to RACE; then Escape, the menu again as before; then 5, the highlighted track's number: its screen
 //   again (the box not copied with the map, the levels kept, the cursor on RACE), and Return races it;
@@ -88,7 +88,7 @@ function trackModel(track, entries, levels = [0, 0, 0], cursor = 3) {
     l.set(p.subarray(0, Top * 320));
     for (let y = 0; y < syms.TaMenuRow; y++) for (let x = 0; x < 4 * syms.TgMapBytes; x++) l[(Top + y) * 320 + x] = p[(y0 + y) * 320 + x0 + x];
     text(l, `TRACK ${track + 1}`, syms.TtTitleX, syms.TtTitleY, 3);
-    ["SPEED", "TURBO", "TRACTION", "RACE"].forEach((label, i) => {
+    ["SPEED", "ACCEL.", "TRACTION", "RACE"].forEach((label, i) => {
         const y = i < 3 ? syms.TpSpeedY + i * syms.TpStep : syms.TpRaceY, ink = i === cursor ? 2 : 3;
         text(l, label, syms.TpX, y, ink);
         if (i < 3) text(l, String(levels[i]), syms.TpValueX, y, ink);
@@ -101,7 +101,7 @@ function trackModel(track, entries, levels = [0, 0, 0], cursor = 3) {
         text(l, String(i + 1).padStart(2), syms.TtPlaceX, y, 1);
         if (t) {
             text(l, time(t), syms.TtTimeX, y, 2), text(l, name, syms.TtNameX, y, 3);
-            text(l, `S${Math.floor(ups / 36)} T${Math.floor(ups / 6) % 6} R${ups % 6}`, syms.TtUpsX, y, 1);
+            text(l, `S${Math.floor(ups / 36)} A${Math.floor(ups / 6) % 6} T${ups % 6}`, syms.TtUpsX, y, 1);
         }
     });
     return l;
@@ -215,7 +215,7 @@ onTrack = true;
 if (peek(syms.TgOn) !== 1) say(`Return: TgOn ${peek(syms.TgOn)}, not 1`);
 screen("track 5's screen", trackModel(4, entries));
 await run(10, trackModel(4, entries));
-// the upgrades: speed 3, turbo 2, traction 1 (one too many), and Return racing nothing; traction round to 0, the cursor to RACE
+// the upgrades: speed 3, acceleration 2, traction 1 (one too many), and Return racing nothing; traction round to 0, the cursor to RACE
 const key = async (k) => { s.keyDown(k); await run(3, null); s.keyUp(k); await run(3, null); };
 for (const k of ["KeyW", "KeyE", "KeyE", "KeyE", "KeyW", "KeyE", "KeyE", "KeyW", "KeyE"]) await key(k);
 screen("the upgrades 3, 2, 1: -1 left", trackModel(4, entries, [3, 2, 1], 2));

@@ -12,7 +12,7 @@
 \\
 \\ The track's screen (D48, step 6e): the menu's picture made into it, the logo kept, the track's map moved to the first
 \\ cell's place and the rest cleared, "TRACK n" under the map, and the track's 10 entries beside it, each its place,
-\\ time, name and upgrades (tg_screen). Under the map the upgrades for the race (D49, step 6f): SPEED, TURBO and
+\\ time, name and upgrades (tg_screen). Under the map the upgrades for the race (D49, step 6f): SPEED, ACCEL. and
 \\ TRACTION, each 0-5, the wrench and the upgrades left of 5, and RACE; left and right move the cursor among the four
 \\ (drawn yellow), from RACE; accelerate on an upgrade adds one (past 5: 0), on RACE races; Return races. While the
 \\ upgrades left are under 0 (shown red, minus) neither races. Escape goes back to the menu. After a race, back to the
@@ -27,7 +27,7 @@ SECTION GameScratch
     SKIP 1
 .TgLast                                 ; the menu's key last seen (tg_key's), so a held key acts once; &FF none yet
     SKIP 1
-.TgCursor                               ; the track's screen's cursor: 0-2 SPEED, TURBO, TRACTION, 3 RACE
+.TgCursor                               ; the track's screen's cursor: 0-2 SPEED, ACCEL., TRACTION, 3 RACE
     SKIP 1
 ENDSECTION
 
@@ -44,14 +44,14 @@ TtRowStep = 20
 TtPlaceX = 112                          ; each row's place (2 characters), time (5) and name (TaNameLen)
 TtTimeX = TtPlaceX + 18
 TtNameX = TtTimeX + 42
-TtUpsX = TtNameX + 6 * TaNameLen + 12   ; an entry's upgrades: S2 T1 R2
+TtUpsX = TtNameX + 6 * TaNameLen + 12   ; an entry's upgrades: S2 A1 T2
 ASSERT TtUpsX + 6 * 8 <= 320, "the track's screen: the upgrades past the screen's edge"
 FOR i = 0..9                             ; (no colour 1 on the upgrades' line's lines but its own: the table's rows)
     ASSERT TtRowY + i * TtRowStep + 6 <= TaRedTop OR TtRowY + i * TtRowStep > TaRedBottom, "the track's screen: a row on the upgrades' red"
 NEXT
 TpX = 12                                ; the upgrades' panel under the map: the labels,
 TpValueX = TpX + 9 * 6                  ; the levels,
-TpSpeedY = TtTitleY + 16                ; and the lines: SPEED, TURBO, TRACTION (TpStep apart),
+TpSpeedY = TtTitleY + 16                ; and the lines: SPEED, ACCEL., TRACTION (TpStep apart),
 TpStep = 14
 TpLeftY = 154                           ; the wrench and the upgrades left,
 TpRaceY = TpLeftY + 18                  ; RACE
@@ -316,7 +316,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     INX
     CPX #TaNameLen:BNE char
 .named
-    LDA #TtUpsX:STA fx                  ; its upgrades, S2 T1 R2
+    LDA #TtUpsX:STA fx                  ; its upgrades, S2 A1 T2
     LDA #TgGreen:STA fink
     LDA TaUp
     LDX #0
@@ -352,8 +352,8 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     EQUB 0
 .TpPlace                                ; an entry's upgrades (tatable.6502): speed * 36 + turbo * 6 + traction
     EQUB 36, 6, 1
-.TpUpLetter
-    EQUB Gl('S'), Gl('T'), Gl('R')
+.TpUpLetter                             ; (each unique, Tom, 2026-11-12)
+    EQUB Gl('S'), Gl('A'), Gl('T')
 
 \\ The upgrades' panel: the cursor on RACE, and its lines drawn. A, X, Y corrupted.
 
@@ -408,11 +408,11 @@ TgPanelBytes = 26                       ; (the panel's 104 pixels, under the map
 .TpLevel                                ; each upgrade's level, from GmTurbo: car 0's GmTopUp, GmTurbo, GmTraction
     EQUB GmTopUp - GmTurbo, 0, GmTraction - GmTurbo
 .TpTextAt
-    EQUB 0, TpTurbo - TpTexts, TpTraction - TpTexts, TpRace - TpTexts
+    EQUB 0, TpAccel - TpTexts, TpTraction - TpTexts, TpRace - TpTexts
 .TpTexts
     EQUB Gl('S'), Gl('P'), Gl('E'), Gl('E'), Gl('D'), &FF
-.TpTurbo
-    EQUB Gl('T'), Gl('U'), Gl('R'), Gl('B'), Gl('O'), &FF
+.TpAccel                                ; (the ST's turbo acceleration)
+    EQUB Gl('A'), Gl('C'), Gl('C'), Gl('E'), Gl('L'), GlyphPoint, &FF
 .TpTraction
     EQUB Gl('T'), Gl('R'), Gl('A'), Gl('C'), Gl('T'), Gl('I'), Gl('O'), Gl('N'), &FF
 .TpRace

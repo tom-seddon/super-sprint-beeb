@@ -716,7 +716,11 @@ a level. The count shown is the upgrades left, by a wrench: "1 spanner = 1 upgra
 game, and I think that's fine." "It is possible for the upgrades remaining to go below zero ... Don't adjust any of
 the settings when this happens, but also don't allow starting the race. When the remaining upgrades count goes below
 zero, show it as negative, and in red. Then disallow RACE in this state." Each entry's row shows its upgrades as
-S2 T1 R2. "This part of the UI may well require some iteration." A race whose best makes the table always asks for a name, the entry empty, never the
+S2 T1 R2. "This part of the UI may well require some iteration."
+Renamed, Tom, 2026-11-12, having tried 6f: "I think they should be renamed to `SPEED` (high score abbreviation `S`),
+`ACCEL.` (`A`) and `TRACTION` (`T`), so the 1-letter high score abbreviations are unique. I think this is close enough
+to the game's descriptions of HIGHER TOP SPEED, TURBO ACCELERATION and SUPER TRACTION respectively". So a row's
+upgrades read S2 A1 T2. A race whose best makes the table always asks for a name, the entry empty, never the
 last name typed. After a race: D50.
 
 ### D50. Time attack goes back to the track's screen after a race: Decided (2026-11-10)
