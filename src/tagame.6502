@@ -52,11 +52,11 @@ FOR i = 0..9                             ; (no colour 1 on the red lines but the
 NEXT
 TpX = 12                                ; the upgrades' panel under the map: the labels,
 TpValueX = TpX + 9 * 6                  ; the levels,
-TpSpeedY = TtTitleY + 16                ; and the lines: SPEED, ACCEL., TRACTION (TpStep apart),
+TpLeftY = TtTitleY + 18                 ; and the lines: the wrench and the upgrades left at the top (Tom, 2026-11-12),
 TpStep = 14
-TpLeftY = 154                           ; the wrench and the upgrades left,
-TpRaceY = TpLeftY + TtRowStep           ; RACE
-ASSERT TpSpeedY + 2 * TpStep + 6 <= TaRedTop, "the track's screen: TRACTION on the upgrades' red"
+TpSpeedY = TpLeftY + TpStep             ; SPEED, ACCEL., TRACTION (TpStep apart),
+TpRaceY = TpLeftY + 3 * TtRowStep       ; and after a gap RACE (each of the two in a gap between the table's rows)
+ASSERT TpSpeedY + 2 * TpStep + 6 + 8 < TpRaceY, "the track's screen: no gap above RACE"
 ASSERT TpLeftY > TaSplitRed AND TpLeftY + 6 <= TaSplitGreen, "the track's screen: the upgrades left not where colour 1's red"
 ASSERT TpRaceY > TaRaceRed AND TpRaceY + 6 <= TaRaceGreen, "the track's screen: RACE not where colour 1's red"   ; (and the panel above the last step: game_resume.past)
 GlyphMinus = 39                         ; time attack's glyphs (front.6502: tools/screens.py's ta_glyphs)

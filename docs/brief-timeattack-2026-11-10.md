@@ -725,6 +725,13 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
         719 to 712.
      All four to be tried on Tom's Master (`docs/img/timeattack-track-6f2.png`: -1 left, RACE red). The game's discs
      the same but for the README's commit link, every track's build byte for byte; play the same.
+     Tom tried them (2026-11-12): "looks good. One tweak: on the upgrades menu, I think the spanner should be at the
+     top, and then the selectable options. Still with a gap between the options and RACE." So the count's line is now
+     the panel's first (114-119), SPEED, ACCEL. and TRACTION after it 14 lines apart (128, 142, 156), and RACE where it
+     was (174), 12 blank lines above it to the options' 8 between. The count's red band moved with it, to the gap
+     between the table's 4th and 5th rows (110-123): red on line 111, green on 121, measured in jsbeeb as aimed. The
+     slowest redraw still ends about line 86, before the count. All seven checks pass, and `boot_check --ta`; play the
+     same.
    - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen
      with the new entry lit. Ties' order then checkable (`tools/ta_table_check.mjs`). Tried.
    - **6i, the options** (D54): a screen of its own from the menu, mostly text with the logo: the three key sets

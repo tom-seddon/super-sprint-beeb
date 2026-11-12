@@ -722,7 +722,8 @@ Renamed, Tom, 2026-11-12, having tried 6f: "I think they should be renamed to `S
 to the game's descriptions of HIGHER TOP SPEED, TURBO ACCELERATION and SUPER TRACTION respectively". So a row's
 upgrades read S2 A1 T2. And: "if you've selected too many upgrades, it'd be nice if the `RACE` option could become
 red and unselectable too": so while the upgrades left are under 0 RACE is red and the cursor passes over it (on the
-screen's coming up then, the cursor starts on SPEED). A race whose best makes the table always asks for a name, the entry empty, never the
+screen's coming up then, the cursor starts on SPEED). Then: "the spanner should be at the top, and then the
+selectable options. Still with a gap between the options and RACE." A race whose best makes the table always asks for a name, the entry empty, never the
 last name typed. After a race: D50.
 
 ### D50. Time attack goes back to the track's screen after a race: Decided (2026-11-10)
