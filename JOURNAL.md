@@ -769,3 +769,6 @@
   title's file can be kept in the objects' and fourth banks from the boot, so Escape loads nothing: 0.87 s to the
   track's screen, was about 2.9. SCORES now saved at any load's start (a race's), which found OSFILE writing back
   into its block: a second save said "Disc full" till the block was made each time.
+  Tom tried it: "Looks good." 6h done. He added a later item: a program to merge a player's time attack tables and
+  ghosts with another set, the best 10 per track kept with their ghosts; its UX across the filing systems still his
+  to think over (`docs/plan.md`, "After Phase 5").

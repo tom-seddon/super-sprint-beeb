@@ -835,5 +835,6 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
         runs garbage); `ta_picture_check`'s screens after its race come from the copy. All eight checks pass, and
         `boot_check --ta` (DFS, ADFS); play the same; the game's discs the same but for the README's commit link,
         every track's build byte for byte.
+     Tom tried it on his Master (2026-11-12): "Looks good." 6h done.
 7. **Close**: the variant's suite, both discs, Tom's Master. After the merge, not before: the game's two load faults
    fixed as time attack's are (`docs/plan.md`, "After Phase 5", Tom, 2026-11-12).
