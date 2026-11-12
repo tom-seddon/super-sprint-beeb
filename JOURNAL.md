@@ -754,3 +754,8 @@
   seen half drawn (`ta_picture_check` checks every field of each key).
   Then the count moved to the panel's top (Tom's tweak), and the loads measured against 6f's disc: every disc
   command the same. Tom tried it: "looks good". 6f done.
+  6g: the name. Tom chose it typed on the track's screen and saved straight after, "Saving" said, no file read, the
+  new entry lit till the screen's left. The race's load now saves nothing while a name's to come; the name's typed in
+  the entry's row with a flashing block, then a trip of its own saves the ghost and the table, and the screen's drawn
+  again. The cursor couldn't be a glyph: the small font's index is a byte, and time attack's 42 glyphs fill it.
+  `ta_picture_check` checks the typing field by field; the table check's races each type their own name.

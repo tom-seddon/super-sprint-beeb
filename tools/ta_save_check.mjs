@@ -19,6 +19,7 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { bootDisc, discFiles, jsbeebModule, runTo, runToAny, symbols } from "./jsbeeb.mjs";
+import { typeName } from "./ta_name.mjs";
 import { makePilot } from "./ta_pilot.mjs";
 
 const { toSsdOrDsd } = await jsbeebModule("disc.js");
@@ -67,7 +68,11 @@ const ghostFile = (m) => discFiles(image(m)).GHOST1;
 // to the attract mode's wait (a key pressed if a load stops for one)
 async function toIdle(m) {
     for (let keys = 0; ; keys++) {
-        const at = await runToAny(m.s, [[syms["game_resume.idle"], m.bankbg], [syms["load_track.waitkey"]]], 400000000);
+        const at = await runToAny(m.s, [[syms["game_resume.idle"], m.bankbg], [syms["tg_type.field"], m.bankbg], [syms["load_track.waitkey"]]], 400000000);
+        if (at === syms["tg_type.field"]) {     // (a race that made the table: its name, then the save's trip, step 6g)
+            if (ghostSaves(m).length) say(`the saves ${ghostSaves(m).join()} before the name`);
+            await typeName(m.s, "GHOST"); keys--; continue;
+        }
         if (at !== syms["load_track.waitkey"]) return;
         if (keys === 3) { say(`a load still stopped for a key after ${keys}: "${m.log.said}"`); process.exit(1); }
         m.s.keyDown("Space");

@@ -5,7 +5,7 @@
 \\ track's slot below it); saved and loaded as TIMES by timeattack.6502 (main RAM: OSFILE can't reach a bank).
 \\
 \\ An entry's upgrades (step 6f) are a byte, the race's levels (0-5) as speed * 36 + turbo * 6 + traction (the track's
-\\ screen shows them, tagame.6502); its name (step 6g) until then 10 zero bytes. A name is ASCII, A-Z, 0-9, the point, ! and space, ended by a 0 if under 10 (the track's
+\\ screen shows them, tagame.6502); its name (step 6g) typed after the race, 10 zero bytes till then. A name is ASCII, A-Z, 0-9, the point, ! and space, ended by a 0 if under 10 (the track's
 \\ screen draws it so, tagame.6502's tg_char).
 
 TaEntries = 80
@@ -23,17 +23,15 @@ SECTION GameVars
     SKIP 1
 .TaEntryHi
     SKIP 1
-.TaTableNew                             ; the table changed: to save at the next load's start
-    SKIP 1
 ENDSECTION
 
 \\ The race's best lap entered in its track's 10 (D41): before the first entry it's under (a tie goes after) or the
 \\ first empty one, the slower moved down a place and the 10th's dropped; or nowhere, if it's under none and the
-\\ 10 are full. Its upgrades the race's (car 0's, GmTopUp, GmTurbo, GmTraction, as given it) and its name empty
-\\ (until step 6g).
+\\ 10 are full. Its upgrades the race's (car 0's, GmTopUp, GmTurbo, GmTraction, as given it) and its name empty,
+\\ to be typed (step 6g: TaNew, and TaLit to light it).
 \\
-\\ Inputs: TaEntry (not 0), TrackNum, car 0's upgrades; the cars' bank paged in. Outputs: the table; TaTableNew if it changed. A, X,
-\\ Y corrupted.
+\\ Inputs: TaEntry (not 0), TrackNum, car 0's upgrades; the cars' bank paged in. Outputs: the table; TaTableNew, TaNew and TaLit if it
+\\ changed. A, X, Y corrupted.
 
 .ta_enter
 {
@@ -93,6 +91,9 @@ ENDSECTION
     DEY
     BPL blank
     INC TaTableNew
+    TXA:INC A
+    STA TaNew                           ; (its name to type, step 6g, and it lit on the track's screen)
+    STA TaLit
     RTS
 
     \\ A * 6 (A under 43). X preserved; from corrupted.

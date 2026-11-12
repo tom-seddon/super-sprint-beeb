@@ -17,6 +17,7 @@
 //     DISC default build/ta.ssd, DIR (the tracks' symbols) build/tracks_ta, FRAMES 2400; TRACKS=0,1 for some,
 //     PASSES=1 for one race each
 import { bootDisc, discFiles, jsbeebModule, runTo, runToAny, symbols } from "./jsbeeb.mjs";
+import { toFront } from "./ta_name.mjs";
 import { makePilot } from "./ta_pilot.mjs";
 const [disc = "build/ta.ssd", dir = "build/tracks_ta", framesArg] = process.argv.slice(2);
 const FRAMES = Number(framesArg || 2400);
@@ -98,8 +99,8 @@ for (let pass = 0; pass < PASSES; pass++) for (const t of TRACKS) {
     if (ghosts) saved[t] = { recs: ghost, time: ghostTime };
     console.log(`pass ${pass + 1}, track ${t + 1}: ${frames} frames, ${ghost && !ghosts ? "the saved ghost, " : ""}${ghosts} ghosts, the ghost drawn on ${drawn}, waiting on ${waited}; ${bad} wrong${firstBad ? ": first " + firstBad : ""}`);
     s.writeMemory(syms.GmAbandon, [1]); s.writeMemory(syms.LoadWant, [0xff]);
-    await runTo(s, syms["game_resume.idle"], 400000000);
-    // its file (saved at that load's start) the ghost the model has
+    await toFront(s, syms, `PASS${pass + 1} T${t + 1}`);   // (its name typed if the race made the table, then saved: step 6g)
+    // its file (saved after the name, at the save's own trip) the ghost the model has
     const file = discFiles(written())[`GHOST${t + 1}`];
     const want = saved[t];
     if (!want) { if (file) { wrong++; console.log(`  GHOST${t + 1} written with no ghost`); } }

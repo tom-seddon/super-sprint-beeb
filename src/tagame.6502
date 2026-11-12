@@ -29,6 +29,12 @@ SECTION GameScratch
     SKIP 1
 .TgCursor                               ; the track's screen's cursor: 0-2 SPEED, ACCEL., TRACTION, 3 RACE
     SKIP 1
+.TgLen                                  ; the name being typed (tg_type): its length,
+    SKIP 1
+.TgBlinks                               ; fields counted, its cursor shown while bit 4's clear,
+    SKIP 1
+.TgRowY                                 ; and its row's line
+    SKIP 1
 ENDSECTION
 
 TgTrackLine = 9                         ; "TRACK n"'s line into its cell (tools/screens.py's layout: TaMenuTop on, cells of
@@ -108,6 +114,12 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 .shown                                  ; (tools/ta_rows_check.mjs)
     JSR tg_split
     LDA #&FF:STA TgLast                 ; (as a screen comes up, nothing acts till every key's let go)
+    LDA TaNew:BEQ idle                  ; (the race just made an entry: its name, then the save, step 6g)
+    JSR tg_type
+    LDA #TaSaveOnly - '0':STA LoadWant  ; (load_track's save alone: back here after, the screen drawn again)
+    JSR tg_rows26
+    JSR tg_colours
+    JMP load_go
 
     \\ each field: a key newly down acts, on the menu or the track's screen
 
@@ -123,6 +135,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     LDX TgOn:BEQ menu_key
     CMP #10:BNE panel                   ; the track's screen: Escape back to the menu,
     STZ TgOn
+    STZ TaLit                           ; (the new entry lit no more)
     JSR tg_black
     JSR tg_picture
     BRA cells
@@ -150,6 +163,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     BRA idle                            ; line's end, so the panel's drawn again after the beam's passed it, never seen
                                         ; half drawn (Tom, 2026-11-12: "a bit flickery")
 .race
+    STZ TaLit
     LDA GmTrack:INC A:STA LoadWant      ; (TgOn 1: back to its screen after the race, D50)
 .go
     JSR tg_rows26                       ; the race's 26 rows for its load (D46)
@@ -292,7 +306,11 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     LDX tg_track
     JSR ta_entry                        ; (timeattack.6502's: TaName, and the time)
     STA fs:STY fs+1
-    LDA #TgGreen:STA fink               ; the place, 1-10
+    STZ tg_lit
+    TXA:INC A:CMP TaLit:BNE @+
+    DEC tg_lit                          ; (the entry just made: its row yellow, Tom, 2026-11-12)
+.@
+    LDA #TgGreen:JSR tg_ink             ; the place, 1-10
     LDA #TtPlaceX + 6:STA fx
     STZ fx+1
     TXA:SEC
@@ -310,7 +328,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     LDA fs:ORA fs+1:BEQ next            ; (empty)
     LDA #TtTimeX:STA fx
     JSR tg_time
-    LDA #TgWhite:STA fink               ; the name: its characters till a 0
+    LDA #TgWhite:JSR tg_ink             ; the name: its characters till a 0
     LDA #TtNameX:STA fx
     LDX #0
 .char
@@ -323,7 +341,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     CPX #TaNameLen:BNE char
 .named
     LDA #TtUpsX:STA fx                  ; its upgrades, S2 A1 T2
-    LDA #TgGreen:STA fink
+    LDA #TgGreen:JSR tg_ink
     LDA TaUp
     LDX #0
 .up
@@ -356,6 +374,162 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 }
 .tg_from                                ; the map's line, from
     EQUB 0
+.tg_lit                                 ; &FF: the row's the one just made (TaLit), drawn yellow
+    EQUB 0
+
+\\ fink A, or yellow on the row just made (tg_lit). A corrupted.
+
+.tg_ink
+{
+    BIT tg_lit:BPL @+
+    LDA #TgYellow
+.@
+    STA fink
+    RTS
+}
+
+\\ The race's new entry's name typed (D39, step 6g), in its row (TaNew's), yellow as the row's lit, a block after
+\\ it flashing: A-Z, 0-9, space, the point, minus and ! (SHIFT and 1), up to TaNameLen; Delete rubs out the last,
+\\ Return or Escape ends it (what's typed kept: none, an empty name). A key acts as it goes down, once; nothing till
+\\ the race's keys are all let go (TgLast &FF). Then the name put in the table (ta_name_put, TaTableNew), TaNew 0.
+\\ The name's redrawn after the beam's passed its row, so it's never seen half drawn. A, X, Y corrupted.
+
+.tg_type
+{
+    LDX #TaNameLen - 1                  ; the name empty
+.empty
+    STZ TaName,X
+    DEX
+    BPL empty
+    STZ TgLen
+    LDA #&FF:STA TgBlinks               ; (the cursor drawn at the first field)
+    LDA TaNew:DEC A                     ; its row: the place, 0-9
+    SEC
+.tens
+    SBC #10
+    BCS tens
+    ADC #10
+    ASL A:ASL A:STA TgRowY              ; (* 20)
+    ASL A:ASL A:CLC:ADC TgRowY
+    ADC #TtRowY:STA TgRowY
+.field
+    LDA #1:JSR fields
+    LDX #TgNameChars - TgNameKeys - 1   ; the key down, as its character (0 none)
+.scan
+    LDA TgNameKeys,X:JSR key_down:BMI down
+    DEX
+    BPL scan
+    LDA #0
+    BRA got
+.down
+    LDA TgNameChars,X
+    CMP #'1':BNE got
+    LDA #0:JSR key_down:BPL one         ; (SHIFT and 1: !)
+    LDA #'!'
+    BRA got
+.one
+    LDA #'1'
+.got
+    LDX TgLast:STX tg_x                 ; (the last field's)
+    STA TgLast
+    CPX #&FF:BNE seen
+    TAX:BEQ blink                       ; (all let go: keys act from now)
+    LDA #&FF:STA TgLast                 ; (one still held from the race)
+    BRA blink
+.seen
+    CMP #0:BEQ blink
+    CMP tg_x:BEQ blink                  ; (still down)
+    CMP #13:BEQ done                    ; (Return)
+    CMP #27:BEQ done                    ; (Escape)
+    LDX TgLen
+    CMP #127:BNE char
+    TXA:BEQ blink                       ; (Delete, with nothing to rub out)
+    DEX
+    STZ TaName,X
+    BRA typed
+.char
+    CPX #TaNameLen:BEQ blink            ; (full)
+    STA TaName,X
+    INX
+.typed
+    STX TgLen
+    STZ TgBlinks                        ; (the cursor shown from a key)
+    BRA draw
+.blink
+    INC TgBlinks
+    LDA TgBlinks:AND #15:BNE next       ; (else the cursor on or off)
+.draw
+    JSR tg_typed
+.next
+    JMP field
+.done
+    LDA #16:STA TgBlinks                ; (the cursor off)
+    JSR tg_typed
+    LDA TaNew:DEC A:TAX
+    STZ TaNew                           ; (the save, ta_save's, then)
+    JMP ta_name_put                     ; (timeattack.6502's: the cars' bank)
+}
+
+\\ The name typed so far drawn again in its row (tg_type's), and the cursor after it if TgBlinks's bit 4's clear and
+\\ there's room, a yellow block 5 pixels by 5 (not a glyph: front_glyph's index is a byte, 6 a glyph, and time
+\\ attack's 42 fill it): from just after a vsync (fields), the beam let past the row first. A, X, Y corrupted.
+
+ASSERT TtNameX MOD 4 == 0, "the track's screen: a name not at a byte's start"
+ASSERT TtNameX + 6 * TaNameLen < 256, "the track's screen: a name past pixel 255"
+
+.tg_typed
+{
+    LDA TgRowY:LSR A:CLC:ADC #(40 + 6) DIV 2 + 1:TAY    ; 2 lines each: the vsync's 40 before the display, the row's 6
+.lines
+    LDX #50                             ; (5 * 50 + 6 - 1 cycles: 2 lines)
+.wait
+    DEX
+    BNE wait
+    DEY
+    BNE lines
+    LDA TgRowY:STA fy
+    LDA #TtNameX DIV 4:LDX #(6 * TaNameLen + 3) DIV 4:JSR front_clear
+    LDA #TgYellow:STA fink
+    LDA #TtNameX:STA fx
+    STZ fx+1
+    LDX #0
+.char
+    CPX TgLen:BEQ cursor
+    PHX
+    LDA TaName,X:JSR tg_char
+    LDA #6:JSR front_across
+    PLX
+    INX
+    BRA char
+.cursor
+    CPX #TaNameLen:BEQ done             ; (full: none)
+    LDA TgBlinks:AND #16:BNE done
+    TXA:ASL A:STA tg_x:ASL A:ADC tg_x   ; (its pixel: the name's length * 6 on; C clear, under 60)
+    ADC #TtNameX:STA tg_x
+    LDA TgRowY:STA fy
+    LDA #5:STA tg_lines
+.line
+    LDA tg_x:LSR A:LSR A:JSR front_line ; (its byte's line, in fp)
+    LDA tg_x:AND #2:LSR A:TAX           ; (its pixel in the byte: 0 or 2)
+    LDA TgCursorLeft,X:ORA (fp)
+    STA (fp)
+    LDY #8
+    LDA TgCursorRight,X:ORA (fp),Y
+    STA (fp),Y
+    INC fy
+    DEC tg_lines
+    BNE line
+.done
+    RTS
+}
+.TgCursorLeft                           ; the cursor's 5 pixels, yellow, from a byte's pixel 0 or 2: its first byte's,
+    EQUB &F0, &30
+.TgCursorRight                          ; and the next's
+    EQUB &80, &E0
+.TgNameKeys                             ; the name's keys (tools/screens.py's ta_name_keys), and each one's character:
+    EQUB TaNameKeys                     ; A-Z, 0-9, space, the point, minus; Return 13, Delete 127, Escape 27
+.TgNameChars
+    EQUB TaNameChars
 .TpPlace                                ; an entry's upgrades (tatable.6502): speed * 36 + turbo * 6 + traction
     EQUB 36, 6, 1
 .TpUpLetter                             ; (each unique, Tom, 2026-11-12)
@@ -549,7 +723,7 @@ TgPanelBytes = 26                       ; (the panel's 104 pixels, under the map
 .tg_n
     EQUB 0
 
-\\ Character A of a name (ASCII: A-Z, 0-9, the point and !; anything else a space) at fx, fy, in fink's colour. A,
+\\ Character A of a name (ASCII: A-Z, 0-9, the point, ! and minus; anything else a space) at fx, fy, in fink's colour. A,
 \\ X, Y corrupted.
 
 .tg_char
@@ -567,8 +741,12 @@ TgPanelBytes = 26                       ; (the panel's 104 pixels, under the map
     LDA #GlyphPoint
     BRA glyph
 .bang
-    CMP #'!':BNE none
+    CMP #'!':BNE minus
     LDA #GlyphBang
+    BRA glyph
+.minus
+    CMP #'-':BNE none
+    LDA #GlyphMinus
 .glyph
     JMP front_glyph
 .none

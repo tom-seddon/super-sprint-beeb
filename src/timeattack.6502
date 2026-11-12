@@ -208,24 +208,26 @@ ASSERT TaLabelsEnd - TaLabels == TaGhostLabel - TaBestLabel + 5, "the labels: BE
 GhFileAddr = TrackFileAddr              ; (load.6502's: the main screen, where the next file lands)
 
 \\ At a load's start (load_track, the OS given back, before any file): what the race just run changed saved, once,
-\\ the ghost then the table. A failed save (a write-protected disc) is said by load_track's brk, which loads again
-\\ without coming back here (D23's way): both flags are cleared first, so neither is tried again, and a table
+\\ the ghost then the table; unless the race's entry is still to be named (step 6g: then at the save's own trip,
+\\ tagame.6502's, once it's typed). A failed save (a write-protected disc) is said by load_track's brk, which loads
+\\ again without coming back here (D23's way): both flags are cleared first, so neither is tried again, and a table
 \\ after a ghost that failed isn't tried at all.
 \\
-\\ Inputs: GhNew, TaTableNew (GameVars: load_track's clear_state comes after). Outputs: GHOSTn, TIMES written;
-\\ GhNew, TaTableNew 0. A, X, Y corrupted.
+\\ Inputs: GhNew, TaTableNew, TaNew (LowFree's). Outputs: GHOSTn, TIMES written; GhNew, TaTableNew 0. A, X, Y
+\\ corrupted.
 
 .ta_save
 {
+    LDA TaNew:BNE named                 ; (a name to come first)
     LDA GhNew:STA ghost
     LDA TaTableNew:STA table
     STZ GhNew:STZ TaTableNew
     LDA ghost:BEQ @+
     JSR ta_save_ghost
 .@
-    LDA table:BEQ @+
+    LDA table:BEQ named
     JMP ta_save_table
-.@
+.named
     RTS
 .ghost
     EQUB 0
@@ -279,18 +281,25 @@ TaKeepLen = SharedSlot - SharedOrg
 }
 
 \\ Track X's best time, the table's (the cars' bank's), for the menu (tagame.6502, in the background's bank); or
-\\ (ta_entry) entry X's time and name, for the track's screen.
+\\ (ta_entry) entry X's time and name, for the track's screen; or (ta_name_put, step 6g) TaName made entry X's name,
+\\ the table to save (TaTableNew).
 \\
-\\ Inputs: X: the track, or the entry (track * 10 + place). Outputs: A, Y: the time, low and high (0 none); TaName
-\\ the entry's name, TaUp its upgrades; ROMSEL the background's bank, ANDY in. X: the entry.
+\\ Inputs: X: the track, or the entry (track * 10 + place); TaName to put. Outputs: A, Y: the time, low and high (0
+\\ none); TaName the entry's name, TaUp its upgrades; ROMSEL the background's bank, ANDY in. X: the entry.
 
+.ta_name_put
+    SEC
+    BRA ta_names
 .ta_track_best
     TXA:ASL A:STA ta_ten                ; track * 10
     ASL A:ASL A:CLC:ADC ta_ten:TAX
 .ta_entry
+    CLC
+.ta_names
 {
     ZA_AUTO2 name                       ; local: the entry's name
 
+    PHP                                 ; (C set: put)
     LDA bankcars:STA &FE30              ; ROMSEL: the cars' bank, the table's
     STZ name+1                          ; X * 10 + TaNames
     TXA:ASL A:STA name                  ; (X * 2: under 160)
@@ -303,10 +312,12 @@ TaKeepLen = SharedSlot - SharedOrg
     INC name+1
 .@
     LDY #TaNameLen - 1
+    PLP:BCS put
 .copy
     LDA (name),Y:STA TaName,Y
     DEY
     BPL copy
+.got
     LDA TaUps,X:STA TaUp
     LDY TaTimeHi,X
     LDA TaTimeLo,X:PHA
@@ -314,6 +325,12 @@ TaKeepLen = SharedSlot - SharedOrg
     STA &FE30                           ; ROMSEL: the background's bank, ANDY in (the menu's)
     PLA
     RTS
+.put
+    LDA TaName,Y:STA (name),Y
+    DEY
+    BPL put
+    INC TaTableNew
+    BRA got
 }
 .ta_ten
     EQUB 0

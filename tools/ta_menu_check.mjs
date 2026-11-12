@@ -7,8 +7,8 @@
 // - Escape on the menu does nothing;
 // - 3 opens track 3's screen (D52: the numbers another way through, Tom, 2026-11-12), with the highlight elsewhere;
 //   Return races it (its file loaded: TrackNum 2); in the race player 2's accelerate (/) drives the car (D53); its
-//   best poked and Escape: through the title's file (TIMES saved at its load's start) to track 3's screen (D50), the
-//   Escape still held there doing nothing; the driving keys and numbers do nothing there either; Escape: the menu,
+//   best poked and Escape: through the title's file to its name (step 6g), the Escape still held there doing nothing
+//   (TIMES not saved, nothing typed), AB typed and Return: TIMES saved with it, then track 3's screen (D50); the driving keys and numbers do nothing there either; Escape: the menu,
 //   track 3's cell showing a time and the others none, the highlight on track 3;
 // - Return opens the highlighted track's screen (D48), Return there races it, Escape back to its screen and again to
 //   the menu; player 1's accelerate (E) opens the highlighted one's screen and races it too, and player 2's (/) after
@@ -20,6 +20,7 @@
 // Usage (from the repo root, after make ta): node tools/ta_menu_check.mjs
 
 import { bootDisc, discFiles, jsbeebModule, runTo, runToAny, symbols } from "./jsbeeb.mjs";
+import { typeName } from "./ta_name.mjs";
 
 const { toSsdOrDsd } = await jsbeebModule("disc.js");
 const syms = symbols("build/tracks_ta/t0.json");
@@ -87,13 +88,17 @@ if (!speed || speed > 0x7fff) say(`player 2's accelerate: car 0's speed ${speed}
 await runToAny(s, [[syms["logic_frame.played"], bt]], 8000000);
 s.writeMemory(syms.TaBestLo, [0x34, 0x02]);   // (ANDY's, paged in here: a best of 564 fields, 11.28)
 s.keyDown("Escape");
-await toMenu();
+await runToAny(s, [[syms["tg_type.field"], peek(syms.bankbg)]], 400000000);   // (the entry's name, step 6g)
 await fields(10);
+const disc = () => discFiles(toSsdOrDsd(cpu.fdc.drives[0].disc));
+if (disc().TIMES || peek(syms.TaNew) !== 21 || peek(syms.TgLen)) say(`Escape held at the name: TIMES ${disc().TIMES ? "saved" : "not saved"}, TaNew ${peek(syms.TaNew)}, ${peek(syms.TgLen)} typed, not none, 21 and 0`);
 s.keyUp("Escape");
+await typeName(s, "AB");
+await toMenu();
 await fields(5);
-const times = discFiles(toSsdOrDsd(cpu.fdc.drives[0].disc)).TIMES;
-if (!times || (times.data[20] | (times.data[100] << 8)) !== 564) say("Escape: TIMES not saved with track 3's best 564");
-if (on() !== 1 || peek(syms.GmTrack) !== 2 || highlight() !== -1) say(`Escape from the race, held: TgOn ${on()}, GmTrack ${peek(syms.GmTrack)}, the highlight ${highlight()}, not track 3's screen`);
+const times = disc().TIMES;
+if (!times || (times.data[20] | (times.data[100] << 8)) !== 564 || String.fromCharCode(...times.data.subarray(240 + 200, 240 + 203)) !== "AB\0") say("the name: TIMES not saved with track 3's best 564 and AB");
+if (on() !== 1 || peek(syms.GmTrack) !== 2 || highlight() !== -1) say(`after the name: TgOn ${on()}, GmTrack ${peek(syms.GmTrack)}, the highlight ${highlight()}, not track 3's screen`);
 for (const key of ["KeyW", "KeyQ", "Digit5"]) await press(key);
 if (on() !== 1 || peek(syms.GmTrack) !== 2 || peek(syms.LoadWant)) say(`W, Q, 5 on track 3's screen: TgOn ${on()}, GmTrack ${peek(syms.GmTrack)}, LoadWant ${peek(syms.LoadWant)}`);
 await screenKey("Escape");

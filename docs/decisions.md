@@ -591,6 +591,9 @@ the upgrades 1), so 104 bytes for each entry a track over 8 tracks; 1,040 for 10
 key finding (`opt_find`), is about 250 bytes in its own file. The ghost's file carries the name too, 10 bytes.
 So: up to 10 characters, typed on the keyboard, drawn in the MOS's font (`font_char`). A-Z, 0-9 and space at first.
 The font became the ST's small font with D47.
+How, Tom, 2026-11-12 (step 6g), agreeing the proposal: typed into the new entry's row on the track's screen, A-Z, 0-9,
+space, the point, minus and ! (SHIFT and 1); Delete rubs out the last, Return ends it, Return at once leaves it empty,
+Escape ends it too, keeping what's typed; while it's typed every key types, nothing else acts.
 
 ### D40. Time attack's table: Decided (2026-11-10)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Proposed: how many entries a track's table keeps. Tom,
@@ -731,6 +734,15 @@ Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Proposed with D48 and D
 save, if any), back to the track's screen, not the menu, the new entry lit. Tom, 2026-11-10: "Yes".
 So: Escape, the name if the race made the table (D49), the save if something changed, then the track's screen with the
 upgrades as last picked; Return races again, Escape goes to the menu.
+How, Tom, 2026-11-12 (step 6g): the name's typed on the track's screen, in the new entry's row, after the race's load,
+and saved at once after it ("I think option B. I don't think it's a problem if there's a bit more of a delay in the name
+entry case."), not at the next race's load (which loses it if the machine's switched off first) nor typed over the
+race's screen before it. "I think it would be good if the message could read `Saving` in this instance. Also: does it
+actually need to reload anything? Can it not save only the scores file, plus any ghost file, then continue?" So the
+save is a trip of its own, no file read, "Saving" in the HUD's row, then the screen drawn again; and the race's load
+saves nothing when a name's to come, the ghost and the table saved together after it. The new entry lit: "it'd be nice
+to have the new entry in a different colour after it's been entered, so it's highlighted. This only applies after just
+entering the name and before leaving the screen; on next entry to the screen, draw everything in the normal colour."
 
 ### D51. Time attack has no attract mode: Decided (2026-11-11)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Until step 6 its races start from the game's front end, whose

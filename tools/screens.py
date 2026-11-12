@@ -265,7 +265,16 @@ def ta_glyphs():
     wrench = [[int(idx[y, x] not in (0, 13)) for x in range(51, 63)] for y in range(5)]
     for half in (0, 6):
         out += [sum(b << (7 - i) for i, b in enumerate(row[half:half + 6])) for row in wrench] + [0]
-    return out
+    return out                                      # (no more: front_glyph's index is a byte, 6 a glyph, so 42 at most)
+
+
+def ta_name_keys():
+    """Time attack's name's keys (tagame.6502's tg_type, D39, step 6g): [(key number, ASCII)], A-Z, 0-9, space, the point and
+    minus, then Return, Delete and Escape (keyboard.6502's KeyEscape: not in Matrix)."""
+    at = {n: row * 16 + col for row, names in enumerate(Matrix) for col, n in enumerate(names) if isinstance(n, str)}
+    want = [chr(c) for c in range(65, 91)] + [str(d) for d in range(10)] + ['SPACE', '.', '-', 'RETURN', 'DELETE']
+    code = {'SPACE': 32, 'RETURN': 13, 'DELETE': 127}
+    return [(at[n], code.get(n, ord(n[0]))) for n in want] + [(112, 27)]
 
 
 def box_rects(box):
@@ -552,6 +561,8 @@ def main(out, zx02):
              'CreditsPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['credits']['pal']) + '}',
              'ScoresPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['scores']['pal']) + '}',
              'SmallFont = {' + ', '.join(map(str, font())) + '}', 'TaGlyphs = {' + ', '.join(map(str, ta_glyphs())) + '}',
+             'TaNameKeys = {' + ', '.join(str(k) for k, _ in ta_name_keys()) + '}',
+             'TaNameChars = {' + ', '.join(str(c) for _, c in ta_name_keys()) + '}',
              'OptKeyNumbers = {' + ', '.join(str(k) for k, _ in option_keys()) + '}',
              'OptKeyNames = {' + ', '.join(str(n) for _, n in option_keys()) + '}',
              'OptWordBytes = {0, ' + ', '.join(str(b) for w in Words for b in w.encode() + b'\0') + '}',

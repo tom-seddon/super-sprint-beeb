@@ -26,9 +26,10 @@
 // Usage (from the repo root, after make ta): node tools/ta_picture_check.mjs
 
 import { readFileSync } from "node:fs";
-import { bootDisc, ram, settle, symbols } from "./jsbeeb.mjs";
+import { bootDisc, discFiles, jsbeebModule, ram, runToAny, settle, symbols } from "./jsbeeb.mjs";
 
 const syms = symbols("build/tracks_ta/t0.json");
+const { toSsdOrDsd } = await jsbeebModule("disc.js");
 const Field = 39936, Width = 1024, Top = 128;
 const Top32 = Top - 2 * 8 * (syms.FrontVSyncPos - syms.ScreenVSyncPos);   // (the 32 rows' first line in the frame buffer)
 const Lines = 256, Logo = syms.TaLogoLines;
@@ -57,8 +58,9 @@ function encode(l) {
 const picture = readFileSync("build/gen/tamenu.bin");
 if (!encode(decode(picture)).every((v, i) => v === picture[i])) throw new Error("the model's MODE 1 bytes aren't the picture's");
 const gen = readFileSync("build/gen/front.6502", "utf8"), table = (n) => gen.match(new RegExp(`^${n} = \\{([^}]*)\\}`, "m"))[1].split(",").map(Number);
-const font = [...table("SmallFont"), ...table("TaGlyphs")];   // (then 39 the minus, 40 and 41 the wrench)
-const glyph = (ch) => ch === "." ? 10 : ch === "!" ? 11 : ch === "-" ? 39 : ch === "{" ? 40 : ch === "}" ? 41 : ch >= "A" ? 12 + ch.charCodeAt(0) - 65 : Number(ch);
+const font = [...table("SmallFont"), ...table("TaGlyphs"), 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0];   // (then 39 the minus, 40 and 41
+// the wrench; 42 the name's cursor, # in text, a block tg_typed draws itself)
+const glyph = (ch) => ch === "." ? 10 : ch === "!" ? 11 : ch === "-" ? 39 : ch === "{" ? 40 : ch === "}" ? 41 : ch === "#" ? 42 : ch >= "A" ? 12 + ch.charCodeAt(0) - 65 : Number(ch);
 function text(l, s, x, y, ink) {
     for (const ch of s) {
         if (ch !== " ") for (let line = 0; line < 6; line++) for (let j = 0; j < 6; j++)
@@ -84,8 +86,9 @@ function model(times, track) {
     return l;
 }
 // the track's screen: the picture's lines above the cells, the track's map (its cell's first 84 pixels) in the first
-// cell's place, the title and the entries
-function trackModel(track, entries, levels = [0, 0, 0], cursor = 3) {
+// cell's place, the title and the entries; lit, the place of the entry just made (step 6g): its row all yellow, and if
+// typed is given its name that and the cursor (#) after it if shown and there's room
+function trackModel(track, entries, levels = [0, 0, 0], cursor = 3, { lit = -1, typed = null, blink = false } = {}) {
     const p = decode(picture), l = new Uint8Array(Lines * 320), [x0, y0] = cell(track), Top = syms.TaMenuTop;
     l.set(p.subarray(0, Top * 320));
     for (let y = 0; y < syms.TaMenuRow; y++) for (let x = 0; x < 4 * syms.TgMapBytes; x++) l[(Top + y) * 320 + x] = p[(y0 + y) * 320 + x0 + x];
@@ -99,11 +102,12 @@ function trackModel(track, entries, levels = [0, 0, 0], cursor = 3) {
     text(l, "{}", syms.TpX, syms.TpLeftY, 3);
     text(l, String(left), syms.TpX + 18, syms.TpLeftY, left < 0 ? 1 : 3);
     entries.forEach(([t, name, ups = 0], i) => {
-        const y = syms.TtRowY + i * syms.TtRowStep;
-        text(l, String(i + 1).padStart(2), syms.TtPlaceX, y, 1);
+        const y = syms.TtRowY + i * syms.TtRowStep, on = i === lit;
+        if (on && typed !== null) name = typed + (blink && typed.length < 10 ? "#" : "");
+        text(l, String(i + 1).padStart(2), syms.TtPlaceX, y, on ? 2 : 1);
         if (t) {
-            text(l, time(t), syms.TtTimeX, y, 2), text(l, name, syms.TtNameX, y, 3);
-            text(l, `S${Math.floor(ups / 36)} A${Math.floor(ups / 6) % 6} T${ups % 6}`, syms.TtUpsX, y, 1);
+            text(l, time(t), syms.TtTimeX, y, 2), text(l, name, syms.TtNameX, y, on ? 2 : 3);
+            text(l, `S${Math.floor(ups / 36)} A${Math.floor(ups / 6) % 6} T${ups % 6}`, syms.TtUpsX, y, on ? 2 : 1);
         }
     });
     return l;
@@ -147,6 +151,7 @@ function shown(want) {
             for (let x = 0; x < 320; x++) expect[Rgb[red ? 0 : 1][w[y * 320 + x]]] += 2;
             if ([1, 2, 3, 4].some((k) => count[k] !== expect[k])) {
                 ok[i] = false;
+                if (process.env.DBG) console.log(`  want ${i}: line ${y} ${[1, 2, 3, 4].map((k) => count[k])} not ${[1, 2, 3, 4].map((k) => expect[k])}`);
                 first ||= `line ${y}: ${[1, 2, 3, 4].map((k) => `${count[k]} ${Names[k]}`).join(", ")}, not ${[1, 2, 3, 4].map((k) => expect[k]).join(", ")}`;
             }
         });
@@ -280,5 +285,83 @@ if (!await run(4000, null, syms.start)) say("Return on track 5's screen raced no
 s.keyUp("Enter");
 await run(5, null);                     // (the race's first fields: nothing red, as the logo's lines go)
 
-console.log(bad ? `${bad} wrong` : `the menu's and the track's screen's 32 rows as the model (${checked} screens: the picture, the 8 tracks' text and bests, the box moved, track 5's screen, its upgrades set and over, the cursor over RACE both ways, the menu again, track 5's by its number, put right); ${field} fields from the boot to a race: no green on the logo's lines nor red under them, and ${steady} of the menu's every line's colours as the model's`);
+// the name (step 6g, D39, D49, D50): the race's best poked, Escape: its entry the first of track 5's 10, the row lit,
+// the name typed with the cursor after it (Delete, ! by SHIFT and 1, to 10 and an 11th ignored), every field of each key the row before it or after it (the cursor shown
+// or not), nothing half drawn; Return: "Saving" in the HUD's row, nothing else lit till the screen's drawn again, no
+// file read; TIMES then holding the name; track 5's screen again, the row lit; Escape and 5: the row as the others
+const bt = peek(syms.banktrace), Best = 400, Ups = 3 * 36 + 2 * 6;
+for (let n = 0; n < 20; n++) await runToAny(s, [[syms["logic_frame.played"], bt]], 8000000);
+s.writeMemory(syms.TaBestLo, [Best & 255, Best >> 8]);   // (ANDY's, paged in here)
+let named = [[Best, "", Ups], ...entries.slice(0, 9)];
+s.keyDown("Escape");
+await runToAny(s, [[syms["tg_type.field"], peek(syms.bankbg)]], 400000000);   // (the race's own screen not checked here)
+let typed = "";
+const naming = (t) => [false, true].map((blink) => trackModel(4, named, [3, 2, 0], 3, { lit: 0, typed: t, blink }));
+await run(10, naming(""));              // (Escape still held: nothing typed)
+s.keyUp("Escape");
+await run(5, naming(""));
+for (const [keys, after] of [[["KeyT"], "T"], [["KeyO"], "TO"], [["KeyM"], "TOM"], [["Backspace"], "TO"], [["KeyN"], "TON"],
+    [["ShiftLeft", "Digit1"], "TON!"], [["Space"], "TON! "], [["Digit1"], "TON! 1"], [["Digit2"], "TON! 12"], [["Period"], "TON! 12."],
+    [["Minus"], "TON! 12.-"], [["KeyZ"], "TON! 12.-Z"], [["KeyQ"], "TON! 12.-Z"]]) {   // (10, the most: Q ignored)
+    const want = [...naming(typed), ...naming(after)];
+    for (const k of keys) s.keyDown(k);
+    await run(3, want);
+    for (const k of keys) s.keyUp(k);
+    await run(3, want);
+    typed = after;
+}
+await run(40, naming(typed));           // (the cursor on and off)
+const names = [];
+const hook = (pc) => { if (pc === syms.row_char) names.push(String.fromCharCode(cpu.a)); return false; };
+cpu.debugInstruction.add(hook);
+s.keyDown("Enter");
+let reads = 0, tripFields = 0, said = 0, dark = false;   // (from the screen gone black: the screen's still up till then, 3 fields at most)
+const osfile = (pc) => { if (pc === 0xffdd && cpu.a === 0xff) reads++; return false; };
+cpu.debugInstruction.add(osfile);
+const shownAt = syms["game_resume.shown"], id = s.addBreakpoint("execute", shownAt, {});
+for (let left = Field; ;) {             // (to the screen's redraw: the HUD's row alone lit)
+    s.resetBreakpointHits();
+    settle(s);
+    const before = s.elapsedCycles;
+    await s.runFor(left);
+    const hit = s.hitBreakpoint();
+    left -= Math.max(s.elapsedCycles - before, 1);
+    if (hit && (cpu.romsel & 15) === peek(syms.bankbg)) break;
+    if (left > 0) continue;
+    left = Field;
+    if (++tripFields === 3) s.keyUp("Enter");
+    let out = 0, row = 0;
+    for (let i = 0; i < fb.length; i++) if (fb[i] & 0xffffff) { const y = Math.floor(i / Width); if (y >= Top && y < Top + 16) row++; else out++; }
+    if (!dark && !out && !row) dark = true;
+    if (!dark && tripFields <= 3) continue;
+    if (out) say(`the save's trip, field ${tripFields}: ${out} pixels lit outside the HUD's row`);
+    if (row) said++;
+    if (tripFields > 1000) { say("the save's trip: no screen after 1000 fields"); break; }
+}
+s.removeBreakpoint(id);
+cpu.debugInstruction.remove(hook);
+cpu.debugInstruction.remove(osfile);
+if (names.join("") !== "Saving" || !said || reads) say(`the save's trip: "${names.join("")}" written, the row lit ${said} fields, ${reads} files read, not "Saving", some and none`);
+await toMenu();
+named = [[Best, "TON! 12.-Z", Ups], ...entries.slice(0, 9)];
+const times5 = discFiles(toSsdOrDsd(cpu.fdc.drives[0].disc)).TIMES;
+const name40 = times5 && String.fromCharCode(...times5.data.subarray(3 * 80 + 400, 3 * 80 + 410));
+if (!times5 || (times5.data[40] | times5.data[120] << 8) !== Best || name40 !== "TON! 12.-Z") say(`the save: TIMES ${times5 ? `track 5's first ${times5.data[40] | times5.data[120] << 8}, ${JSON.stringify(name40)}` : "none"}, not ${Best} and TON! 12.-Z`);
+screen("the name saved: track 5's screen, the new entry lit", trackModel(4, named, [3, 2, 0], 3, { lit: 0 }));
+await run(10, trackModel(4, named, [3, 2, 0], 3, { lit: 0 }));
+s.keyDown("Escape");
+await run(3, null);
+s.keyUp("Escape");
+await toMenu();
+onTrack = false;
+await run(5, null);
+s.keyDown("Digit5");
+await run(3, null);
+s.keyUp("Digit5");
+await toMenu();
+onTrack = true;
+screen("Escape and 5: track 5's screen, nothing lit", trackModel(4, named, [3, 2, 0], 3));
+await run(10, trackModel(4, named, [3, 2, 0], 3));
+
+console.log(bad ? `${bad} wrong` : `the menu's and the track's screen's 32 rows as the model (${checked} screens: the picture, the 8 tracks' text and bests, the box moved, track 5's screen, its upgrades set and over, the cursor over RACE both ways, the menu again, track 5's by its number, put right, a race's entry named and lit, then not); the name typed field by field, its save's trip "Saving" alone (${tripFields} fields); ${field} fields from the boot to a race: no green on the logo's lines nor red under them, and ${steady} of the menu's every line's colours as the model's`);
 process.exit(bad ? 1 : 0);

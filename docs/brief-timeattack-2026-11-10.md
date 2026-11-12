@@ -744,6 +744,35 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      Tom, 2026-11-12: "I was clearly mistaken" about the loads, and 01453fb on his Master "looks good". 6f done.
    - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen
      with the new entry lit. Ties' order then checkable (`tools/ta_table_check.mjs`). Tried.
+     **Done** (2026-11-12, to be tried on Tom's Master; `docs/img/timeattack-name-6g.png` typing,
+     `timeattack-named-6g.png` after): Tom chose the name typed on the track's screen and saved at once (D50: "option
+     B"), "Saving" said, no file read, the new entry in its own colour till the screen's left; the keys as proposed
+     (D39). As a race ends `ta_enter` sets `TaNew` and `TaLit` (the entry + 1, in LowFree with `GhNew` and
+     `TaTableNew`, which moved there: GameVars is cleared at every load, and these now outlive one). The load after the
+     race saves nothing while `TaNew`'s set (`ta_save`), and the track's screen comes up with the entry's row all
+     yellow, empty. `tg_type` (tagame.6502): each field after the vsync it finds the key down (`TgNameKeys`, made by
+     `tools/screens.py`'s `ta_name_keys` from its matrix: A-Z, 0-9, space, the point, minus, Return, Delete, Escape;
+     SHIFT and 1 the !), acting once as it goes down, nothing till the race's keys are let go; up to 10; a yellow block
+     after the name flashing (16 fields on, 16 off: drawn by hand, not a glyph, as `front_glyph`'s glyph index is a
+     byte at 6 a glyph and time attack's 42 fill it). The name's redrawn after the beam's passed its row (a delay from
+     the vsync by the row's line), so it's never seen half drawn. Return or Escape: `ta_name_put` (timeattack.6502,
+     sharing `ta_entry`'s pointer) puts it in the table, `TaNew` 0, and `load_go` with `TaSaveOnly` ('V'): `load_track`
+     writes "Saving" in the HUD's row, saves `GHOSTn` and `TIMES` (`ta_save`), reads no file and takes the machine
+     back, and the menu's picture (still in the bank) makes the track's screen again, the row lit (`TaLit`) till
+     Escape or a race. `ta_save` now runs after the row's drawn on every load, so it's said while saving (after a
+     disc error, back at the row, nothing's tried again: its flags are cleared first). The minus is a name's
+     character too (`tg_char`).
+     MEASURED (track 1's build): the first 4K 1,501 to 997 bytes free, main RAM's code 712 to 686, LoadCode 38 to 11,
+     LowFree's state 46 to 42. In jsbeeb Return to the track's screen again 165 fields (3.3 s; "Saving" about 2.2 s
+     of it, the motor off by then); the race's load after a new entry no longer writes anything.
+     `ta_picture_check` names a race's entry: the row lit, `TON!` typed with Delete and SHIFT-1, then to 10 and an
+     11th ignored, every field of each key the row before it or after it (fails with the redraw not waiting for the
+     beam: 5 fields half drawn); the trip "Saving" alone in the HUD's row, no file read; `TIMES` holding it; the row
+     lit after, and not after Escape and 5 (fails with `TaLit` kept). `ta_table_check` types each race's own name, so
+     ties' order shows, and that nothing's saved before it (fails with the race's load saving: TIMES twice);
+     `ta_menu_check` holds Escape at the name (nothing saved or typed) then types AB; `ta_ghost_check` and
+     `ta_save_check` type names (`tools/ta_name.mjs`). All seven pass, and `boot_check --ta` (DFS and ADFS); play the
+     same; the game's discs the same but for the README's commit link, every track's build byte for byte.
    - **6i, the options** (D54): a screen of its own from the menu, mostly text with the logo: the three key sets
      redefined and the sound on or off, as the game's options do, saved as now. Tried.
    - **6h, the turnaround** (D45): measured from Escape to the next race; the same track again loading nothing, if
