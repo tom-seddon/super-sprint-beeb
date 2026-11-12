@@ -79,9 +79,21 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 
 .game_resume
 {
-    LDA GmFront:CMP #'F':BEQ menu       ; (a track's load, or the boot's: the title's file first, the save in its load)
+    LDA GmFront:CMP #'F':BEQ front      ; (a race's end, or the boot's: the title's file first)
+    LDA TaParked:BEQ load               ; a race's end: the title's file put back from where it's kept (6h, D45), no
+    LDA TaNew:BNE parked                ; load; unless something's to be saved and no name's to come before it (a new
+    LDA GhNew:ORA TaTableNew:BNE load   ; ghost with no entry: TIMES gone, say), so the load's start saves it
+.parked
+    SEC:JSR ta_park                     ; (timeattack.6502's)
+    LDA #'F':STA GmFront
+    BRA menu
+.load
     LDA #'F' - '0':STA LoadWant
     JMP load_go                         ; (back here through game_go)
+.front
+    LDA TaParked:BNE menu
+    CLC:JSR ta_park                     ; the boot's load: the title's file kept, once
+    LDA #1:STA TaParked
 .menu
     STZ GmAbandon:STZ GmStage:STZ GmPicture
     JSR tg_rows32                       ; (the palette black till it's drawn)

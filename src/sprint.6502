@@ -98,6 +98,8 @@ SECTION TraceFile, filename = "SPRINTC", load = &FFFF0000+LoadAddr
 .TaKeep                                 ; Shared's part the same on every track (SharedOrg to SharedSlot: the effects,
                     SKIP TaKeepLen      ; probes, sharedtabs), kept from the boot, put back before each track's load
                                         ; (D55: timeattack.6502's ta_keep), as the menu's 32 rows overwrite it
+.TaParkHigh                             ; TRACKF's upper part (the options), kept from the boot's load (6h: ta_park)
+                    SKIP TaParkHighPages * 256
                     ASSERT SwramEnd - P% >= TaFxRoom, "time attack: room in the fourth bank for the front end's sound effects"
                 ENDIF
                 PRINT "the fourth bank: ", SwramEnd - P%, " bytes free"
@@ -127,6 +129,9 @@ SECTION ObjFile, filename = "SPRINTD", load = &FFFF0000+LoadAddr
         INCBIN "../build/gen/objects.bin"   ; (tools/gendata.py)
         ASSERT LO(ObjData) == 0, "the objects' bytes: from a page's start"
 .ObjSlotEnd
+        IF GenTimeAttack
+            ASSERT P% <= TaParkLow, "time attack: a track's objects over TRACKF's pictures, kept (6h)"
+        ENDIF
         IF GenPlay
             PRINT "the objects' bank: ", FrontImage - P%, " bytes free"
             PADTO FrontImage
@@ -169,6 +174,10 @@ SECTION FrontFile, filename = "TRACKF", load = &FFFF0000+TrackFileAddr
     ENDIF
         PRINT "the front end's file: ", GameScratchOrg - P%, " bytes free"
 .front_high_end
+        IF GenTimeAttack                ; (kept in the banks between races, 6h: timeattack.6502's ta_park)
+            ASSERT front_high_end - FrontPicOrg <= TaParkHighPages * 256, "time attack: TRACKF's options past their keep"
+            ASSERT front_pics_end - BgOrg == TaParkLowPages * 256, "time attack: TRACKF's pictures not their keep's pages"
+        ENDIF
     ENDSECTION
     \ save.6502, run where it lands in the main screen: the end of the file (copied into the background's bank
     \ with the pictures, harmlessly, as far as it reaches below GameScratchOrg). Time attack's SCORES is saved at

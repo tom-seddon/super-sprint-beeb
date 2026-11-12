@@ -98,6 +98,8 @@ IF GenTimeAttack
     SKIP 1
 .TaLit                                  ; the entry lit on the track's screen, + 1 (0 none): the one just made, till
     SKIP 1                              ; the screen's left
+.TaParked                               ; 1: TRACKF's kept in the banks, from the boot's load (6h: timeattack.6502's ta_park)
+    SKIP 1
 .TgOn                                   ; and 1: the track's screen up, or to come back to after the race (D50,
                                         ; tagame.6502); 0 the menu
 ELSE

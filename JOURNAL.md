@@ -765,3 +765,7 @@
   load of its own. `tools/ta_options_check.mjs` checks it as the game's check does.
   Tom tried it: "it looks good"; the columns now SET 1-3, not PLAYER 1-3, as there's one player. Then "looks good":
   6i done.
+  6h, the turnaround: the same track loading nothing can't be (the front end runs in the background's bank), but the
+  title's file can be kept in the objects' and fourth banks from the boot, so Escape loads nothing: 0.87 s to the
+  track's screen, was about 2.9. SCORES now saved at any load's start (a race's), which found OSFILE writing back
+  into its block: a second save said "Disc full" till the block was made each time.

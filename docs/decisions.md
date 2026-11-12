@@ -661,6 +661,10 @@ So: no wipe between screens (D25's), no prepare to race and no winner's circle; 
 shown and flipped. After Escape, the name only if the race's best made the table, the save only if something changed,
 then the menu. Proposed with it, not yet asked: the menu back on the track just raced and the upgrades as last picked;
 the same track again loading nothing, if the front end's files keep out of the track's slots.
+Built (step 6h, 2026-11-12): the same track can't load nothing, as the front end runs in the background's bank and
+overwrites the track's background; instead the title's file (TRACKF) is kept in the objects' and fourth banks from the
+boot, so a race's end loads nothing: Escape to the track's screen 0.87 s in jsbeeb, was 2.8-3.0 s. SCORES is saved at
+any load's start now, the next race's.
 
 ### D46. Time attack's front end in 32 rows, the race in 26: Decided (2026-11-10)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §6). Departs from D25 (one 26-row layout for the whole game, set up

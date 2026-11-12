@@ -87,8 +87,8 @@ async function titleLoad(m) {
     await toMenu(m);
 }
 
-// a race on track 1, 50 fields, Escape back: RaceLoads loads (the track's, and TRACKF's on the way back)
-const RaceLoads = 2;
+// a race on track 1, 50 fields, Escape back: RaceLoads loads (the track's; TRACKF's kept, none on the way back, 6h)
+const RaceLoads = 1;
 async function race(m) {
     m.s.writeMemory(syms.LoadWant, [1]);
     await runTo(m.s, syms.start, 400000000);

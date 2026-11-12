@@ -313,6 +313,93 @@ TaKeepLen = SharedSlot - SharedOrg
     RTS
 }
 
+\\ TRACKF kept in the banks (6h, D45): its pictures (BgOrg to front_pics_end, under ANDY) in the objects' bank above
+\\ every track's objects, and its options (FrontPicOrg on) in the fourth bank after TaKeep, both where no load
+\\ writes; kept from the boot's load (C clear: from the background's bank) and put back as a race ends (C set: to
+\\ it), so a race's end loads nothing. Here in main RAM, as the banks are paged; a page at a time through GameBuf
+\\ in the shadow screen, as game_go's (not shown: the main screen's shown).
+\\
+\\ Inputs: C. Outputs: the pages copied; ROMSEL the background's bank, ANDY in. A, X, Y corrupted.
+
+TaParkLowPages = 12                     ; (sprint.6502 asserts TRACKF's parts these pages)
+TaParkHighPages = 6
+TaParkLow = FrontImage - TaParkLowPages * 256
+
+.ta_park
+{
+    ROR dir                             ; (bit 7: C, put back)
+    LDA acccon:ORA #AccX:STA &FE34      ; ACCCON: the shadow screen written (GameBuf)
+    LDA bankobj:STA other               ; the pictures, in the objects' bank
+    LDA #LO(BgOrg):STA bg
+    LDA #HI(BgOrg):STA bg+1
+    LDA #LO(TaParkLow):STA keep
+    LDA #HI(TaParkLow):STA keep+1
+    LDX #TaParkLowPages
+    JSR pages
+    LDA banktrace:STA other             ; the options, in the fourth bank
+    LDA #LO(FrontPicOrg):STA bg
+    LDA #HI(FrontPicOrg):STA bg+1
+    LDA #LO(TaParkHigh):STA keep
+    LDA #HI(TaParkHigh):STA keep+1
+    LDX #TaParkHighPages
+    JSR pages
+    LDA acccon:STA &FE34                ; ACCCON: the main screen written
+    LDA bankbg:ORA #RomselAndy
+    STA &FE30                           ; ROMSEL: the background's bank, ANDY in
+    RTS
+
+    \\ X pages, from bg to keep (in other) or the other way by dir; banks paged with ANDY out
+.pages
+    LDA bankbg:LDY other
+    BIT dir:BPL @+
+    LDA other:LDY bankbg                ; (put back: from the keep)
+.@
+    STA getbank+1
+    STY putbank+1
+    LDA bg:LDY keep                     ; (the addresses the same way)
+    BIT dir:BPL @+
+    LDA keep:LDY bg
+.@
+    STA get+1
+    STY put+1
+    LDA bg+1:LDY keep+1
+    BIT dir:BPL @+
+    LDA keep+1:LDY bg+1
+.@
+    STA get+2
+    STY put+2
+.page
+.getbank
+    LDA #0:STA &FE30                    ; (self-modified: the bank) ROMSEL
+    LDY #0
+.get
+    LDA &FFFF,Y                         ; self-modified: the address
+    STA GameBuf,Y
+    INY
+    BNE get
+.putbank
+    LDA #0:STA &FE30                    ; (self-modified) ROMSEL
+.next
+    LDA GameBuf,Y
+.put
+    STA &FFFF,Y                         ; self-modified: the address
+    INY
+    BNE next
+    INC get+2
+    INC put+2
+    DEX
+    BNE page
+    RTS
+.dir
+    EQUB 0
+.other
+    EQUB 0
+.bg
+    EQUW 0
+.keep
+    EQUW 0
+}
+
 \\ Track X's best time, the table's (the cars' bank's), for the menu (tagame.6502, in the background's bank); or
 \\ (ta_entry) entry X's time and name, for the track's screen; or (ta_name_put, step 6g) TaName made entry X's name,
 \\ the table to save (TaTableNew).

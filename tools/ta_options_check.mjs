@@ -5,7 +5,7 @@
 // colour, in inverse while held; the status line as the game's, the build's version in its right end); F2-F4 asking
 // for keys, refusing the game's own and those taken, Escape putting them back; the warning against tools/keys_ghost.py's
 // model on random layouts; F9 and the sound's field; F0 out to the menu, F1 and Escape out again, the highlight
-// kept; the new keys driving the race's car.
+// kept; the new keys driving the race's car; the options again after the race, put back with no load (6h).
 //
 // Exit status: 1 if anything's wrong, else 0.
 //
@@ -241,5 +241,19 @@ for (let n = 0; n < 3; n++) await runToAny(s, [[syms["logic_frame.built"], bankt
 same("S, a redefined key, read as the car's", [...andy(s, syms.RcInput, 1)], [8]);
 up(S);
 
-console.log(wrong ? `${wrong} wrong` : `the options right: the screen as the model (F1 from the menu, F0 and Escape back to it), ${tried} layouts, ${clashes} with a clash, the new keys driving`);
+// after the race: the options again, their code and the menu's picture put back from where they're kept (6h: no load)
+down(F.esc);
+await toBg(syms["game_resume.idle"]);
+up(F.esc);
+await run(5);
+await tap(F.esc);                       // (the track's screen to the menu)
+await toBg(syms["game_resume.idle"]);
+await run(5);
+down(F.f1);
+await toBg(syms.options_shown);
+up(F.f1);
+await run(4);
+screen("after a race", "on");
+
+console.log(wrong ? `${wrong} wrong` : `the options right: the screen as the model (F1 from the menu, F0 and Escape back to it), ${tried} layouts, ${clashes} with a clash, the new keys driving, and the options as before after the race`);
 process.exit(wrong ? 1 : 0);

@@ -817,5 +817,23 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
         TRACKF), so the block's made again each time, as the ghost's and table's are: a second save in one boot
         said "Disc full" until it was. `ta_scores_check` counts SCORES's saves at any load and saves a change at a
         race's own load (which found that). Main RAM's code 687 to 603 bytes free, LoadCode 11 to 21.
+     2. TRACKF kept (`timeattack.6502`'s `ta_park`): at the boot's load `game_resume` copies its 12 pages of pictures
+        (BgOrg on, under ANDY) to the objects' bank at `TaParkLow` (&AB00, below FrontImage: every track's objects
+        end below it, asserted; track 5's leave 546 bytes) and its 6 pages of options (FrontPicOrg on) to the fourth
+        bank at `TaParkHigh`, after TaKeep (614 left, the sound effects' 256 in it), a page at a time through
+        GameBuf in the shadow screen; `TaParked` (LowFree) set. As a race ends `game_resume` copies them back and goes
+        to the menu or the track's screen with no load, unless a ghost or the table's to be saved with no name to
+        come first (TIMES gone, say), when TRACKF's loaded as before and its load's start saves them. SCORES is saved
+        at the next race's load (1.).
+        MEASURED (jsbeeb, the same script as before, DFS): Escape to the track's screen 0.86-0.88 s, no disc command
+        (was 2.8-3.0 s); Return to the race unchanged, 3.05-3.27 s (the motor's always off by then now, so track 1's
+        first is no longer 1.7 s); the boot 8.06 to 8.34 s (the files fall on other sectors: TRACKF shorter, SPRINT
+        longer). The turnaround, Escape to the next race with no name, about 4 s, was about 6. Main RAM's code 603
+        to 392 bytes free (`ta_park`, 199), the first 4K 961 to 928, the fourth bank 2,150 to 614.
+        `ta_scores_check` counts one load a race (fails with TaParked never set: 2); `ta_options_check` opens the
+        options again after a race, its screen byte for byte (fails with nothing copied at the boot: the machine
+        runs garbage); `ta_picture_check`'s screens after its race come from the copy. All eight checks pass, and
+        `boot_check --ta` (DFS, ADFS); play the same; the game's discs the same but for the README's commit link,
+        every track's build byte for byte.
 7. **Close**: the variant's suite, both discs, Tom's Master. After the merge, not before: the game's two load faults
    fixed as time attack's are (`docs/plan.md`, "After Phase 5", Tom, 2026-11-12).
