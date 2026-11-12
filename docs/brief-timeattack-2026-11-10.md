@@ -699,6 +699,11 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
         from the vsync (9 * 1,284 cycles, 9 bytes), so it runs from about line 32 to 94, after the row's shown.
         `tools/boot_check.mjs --ta` (and `--ta --adfs`) checks time attack's boot as the game's, to the menu's file:
         it failed on 6f's disc (field 351, 28 pixels of the row changed) and passes now.
+        Then `boot_check --ta --adfs` failed with RACE's change below (field 555, 476 pixels): the display's switched
+        off at a load's end (`rows_back`, R8 &F0) whenever the load ends, and this one ended on line 2, so a field
+        showed the row's first 2 lines alone; any load can, about 8 lines in 312 (the game's too, as it stays: its
+        checks pass by where its loads end). In time attack `rows_back` now waits for a vsync (CA1's flag polled,
+        interrupts off there), so the row's never cut short. LoadCode 38 bytes free.
      3. The upgrades renamed (D49): SPEED, ACCEL. and TRACTION, a row's S2 A1 T2, the letters each unique (the point
         the small font's glyph 10). `ta_picture_check`'s model the same.
    - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen

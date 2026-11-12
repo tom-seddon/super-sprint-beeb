@@ -230,6 +230,11 @@
     \\ The display off, its file still in the screen, then the screen's rows again
 
 .rows_back
+    IF GenTimeAttack                    ; (time attack: from a vsync, the beam far from the HUD's row, so it's never
+        LDA #2:STA &FE4D                ; shown cut short: switched off mid-row, its first lines alone were shown for a
+.edge                                   ; field, 2026-11-12, time attack's ADFS boot; the game's as it was, about 8
+        BIT &FE4D:BEQ edge              ; lines in 312 that way. System VIA: IFR, CA1 cleared, then set again: the
+    ENDIF                               ; vsync, interrupts off here)
     LDA #8:STA &FE00                    ; CRTC: R8
     LDA #&F0:STA &FE01                  ; display and cursor off
     LDA #6:STA &FE00                    ; CRTC: R6
