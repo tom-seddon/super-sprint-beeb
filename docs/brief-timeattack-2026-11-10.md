@@ -1,6 +1,6 @@
 # Brief - a time attack version
 
-> **Status: in progress (2026-11-10): steps 1 to 5 done (§8): the ghosts and the table saved; step 6, the front end, next.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
+> **Status: done (2026-11-12), for Tom to merge: steps 1 to 7 done (§8); step 7's suite `tools/ta_checks.sh`, in `tools/suite.sh`.** Branch `timeattack`. Tom, 2026-11-10: "I'm thinking it could
 > benefit from having a special version, built from the same code and using the same basic game engine and tracks: a
 > time attack mode, with persistent high score tables and ghost car recordings of the fastest lap (up to some lap
 > time limit as dictated by memory)." On the first look (§1-§6 below, as given in chat): "This all looks good. I have
@@ -838,3 +838,18 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      Tom tried it on his Master (2026-11-12): "Looks good." 6h done.
 7. **Close**: the variant's suite, both discs, Tom's Master. After the merge, not before: the game's two load faults
    fixed as time attack's are (`docs/plan.md`, "After Phase 5", Tom, 2026-11-12).
+   **Done** (2026-11-12, the discs to be tried on Tom's Master): `tools/ta_checks.sh OUT` runs time attack's eleven
+   checks, MACHINES at a time, a log and a status each in OUT: the ghost (`ta_ghost_check`, and on `build/ta.adl`,
+   now booting a Master with ADFS for an .adl: every track loaded and raced twice, the second race with the ghost the
+   first saved; the files themselves read back on DFS alone), the save, the table, SCORES, the menu, the rows, the
+   pictures, the options and the boot on DFS and ADFS. `tools/suite.sh` runs it last, after `tools/all_tracks.sh ta`
+   and the discs, so `tools/suite_remote.sh` runs it on agentbox and brings `ta.ssd` and `ta.adl` back with the
+   game's. The checks read the front end's tables from `build/tracks_ta/gen`, a copy `all_tracks.sh ta` keeps, not
+   `build/gen` (the next build's), so they're right whatever's been built since.
+   MEASURED (agentbox, MACHINES 14): the whole suite 5 min 2 s, all 56 verdicts 0 (43 before); time attack's part 104 s (its
+   tracks 29 s, discs 11 s, checks 64 s: the two ghosts about a minute each, the rest under 25 s). A check's fault
+   (`ta_rows_check` made to exit 1) shows in its line and the script's exit 1. The game's discs from this branch
+   and from `main` (edd5ddc), both `make game VERSION=ident` with one COMMIT: `game.ssd` and `game.adl` the same
+   byte for byte (sha256 58d0a52edf83e172, 976805839e5f9e0f), every track's disc and `slots.txt` the same; the
+   listings and symbols differ in lines alone: every named symbol the same value, the new ones time attack's
+   constants and two labels (`load_track.back`, `.saved`) on unchanged code.

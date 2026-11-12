@@ -15,15 +15,22 @@
 //
 // Usage (from the repo root, after make ta): node tools/ta_ghost_check.mjs [DISC DIR [FRAMES]]
 //     DISC default build/ta.ssd, DIR (the tracks' symbols) build/tracks_ta, FRAMES 2400; TRACKS=0,1 for some,
-//     PASSES=1 for one race each
+//     PASSES=1 for one race each. DISC an .adl (build/ta.adl): on a Master with ADFS, the ghosts' files not read
+//     back (discFiles reads DFS's catalogue), but each track's second race still starts with the ghost its first saved.
 import { bootDisc, discFiles, jsbeebModule, runTo, runToAny, symbols } from "./jsbeeb.mjs";
 import { toFront } from "./ta_name.mjs";
 import { makePilot } from "./ta_pilot.mjs";
 const [disc = "build/ta.ssd", dir = "build/tracks_ta", framesArg] = process.argv.slice(2);
 const FRAMES = Number(framesArg || 2400);
-const s = await bootDisc(disc);
+const adfs = disc.endsWith(".adl");
+const s = adfs ? await bootDisc(disc, "MasterADFS", 8000000) : await bootDisc(disc);
 let syms = symbols(`${dir}/t0.json`);
-await runTo(s, syms["game_resume.idle"], 80000000);
+// to the menu's wait in the background's bank (its address alone is reached in ROMs too, ADFS's during a boot)
+for (;;) {
+    await runTo(s, syms["game_resume.idle"], 80000000);
+    if ((s._machine.processor.romsel & 15) === s.readMemory(syms.bankbg, 1)[0]) break;
+    await s.runFor(1000);
+}
 const peek = (a) => s.readMemory(a, 1)[0];
 const bt = peek(syms.banktrace), bc = peek(syms.bankcars);
 const key = (r) => (r ? r.join(",") : "none");
@@ -101,6 +108,7 @@ for (let pass = 0; pass < PASSES; pass++) for (const t of TRACKS) {
     s.writeMemory(syms.GmAbandon, [1]); s.writeMemory(syms.LoadWant, [0xff]);
     await toFront(s, syms, `PASS${pass + 1} T${t + 1}`);   // (its name typed if the race made the table, then saved: step 6g)
     // its file (saved after the name, at the save's own trip) the ghost the model has
+    if (adfs) continue;
     const file = discFiles(written())[`GHOST${t + 1}`];
     const want = saved[t];
     if (!want) { if (file) { wrong++; console.log(`  GHOST${t + 1} written with no ghost`); } }

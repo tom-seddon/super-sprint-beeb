@@ -2,8 +2,8 @@
 // a fresh boot:
 // - the screen: the 8 tracks' bests poked into the table (none, under 10 s, over, 99.98 and past it), the menu drawn
 //   again (a title's load) and its 32 rows in main RAM byte for byte as a model has them: tools/screens.py's picture
-//   (build/gen/tamenu.bin), each track's "TRACK n" in white and its best in yellow, " 9.56", in the small font (the
-//   build's table, build/gen/front.6502's SmallFont), and the yellow box round the highlighted track; again once the
+//   (build/tracks_ta/gen/tamenu.bin), each track's "TRACK n" in white and its best in yellow, " 9.56", in the small font (the
+//   build's table, build/tracks_ta/gen/front.6502's SmallFont), and the yellow box round the highlighted track; again once the
 //   highlight's moved (the box EOR'd: out of one cell, into the next);
 // - the track's screen (step 6e, D48), Return on the menu: the logo kept, the track's map moved from its cell to the first
 //   cell's place, the rest cleared, "TRACK n" in white under it, and its 10 entries (poked: times, names of every
@@ -55,9 +55,9 @@ function encode(l) {
     }
     return out;
 }
-const picture = readFileSync("build/gen/tamenu.bin");
+const picture = readFileSync("build/tracks_ta/gen/tamenu.bin");
 if (!encode(decode(picture)).every((v, i) => v === picture[i])) throw new Error("the model's MODE 1 bytes aren't the picture's");
-const gen = readFileSync("build/gen/front.6502", "utf8"), table = (n) => gen.match(new RegExp(`^${n} = \\{([^}]*)\\}`, "m"))[1].split(",").map(Number);
+const gen = readFileSync("build/tracks_ta/gen/front.6502", "utf8"), table = (n) => gen.match(new RegExp(`^${n} = \\{([^}]*)\\}`, "m"))[1].split(",").map(Number);
 const font = [...table("SmallFont"), ...table("TaGlyphs"), 0xf8, 0xf8, 0xf8, 0xf8, 0xf8, 0];   // (then 39 the minus, 40 and 41
 // the wrench; 42 the name's cursor, # in text, a block tg_typed draws itself)
 const glyph = (ch) => ch === "." ? 10 : ch === "!" ? 11 : ch === "-" ? 39 : ch === "{" ? 40 : ch === "}" ? 41 : ch === "#" ? 42 : ch >= "A" ? 12 + ch.charCodeAt(0) - 65 : Number(ch);

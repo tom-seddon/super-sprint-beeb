@@ -70,10 +70,9 @@ What the skills look up, for this project:
   `ta_menu_files`, colour 1 switched under the logo by `irq.6502`'s `TaSplit`) and the track's screen by `node tools/ta_picture_check.mjs`; its options (`options.6502`, in `TRACKF`, F1 on the menu) by `node tools/ta_options_check.mjs`; `TRACKF` kept
   in the objects' and fourth banks from the boot, so a race's end loads nothing (6h: `timeattack.6502`'s `ta_park`); its boot by
   `node tools/boot_check.mjs --ta` (and with `--adfs`); a race's name typed for the checks by
-  `tools/ta_name.mjs`
-  (none of these yet in the suite); no tunes
-  (`GenTunes` 0); the races driven by
-  `tools/ta_pilot.mjs`, an autopilot along the drones' path.
+  `tools/ta_name.mjs`. `tools/ta_checks.sh OUT` runs them all, MACHINES at a time (the ghost's on `build/ta.adl` too),
+  and `tools/suite.sh` runs it after time attack's build (its front end's tables kept in `build/tracks_ta/gen`); no
+  tunes (`GenTunes` 0); the races driven by `tools/ta_pilot.mjs`, an autopilot along the drones' path.
 - **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes
   `build/sprint.ssd`, the listing `build/sprint.lst` (each bank's free bytes are printed in it) and the
   symbols `build/sprint.json` (Baron's `--symbols`). No `-D` flags. The build's version, on the options screen, is git's (`make

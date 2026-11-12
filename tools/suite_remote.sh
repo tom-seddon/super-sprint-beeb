@@ -9,7 +9,8 @@
 # prerequisites: make, a C compiler, CMake, Ninja, Python 3.14, and Node for the checks), everything else in build/,
 # and the races' models (MODELS at a time, default 12), with HATARI=/usr/bin/false: an ST file missing here fails
 # the suite there, and wants making here first (make stfiles, or the script that makes it).
-# Its OUT comes back here as OUT, with the discs it built (OUT/game.ssd, OUT/game.adl).
+# Its OUT comes back here as OUT, with the discs it built (OUT/game.ssd, OUT/game.adl, and time attack's,
+# OUT/ta.ssd, OUT/ta.adl).
 #
 # One at a time: two runs would share REMOTE_DIR.
 #
@@ -38,7 +39,7 @@ ssh -o ServerAliveInterval=30 "$REMOTE" "cd $DIR && rm -rf out/suite && VERSION=
 [ $? = 0 ] || exit 1
 mkdir -p "$OUT"
 rsync -a "$REMOTE:$DIR/out/suite/" "$OUT/" || exit 1
-for f in out/suite.log build/game.ssd build/game.adl; do      # (one each: macOS's rsync 2.6.9 takes one remote source)
+for f in out/suite.log build/game.ssd build/game.adl build/ta.ssd build/ta.adl; do      # (one each: macOS's rsync 2.6.9 takes one remote source)
     rsync -a "$REMOTE:$DIR/$f" "$OUT/" || exit 1
 done
 status=$(ssh -o BatchMode=yes "$REMOTE" "cat $DIR/out/suite.status")

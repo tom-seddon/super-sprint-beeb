@@ -8,7 +8,8 @@
 # or if any byte outside the slots differs between tracks.
 #
 # Usage (from the repo root): tools/all_tracks.sh [ta]   (ta: the time attack variant's builds, TRACE=ta, kept in
-# build/tracks_ta, its logs build/all_tracks_ta_tN.log; track 1's TRACE=ta build made again at the end)
+# build/tracks_ta, its logs build/all_tracks_ta_tN.log; track 1's TRACE=ta build made again at the end, its
+# build/gen kept as build/tracks_ta/gen)
 
 case "$1" in
     '') variant=play; dir=build/tracks; log=build/all_tracks_t ;;
@@ -39,4 +40,7 @@ done
 .venv/bin/python tools/track_slots.py $dir > $dir/slots.txt || fail=1    # (outside the slots,
 tail -1 $dir/slots.txt                                                      # every track the same)
 make beeb TRACE=$variant > /dev/null 2>&1 || fail=1
+# time attack's checks read its front end's tables and pictures (tools/ta_checks.sh): kept with its builds, as
+# build/gen is the next build's
+[ $variant = ta ] && { rm -rf $dir/gen; cp -R build/gen $dir/gen || fail=1; }
 exit $fail

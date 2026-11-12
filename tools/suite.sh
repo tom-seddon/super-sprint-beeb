@@ -3,7 +3,8 @@
 # one's output in OUT/<name>.log and its exit status in OUT/verdicts.txt. Exit status 1 if any failed.
 #
 # Everything runs on this machine, the races on the disc and the disc's other checks last (tools/disc_races.sh:
-# their logs in OUT/disc_races), nine-tenths of the work: about 38 minutes on Tom's laptop. REMOTE=host sends just
+# their logs in OUT/disc_races), nine-tenths of the work: about 38 minutes on Tom's laptop. Then time attack's
+# build, its discs (build/ta.ssd, build/ta.adl) and its checks (tools/ta_checks.sh: their logs in OUT/ta), here. REMOTE=host sends just
 # those to another machine as soon as the disc's made (tools/remote.sh), the rest running here meanwhile: about 4.
 # tools/suite_remote.sh runs the whole suite on another machine.
 #
@@ -53,6 +54,15 @@ wait
 for c in boot_check break_check crash_check game_check attract_check flash_check options_check select_check upgrades_check circle_check initials_check tune_check tune_off save_check load_check game_adfs load_adfs boot_adfs; do            # (each on its own line, as the disc's jobs left it)
     status=$(cat "$OUT/disc_races/$c.status" 2>/dev/null)
     echo "$c ${status:-missing}" >> "$OUT/verdicts.txt"
+done
+# time attack (docs/brief-timeattack-2026-11-10.md): its tracks' builds and discs (make ta), then its checks
+# (tools/ta_checks.sh, MACHINES at a time), here wherever the races went: the builds share build/sprint.*
+run ta_tracks tools/all_tracks.sh ta
+run ta_disc sh -c '.venv/bin/python tools/make_game.py build/tracks_ta build/zx02 build/ta.ssd && .venv/bin/python -P tools/adfs_disc.py build/ta.ssd build/ta.adl'
+run ta_checks tools/ta_checks.sh "$OUT/ta"
+for c in ghost menu rows table save scores picture options boot boot_adfs ghost_adfs; do
+    status=$(cat "$OUT/ta/$c.status" 2>/dev/null)
+    echo "ta_$c ${status:-missing}" >> "$OUT/verdicts.txt"
 done
 fail=$(awk '$2 != 0 { bad = 1 } END { print bad + 0 }' "$OUT/verdicts.txt")
 echo "done $fail" >> "$OUT/verdicts.txt"

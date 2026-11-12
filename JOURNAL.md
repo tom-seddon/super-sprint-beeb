@@ -772,3 +772,6 @@
   Tom tried it: "Looks good." 6h done. He added a later item: a program to merge a player's time attack tables and
   ghosts with another set, the best 10 per track kept with their ghosts; its UX across the filing systems still his
   to think over (`docs/plan.md`, "After Phase 5").
+  Step 7, the close: `tools/ta_checks.sh` runs time attack's eleven checks in parallel (the ghost's on the ADFS disc
+  too), and `tools/suite.sh` runs it after time attack's build. On agentbox the whole suite 5 min, time attack's part
+  104 s, all passing. The game's discs from this branch and from `main` the same byte for byte.

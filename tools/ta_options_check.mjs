@@ -50,8 +50,8 @@ const nameOf = (k) => { const n = table.get(k); return n < 32 ? words[n - 1] : S
 
 // the model: the menu's picture above its cells, the small font's words in logical colours, then MODE 1's bytes
 const Lines = 256, at = (y, c) => (y >> 3) * 640 + c * 8 + (y & 7);
-const picture = readFileSync("build/gen/tamenu.bin");
-const gen = readFileSync("build/gen/front.6502", "utf8"), tableOf = (n) => gen.match(new RegExp(`^${n} = \\{([^}]*)\\}`, "m"))[1].split(",").map(Number);
+const picture = readFileSync("build/tracks_ta/gen/tamenu.bin");
+const gen = readFileSync("build/tracks_ta/gen/front.6502", "utf8"), tableOf = (n) => gen.match(new RegExp(`^${n} = \\{([^}]*)\\}`, "m"))[1].split(",").map(Number);
 const small = [...tableOf("SmallFont"), ...tableOf("TaGlyphs")];
 const glyph = (ch) => ch === "." ? 10 : ch >= "A" ? 12 + ch.charCodeAt(0) - 65 : Number(ch);
 const logical = new Uint8Array(Lines * 320);
@@ -79,8 +79,8 @@ for (let y = 0; y < Lines; y++) for (let c = 0; c < 80; c++) {
     base[at(y, c)] = b;
 }
 // (each status line with the build's version in its right end, green: tools/version.py's; the game's lines' bytes, a row's)
-const version = readFileSync("build/gen/options_version.bin");
-const lines = Object.fromEntries(["on", "off", "clash"].map((n) => [n, readFileSync(`build/gen/options_${n}.bin`).map((b, i) => b | version[i])]));
+const version = readFileSync("build/tracks_ta/gen/options_version.bin");
+const lines = Object.fromEntries(["on", "off", "clash"].map((n) => [n, readFileSync(`build/tracks_ta/gen/options_${n}.bin`).map((b, i) => b | version[i])]));
 const romFont = (() => {        // the MOS's font, from ROM 15
     const out = [], keep = cpu.romsel;
     cpu.romSelect(15);
