@@ -627,6 +627,31 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      All seven checks pass; the game's discs the same but for the README's commit link, every track's build byte
      for byte.
    - **6e, the track's screen** (D48): its 10 entries; Return races, Escape back to the menu. Tried.
+     **Done** (2026-11-12, to be tried on Tom's Master; `docs/img/timeattack-track-6e.png`, entries poked): Return or
+     accelerate on the menu opens the highlighted track's screen; Return or accelerate there race it, Escape goes back
+     to the menu; after a race, back to the track's screen (D50), however the race was started (a number on the menu
+     too). The screen is made from the menu's picture already on the main screen, with the palette black: the
+     highlight's box taken out, the track's map (its cell's first 21 bytes across, 55 lines) copied to the first
+     cell's place, the rest under the logo cleared, then `TRACK n` in white under the map and the 10 entries beside it,
+     a row each 20 lines apart: the place in green, the time in yellow (as the menu's, " 9.56"), the name in white
+     (A-Z, 0-9, the point and !, a 0 ending it; nothing yet writes a name, 6g); an empty entry shows its place alone.
+     The colour switch as the menu's. Escape unpacks the menu's picture again. Room left right of the names and under
+     the map for the upgrades (6f). `ta_entry` (timeattack.6502, main RAM: the table's in the cars' bank) gives an
+     entry's time and copies its name to `TaName`; `TgOn` in `LowFree`, as it outlives a race (`clear_state` clears
+     GameVars at every load: found when the race's start lost it). Escape is now one of the screens' keys, so as a
+     screen comes up nothing acts till every key's been let go (`TgLast` &FF), not just the one held: Escape and
+     accelerate held together out of a race would otherwise race again once Escape was let go.
+     MEASURED (track 1's build): the first 4K 2,431 to 1,995 bytes free, main RAM's code 829 to 784 (`ta_entry`);
+     Return to the track's screen shown 0.27 s, Escape to the menu 0.47 s (the picture unpacked), jsbeeb.
+     `ta_picture_check` now also checks track 5's screen byte for byte against a model (the picture's lines above
+     the cells, the map moved, the text; poked entries: a full 10 characters, every glyph the font has, empty ones
+     with and without a name) and every field's colours while it's up, and the menu again after Escape (fails with
+     the map copied a byte short); `ta_menu_check` drives the new flow (Escape on the menu does nothing, the race
+     back to its track's screen with Escape still held, the driving keys and numbers doing nothing there, Return
+     and E opening and racing, a held / ignored); `ta_rows_check` lets go of its key as the race's load starts (it
+     held it through the race) and Returns on track 3's screen. All seven checks pass; play the same (the digests
+     byte for byte 6d's, 8 tracks); the game's discs the same but for the README's commit link, every track's build
+     byte for byte.
    - **6f, the upgrades** (D49): picked on the track's screen, 5 points over top speed, turbo and traction, as the
      last race's; given to the race as the ST's set-up does, kept in the entry and the ghost's file. Tried.
    - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen

@@ -1,6 +1,6 @@
 // Time attack's 32-row front end and the race's 26 rows (docs/brief-timeattack-2026-11-10.md, step 6c; D46;
 // tagame.6502's tg_rows), field by field as shown (the frame buffer, as tools/flash_check.mjs reads it), on
-// build/ta.ssd from a fresh boot: to the menu, 3 raced, Escape back to the menu, Return races the highlighted track (3):
+// build/ta.ssd from a fresh boot: to the menu, 3 raced, Escape back to track 3's screen (D50), Return races it:
 // - from the first menu on, nothing lit outside the 32 rows' lines, nor outside the 26 rows' but while the menu's
 //   shown (to the grace's end on leaving it: its logo reaches the 32 rows' first lines);
 // - the menu, from its start (two fields' grace: the one being shown and tg_rows's wait for a vsync) until it's all
@@ -34,7 +34,7 @@ const lit = (from, to) => {
 
 const G = (n) => syms[`game_resume.${n}`];
 const at = { menu: G("menu"), shown: G("shown"), go: G("go"), start: syms.start, frame: syms.frame_loop };
-const Keys = [["Digit3", 2], ["Enter", 2]];             // (each from the menu: the key, and the track it races)
+const Keys = [["Digit3", 2], ["Enter", 2]];             // (each from the screen shown, the menu then track 3's: the key, and the track it races)
 
 let bad = 0, field = 0;
 const say = (t) => { if (bad++ < 20) console.log(`field ${field}: ${t}`); };
@@ -58,9 +58,9 @@ for (let left = Field; ;) {
     left -= Math.max(s.elapsedCycles - before, 1);
     if (hit && ours(hit.address)) {
         const a = hit.address;
-        if (a === at.menu) { state = "drawing"; grace = 2; menus++; }
+        if (a === at.menu) { state = "drawing"; grace = 2; menus++; s.keyUp("Escape"); }
         else if (a === at.shown) { state = "menu"; shownFields = 0; }
-        else if (a === at.go) { state = "loading"; grace = 2; said = false; }
+        else if (a === at.go) { state = "loading"; grace = 2; said = false; for (const [k] of Keys) s.keyUp(k); }
         else if (a === at.start && state === "loading") {
             const n = ram(s, syms.TrackNum, 1)[0], want = shared(n);
             const main = ram(s, syms.SharedOrg, want.length), shadow = ram(s, syms.SharedOrg, want.length, true);

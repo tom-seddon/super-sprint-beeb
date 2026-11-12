@@ -5,7 +5,8 @@
 \\ track's slot below it); saved and loaded as TIMES by timeattack.6502 (main RAM: OSFILE can't reach a bank).
 \\
 \\ The upgrades and the names are step 6's (the track's screen, the name): until then an entry's upgrades are 0 and
-\\ its name 10 zero bytes.
+\\ its name 10 zero bytes. A name is ASCII, A-Z, 0-9, the point, ! and space, ended by a 0 if under 10 (the track's
+\\ screen draws it so, tagame.6502's tg_char).
 
 TaEntries = 80
 TaNameLen = 10

@@ -5,6 +5,10 @@
 //   (build/gen/tamenu.bin), each track's "TRACK n" in white and its best in yellow, " 9.56", in the small font (the
 //   build's table, build/gen/front.6502's SmallFont), and the yellow box round the highlighted track; again once the
 //   highlight's moved (the box EOR'd: out of one cell, into the next);
+// - the track's screen (step 6e, D48), Return on the menu: the logo kept, the track's map moved from its cell to the first
+//   cell's place, the rest cleared, "TRACK n" in white under it, and its 10 entries (poked: times, names of every
+//   character the font has, a full 10, none and empty entries), each its place in green, time in yellow and name in
+//   white, byte for byte; then Escape, the menu again as before;
 // - as shown, every field from the boot's menu to a race's first frame (the frame buffer, as tools/ta_rows_check.mjs
 //   reads it): no green on the logo's lines (colour 1 red there, the interrupt's TaSplit) and no red under them; and
 //   while the menu's up, each of its 256 lines' colours as the model's, pixel for pixel counted (two of the frame
@@ -46,7 +50,7 @@ function encode(l) {
 const picture = readFileSync("build/gen/tamenu.bin");
 if (!encode(decode(picture)).every((v, i) => v === picture[i])) throw new Error("the model's MODE 1 bytes aren't the picture's");
 const font = readFileSync("build/gen/front.6502", "utf8").match(/^SmallFont = \{([^}]*)\}/m)[1].split(",").map(Number);
-const glyph = (ch) => ch === "." ? 10 : ch >= "A" ? 12 + ch.charCodeAt(0) - 65 : Number(ch);
+const glyph = (ch) => ch === "." ? 10 : ch === "!" ? 11 : ch >= "A" ? 12 + ch.charCodeAt(0) - 65 : Number(ch);
 function text(l, s, x, y, ink) {
     for (const ch of s) {
         if (ch !== " ") for (let line = 0; line < 6; line++) for (let j = 0; j < 6; j++)
@@ -69,6 +73,20 @@ function model(times, track) {
     const [x0, y0] = cell(track);
     for (let y = y0; y < y0 + syms.TaMenuRow; y++) for (let x = x0; x < x0 + 160; x++)
         if (y === y0 || y === y0 + syms.TaMenuRow - 1 || x === x0 || x === x0 + 159) l[y * 320 + x] ^= 2;
+    return l;
+}
+// the track's screen: the picture's lines above the cells, the track's map (its cell's first 84 pixels) in the first
+// cell's place, the title and the entries
+function trackModel(track, entries) {
+    const p = decode(picture), l = new Uint8Array(Lines * 320), [x0, y0] = cell(track), Top = syms.TaMenuTop;
+    l.set(p.subarray(0, Top * 320));
+    for (let y = 0; y < syms.TaMenuRow; y++) for (let x = 0; x < 4 * syms.TgMapBytes; x++) l[(Top + y) * 320 + x] = p[(y0 + y) * 320 + x0 + x];
+    text(l, `TRACK ${track + 1}`, syms.TtTitleX, syms.TtTitleY, 3);
+    entries.forEach(([t, name], i) => {
+        const y = syms.TtRowY + i * syms.TtRowStep;
+        text(l, String(i + 1).padStart(2), syms.TtPlaceX, y, 1);
+        if (t) text(l, time(t), syms.TtTimeX, y, 2), text(l, name, syms.TtNameX, y, 3);
+    });
     return l;
 }
 
@@ -160,10 +178,34 @@ await run(3, null);
 if (peek(syms.GmTrack) !== 4) say(`right: GmTrack ${peek(syms.GmTrack)}, not 4`);
 screen("the highlight moved to track 5", model(times, 4));
 await run(10, model(times, 4));
+// the track's screen: Return on track 5, its entries poked (the first as its best on the menu)
+const entries = [[times[4], "TOM"], [296, "WWWWWWWWWW"], [0, "GONE"], [553, ""], [1000, "A.B!"], [6000, "0123456789"],
+    [2600, "XYZ 81"], [515, "CDEFGHIJKL"], [0, ""], [428, "MNOPQRSUV"]];
+cpu.romSelect(bc);
+entries.forEach(([t, name], i) => {
+    const e = 40 + i, n = [...name].map((c) => c.charCodeAt(0));
+    while (n.length < 10) n.push(0);
+    s.writeMemory(syms.TaTimeLo + e, [t & 255]), s.writeMemory(syms.TaTimeHi + e, [t >> 8]), s.writeMemory(syms.TaNames + e * 10, n);
+});
+cpu.romSelect(romsel);
+s.keyDown("Enter");
+await run(3, null);
+s.keyUp("Enter");
+await toMenu();
+if (peek(syms.TgOn) !== 1) say(`Return: TgOn ${peek(syms.TgOn)}, not 1`);
+screen("track 5's screen", trackModel(4, entries));
+await run(10, trackModel(4, entries));
+s.keyDown("Escape");
+await run(3, null);
+s.keyUp("Escape");
+await toMenu();
+if (peek(syms.TgOn) !== 0) say(`Escape: TgOn ${peek(syms.TgOn)}, not 0`);
+screen("Escape: the menu again", model(times, 4));
+await run(10, model(times, 4));
 s.keyDown("Digit6");
 if (!await run(4000, null, syms.start)) say("6 raced nothing");
 s.keyUp("Digit6");
 await run(5, null);                     // (the race's first fields: nothing red, as the logo's lines go)
 
-console.log(bad ? `${bad} wrong` : `the menu's 32 rows as the model (${checked} screens: the picture, the 8 tracks' text and bests, the box moved); ${field} fields from the boot to a race: no green on the logo's lines nor red under them, and ${steady} of the menu's every line's colours as the model's`);
+console.log(bad ? `${bad} wrong` : `the menu's and the track's screen's 32 rows as the model (${checked} screens: the picture, the 8 tracks' text and bests, the box moved, track 5's screen, the menu again); ${field} fields from the boot to a race: no green on the logo's lines nor red under them, and ${steady} of the menu's every line's colours as the model's`);
 process.exit(bad ? 1 : 0);

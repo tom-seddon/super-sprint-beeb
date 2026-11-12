@@ -698,7 +698,7 @@ Time attack (`docs/brief-timeattack-2026-11-10.md` §6). D40 has a track's 10 en
 screen (exact mechanism to be determined) and press Return 2. game shows per-track high scores. Press Return again to
 race, or Escape to go back to track select".
 So: the menu (D47), a track picked and Return; the track's screen, its 10 entries; Return races, Escape back to the
-menu. How a track is picked on the menu is still to be settled. Proposed with it, not yet asked: after a race, back to
+menu. Built at 6e (2026-11-12): the track's map, "TRACK n" and its 10 rows under the logo, accelerate as Return (D52). How a track is picked on the menu is still to be settled. Proposed with it, not yet asked: after a race, back to
 the track's screen with the new entry lit, and the upgrades picked there, as last picked, so another go is one Return.
 
 ### D49. Time attack's upgrades on the track's screen; a name every time: Decided (2026-11-10)

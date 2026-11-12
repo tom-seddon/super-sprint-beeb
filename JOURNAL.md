@@ -736,3 +736,7 @@
   and every field's colours against a model. Escape to the menu shown 0.3 s quicker (the title's file 4K shorter).
   Tom tried 6d on his Master: "Looks great". Accelerate now opens the highlighted track too, and the driving keys move
   the highlight round the cells clockwise, 1, 5, 6, 7, 8, 4, 3, 2 (D52).
+  Tom tried that: "it looks good". 6e: the track's screen, Return on the menu, the track's map, its name and its 10
+  entries (place, time, name) under the logo, made from the menu's picture in place; Return races, Escape back to the
+  menu, and a race comes back to it (D50). Its state outlives a race in LowFree (GameVars is cleared at every load),
+  and a screen now waits for every key to be let go before any acts.

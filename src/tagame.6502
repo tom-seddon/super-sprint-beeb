@@ -7,7 +7,13 @@
 \\ track's name and best (the table, tatable.6502) beside its map in the small font (front.6502's front_glyph), and a
 \\ yellow box round the highlighted track. Colour 1 is red over the logo and green under it, switched by the
 \\ interrupt (irq.6502's TaSplit). The driving keys (any player's) move the highlight round the cells, right clockwise
-\\ (1, 5, 6, 7, 8, 4, 3, 2) and left back, 1-8 race that track, Return or accelerate the highlighted one (D52).
+\\ (1, 5, 6, 7, 8, 4, 3, 2) and left back, 1-8 race that track, Return or accelerate open the highlighted one's screen
+\\ (D52).
+\\
+\\ The track's screen (D48, step 6e): the menu's picture made into it, the logo kept, the track's map moved to the first
+\\ cell's place and the rest cleared, "TRACK n" under the map, and the track's 10 entries beside it, each its place,
+\\ time and name (tg_screen). Return or accelerate race the track, Escape goes back to the menu. After a race, back to
+\\ the track's screen (D50), whatever started it.
 \\
 \\ After a race the title's file (TRACKF) is loaded before the menu: the load's start saves what the race changed
 \\ (timeattack.6502's ta_save, and SCORES's keys and sound, save.6502), so a record's on the disc before the menu's
@@ -16,7 +22,7 @@
 SECTION GameScratch
 .GsFields                               ; fields' count
     SKIP 1
-.TgLast                                 ; the menu's key last seen (tg_key's), so a held key acts once
+.TgLast                                 ; the menu's key last seen (tg_key's), so a held key acts once; &FF none yet
     SKIP 1
 ENDSECTION
 
@@ -24,7 +30,19 @@ TgTrackLine = 9                         ; "TRACK n"'s line into its cell (tools/
 TgTimeLine = 19                         ; 160 pixels by TaMenuRow lines, the text from TaMenuTextX), and the time's
 TgYellow = &F0                          ; front_glyph's colours (fink)
 TgWhite = &FF
-GlyphPoint = 10                         ; the small font's glyphs (tools/screens.py): 0-9, the point, then A-Z
+TgGreen = &0F
+TgMapBytes = 21                         ; a map's bytes across from its cell's start (tools/screens.py: within 84 pixels)
+TtTitleX = 21                           ; the track's screen: "TRACK n" under the map, centred under its 84 pixels,
+TtTitleY = TaMenuTop + TaMenuRow + 6
+TtRowY = 44                             ; the entries' rows: the first's line, and lines between them
+TtRowStep = 20
+TtPlaceX = 112                          ; each row's place (2 characters), time (5) and name (TaNameLen)
+TtTimeX = TtPlaceX + 18
+TtNameX = TtTimeX + 42
+ASSERT TtNameX + 6 * TaNameLen <= 320, "the track's screen: a name past the screen's edge"
+ASSERT TtRowY + 9 * TtRowStep + 6 <= 256, "the track's screen: the rows past the screen's foot"
+GlyphPoint = 10                         ; the small font's glyphs (tools/screens.py): 0-9, the point, !, then A-Z
+GlyphBang = 11
 GlyphA = 12
 FUNCTION Gl(c) = GlyphA + c - 'A'
 
@@ -41,6 +59,8 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     JSR tg_rows32                       ; (the palette black till it's drawn)
     LDA acccon:STA fshadow              ; (front_glyph: the main screen, shown)
     JSR tg_picture                      ; the logo and the maps
+    LDA TgOn:BNE track                  ; (after a race: its track's screen, D50)
+.cells
     LDX #7
 .rows
     PHX
@@ -49,26 +69,45 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     DEX
     BPL rows
     JSR tg_mark                         ; the highlight
-    JSR tg_split
+    BRA shown
+.open
+    JSR tg_black                        ; Return on the menu: its track's screen
+    JSR tg_mark                         ; (the highlight out: none moved with the map)
+    LDA #1:STA TgOn
+.track
+    JSR tg_screen
 .shown                                  ; (tools/ta_rows_check.mjs)
-    JSR tg_key:STA TgLast               ; (anything held as the menu comes up acts only once it's let go)
+    JSR tg_split
+    LDA #&FF:STA TgLast                 ; (as a screen comes up, nothing acts till every key's let go)
 
-    \\ each field: a key newly down acts
+    \\ each field: a key newly down acts, on the menu or the track's screen
 
 .idle
     LDA LoadWant:BNE go                 ; (a test's race: tools/ta_*_check.mjs)
     JSR tg_key
+    LDX TgLast:CPX #&FF:BNE @+
+    TAX:BNE wait                        ; (a screen just up, a key still held)
+.@
     CMP TgLast:BEQ wait
     STA TgLast
     CMP #0:BEQ wait
+    LDX TgOn:BEQ menu_key
+    CMP #9:BEQ race                     ; the track's screen: Return or accelerate race,
+    CMP #10:BNE wait
+    STZ TgOn                            ; Escape back to the menu
+    JSR tg_black
+    JSR tg_picture
+    BRA cells
+.menu_key
     CMP #9:BCC number
-    BEQ race                            ; (9: Return or accelerate)
+    BEQ open                            ; (9: Return or accelerate)
+    CMP #10:BEQ wait                    ; (Escape: nothing)
     PHA
     JSR tg_mark                         ; left or right: the highlight moved
     PLA
-    ASL A:ASL A:ASL A                   ; (10, left: &50; 11, right: &58)
+    ASL A:ASL A:ASL A                   ; (11, left: &58; 12, right: &60)
     ORA GmTrack:TAX
-    LDA TgTurn - 10 * 8,X:STA GmTrack
+    LDA TgTurn - 11 * 8,X:STA GmTrack
     JSR tg_mark
 .wait
     LDA #1:JSR fields
@@ -76,6 +115,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 .number
     DEC A:STA GmTrack                   ; (1-8)
 .race
+    LDA #1:STA TgOn                     ; (back to its screen after the race, D50)
     LDA GmTrack:INC A:STA LoadWant
 .go
     JSR tg_rows26                       ; the race's 26 rows for its load (D46)
@@ -125,24 +165,24 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     CLC:ADC #TaMenuTextX:STA tg_x:STA fx
     STZ fx+1
     LDA #TgWhite:STA fink
-    LDX #0
-.text
-    LDA TrackText,X
-    PHX
-    JSR front_glyph
-    LDA #6:JSR front_across
-    PLX
-    INX
-    CPX #TrackTextEnd - TrackText:BNE text
-    LDA #6:JSR front_across
-    LDA tg_track:INC A:JSR front_glyph
+    LDA tg_track:JSR tg_name
     LDX tg_track
     JSR ta_track_best                   ; (timeattack.6502's: from the cars' bank)
     STA fs:STY fs+1
     ORA fs+1:BEQ done                   ; (none)
     LDA tg_x:STA fx
-    STZ fx+1
     LDA fy:CLC:ADC #TgTimeLine - TgTrackLine:STA fy
+    JMP tg_time
+.done
+    RTS
+}
+
+\\ A time, fs's fields, in yellow at fx (under 256), fy: seconds and hundredths, " 9.56", to 99.98. A, X, Y, fs
+\\ corrupted.
+
+.tg_time
+{
+    STZ fx+1
     LDA #TgYellow:STA fink
     LDA fs:CMP #LO(TaMaxFrames + 1)     ; (at most 99.98)
     LDA fs+1:SBC #HI(TaMaxFrames + 1)
@@ -160,10 +200,190 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     LDA #6:JSR front_across
     LDX #0:JSR front_digit:JSR front_glyph  ; tenths (5)
     LDA #6:JSR front_across
-    LDA fs:ASL A:JSR front_glyph        ; hundredths: the fields left, 2 each
-.done
+    LDA fs:ASL A:JMP front_glyph        ; hundredths: the fields left, 2 each
+}
+
+\\ The track's screen (D48), made from the menu's picture on the main screen, no highlight on it: GmTrack's map moved
+\\ to the first cell's place, the rest under the logo cleared, "TRACK n" in white under the map, and the track's 10
+\\ entries in rows beside it: each its place in green, its time in yellow and its name in white (an empty one: its
+\\ place alone).
+\\
+\\ Inputs: GmTrack; the table. A, X, Y corrupted.
+
+.tg_screen
+{
+    ZA_AUTO2 from                       ; local: a line of the map, from
+
+    LDA GmTrack:AND #3:TAX              ; the map: its cell's lines, from the top, to the first cell's
+    LDA TgCellY,X:STA tg_from
+    LDA #TaMenuTop:STA fy
+    LDA GmTrack:AND #4:BEQ @+           ; (its byte across: 0 or 40)
+    LDA #40
+.@
+    STA tg_x
+    LDA #TaMenuRow:STA tg_lines
+.map
+    LDA fy:PHA
+    LDA tg_from:STA fy
+    LDA tg_x:JSR front_line
+    LDA fp:STA from
+    LDA fp+1:STA from+1
+    PLA:STA fy
+    LDA #0:JSR front_line
+    LDY #0
+.byte
+    LDA (from),Y:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    CPY #TgMapBytes * 8:BNE byte
+    INC tg_from
+    INC fy
+    DEC tg_lines
+    BNE map
+    LDA #TaMenuTop:STA fy               ; the rest cleared: beside the map,
+    LDA #TaMenuRow:STA tg_lines
+    LDA #TgMapBytes:JSR tg_blank
+    LDA #256 - TaMenuTop - TaMenuRow:STA tg_lines   ; and under it (fy on from there)
+    LDA #0:JSR tg_blank
+
+    LDA #TtTitleX:STA fx                ; TRACK n
+    LDA #TtTitleY:STA fy
+    LDA #TgWhite:STA fink
+    LDA GmTrack:JSR tg_name
+
+    LDA GmTrack:ASL A:STA tg_track      ; the entries: track * 10, and on
+    ASL A:ASL A:CLC:ADC tg_track:STA tg_track
+    LDA #TtRowY:STA fy
+.row
+    LDX tg_track
+    JSR ta_entry                        ; (timeattack.6502's: TaName, and the time)
+    STA fs:STY fs+1
+    LDA #TgGreen:STA fink               ; the place, 1-10
+    LDA #TtPlaceX + 6:STA fx
+    STZ fx+1
+    TXA:SEC
+.ten
+    SBC #10
+    BCS ten
+    ADC #11                             ; (the place: 1-10)
+    CMP #10:BNE one
+    LDA #TtPlaceX:STA fx
+    LDA #1:JSR front_glyph
+    LDA #6:JSR front_across
+    LDA #0
+.one
+    JSR front_glyph
+    LDA fs:ORA fs+1:BEQ next            ; (empty)
+    LDA #TtTimeX:STA fx
+    JSR tg_time
+    LDA #TgWhite:STA fink               ; the name: its characters till a 0
+    LDA #TtNameX:STA fx
+    LDX #0
+.char
+    LDA TaName,X:BEQ next
+    PHX
+    JSR tg_char
+    LDA #6:JSR front_across
+    PLX
+    INX
+    CPX #TaNameLen:BNE char
+.next
+    LDA fy:CLC:ADC #TtRowStep:STA fy
+    INC tg_track
+    LDA tg_track:SEC
+.tens
+    SBC #10
+    BCS tens
+    CMP #256 - 10:BNE row               ; (the next track's first: done)
     RTS
 }
+.tg_from                                ; the map's line, from
+    EQUB 0
+
+\\ TRACK n, for track A (0-7), at fx (under 256), fy, in fink's colour. A, X, Y corrupted.
+
+.tg_name
+{
+    INC A:STA tg_n
+    STZ fx+1
+    LDX #0
+.text
+    LDA TrackText,X
+    PHX
+    JSR front_glyph
+    LDA #6:JSR front_across
+    PLX
+    INX
+    CPX #TrackTextEnd - TrackText:BNE text
+    LDA #6:JSR front_across
+    LDA tg_n:JMP front_glyph
+}
+.tg_n
+    EQUB 0
+
+\\ Character A of a name (ASCII: A-Z, 0-9, the point and !; anything else a space) at fx, fy, in fink's colour. A,
+\\ X, Y corrupted.
+
+.tg_char
+{
+    CMP #'A':BCC notletter
+    AND #31:ADC #GlyphA - 2             ; (C set: A is 1)
+    BRA glyph
+.notletter
+    CMP #'0':BCC point
+    SBC #'0'                            ; (C set)
+    CMP #10:BCS none
+    BRA glyph
+.point
+    CMP #'.':BNE bang
+    LDA #GlyphPoint
+    BRA glyph
+.bang
+    CMP #'!':BNE none
+    LDA #GlyphBang
+.glyph
+    JMP front_glyph
+.none
+    RTS
+}
+
+\\ tg_lines lines from fy cleared, from byte A across to the line's end; fy left past them. A, X, Y corrupted.
+
+.tg_blank
+{
+    STA tg_x
+.line
+    LDA tg_x:JSR front_line
+    LDA #80:SEC:SBC tg_x:TAX
+    LDY #0
+.byte
+    LDA #0:STA (fp),Y
+    TYA:CLC:ADC #8:TAY
+    BNE @+
+    INC fp+1                            ; (past 32 bytes)
+.@
+    DEX
+    BNE byte
+    INC fy
+    DEC tg_lines
+    BNE line
+    RTS
+}
+
+\\ The palette black, from a vsync, the menu's colour switch ended (as tg_rows). A, X corrupted.
+
+.tg_black
+{
+    LDA #1:JSR fields                   ; (just past a vsync: in the blank)
+    STZ TaSplit                         ; (colour 1 the palette's again: the menu's switch ended before its T2)
+    LDX #15
+.black
+    TXA:ASL A:ASL A:ASL A:ASL A
+    ORA #7:STA &FE21                    ; video ULA: logical X physical black (0, EOR 7)
+    DEX
+    BPL black
+    RTS
+}
+
 .tg_track
     EQUB 0
 .tg_x                                   ; the text's pixel across, or the box's byte
@@ -228,14 +448,14 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     RTS
 }
 
-\\ The menu's key now: 1-8 a number key, 9 Return or accelerate, 10 left, 11 right (any player's driving keys, D52), 0
-\\ none. A number or Return first, so a driving key that's one of them is that.
+\\ The menu's key now: 1-8 a number key, 9 Return or accelerate, 10 Escape, 11 left, 12 right (any player's driving
+\\ keys, D52), 0 none. A number, Return or Escape first, so a driving key that's one of them is that.
 \\
 \\ Inputs: none. Outputs: A. X, Y corrupted.
 
 .tg_key
 {
-    LDX #8
+    LDX #9
 .number
     LDA TgKeys,X:JSR key_down:BMI found
     DEX
@@ -251,13 +471,13 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     LDA #0
     RTS
 .found
-    INX:TXA                             ; (1-9)
+    INX:TXA                             ; (1-10)
     RTS
 }
 .TgDriving                              ; PlayerKeys's as the menu's: left, right, accelerate (as Return)
-    EQUB 10, 11, 9, 10, 11, 9, 10, 11, 9
-.TgKeys                                 ; 1-8 and Return (tools/screens.py's matrix: row * 16 + column, measured)
-    EQUB 48, 49, 17, 18, 19, 52, 36, 21, 73
+    EQUB 11, 12, 9, 11, 12, 9, 11, 12, 9
+.TgKeys                                 ; 1-8, Return and Escape (tools/screens.py's matrix: row * 16 + column, measured)
+    EQUB 48, 49, 17, 18, 19, 52, 36, 21, 73, KeyEscape
 
 \\ A fields gone by.
 
@@ -291,14 +511,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 .tg_rows
 {
     PHX
-    LDA #1:JSR fields                   ; (just past a vsync: in the blank)
-    STZ TaSplit                         ; (colour 1 the palette's again: the menu's switch ended before its T2)
-    LDX #15
-.black
-    TXA:ASL A:ASL A:ASL A:ASL A
-    ORA #7:STA &FE21                    ; video ULA: logical X physical black (0, EOR 7)
-    DEX
-    BPL black
+    JSR tg_black
     PLX
     LDY #6:LDA TgCrtc,X:JSR crtc        ; R6: the rows displayed
     INY:LDA TgCrtc+1,X:JSR crtc         ; R7: the sync's row

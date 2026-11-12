@@ -4,11 +4,14 @@
 // - the driving keys move the highlight round the cells, right clockwise (1, 5, 6, 7, 8, 4, 3, 2): player 1's right (W),
 //   player 2's right (.), player 3's left (keypad 5), left from track 1 to track 2, and right all the way round; a key
 //   held 40 fields moves it once;
+// - Escape on the menu does nothing;
 // - 3 races track 3 (its file loaded: TrackNum 2); in the race player 2's accelerate (/) drives the car (D53); its
-//   best poked and Escape: back to the menu through the title's file (TIMES saved at its load's start), track 3's
-//   cell showing a time and the others none, the highlight on track 3;
-// - Return races the highlighted track; Escape back; player 1's accelerate (E) races the highlighted one too, and
-//   player 2's (/) after Escape, its hold as the menu came up let go first;
+//   best poked and Escape: through the title's file (TIMES saved at its load's start) to track 3's screen (D50), the
+//   Escape still held there doing nothing; the driving keys and numbers do nothing there either; Escape: the menu,
+//   track 3's cell showing a time and the others none, the highlight on track 3;
+// - Return opens the highlighted track's screen (D48), Return there races it, Escape back to its screen and again to
+//   the menu; player 1's accelerate (E) opens the highlighted one's screen and races it too, and player 2's (/) after
+//   Escape, its hold as the screen came up let go first;
 // - player 1's right redefined as 5: 5 races track 5 (a number wins over a driving key, D52).
 //
 // Exit status: 1 if anything's wrong, else 0.
@@ -34,6 +37,8 @@ async function toMenu() {
 }
 const fields = (n) => s.runFor(n * 39936);
 async function press(key, hold = 3) { s.keyDown(key); await fields(hold); s.keyUp(key); await fields(3); }
+async function screenKey(key) { s.keyDown(key); await fields(3); s.keyUp(key); await toMenu(); await fields(5); }   // (a screen drawn)
+const on = () => peek(syms.TgOn);
 
 // the screen's byte at a line and byte column of the front end's 32 rows (the main screen, shown)
 const RowBytes = 640, Front = syms.FrontAddr;
@@ -62,6 +67,9 @@ await press("KeyW", 40);
 if (highlight() !== 4) say(`W held 40 fields: the highlight ${highlight()}, not 4`);
 await press("KeyQ");
 
+await press("Escape");
+if (on() || peek(syms.LoadWant) || highlight() !== 0) say(`Escape on the menu: TgOn ${on()}, LoadWant ${peek(syms.LoadWant)}, the highlight ${highlight()}`);
+
 // 3 races track 3
 s.keyDown("Digit3");
 await runTo(s, syms.start, 400000000);
@@ -77,16 +85,23 @@ await runToAny(s, [[syms["logic_frame.played"], bt]], 8000000);
 s.writeMemory(syms.TaBestLo, [0x34, 0x02]);   // (ANDY's, paged in here: a best of 564 fields, 11.28)
 s.keyDown("Escape");
 await toMenu();
+await fields(10);
 s.keyUp("Escape");
 await fields(5);
 const times = discFiles(toSsdOrDsd(cpu.fdc.drives[0].disc)).TIMES;
 if (!times || (times.data[20] | (times.data[100] << 8)) !== 564) say("Escape: TIMES not saved with track 3's best 564");
-if (highlight() !== 2) say(`Escape: the highlight ${highlight()}, not track 3`);
+if (on() !== 1 || peek(syms.GmTrack) !== 2 || highlight() !== -1) say(`Escape from the race, held: TgOn ${on()}, GmTrack ${peek(syms.GmTrack)}, the highlight ${highlight()}, not track 3's screen`);
+for (const key of ["KeyW", "KeyQ", "Digit5"]) await press(key);
+if (on() !== 1 || peek(syms.GmTrack) !== 2 || peek(syms.LoadWant)) say(`W, Q, 5 on track 3's screen: TgOn ${on()}, GmTrack ${peek(syms.GmTrack)}, LoadWant ${peek(syms.LoadWant)}`);
+await screenKey("Escape");
+if (on() || highlight() !== 2) say(`Escape on track 3's screen: TgOn ${on()}, the highlight ${highlight()}, not the menu's track 3`);
 const shown = [...Array(8)].map((_, t) => timeShown(t));
 if (shown.join() !== [false, false, true, false, false, false, false, false].join()) say(`Escape: times shown on rows ${shown.map((v, t) => v ? t + 1 : "").join("")}, not 3`);
 
-// Return races the highlighted (right from track 3: track 2)
+// Return opens the highlighted's screen (right from track 3: track 2), and races it
 await press("KeyW");
+await screenKey("Enter");
+if (on() !== 1 || peek(syms.GmTrack) !== 1 || peek(syms.LoadWant)) say(`Return on the menu: TgOn ${on()}, GmTrack ${peek(syms.GmTrack)}, LoadWant ${peek(syms.LoadWant)}, not track 2's screen`);
 s.keyDown("Enter");
 await runTo(s, syms.start, 400000000);
 s.keyUp("Enter");
@@ -95,10 +110,14 @@ s.keyDown("Escape");
 await toMenu();
 s.keyUp("Escape");
 await fields(5);
+if (on() !== 1 || peek(syms.GmTrack) !== 1) say(`Escape from track 2's race: TgOn ${on()}, GmTrack ${peek(syms.GmTrack)}, not its screen`);
+await screenKey("Escape");
 
-// accelerate races the highlighted: player 1's (E) from track 1
+// accelerate opens and races the highlighted: player 1's (E) from track 1
 await press("KeyW");
 if (highlight() !== 0) say(`right from track 2: the highlight ${highlight()}, not 1`);
+await screenKey("KeyE");
+if (on() !== 1 || peek(syms.GmTrack) !== 0) say(`E on the menu: TgOn ${on()}, GmTrack ${peek(syms.GmTrack)}, not track 1's screen`);
 s.keyDown("KeyE");
 await runTo(s, syms.start, 400000000);
 s.keyUp("KeyE");
@@ -109,7 +128,7 @@ s.keyDown("Escape");
 await toMenu();
 s.keyUp("Escape");
 await fields(20);
-if (peek(syms.LoadWant) || highlight() !== 0) say(`/ held from the race: LoadWant ${peek(syms.LoadWant)}, the highlight ${highlight()}`);
+if (peek(syms.LoadWant) || on() !== 1) say(`/ held from the race: LoadWant ${peek(syms.LoadWant)}, TgOn ${on()}`);
 s.keyUp("Slash");
 await fields(3);
 s.keyDown("Slash");
@@ -120,6 +139,7 @@ s.keyDown("Escape");
 await toMenu();
 s.keyUp("Escape");
 await fields(5);
+await screenKey("Escape");
 
 // a number over a driving key
 s.writeMemory(syms.PlayerKeys + 1, [19]);   // (player 1's right: the 5 key, tools/screens.py's matrix)
@@ -128,5 +148,5 @@ await runTo(s, syms.start, 400000000);
 s.keyUp("Digit5");
 if (peek(syms.TrackNum) !== 4) say(`5 as a driving key too: track ${peek(syms.TrackNum) + 1} loaded, not 5`);
 
-console.log(wrong ? `${wrong} wrong` : "the menu: highlight by any player's left and right round the cells (held: once), 3, Return, accelerate (E, /: a hold from the race ignored) and 5 (a driving key too) race their tracks, player 2's keys drive, Escape back with TIMES saved and the new best shown");
+console.log(wrong ? `${wrong} wrong` : "the menu: highlight by any player's left and right round the cells (held: once), Return and accelerate (E) open the track's screen and race from it (/: a hold from the race ignored), 3 and 5 (a driving key too) race their tracks, player 2's keys drive, Escape back to the track's screen with TIMES saved, again to the menu with the new best shown");
 process.exit(wrong ? 1 : 0);

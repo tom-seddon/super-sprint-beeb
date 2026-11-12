@@ -89,6 +89,9 @@ SECTION LowFree                         ; &0900-&0AFF, kept across loads (D26)
     SKIP 1
 IF GenTimeAttack
 .TaTableIn                              ; time attack: its table's loaded, at the boot's first load (no demo, D51)
+    SKIP 1
+.TgOn                                   ; and 1: the track's screen up, or to come back to after the race (D50,
+                                        ; tagame.6502); 0 the menu
 ELSE
 .GmDemoTrack                            ; its next track
 ENDIF
