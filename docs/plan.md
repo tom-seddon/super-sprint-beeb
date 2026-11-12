@@ -4,8 +4,9 @@ A port of the Atari ST version of *Super Sprint* (State of the Art / Electric Dr
 BBC Master 128 and Compact, written in Baron. Phases 1 to 5 are done (2026-11-01 to 11-08): the original specified (`docs/st-graphics.md`,
 `docs/st-logic.md`), its graphics converted to MODE 1 (`docs/colours.md`), the renderer
 (`docs/renderer.md`), one race, its logic bit-exact with the ST's (`docs/brief-phase4.md`), and the whole game around
-it on two discs, DFS and ADFS (`docs/brief-phase5.md`). What's left is under "After Phase 5"; Phase 6 is Tom's to
-choose from it. The Verdict and Speed sections are the plan's estimates from before Phase 3, kept as made. Decisions are in `docs/decisions.md`, work
+it on two discs, DFS and ADFS (`docs/brief-phase5.md`). Then a time attack version from the same source, on two
+discs of its own (`make ta`; `docs/brief-timeattack-2026-11-10.md`), done and merged 2026-11-12. What's left is under
+"After Phase 5"; Phase 6 is Tom's to choose from it. The Verdict and Speed sections are the plan's estimates from before Phase 3, kept as made. Decisions are in `docs/decisions.md`, work
 done in `JOURNAL.md`.
 
 ## Verdict
@@ -397,7 +398,7 @@ adds the logic.
   between races goes in the screens' files, in `game.6502` (the first 4K) or main RAM.
 - A time attack version (Tom, 2026-11-10): one player, endless laps, a ghost of the best lap, a table and the ghost
   saved per track, a track menu for a front end; its own disc from the same source:
-  `docs/brief-timeattack-2026-11-10.md`, branch `timeattack`, its questions answered (D36-D50). The ghost's room is the
+  `docs/brief-timeattack-2026-11-10.md` (built on the branch `timeattack`, merged into `main` 2026-11-12), its questions answered (D36-D50). The ghost's room is the
   cars' bank's three unused car sets (about 8K, ESTIMATED: the green set alone, drawn white for the player and black
   for the ghost, D37). Steps 1 to 3 done (`make ta`: `build/ta.ssd`, `build/ta.adl`; one car, endless laps, Escape out; the lap's time,
   the best and the ghost's on the HUD; the dead code out, the fourth bank 1,931 bytes free); step 4, the ghost, recorded and drawn; step 5, each track's ghost and the table saved and loaded; step 6 in pieces (6a room; 6b a plain menu, tried by Tom, then the drones and the demo's code out and the table loaded once; 6c the menu in 32 rows, tried by Tom; then the tunes out, SCORES the keys and sound, Shared kept in the fourth bank, D55, tried by Tom; 6d the menu's picture, the logo and the maps, tried by Tom; then accelerate opens a track and the highlight goes round the cells, tried by Tom; 6e the track's screen, its 10 entries, tried by Tom; then the numbers open a track's screen too, tried by Tom; 6f the upgrades picked on the track's screen, then his changes to it, tried by Tom; 6g the name typed and saved, tried by Tom; 6i the options, tried by Tom; 6h the title's file kept, Escape loading nothing, tried by Tom); step 7, the close: `tools/ta_checks.sh` in the suite, the game's discs the same as `main`'s, tried by Tom and merged into `main` (2026-11-12); D51-D55.
@@ -420,6 +421,21 @@ adds the logic.
   with another set, so the disc ends up with the best 10 per track across both sets (`TIMES`) and the ghosts that go
   with them (`GHOST1`-`GHOST8`). "That's the basic idea, anyway. I need to think a bit more about the UX though so
   that it works ok across all filing systems." Not designed yet: Tom's to think over first.
+
+- Time attack's menu: a line of key hints (Tom, 2026-11-12, at 6d: "A line of keys perhaps later, maybe squeezed in
+  around the logo"; at 6i: "we can think about the hints later"). Not designed: where it goes and what it says
+  (the driving keys, 1-8, Return, F1 for the options), in the small font the menu uses.
+- For Tom to do (his files, `CLAUDE.md`: reminders only, with what each might say; noted 2026-11-12):
+  - `README.md`: time attack. `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds
+    in `build/tracks_ta`); `tools/ta_checks.sh OUT` checks them, and `tools/suite.sh` runs that too. Perhaps a line
+    on what it is: one player, endless laps, a ghost of the best lap, a table and a ghost saved per track.
+  - `README.md`: clone with the submodules' own submodules, `git clone --recursive` (or `git submodule update
+    --init --recursive` in a clone). Baron's build needs `rich/baron/extern/richc`: building `main` in a fresh
+    worktree failed at CMake's configure until it was fetched (2026-11-12).
+  - `disc/README.txt`: time attack's discs get the same README file as the game's (`tools/make_game.py` puts
+    `tools/disc_readme.py`'s on every disc). Text of their own perhaps: what time attack is, its keys (the menu's,
+    the track's screen's, the name's), that it saves `TIMES`, `GHOST1`-`GHOST8` and `SCORES` to the disc, so the
+    disc wants to be write-enabled.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
