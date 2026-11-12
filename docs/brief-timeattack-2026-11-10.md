@@ -723,6 +723,8 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
         between the 6th and 7th. `ta_picture_check` drives the cursor over RACE both ways at -1 and opens the screen
         at -1 (fails with the pass-over taken out). MEASURED: the first 4K 1,585 to 1,511 bytes free, main RAM's code
         719 to 712.
+     All four to be tried on Tom's Master (`docs/img/timeattack-track-6f2.png`: -1 left, RACE red). The game's discs
+     the same but for the README's commit link, every track's build byte for byte; play the same.
    - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen
      with the new entry lit. Ties' order then checkable (`tools/ta_table_check.mjs`). Tried.
    - **6i, the options** (D54): a screen of its own from the menu, mostly text with the logo: the three key sets

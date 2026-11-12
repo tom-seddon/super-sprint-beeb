@@ -746,3 +746,9 @@
   with the upgrades left and RACE under the map, a cursor moved by left and right, accelerate adding a level; under 0
   left the count's red and nothing races. Red under the logo took a second colour switch in the interrupt, aimed at the
   gap between two of the table's rows. Each entry keeps its race's levels, shown as S2 T1 R2.
+  Tom tried 6f: "It looks good and works well. The red count looks fine." Four comments, each a change: the first
+  load's "Loading" redrawn after its row's shown (its g's last line was cleared for a field), and the display switched
+  off at a load's end from a vsync (`boot_check --ta` now checks time attack's boot; both are the game's code too,
+  left as they are there); TURBO renamed ACCEL., a row's S2 A1 T2; RACE red and passed over while there are too many
+  upgrades (a second red band); and the track's screen's keys acted on once the beam's past the panel, so it's never
+  seen half drawn (`ta_picture_check` checks every field of each key).
