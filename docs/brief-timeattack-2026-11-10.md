@@ -800,6 +800,7 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      play the same; the game's discs the same but for the README's commit link, every track's build byte for byte.
      Tom tried it on his Master (2026-11-12): "it looks good". One change: the headings SET 1, SET 2 and SET 3, not
      PLAYER n, "as there's only ever 1 player in Time Attack mode". `ta_options_check`'s model the same; it passes.
+     Tom tried that (2026-11-12): "looks good". 6i done.
    - **6h, the turnaround** (D45): measured from Escape to the next race; the same track again loading nothing, if
      the front end's files keep clear of the track's slots and the ghost's buffers.
 7. **Close**: the variant's suite, both discs, Tom's Master. After the merge, not before: the game's two load faults

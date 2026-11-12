@@ -763,4 +763,5 @@
   6i: the options, F1 on the menu: the game's options code with time attack's screen (the logo, a column a player,
   the small font's words, the MOS font's key names), in the title's file where the game's options file loads, so no
   load of its own. `tools/ta_options_check.mjs` checks it as the game's check does.
-  Tom tried it: "it looks good"; the columns now SET 1-3, not PLAYER 1-3, as there's one player.
+  Tom tried it: "it looks good"; the columns now SET 1-3, not PLAYER 1-3, as there's one player. Then "looks good":
+  6i done.
