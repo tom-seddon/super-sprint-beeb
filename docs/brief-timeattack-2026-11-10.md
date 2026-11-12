@@ -741,6 +741,7 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      track 4's Escape, 2.81 to 3.01 s; the ADFS boot, 11.43 to 11.63). The loads in jsbeeb, both builds: a track's
      race 1.7-1.9 s with the motor still on from the boot, else 3.1-3.5 s (from the motor off: its spin-up and a
      restore to track 0 take about 1.3-1.5 s of it); Escape to the track's screen 2.8-3.0 s.
+     Tom, 2026-11-12: "I was clearly mistaken" about the loads, and 01453fb on his Master "looks good". 6f done.
    - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen
      with the new entry lit. Ties' order then checkable (`tools/ta_table_check.mjs`). Tried.
    - **6i, the options** (D54): a screen of its own from the menu, mostly text with the logo: the three key sets

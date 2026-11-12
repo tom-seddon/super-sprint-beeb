@@ -752,3 +752,5 @@
   left as they are there); TURBO renamed ACCEL., a row's S2 A1 T2; RACE red and passed over while there are too many
   upgrades (a second red band); and the track's screen's keys acted on once the beam's past the panel, so it's never
   seen half drawn (`ta_picture_check` checks every field of each key).
+  Then the count moved to the panel's top (Tom's tweak), and the loads measured against 6f's disc: every disc
+  command the same. Tom tried it: "looks good". 6f done.
