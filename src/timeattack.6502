@@ -36,6 +36,8 @@ SECTION GameVars
     SKIP 1
 .TaName                                 ; an entry's name (ta_entry's), for the track's screen (tagame.6502)
     SKIP TaNameLen
+.TaUp                                   ; and its upgrades (tatable.6502's code)
+    SKIP 1
 ENDSECTION
 
 \\ The race's start, from hud_start: BEST and GHOST, nothing held, the ghost's time 0 (ghost.6502's ghost_start then
@@ -280,7 +282,7 @@ TaKeepLen = SharedSlot - SharedOrg
 \\ (ta_entry) entry X's time and name, for the track's screen.
 \\
 \\ Inputs: X: the track, or the entry (track * 10 + place). Outputs: A, Y: the time, low and high (0 none); TaName
-\\ the entry's name; ROMSEL the background's bank, ANDY in. X: the entry.
+\\ the entry's name, TaUp its upgrades; ROMSEL the background's bank, ANDY in. X: the entry.
 
 .ta_track_best
     TXA:ASL A:STA ta_ten                ; track * 10
@@ -305,6 +307,7 @@ TaKeepLen = SharedSlot - SharedOrg
     LDA (name),Y:STA TaName,Y
     DEY
     BPL copy
+    LDA TaUps,X:STA TaUp
     LDY TaTimeHi,X
     LDA TaTimeLo,X:PHA
     LDA bankbg:ORA #RomselAndy

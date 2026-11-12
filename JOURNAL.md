@@ -742,3 +742,7 @@
   and a screen now waits for every key to be let go before any acts.
   Tom tried 6e: the layout, colours and font good, a line of keys perhaps later. The number keys on the menu now open
   the track's screen rather than racing (D52: another way through, not a shortcut).
+  Tom tried that. 6f: the upgrades on the track's screen, as Tom designed them (D49): SPEED, TURBO, TRACTION, a wrench
+  with the upgrades left and RACE under the map, a cursor moved by left and right, accelerate adding a level; under 0
+  left the count's red and nothing races. Red under the logo took a second colour switch in the interrupt, aimed at the
+  gap between two of the table's rows. Each entry keeps its race's levels, shown as S2 T1 R2.

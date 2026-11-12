@@ -3,7 +3,9 @@
 // driven by the autopilot (tools/ta_pilot.mjs), its best lap then poked (TaBest) and the race left by Escape's flag:
 // - entered: a run of races on tracks 1, 3 and 8, their bests chosen to fill track 1's 10 and go past it (ties,
 //   none, slower than all 10): after each, the model's entry (D41: before the first it's under, a tie after, the
-//   10th dropped; no lap, nothing), TIMES on the disc as the model (the times, upgrades and names 0, the sum) and
+//   10th dropped; no lap, nothing; its upgrades the race's, car 0's levels poked into GmTopUp, GmTurbo and GmTraction
+//   before it, and the race's car given them, speed * 36 + turbo * 6 + traction), TIMES on the disc as the model (the
+//   times, upgrades, names 0, the sum) and
 //   written only if the table changed, and at the next race's start the table in the cars' bank as it, TIMES read
 //   only at the boot's first load (its catalogue entry and the file), kept from then on;
 // - loaded: the disc as written booted again: the table back at the first race's start;
@@ -74,8 +76,9 @@ async function toIdle(m) {
     }
 }
 // track t raced 30 frames, its best then best, and left; the table at the race's start (ghost_frame's first)
-async function race(m, t, best) {
+async function race(m, t, best, ups = [0, 0, 0]) {
     const sy = symbols(`${dir}/t${t}.json`);
+    m.s.writeMemory(sy.GmTopUp, [ups[0]]); m.s.writeMemory(sy.GmTurbo, [ups[1]]); m.s.writeMemory(sy.GmTraction, [ups[2]]);
     m.s.writeMemory(sy.GmDemo, [0]); m.s.writeMemory(sy.LoadWant, [t + 1]);
     await runTo(m.s, sy.start, 400000000);
     await runToAny(m.s, [[sy.ghost_frame, m.bc]], 8000000);
@@ -86,6 +89,8 @@ async function race(m, t, best) {
         pilot ??= makePilot(m.s, sy);
         m.s.writeMemory(sy.RcInput, [pilot(), 0, 0]);
     }
+    const given = paged(m, m.bt | 0x80, () => [sy.RcTopUp, sy.RcTurbo, sy.RcTraction].map((a) => m.s.readMemory(a, 1)[0]));
+    if (!same(given, ups)) say(`track ${t + 1}: the race's car given upgrades ${given.join(" ")}, not ${ups.join(" ")}`);
     paged(m, m.bt | 0x80, () => m.s.writeMemory(sy.TaBestLo, [best & 255, best >> 8]));
     m.log.saves = [];
     m.s.writeMemory(sy.GmAbandon, [1]); m.s.writeMemory(sy.LoadWant, [0xff]);
@@ -95,12 +100,12 @@ async function race(m, t, best) {
 
 // the model: entries [time, upgrades, name] by track * 10 + place
 const empty = () => [...Array(N)].map(() => ({ time: 0, ups: 0, name: Array(10).fill(0) }));
-function enter(model, t, best) {
+function enter(model, t, best, [s, tu, r] = [0, 0, 0]) {
     if (!best) return false;
     const e = model.slice(t * 10, t * 10 + 10);
     const p = e.findIndex((x) => !x.time || best < x.time);
     if (p < 0) return false;
-    e.splice(p, 0, { time: best, ups: 0, name: Array(10).fill(0) });
+    e.splice(p, 0, { time: best, ups: s * 36 + tu * 6 + r, name: Array(10).fill(0) });
     model.splice(t * 10, 10, ...e.slice(0, 10));
     return true;
 }
@@ -120,13 +125,15 @@ const runs = [[0, 500], [0, 400], [0, 600], [0, 0], [0, 450], [0, 450], [2, 555]
     [0, 900], [7, 444], [0, 1000], [0, 350], [0, 1100], [0, 2000], [0, 250], [2, 333], [0, 450]];
 let file = null, tablesChecked = 0;
 const readsAtBoot = m.log.reads;
+const Ups = [[0, 0, 0], [2, 1, 2], [5, 0, 0], [0, 5, 0], [0, 0, 5], [1, 1, 1], [3, 2, 0], [0, 4, 1]];   // (each race's, in turn)
 for (let i = 0; i <= runs.length; i++) {
     const [t, best] = runs[i] ?? [0, 0];
-    const start = await race(m, t, best);
+    const ups = Ups[i % Ups.length];
+    const start = await race(m, t, best, ups);
     if (i && !same(start, bytes(model))) say(`entered: the table loaded at race ${i + 1}'s start not the model's (track 1: ${show(start, 0)} for ${show(bytes(model), 0)})`);
     else if (i) tablesChecked++;
     if (i === runs.length) break;
-    const changed = enter(model, t, best);
+    const changed = enter(model, t, best, ups);
     const want = bytes(model);
     file = discFiles(toSsdOrDsd(m.disc())).TIMES;
     if (m.log.saves.join() !== (changed ? "TIMES" : "")) say(`entered: race ${i + 1} (track ${t + 1}, ${best}): the saves ${m.log.saves.join() || "none"}, the table ${changed ? "changed" : "the same"}`);

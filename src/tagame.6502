@@ -12,8 +12,11 @@
 \\
 \\ The track's screen (D48, step 6e): the menu's picture made into it, the logo kept, the track's map moved to the first
 \\ cell's place and the rest cleared, "TRACK n" under the map, and the track's 10 entries beside it, each its place,
-\\ time and name (tg_screen). Return or accelerate race the track, Escape goes back to the menu. After a race, back to
-\\ the track's screen (D50).
+\\ time, name and upgrades (tg_screen). Under the map the upgrades for the race (D49, step 6f): SPEED, TURBO and
+\\ TRACTION, each 0-5, the wrench and the upgrades left of 5, and RACE; left and right move the cursor among the four
+\\ (drawn yellow), from RACE; accelerate on an upgrade adds one (past 5: 0), on RACE races; Return races. While the
+\\ upgrades left are under 0 (shown red, minus) neither races. Escape goes back to the menu. After a race, back to the
+\\ track's screen (D50), the upgrades as they were (car 0's GmTopUp, GmTurbo and GmTraction: the race's, and kept).
 \\
 \\ After a race the title's file (TRACKF) is loaded before the menu: the load's start saves what the race changed
 \\ (timeattack.6502's ta_save, and SCORES's keys and sound, save.6502), so a record's on the disc before the menu's
@@ -23,6 +26,8 @@ SECTION GameScratch
 .GsFields                               ; fields' count
     SKIP 1
 .TgLast                                 ; the menu's key last seen (tg_key's), so a held key acts once; &FF none yet
+    SKIP 1
+.TgCursor                               ; the track's screen's cursor: 0-2 SPEED, TURBO, TRACTION, 3 RACE
     SKIP 1
 ENDSECTION
 
@@ -39,7 +44,22 @@ TtRowStep = 20
 TtPlaceX = 112                          ; each row's place (2 characters), time (5) and name (TaNameLen)
 TtTimeX = TtPlaceX + 18
 TtNameX = TtTimeX + 42
-ASSERT TtNameX + 6 * TaNameLen <= 320, "the track's screen: a name past the screen's edge"
+TtUpsX = TtNameX + 6 * TaNameLen + 12   ; an entry's upgrades: S2 T1 R2
+ASSERT TtUpsX + 6 * 8 <= 320, "the track's screen: the upgrades past the screen's edge"
+FOR i = 0..9                             ; (no colour 1 on the upgrades' line's lines but its own: the table's rows)
+    ASSERT TtRowY + i * TtRowStep + 6 <= TaRedTop OR TtRowY + i * TtRowStep > TaRedBottom, "the track's screen: a row on the upgrades' red"
+NEXT
+TpX = 12                                ; the upgrades' panel under the map: the labels,
+TpValueX = TpX + 9 * 6                  ; the levels,
+TpSpeedY = TtTitleY + 16                ; and the lines: SPEED, TURBO, TRACTION (TpStep apart),
+TpStep = 14
+TpLeftY = 154                           ; the wrench and the upgrades left,
+TpRaceY = TpLeftY + 18                  ; RACE
+ASSERT TpSpeedY + 2 * TpStep + 6 <= TaRedTop, "the track's screen: TRACTION on the upgrades' red"
+ASSERT TpLeftY > TaSplitRed AND TpLeftY + 6 <= TaSplitGreen, "the track's screen: the upgrades left not where colour 1's red"
+GlyphMinus = 39                         ; time attack's glyphs (front.6502: tools/screens.py's ta_glyphs)
+GlyphWrench = 40                        ; (and 41)
+ASSERT GmTopUp == GmTurbo + 4 AND GmTraction == GmTurbo + 8, "the upgrades: car 0's levels GmTurbo + TpLevel"
 ASSERT TtRowY + 9 * TtRowStep + 6 <= 256, "the track's screen: the rows past the screen's foot"
 GlyphPoint = 10                         ; the small font's glyphs (tools/screens.py): 0-9, the point, !, then A-Z
 GlyphBang = 11
@@ -99,15 +119,19 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     STA TgLast
     CMP #0:BEQ wait
     LDX TgOn:BEQ menu_key
-    CMP #9:BEQ race                     ; the track's screen: Return or accelerate race,
-    CMP #10:BNE wait
-    STZ TgOn                            ; Escape back to the menu
+    CMP #10:BNE panel                   ; the track's screen: Escape back to the menu,
+    STZ TgOn
     JSR tg_black
     JSR tg_picture
     BRA cells
+.panel
+    JSR tg_panel_key                    ; the rest the upgrades', or race
+    BCS race
+    BRA wait
 .menu_key
     CMP #9:BCC number
-    BEQ open                            ; (9: Return or accelerate)
+    BEQ open                            ; (9: Return)
+    CMP #13:BEQ open                    ; (accelerate)
     CMP #10:BEQ wait                    ; (Escape: nothing)
     PHA
     JSR tg_mark                         ; left or right: the highlight moved
@@ -253,6 +277,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     LDA #TtTitleY:STA fy
     LDA #TgWhite:STA fink
     LDA GmTrack:JSR tg_name
+    JSR tg_panel                        ; the upgrades
 
     LDA GmTrack:ASL A:STA tg_track      ; the entries: track * 10, and on
     ASL A:ASL A:CLC:ADC tg_track:STA tg_track
@@ -283,13 +308,34 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     LDA #TtNameX:STA fx
     LDX #0
 .char
-    LDA TaName,X:BEQ next
+    LDA TaName,X:BEQ named
     PHX
     JSR tg_char
     LDA #6:JSR front_across
     PLX
     INX
     CPX #TaNameLen:BNE char
+.named
+    LDA #TtUpsX:STA fx                  ; its upgrades, S2 T1 R2
+    LDA #TgGreen:STA fink
+    LDA TaUp
+    LDX #0
+.up
+    LDY #0                              ; (the level: A's digit in base 6, from the top, by subtraction)
+.sub
+    CMP TpPlace,X:BCC digit
+    SBC TpPlace,X
+    INY
+    BRA sub
+.digit
+    PHA:PHX:PHY
+    LDA TpUpLetter,X:JSR front_glyph
+    LDA #6:JSR front_across
+    PLA:JSR front_glyph
+    LDA #12:JSR front_across
+    PLX:PLA
+    INX
+    CPX #3:BNE up
 .next
     LDA fy:CLC:ADC #TtRowStep:STA fy
     INC tg_track
@@ -297,11 +343,167 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 .tens
     SBC #10
     BCS tens
-    CMP #256 - 10:BNE row               ; (the next track's first: done)
+    CMP #256 - 10:BEQ done              ; (the next track's first: done)
+    JMP row
+.done
     RTS
 }
 .tg_from                                ; the map's line, from
     EQUB 0
+.TpPlace                                ; an entry's upgrades (tatable.6502): speed * 36 + turbo * 6 + traction
+    EQUB 36, 6, 1
+.TpUpLetter
+    EQUB Gl('S'), Gl('T'), Gl('R')
+
+\\ The upgrades' panel: the cursor on RACE, and its lines drawn. A, X, Y corrupted.
+
+.tg_panel
+{
+    LDA #3:STA TgCursor
+    LDX #3
+.item
+    PHX
+    JSR tg_item
+    PLX
+    DEX
+    BPL item
+    JMP tg_left_line
+}
+
+\\ Item X of the panel drawn again (0-2 an upgrade, 3 RACE): its line cleared, its label (yellow if the cursor's on it,
+\\ else white) and an upgrade's level. A, X, Y corrupted.
+
+.tg_item
+{
+    STX tg_n
+    LDA TpItemY,X:STA fy
+    LDA #0:LDX #TgPanelBytes:JSR front_clear
+    LDA #TgWhite
+    LDX tg_n:CPX TgCursor:BNE @+
+    LDA #TgYellow
+.@
+    STA fink
+    LDA #TpX:STA fx
+    STZ fx+1
+    LDY TpTextAt,X
+.text
+    LDA TpTexts,Y:BMI done
+    PHY
+    JSR front_glyph
+    LDA #6:JSR front_across
+    PLY
+    INY
+    BRA text
+.done
+    LDX tg_n:CPX #3:BEQ race
+    LDY TpLevel,X
+    LDA #TpValueX:STA fx
+    LDA GmTurbo,Y:JMP front_glyph
+.race
+    RTS
+}
+TgPanelBytes = 26                       ; (the panel's 104 pixels, under the map)
+.TpItemY
+    EQUB TpSpeedY, TpSpeedY + TpStep, TpSpeedY + 2 * TpStep, TpRaceY
+.TpLevel                                ; each upgrade's level, from GmTurbo: car 0's GmTopUp, GmTurbo, GmTraction
+    EQUB GmTopUp - GmTurbo, 0, GmTraction - GmTurbo
+.TpTextAt
+    EQUB 0, TpTurbo - TpTexts, TpTraction - TpTexts, TpRace - TpTexts
+.TpTexts
+    EQUB Gl('S'), Gl('P'), Gl('E'), Gl('E'), Gl('D'), &FF
+.TpTurbo
+    EQUB Gl('T'), Gl('U'), Gl('R'), Gl('B'), Gl('O'), &FF
+.TpTraction
+    EQUB Gl('T'), Gl('R'), Gl('A'), Gl('C'), Gl('T'), Gl('I'), Gl('O'), Gl('N'), &FF
+.TpRace
+    EQUB Gl('R'), Gl('A'), Gl('C'), Gl('E'), &FF
+
+\\ The upgrades left of 5, signed in A (N set: under 0, too many to race). X corrupted.
+
+.tg_left
+{
+    LDA #5
+    LDX #8
+.level
+    SEC:SBC GmTurbo,X                   ; (GmTurbo, GmTopUp, GmTraction: car 0's, 4 apart)
+    DEX:DEX:DEX:DEX
+    BPL level
+    CMP #0                              ; (N from the result)
+    RTS
+}
+
+\\ The wrench and the upgrades left, on its line: white, or under 0 a minus and the count in colour 1, red on this
+\\ line (irq.6502's TaSplit). A, X, Y corrupted.
+
+.tg_left_line
+{
+    LDA #TpLeftY:STA fy
+    LDA #0:LDX #TgPanelBytes:JSR front_clear
+    LDA #TgWhite:STA fink
+    LDA #TpX:STA fx
+    STZ fx+1
+    LDA #GlyphWrench:JSR front_glyph
+    LDA #6:JSR front_across
+    LDA #GlyphWrench + 1:JSR front_glyph
+    LDA #12:JSR front_across
+    JSR tg_left:BPL count
+    EOR #&FF:INC A:PHA                  ; (under 0: its size, 1-10, after a minus)
+    LDA #TgGreen:STA fink
+    LDA #GlyphMinus:JSR front_glyph
+    LDA #6:JSR front_across
+    PLA
+    CMP #10:BNE count
+    LDA #1:JSR front_glyph
+    LDA #6:JSR front_across
+    LDA #0
+.count
+    JMP front_glyph
+}
+
+\\ A key on a track's screen (tg_key's, but Escape): Return races; accelerate races on RACE, or adds one to the
+\\ cursor's upgrade (past 5: 0); left and right move the cursor (round the four). Racing waits for the upgrades left
+\\ to be 0 or more.
+\\
+\\ Inputs: A: the key. Outputs: C set: race. A, X, Y corrupted.
+
+.tg_panel_key
+{
+    CMP #9:BEQ race
+    CMP #13:BNE turn
+    LDX TgCursor:CPX #3:BEQ race
+    LDY TpLevel,X                       ; accelerate on an upgrade: one more
+    LDA GmTurbo,Y:INC A
+    CMP #6:BCC @+
+    LDA #0
+.@
+    STA GmTurbo,Y
+    JSR tg_item
+    JSR tg_left_line
+    CLC
+    RTS
+.turn
+    LDX TgCursor
+    CMP #11:BNE right
+    DEX
+    BRA moved
+.right
+    CMP #12:BNE no
+    INX
+.moved
+    TXA:AND #3
+    LDX TgCursor
+    STA TgCursor
+    JSR tg_item                         ; (the old item white, then the new yellow)
+    LDX TgCursor
+    JSR tg_item
+.no
+    CLC
+    RTS
+.race
+    JSR tg_left:BMI no
+    SEC
+    RTS
+}
 
 \\ TRACK n, for track A (0-7), at fx (under 256), fy, in fink's colour. A, X, Y corrupted.
 
@@ -432,15 +634,20 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
 .tg_lines
     EQUB 0
 
-\\ The menu shown: its colours, colour 1 the logo's red from each vsync and the maps' green from the logo's end
-\\ (irq.6502's TaSplit). Set from a vsync, after the interrupt's put colour 1 red, so the logo's never seen green.
-\\ tg_rows ends it.
+\\ The menu or a track's screen shown: its colours, colour 1 the logo's red from each vsync and the maps' green from
+\\ the logo's end, and on a track's screen red again for the upgrades' line (irq.6502's TaSplit). Set from a vsync,
+\\ after the interrupt's put colour 1 red, so the logo's never seen green. tg_black ends it.
 \\
-\\ Inputs: none. A, X corrupted.
+\\ Inputs: TgOn. A, X corrupted.
 
 .tg_split
 {
-    LDA #1:STA TaSplit
+    LDA #&80:STA TaStep                 ; (no step till the vsync begins them)
+    LDA #TaSplitMenu
+    LDX TgOn:BEQ @+
+    LDA #TaSplitTrack
+.@
+    STA TaSplit
     LDA #1:JSR fields                   ; (colour 1 the interrupt's from here)
     LDX #15
 .colour
@@ -452,7 +659,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     RTS
 }
 
-\\ The menu's key now: 1-8 a number key, 9 Return or accelerate, 10 Escape, 11 left, 12 right (any player's driving
+\\ The menu's key now: 1-8 a number key, 9 Return, 10 Escape, 11 left, 12 right, 13 accelerate (any player's driving
 \\ keys, D52), 0 none. A number, Return or Escape first, so a driving key that's one of them is that.
 \\
 \\ Inputs: none. Outputs: A. X, Y corrupted.
@@ -478,8 +685,8 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     INX:TXA                             ; (1-10)
     RTS
 }
-.TgDriving                              ; PlayerKeys's as the menu's: left, right, accelerate (as Return)
-    EQUB 11, 12, 9, 11, 12, 9, 11, 12, 9
+.TgDriving                              ; PlayerKeys's as the menu's: left, right, accelerate
+    EQUB 11, 12, 13, 11, 12, 13, 11, 12, 13
 .TgKeys                                 ; 1-8, Return and Escape (tools/screens.py's matrix: row * 16 + column, measured)
     EQUB 48, 49, 17, 18, 19, 52, 36, 21, 73, KeyEscape
 

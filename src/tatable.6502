@@ -4,8 +4,8 @@
 \\ best first; an empty entry's time is 0. In the cars' bank, below the ghost's buffers (cars.6502 asserts every
 \\ track's slot below it); saved and loaded as TIMES by timeattack.6502 (main RAM: OSFILE can't reach a bank).
 \\
-\\ The upgrades and the names are step 6's (the track's screen, the name): until then an entry's upgrades are 0 and
-\\ its name 10 zero bytes. A name is ASCII, A-Z, 0-9, the point, ! and space, ended by a 0 if under 10 (the track's
+\\ An entry's upgrades (step 6f) are a byte, the race's levels (0-5) as speed * 36 + turbo * 6 + traction (the track's
+\\ screen shows them, tagame.6502); its name (step 6g) until then 10 zero bytes. A name is ASCII, A-Z, 0-9, the point, ! and space, ended by a 0 if under 10 (the track's
 \\ screen draws it so, tagame.6502's tg_char).
 
 TaEntries = 80
@@ -29,9 +29,10 @@ ENDSECTION
 
 \\ The race's best lap entered in its track's 10 (D41): before the first entry it's under (a tie goes after) or the
 \\ first empty one, the slower moved down a place and the 10th's dropped; or nowhere, if it's under none and the
-\\ 10 are full. Its upgrades 0 and its name empty (until step 6).
+\\ 10 are full. Its upgrades the race's (car 0's, GmTopUp, GmTurbo, GmTraction, as given it) and its name empty
+\\ (until step 6g).
 \\
-\\ Inputs: TaEntry (not 0), TrackNum; the cars' bank paged in. Outputs: the table; TaTableNew if it changed. A, X,
+\\ Inputs: TaEntry (not 0), TrackNum, car 0's upgrades; the cars' bank paged in. Outputs: the table; TaTableNew if it changed. A, X,
 \\ Y corrupted.
 
 .ta_enter
@@ -78,9 +79,12 @@ ENDSECTION
     DEX
     BRA move
 .moved
-    LDA TaEntryLo:STA TaTimeLo,X        ; the entry: the time, no upgrades, no name
+    LDA TaEntryLo:STA TaTimeLo,X        ; the entry: the time, the upgrades, no name
     LDA TaEntryHi:STA TaTimeHi,X
-    STZ TaUps,X
+    LDA GmTopUp:JSR times6              ; (speed * 36 + turbo * 6 + traction)
+    CLC:ADC GmTurbo:JSR times6
+    CLC:ADC GmTraction
+    STA TaUps,X
     TXA:JSR name_at
     LDY #TaNameLen-1
     LDA #0
@@ -89,6 +93,13 @@ ENDSECTION
     DEY
     BPL blank
     INC TaTableNew
+    RTS
+
+    \\ A * 6 (A under 43). X preserved; from corrupted.
+.times6
+    STA from
+    ASL A:ADC from                      ; (C clear: A small)
+    ASL A
     RTS
 
     \\ to: entry A's name (A * 10 + TaNames). X preserved.

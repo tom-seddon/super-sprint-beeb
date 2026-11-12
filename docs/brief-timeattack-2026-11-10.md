@@ -662,6 +662,33 @@ One commit each on `timeattack` (CLAUDE.md), the measurement in its body.
      same but for the README's commit link, every track's build byte for byte.
    - **6f, the upgrades** (D49): picked on the track's screen, 5 points over top speed, turbo and traction, as the
      last race's; given to the race as the ST's set-up does, kept in the entry and the ghost's file. Tried.
+     **Done** (2026-11-12, to be tried on Tom's Master; `docs/img/timeattack-track-6f.png`, entries poked, the levels
+     3, 2, 1 set by keys): Tom's design (D49): under the map SPEED, TURBO and TRACTION with their levels, the wrench
+     and the upgrades left of 5, and RACE; the cursor (its item drawn yellow) starts on RACE each time the screen's
+     drawn, left and right move it round the four, accelerate on an upgrade adds a level (past 5: 0), on RACE races,
+     Return races from anywhere; while the upgrades left are under 0 (shown as a minus and the count in red) neither
+     races, and nothing's changed for the player. The levels are car 0's `GmTopUp`, `GmTurbo` and `GmTraction`, which
+     `logic_start` already gives the race and which outlive it, so they're the last race's on any track, 0 at the boot.
+     The race's entry records them (`TaUps`: speed * 36 + turbo * 6 + traction), and each row shows its entry's, `S2
+     T1 R2`, in green. The ghost's file is unchanged: the ghost is the track's first entry's lap, whose upgrades the
+     table holds. The red: below the logo colour 1 is the maps' green, so the interrupt's colour switch is now a list of
+     steps (`irq.6502`'s `TaSplitTimes`, `TaSplitPhys`): on a track's screen, after the logo's end, colour 1 red at
+     line 151 and green again at 161 (measured in jsbeeb; each step lands about a line after its ticks), around the
+     count's line (154-159) in the gap between two of the table's rows (150-163, asserted free of colour 1); the steps
+     start only from a vsync (`TaStep`), so a screen coming up mid-field can't switch colour 1 early. The wrench is
+     the game's upgrade screen's (`upgrade_font`'s), and the minus the ST's small font's glyph 39, both added to
+     time attack's font (`screens.py`'s `ta_glyphs`, 18 bytes). Accelerate is a key of its own now (13), as on the
+     track's screen it isn't Return.
+     MEASURED (track 1's build): the first 4K 1,990 to 1,585 bytes free, main RAM's code 784 to 718 (the interrupt's
+     steps, `ta_entry`'s upgrades, `ta_enter`'s code), the front end's code 730 to 712 (the glyphs). Return to the
+     track's screen 0.30 s (was 0.27).
+     `ta_picture_check`'s model has the panel, the rows' upgrades and the red line (red allowed and expected only on
+     lines 150-163 of a track's screen); it drives the panel to 3, 2, 1 (-1 left, red), Return racing nothing,
+     traction round to 0 and the cursor to RACE, and the levels kept on the screen opened by 5 (fails with the green
+     switch aimed 4 lines late, line 164's places red, and with the race not refused at -1). `ta_table_check` gives
+     each race its own levels: the race's car has them and the entry records them, as the model. All seven checks
+     pass; play the same (the digests byte for byte 6d's); the game's discs the same but for the README's commit
+     link, every track's build byte for byte.
    - **6g, the name** (D39, D49, D50): after a race that made the table, typed (up to 10), then the track's screen
      with the new entry lit. Ties' order then checkable (`tools/ta_table_check.mjs`). Tried.
    - **6i, the options** (D54): a screen of its own from the menu, mostly text with the logo: the three key sets

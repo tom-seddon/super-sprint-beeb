@@ -256,6 +256,18 @@ def upgrade_font(mem):
     return out + [0] * 11               # (a blank, for a figure that wasn't there)
 
 
+def ta_glyphs():
+    """Time attack's glyphs after the small font's 39: the ST's minus (its glyph 39, which the game doesn't use), then the wrench as
+    upgrade_font has it, two 6-pixel halves, 5 lines and a blank: the track's screen's upgrades left (D49)."""
+    mem = F.first_dump()
+    out = [mem[0x1D43C - F.Region + Glyphs * 8 + line] for line in range(6)]
+    idx = F.shot('upgrade0')[0]
+    wrench = [[int(idx[y, x] not in (0, 13)) for x in range(51, 63)] for y in range(5)]
+    for half in (0, 6):
+        out += [sum(b << (7 - i) for i, b in enumerate(row[half:half + 6])) for row in wrench] + [0]
+    return out
+
+
 def box_rects(box):
     """The top left box's bytes as rectangles of one mask: [(first byte across, bytes, line, lines, mask)]. The game holds only these:
     the other three boxes are their mirrors."""
@@ -539,7 +551,7 @@ def main(out, zx02):
              'Mode2Wipe = {' + ', '.join(map(str, table(mask2))) + '}',
              'CreditsPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['credits']['pal']) + '}',
              'ScoresPhys = {' + ', '.join(str(PHYS[c]) for c in Looks['scores']['pal']) + '}',
-             'SmallFont = {' + ', '.join(map(str, font())) + '}',
+             'SmallFont = {' + ', '.join(map(str, font())) + '}', 'TaGlyphs = {' + ', '.join(map(str, ta_glyphs())) + '}',
              'OptKeyNumbers = {' + ', '.join(str(k) for k, _ in option_keys()) + '}',
              'OptKeyNames = {' + ', '.join(str(n) for _, n in option_keys()) + '}',
              'OptWordBytes = {0, ' + ', '.join(str(b) for w in Words for b in w.encode() + b'\0') + '}',

@@ -826,6 +826,9 @@ ENDIF
     EQUB (0..15) * 16 + (ScoresPhys[(0..15) DIV 8 * 2 + (0..15) DIV 2 MOD 2] EOR 7)
 .SmallGlyphs
     EQUB SmallFont
+IF GenTimeAttack
+    EQUB TaGlyphs                       ; (glyph 39 the minus, 40 and 41 the wrench's halves: tools/screens.py's ta_glyphs)
+ENDIF
 .Texts
 .StrBests
     EQUB BestsGlyphs

@@ -709,7 +709,14 @@ high score table, they need to enter their name every time. The game will very l
 fashion, with a different people taking the controls each time. Even though I'm kind of assuming a different player
 each time, I still do like the idea of having the default powerups set to the same as the last play."
 So: the upgrades are picked on the track's screen, no screen of their own, set at first to the last race's, whatever
-its track (at the boot, none). A race whose best makes the table always asks for a name, the entry empty, never the
+its track (at the boot, none).
+How, Tom, 2026-11-12 (step 6f): only the handling ones count ("there are no points in time attack mode"): speed, turbo
+and traction. Controls: a cursor through SPEED, TURBO, TRACTION and RACE, left and right moving it, accelerate adding
+a level. The count shown is the upgrades left, by a wrench: "1 spanner = 1 upgrade, so not the same as the original
+game, and I think that's fine." "It is possible for the upgrades remaining to go below zero ... Don't adjust any of
+the settings when this happens, but also don't allow starting the race. When the remaining upgrades count goes below
+zero, show it as negative, and in red. Then disallow RACE in this state." Each entry's row shows its upgrades as
+S2 T1 R2. "This part of the UI may well require some iteration." A race whose best makes the table always asks for a name, the entry empty, never the
 last name typed. After a race: D50.
 
 ### D50. Time attack goes back to the track's screen after a race: Decided (2026-11-10)

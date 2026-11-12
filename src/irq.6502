@@ -1,7 +1,8 @@
 \\ irq.6502 - the field's interrupts: the vsync (System VIA CA1) counts fields and starts the two timers; T1,
 \\ just after the display's end, opens the blank and shows the screen just drawn if one's waiting; T2, just
 \\ before the next display's start, closes the blank (D17). In main RAM, so it's there whatever's paged in. Time
-\\ attack's menu moves T2 to its logo's end, to switch colour 1 there (TaSplit).
+\\ attack's front end moves T2 to its logo's end, to switch colour 1 there, and on a track's screen on to switch it
+\\ red and back for the upgrades' line (TaSplit).
 \\
 \\ Shared with the main loop: a frame drawn during the display sets swapreq, and T1 shows it at the display's
 \\ end, flipping ACCCON's D, and clears swapreq; one drawn during the blank (inblank) the main loop shows at once
@@ -31,15 +32,25 @@ StartLines = (ScreenVTotal - ScreenVSyncPos) * 8              ; the next display
 TimeEnd = (EndLines + Margin - VsyncLate) * 64 - 2
 TimeStart = (StartLines - Margin - VsyncLate) * 64 - 2
 
-IF GenTimeAttack                        ; time attack's menu (D47, tagame.6502): colour 1 the logo's red, then the maps' green
+IF GenTimeAttack                        ; time attack's front end (D47, tagame.6502): colour 1 the logo's red, then the maps' green
 SECTION GameVars
-.TaSplit                                ; 1: colour 1 red from the vsync, green from TimeSplit (the menu shown)
+.TaSplit                                ; colour 1 red from the vsync, then TaSplits's steps from this one, less 1 (0: none)
+    SKIP 1
+.TaStep                                 ; the next step, set at the vsync; &80 none (the steps done, or not begun)
     SKIP 1
 ENDSECTION
 SplitLines = (ScreenVTotal - FrontVSyncPos) * 8 + TaLogoLines  ; the logo's end, lines from the vsync in the 32 rows (74)
 TimeSplit = (SplitLines - VsyncLate) * 64 + 32 - 2  ; (measured in jsbeeb: during line 36, of lines 27-77 without colour 1)
 PhysRed = 1
 PhysGreen = PalPhys[1]                  ; (the race's colour 1)
+TaSplitMenu = 1                         ; TaSplit: the menu's steps (TaSplitPhys's first),
+TaSplitTrack = 3                        ; a track's screen's (its third)
+TaRedTop = 150                          ; a track's screen: the lines colour 1 can be red in, the upgrades' line's
+TaRedBottom = 163                       ; (between two of the table's rows: tagame.6502 asserts none there)
+TaSplitRed = 151                        ; where the switches land (the logo's on line 36, measured; each step lands about a line
+TaSplitGreen = 161                      ; after its ticks: jsbeeb, 2026-11-12, red on 151-152, green 161-162)
+TimeTrackRed = (TaSplitRed - 36 - 1) * 64 + 32 - 2  ; ticks from the logo's end's switch
+TimeTrackGreen = (TaSplitGreen - TaSplitRed - 1) * 64 - 2
 ENDIF
 
 \\ The IRQ1V handler.
@@ -66,6 +77,7 @@ ENDIF
     INC vsyncs
     IF GenTimeAttack
         LDA TaSplit:BEQ split
+        DEC A:STA TaStep                ; (its steps' first: the logo's end)
         LDA #LO(TimeSplit):STA &FE48    ; T2 counter, low: the logo's end, not the display's start
         LDA #HI(TimeSplit):STA &FE49    ; T2 counter, high: started again
         LDA #&20 + (PhysRed EOR 7):STA &FE21    ; video ULA: colour 1 (logical 2, 3, 6 and 7) red
@@ -102,11 +114,23 @@ ENDIF
 
     STA &FE4D                           ; IFR: T2 cleared
     IF GenTimeAttack
-        LDA TaSplit:BEQ blank           ; (the menu: the logo's end)
-        LDA #&20 + (PhysGreen EOR 7):STA &FE21  ; video ULA: colour 1 green
-        LDA #&30 + (PhysGreen EOR 7):STA &FE21
-        LDA #&60 + (PhysGreen EOR 7):STA &FE21
-        LDA #&70 + (PhysGreen EOR 7):STA &FE21
+        LDA TaSplit:BEQ blank           ; (the front end: a step of its colour switch,
+        LDA TaStep:BMI blank            ; if a vsync's begun them)
+        PHX
+        TAX
+        LDA TaSplitPhys,X:STA &FE21     ; video ULA: colour 1 (logical 2, 3, 6 and 7) the step's
+        ORA #&40:STA &FE21
+        ORA #&10:STA &FE21
+        AND #&BF:STA &FE21
+        INX:STX TaStep
+        LDA TaSplitHi,X:BEQ last        ; (no step after it)
+        LDA TaSplitLo,X:STA &FE48       ; T2 counter, low: the next step, from now
+        LDA TaSplitHi,X:STA &FE49       ; T2 counter, high: started again
+        PLX
+        BRA done                        ; (still in the display)
+.last
+        LDA #&80:STA TaStep
+        PLX
 .blank
     ENDIF
     STZ inblank
@@ -118,3 +142,20 @@ ENDIF
     LDA &FC                             ; (the MOS's IRQ entry saved A there)
     RTI
 }
+
+IF GenTimeAttack
+\\ TaSplit's steps: each one's colour 1, written at T2, and the ticks to it from the step before (high byte 0: no
+\\ step, the display's start's blank then). A track's screen's switch colour 1 red for the upgrades' line
+\\ (TaRedTop-TaRedBottom) and back.
+TaSplitTimes = { 0, 0, 0, TimeTrackRed, TimeTrackGreen, 0 }
+ASSERT HI(TimeTrackRed) != 0 AND HI(TimeTrackGreen) != 0, "TaSplitTimes: a step's high byte 0 ends them"
+.TaSplitLo
+    EQUB LO(TaSplitTimes)
+.TaSplitHi
+    EQUB HI(TaSplitTimes)
+.TaSplitPhys                            ; (as &FE21 takes it, logical 2's: &20 + (physical EOR 7))
+    EQUB &20 + (PhysGreen EOR 7), 0     ; the menu: the logo's end; (none)
+    EQUB &20 + (PhysGreen EOR 7)        ; a track's screen: the logo's end,
+    EQUB &20 + (PhysRed EOR 7)          ; the upgrades' line,
+    EQUB &20 + (PhysGreen EOR 7), 0     ; and after it; (none)
+ENDIF
