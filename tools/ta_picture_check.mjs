@@ -1,10 +1,12 @@
 // Time attack's menu's picture (docs/brief-timeattack-2026-11-10.md, step 6d; D47; tagame.6502), on build/ta.ssd from
 // a fresh boot:
-// - the screen: the 8 tracks' bests poked into the table (none, under 10 s, over, 99.98 and past it), the menu drawn
-//   again (a title's load) and its 32 rows in main RAM byte for byte as a model has them: tools/screens.py's picture
-//   (build/tracks_ta/gen/tamenu.bin), each track's "TRACK n" in white and its best in yellow, " 9.56", in the small font (the
-//   build's table, build/tracks_ta/gen/front.6502's SmallFont), and the yellow box round the highlighted track; again once the
-//   highlight's moved (the box EOR'd: out of one cell, into the next);
+// - the screen: the 8 tracks' bests poked into the table (none, under 10 s, over, 99.98 and past it; names full, short and
+//   empty, in both columns; upgrades none, all, and between), the menu drawn again (a title's load) and its 32 rows in main
+//   RAM byte for byte as a model has them: tools/screens.py's picture (build/tracks_ta/gen/tamenu.bin), each track's
+//   "TRACK n" in white and its best's time in yellow, " 9.56", name in white and upgrades in green, S2 A1 T2 (D47), in
+//   the small font (the build's table, build/tracks_ta/gen/front.6502's SmallFont), and the yellow box round the
+//   highlighted track; again once the highlight's moved (the box EOR'd: out of one cell, into the next), and after
+//   track 5's entries are poked (its best's name and upgrades those);
 // - the track's screen (step 6e, D48), Return on the menu: the logo kept, the track's map moved from its cell to the first
 //   cell's place, the rest cleared, "TRACK n" in white under it, and its 10 entries (poked: times, names of every
 //   character the font has, a full 10, none and empty entries), each its place in green, time in yellow and name in
@@ -73,12 +75,14 @@ const time = (f) => {
     return `${Math.floor(f / 500) || " "}${Math.floor(f % 500 / 50)}.${Math.floor(f % 50 / 5)}${f % 5 * 2}`;
 };
 const cell = (t) => [(t >> 2) * 160, syms.TaMenuTop + (t & 3) * syms.TaMenuRow];
-function model(times, track) {
+const ups = (u) => `S${Math.floor(u / 36)} A${Math.floor(u / 6) % 6} T${u % 6}`;
+// the menu: bests, each track's [time (0 none), name, upgrades]; the highlighted track
+function model(bests, track) {
     const l = decode(picture);
     for (let t = 0; t < 8; t++) {
-        const [x0, y0] = cell(t);
-        text(l, `TRACK ${t + 1}`, x0 + syms.TaMenuTextX, y0 + syms.TgTrackLine, 3);
-        if (times[t]) text(l, time(times[t]), x0 + syms.TaMenuTextX, y0 + syms.TgTimeLine, 2);
+        const [x0, y0] = cell(t), x = x0 + syms.TaMenuTextX, [f, name, u] = bests[t];
+        text(l, `TRACK ${t + 1}`, x, y0 + syms.TgTrackLine, 3);
+        if (f) text(l, time(f), x, y0 + syms.TgTimeLine, 2), text(l, name, x, y0 + syms.TgNameLine, 3), text(l, ups(u), x, y0 + syms.TgUpsLine, 1);
     }
     const [x0, y0] = cell(track);
     for (let y = y0; y < y0 + syms.TaMenuRow; y++) for (let x = x0; x < x0 + 160; x++)
@@ -101,7 +105,7 @@ function trackModel(track, entries, levels = [0, 0, 0], cursor = 3, { lit = -1, 
     });
     text(l, "{}", syms.TpX, syms.TpLeftY, 3);
     text(l, String(left), syms.TpX + 18, syms.TpLeftY, left < 0 ? 1 : 3);
-    entries.forEach(([t, name, ups = 0], i) => {
+    entries.forEach(([t, name, u = 0], i) => {
         const y = syms.TtRowY + i * syms.TtRowStep, on = i === lit;
         if (on && typed !== null) {
             name = typed;
@@ -110,7 +114,7 @@ function trackModel(track, entries, levels = [0, 0, 0], cursor = 3, { lit = -1, 
         text(l, String(i + 1).padStart(2), syms.TtPlaceX, y, on ? 2 : 1);
         if (t) {
             text(l, time(t), syms.TtTimeX, y, 2), text(l, name, syms.TtNameX, y, on ? 2 : 3);
-            text(l, `S${Math.floor(ups / 36)} A${Math.floor(ups / 6) % 6} T${ups % 6}`, syms.TtUpsX, y, on ? 2 : 1);
+            text(l, ups(u), syms.TtUpsX, y, on ? 2 : 1);
         }
     });
     return l;
@@ -197,35 +201,39 @@ const screen = (what, want) => {
 };
 
 await toMenu();
-// the bests poked: none (track 2), under 10 s, over, 99.98, past it; the title's file loaded and the menu drawn again
-const times = [342, 0, 515, 428, 4999, 553, 6000, 296];
+// the bests poked: none (track 2), under 10 s, over, 99.98, past it; names of 10 (both columns), short and empty;
+// upgrades none, all 5s, and between; the title's file loaded and the menu drawn again
+const bests = [[342, "WWWWWWWWWW", 0], [0, "GONE", 5], [515, "A.B!", 2 * 36 + 6 + 2], [428, "", 215], [4999, "0123456789", 43],
+    [553, "ZX 81", 1], [6000, "-", 180], [296, "MMMMMMMMMM", 215]];
+const entry = (e, [t, name, u = 0]) => {   // (the cars' bank paged in)
+    const n = [...name].map((c) => c.charCodeAt(0));
+    while (n.length < 10) n.push(0);
+    s.writeMemory(syms.TaTimeLo + e, [t & 255]), s.writeMemory(syms.TaTimeHi + e, [t >> 8]), s.writeMemory(syms.TaNames + e * 10, n);
+    s.writeMemory(syms.TaUps + e, [u]);
+};
 const bc = peek(syms.bankcars), romsel = cpu.romsel;
 cpu.romSelect(bc);
-for (let t = 0; t < 8; t++) s.writeMemory(syms.TaTimeLo + t * 10, [times[t] & 255]), s.writeMemory(syms.TaTimeHi + t * 10, [times[t] >> 8]);
+bests.forEach((b, t) => entry(t * 10, b));
 cpu.romSelect(romsel);
 s.writeMemory(syms.LoadWant, ["F".charCodeAt(0) - 48]);
 if (!await run(4000, null, syms["game_resume.menu"])) say("the title's load: no menu after it");
 await toMenu();
-screen("drawn, track 1 highlighted", model(times, 0));
-await run(10, model(times, 0));
+screen("drawn, track 1 highlighted", model(bests, 0));
+await run(10, model(bests, 0));
 s.keyDown("KeyW");                      // (player 1's right)
 await run(3, null);
 s.keyUp("KeyW");
 await run(3, null);
 if (peek(syms.GmTrack) !== 4) say(`right: GmTrack ${peek(syms.GmTrack)}, not 4`);
-screen("the highlight moved to track 5", model(times, 4));
-await run(10, model(times, 4));
+screen("the highlight moved to track 5", model(bests, 4));
+await run(10, model(bests, 4));
 // the track's screen: Return on track 5, its entries poked (the first as its best on the menu)
-const entries = [[times[4], "TOM", 2 * 36 + 6 + 2], [296, "WWWWWWWWWW", 30], [0, "GONE", 5], [553, "", 5], [1000, "A.B!", 43],
+const entries = [[bests[4][0], "TOM", 2 * 36 + 6 + 2], [296, "WWWWWWWWWW", 30], [0, "GONE", 5], [553, "", 5], [1000, "A.B!", 43],
     [6000, "0123456789", 0], [2600, "XYZ 81", 180], [515, "CDEFGHIJKL", 215], [0, ""], [428, "MNOPQRSUV", 1]];
 cpu.romSelect(bc);
-entries.forEach(([t, name, ups = 0], i) => {
-    const e = 40 + i, n = [...name].map((c) => c.charCodeAt(0));
-    while (n.length < 10) n.push(0);
-    s.writeMemory(syms.TaTimeLo + e, [t & 255]), s.writeMemory(syms.TaTimeHi + e, [t >> 8]), s.writeMemory(syms.TaNames + e * 10, n);
-    s.writeMemory(syms.TaUps + e, [ups]);
-});
+entries.forEach((e, i) => entry(40 + i, e));
 cpu.romSelect(romsel);
+bests[4] = entries[0];
 s.keyDown("Enter");
 await run(3, null);
 s.keyUp("Enter");
@@ -266,8 +274,8 @@ s.keyUp("Escape");
 await toMenu();
 onTrack = false;
 if (peek(syms.TgOn) !== 0) say(`Escape: TgOn ${peek(syms.TgOn)}, not 0`);
-screen("Escape: the menu again", model(times, 4));
-await run(10, model(times, 4));
+screen("Escape: the menu again", model(bests, 4));
+await run(10, model(bests, 4));
 s.keyDown("Digit5");
 await run(3, null);
 s.keyUp("Digit5");
@@ -366,5 +374,5 @@ onTrack = true;
 screen("Escape and 5: track 5's screen, nothing lit", trackModel(4, named, [3, 2, 0], 3));
 await run(10, trackModel(4, named, [3, 2, 0], 3));
 
-console.log(bad ? `${bad} wrong` : `the menu's and the track's screen's 32 rows as the model (${checked} screens: the picture, the 8 tracks' text and bests, the box moved, track 5's screen, its upgrades set and over, the cursor over RACE both ways, the menu again, track 5's by its number, put right, a race's entry named and lit, then not); the name typed field by field, its save's trip "Saving" alone (${tripFields} fields); ${field} fields from the boot to a race: no green on the logo's lines nor red under them, and ${steady} of the menu's every line's colours as the model's`);
+console.log(bad ? `${bad} wrong` : `the menu's and the track's screen's 32 rows as the model (${checked} screens: the picture, the 8 tracks' text and bests (time, name, upgrades), the box moved, track 5's screen, its upgrades set and over, the cursor over RACE both ways, the menu again, track 5's by its number, put right, a race's entry named and lit, then not); the name typed field by field, its save's trip "Saving" alone (${tripFields} fields); ${field} fields from the boot to a race: no green on the logo's lines nor red under them, and ${steady} of the menu's every line's colours as the model's`);
 process.exit(bad ? 1 : 0);

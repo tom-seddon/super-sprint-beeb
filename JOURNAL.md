@@ -776,3 +776,16 @@
   too), and `tools/suite.sh` runs it after time attack's build. On agentbox the whole suite 5 min, time attack's part
   104 s, all passing. The game's discs from this branch and from `main` the same byte for byte.
   Tom tried the discs: "looks good". `timeattack` merged into `main` (a fast-forward), not pushed.
+
+## 2026-11-13: time attack's menu, the best's name and upgrades
+
+Tom: "there's no name/upgrades display on the time attack main menu. The record lap is shown, but not the
+corresponding name or upgrade details." D47 had them, the cell's third and fourth lines; 6d drew the track and the
+time, and 6f and 6g put the upgrades and names on the track's screen alone. Now `tg_row` draws the best's name in white
+(line 29 of the cell) and its upgrades in green, S2 A1 T2 (line 39), from what `ta_track_best` already fetched; the
+track's screen's name and upgrades are two routines both use (`tg_named`, `tg_ups`). A track with no best shows its
+TRACK n alone, as before. MEASURED (track 1's build): the first 4K 928 to 880 bytes free.
+`ta_picture_check` pokes every track's best with a name (10 characters in both columns, short, empty) and upgrades
+(none, all 5s, between) and its model draws them; it fails with the name's call taken out (33 wrong). All eleven of
+time attack's checks pass (`tools/ta_checks.sh`, here on Tom's laptop: `make ta` 93 s, the checks 447 s). The game's
+discs from this branch and without the change the same byte for byte (`VERSION=dc7d9`).

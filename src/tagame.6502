@@ -4,8 +4,8 @@
 \\
 \\ No attract mode (D51): the menu (D47, step 6d), its 32 rows (D46, step 6c: tg_rows) a picture, the SUPER SPRINT
 \\ logo in red and yellow across the top and the 8 tracks' maps in two columns of four (tools/screens.py), with each
-\\ track's name and best (the table, tatable.6502) beside its map in the small font (front.6502's front_glyph), and a
-\\ yellow box round the highlighted track. Colour 1 is red over the logo and green under it, switched by the
+\\ track's name and its best, the time, name and upgrades (the table, tatable.6502), beside its map in the small font
+\\ (front.6502's front_glyph), and a yellow box round the highlighted track. Colour 1 is red over the logo and green under it, switched by the
 \\ interrupt (irq.6502's TaSplit). The driving keys (any player's) move the highlight round the cells, right clockwise
 \\ (1, 5, 6, 7, 8, 4, 3, 2) and left back, Return or accelerate open the highlighted one's screen, 1-8 that track's
 \\ (D52: another way through, not a shortcut to the race).
@@ -38,7 +38,10 @@ SECTION GameScratch
 ENDSECTION
 
 TgTrackLine = 9                         ; "TRACK n"'s line into its cell (tools/screens.py's layout: TaMenuTop on, cells of
-TgTimeLine = 19                         ; 160 pixels by TaMenuRow lines, the text from TaMenuTextX), and the time's
+TgTimeLine = 19                         ; 160 pixels by TaMenuRow lines, the text from TaMenuTextX), and the best's
+TgNameLine = 29                         ; time, name
+TgUpsLine = 39                          ; and upgrades (D47)
+ASSERT TgUpsLine + 6 < TaMenuRow - 1, "the menu: the upgrades on the cell's box"
 TgYellow = &F0                          ; front_glyph's colours (fink)
 TgWhite = &FF
 TgGreen = &0F
@@ -215,8 +218,8 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     RTS
 }
 
-\\ Track X's cell's text, right of its map: TRACK n in white, and its best (none: nothing) in yellow under it, as
-\\ seconds and hundredths, " 9.56", to 99.98.
+\\ Track X's cell's text, right of its map (D47): TRACK n in white, then its best (none: nothing): the time in yellow, as
+\\ seconds and hundredths, " 9.56", to 99.98, its name in white and its upgrades in green, S2 A1 T2, a line each.
 \\
 \\ Inputs: X: the track; the table. A, X, Y corrupted.
 
@@ -238,7 +241,13 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     ORA fs+1:BEQ done                   ; (none)
     LDA tg_x:STA fx
     LDA fy:CLC:ADC #TgTimeLine - TgTrackLine:STA fy
-    JMP tg_time
+    JSR tg_time
+    LDA fy:CLC:ADC #TgNameLine - TgTimeLine:STA fy
+    LDA #TgWhite:STA fink
+    LDA tg_x:JSR tg_named               ; (ta_track_best's TaName)
+    LDA fy:CLC:ADC #TgUpsLine - TgNameLine:STA fy
+    LDA #TgGreen:STA fink
+    LDA tg_x:JMP tg_ups                 ; (and its TaUp)
 .done
     RTS
 }
@@ -346,20 +355,47 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     LDA fs:ORA fs+1:BEQ next            ; (empty)
     LDA #TtTimeX:STA fx
     JSR tg_time
-    LDA #TgWhite:JSR tg_ink             ; the name: its characters till a 0
-    LDA #TtNameX:STA fx
+    LDA #TgWhite:JSR tg_ink             ; the name
+    LDA #TtNameX:JSR tg_named
+    LDA #TgGreen:JSR tg_ink             ; its upgrades, S2 A1 T2
+    LDA #TtUpsX:JSR tg_ups
+.next
+    LDA fy:CLC:ADC #TtRowStep:STA fy
+    INC tg_track
+    LDA tg_track:SEC
+.tens
+    SBC #10
+    BCS tens
+    CMP #256 - 10:BEQ done              ; (the next track's first: done)
+    JMP row
+.done
+    RTS
+}
+
+\\ An entry's name (TaName: its characters till a 0) at pixel A across (under 256), fy, in fink's colour. A, X, Y
+\\ corrupted.
+
+.tg_named
+{
+    STA fx:STZ fx+1
     LDX #0
 .char
-    LDA TaName,X:BEQ named
+    LDA TaName,X:BEQ done
     PHX
     JSR tg_char
     LDA #6:JSR front_across
     PLX
     INX
     CPX #TaNameLen:BNE char
-.named
-    LDA #TtUpsX:STA fx                  ; its upgrades, S2 A1 T2
-    LDA #TgGreen:JSR tg_ink
+.done
+    RTS
+}
+
+\\ An entry's upgrades (TaUp) as S2 A1 T2 at pixel A across (under 256), fy, in fink's colour. A, X, Y corrupted.
+
+.tg_ups
+{
+    STA fx:STZ fx+1
     LDA TaUp
     LDX #0
 .up
@@ -378,16 +414,6 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     PLX:PLA
     INX
     CPX #3:BNE up
-.next
-    LDA fy:CLC:ADC #TtRowStep:STA fy
-    INC tg_track
-    LDA tg_track:SEC
-.tens
-    SBC #10
-    BCS tens
-    CMP #256 - 10:BEQ done              ; (the next track's first: done)
-    JMP row
-.done
     RTS
 }
 .tg_from                                ; the map's line, from
