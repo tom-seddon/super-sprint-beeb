@@ -466,6 +466,16 @@ adds the logic.
   - Emulators: Tom, "jsbeeb does offer a Master Turbo option but I don't know whether it's accessible in the headless
     version" (`tools/jsbeeb.mjs`, the jsbeeb MCP's `create_machine`): to check. b2 has a Master with a 6502 second
     processor, from memory.
+- The suite's wall time (Tom, 2026-11-13: "potentially useful, but still a lot of wall clock time either way. So not
+  worth it immediately"). What's measured and what's guessed: `JOURNAL.md`, 2026-11-13, "the checks' times on Tom's
+  laptop". In short: on the laptop (2 cores, 4 threads) jsbeeb's checks are bound by the cores, the hyperthreads adding
+  nothing, so splitting time attack's ghost checks was slower there and was dropped. To try:
+  - On agentbox, when it's back: time attack's ghost checks split by track (`GHOSTS=4 MACHINES=8`), where there are
+    more cores than jobs and the two ghost checks are the longest wait. Untested; roughly half their wait, guessed.
+  - For the game's suite, all untested guesses: `disc_races` started in the background as soon as the disc's made when
+    it runs here too, as with `REMOTE=` (the serial builds and short checks, about 4½ minutes, sharing the second core:
+    perhaps 2 minutes); time attack's tracks built while the disc's checks run (perhaps 1); `game_adfs` earlier in
+    `disc_races`' list (its last 70 s with one job left: perhaps 30 s); `MACHINES=2` on the laptop (about 2%).
 - For Tom to do (his files, `CLAUDE.md`: reminders only, with what each might say; noted 2026-11-12):
   - `README.md`: time attack. `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds
     in `build/tracks_ta`); `tools/ta_checks.sh OUT` checks them, and `tools/suite.sh` runs that too. Perhaps a line

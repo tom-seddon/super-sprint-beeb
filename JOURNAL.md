@@ -789,3 +789,28 @@ TRACK n alone, as before. MEASURED (track 1's build): the first 4K 928 to 880 by
 (none, all 5s, between) and its model draws them; it fails with the name's call taken out (33 wrong). All eleven of
 time attack's checks pass (`tools/ta_checks.sh`, here on Tom's laptop: `make ta` 93 s, the checks 447 s). The game's
 discs from this branch and without the change the same byte for byte (`VERSION=dc7d9`).
+
+## 2026-11-13: the checks' times on Tom's laptop
+
+agentbox was away, so everything ran on Tom's laptop (i7-5557U: 2 cores, 4 threads). btop showed time attack's checks
+(`tools/ta_checks.sh`, `MACHINES=4`) with two threads busy and two nearly idle for their second half: the two ghost
+checks (`ta_ghost_check`, DFS and ADFS discs) run about 7 minutes each, the other nine done in about 4. Tried, on a
+branch since dropped: each ghost check as `GHOSTS` pieces, each its own machine racing a share of the tracks
+(`TRACKS=0,2,4,6` and `1,3,5,7`; `ta_checks.sh` putting the pieces first and making `ghost.status` from theirs, so
+`tools/suite.sh` was unchanged). MEASURED, time attack's discs at 4fbb3, every check passing each time:
+
+    main, MACHINES=4 (as it is)      447 s   (ghost 447, ghost_adfs 433)
+    split, GHOSTS=2, MACHINES=4      477 s   (the four pieces 347-369 s each)
+    main, MACHINES=2                 437 s   (ghost 312, ghost_adfs 326)
+
+So jsbeeb gets nothing from the hyperthreads: two at a time is as quick as four, the checks' times at two adding up to
+871 s, 436 s over two cores, and `main`'s order already packs them onto both. The idle threads weren't spare capacity.
+The split would help only where there are more cores than jobs (agentbox: `GHOSTS=4 MACHINES=8` guessed to halve the
+ghost checks' wait there, untested). Tom: not worth it for now; on the plan's list ("The suite's wall time").
+
+The game's suite, from the logs of the whole suite run here at dc7d97c (48 min 19 s), not measured further: the disc's
+jobs (`tools/disc_races.sh`, `MACHINES=4`) keep four slots busy to about 1700 s, then about 70 s with `game_adfs` alone;
+before the first race about 400 s, the models being made (`MODELS=3`) by the look of it, not timed; before
+`disc_races` about 4½ minutes of builds and checks one at a time (`all_tracks` 89 s, `game_disc` 41 s, the render and
+logic checks), and time attack's build 1½ (54 s and 38 s), each leaving a core idle. The guesses for what might be
+saved are on the plan's list: about 3 to 5 minutes of the 48 between them.
