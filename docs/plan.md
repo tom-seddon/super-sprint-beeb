@@ -438,7 +438,7 @@ adds the logic.
   name into `TaName` and its upgrades into `TaUp`, which the track's screen draws as a row's name (white) and
   `S2 A1 T2` (green). So the name and upgrades on lines 29 and 39 as the mock-up, nothing for a track with no best;
   `ta_picture_check`'s model of the menu to match. Built 2026-11-13 on the branch `ta-menu-names`, as that
-  (`docs/img/timeattack-menu-names.png`, bests poked); to be tried on Tom's Master.
+  (`docs/img/timeattack-menu-names.png`, bests poked); Tom, 2026-11-13: "Track names on the main menu look good."
 - Speculative: time attack with its tracks in a second processor's RAM (Tom, 2026-11-13). "the second processor doesn't
   actually get used for anything. Tracks are loaded into second processor RAM initially, then the game runs on the host
   as normal. But instead of loading tracks from disk, they're read from the second processor using one of the Tube
