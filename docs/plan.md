@@ -429,7 +429,7 @@ adds the logic.
 - Time attack's menu: a line of key hints (Tom, 2026-11-12, at 6d: "A line of keys perhaps later, maybe squeezed in
   around the logo"; at 6i: "we can think about the hints later"). Not designed: where it goes and what it says
   (the driving keys, 1-8, Return, F1 for the options), in the small font the menu uses.
-- Time attack's menu: each track's best shows its time but not its name or upgrades (Tom, 2026-11-13: "there's no
+- ~~Time attack's menu: each track's best shows its time but not its name or upgrades~~: done 2026-11-13, merged into `main` (Tom, 2026-11-13: "there's no
   name/upgrades display on the time attack main menu. The record lap is shown, but not the corresponding name or
   upgrade details."). Planned and dropped: D47 gives each cell four lines of the small font, the track, the best time,
   the name and the upgrades (`docs/img/timeattack-menu.png`); 6d drew the first two, noting "No name or upgrades yet
