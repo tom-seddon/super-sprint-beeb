@@ -429,6 +429,42 @@ adds the logic.
 - Time attack's menu: a line of key hints (Tom, 2026-11-12, at 6d: "A line of keys perhaps later, maybe squeezed in
   around the logo"; at 6i: "we can think about the hints later"). Not designed: where it goes and what it says
   (the driving keys, 1-8, Return, F1 for the options), in the small font the menu uses.
+- Time attack's menu: each track's best shows its time but not its name or upgrades (Tom, 2026-11-13: "there's no
+  name/upgrades display on the time attack main menu. The record lap is shown, but not the corresponding name or
+  upgrade details."). Planned and dropped: D47 gives each cell four lines of the small font, the track, the best time,
+  the name and the upgrades (`docs/img/timeattack-menu.png`); 6d drew the first two, noting "No name or upgrades yet
+  (6f, 6g)", and 6f and 6g built them on the track's screen alone. What's there: `tagame.6502`'s `tg_row` draws
+  `TRACK n` (line 9 of the cell) and the time (19); `timeattack.6502`'s `ta_track_best` already copies the entry's
+  name into `TaName` and its upgrades into `TaUp`, which the track's screen draws as a row's name (white) and
+  `S2 A1 T2` (green). So the name and upgrades on lines 29 and 39 as the mock-up, nothing for a track with no best;
+  `ta_picture_check`'s model of the menu to match. Not built.
+- Speculative: time attack with its tracks in a second processor's RAM (Tom, 2026-11-13). "the second processor doesn't
+  actually get used for anything. Tracks are loaded into second processor RAM initially, then the game runs on the host
+  as normal. But instead of loading tracks from disk, they're read from the second processor using one of the Tube
+  remote peek operations. Scores are saved to disk as normal." "In principle, this could be made to work with any
+  second processor, but start with the 6502 one as I have the hardware to test on." So a Master 128 with a Master
+  Turbo or an external 6502 second processor (the Compact has no Tube). Not designed. What's known:
+  - The room: time attack's eight track files, packed, are 51,818 bytes on `build/ta.ssd` (COUNTED, 5,882 to 6,875
+    each), against a 6502 second processor's 64K less its client ROM and low pages: they fit as they are, with some
+    room spare.
+  - The game's OSFILE blocks already give host addresses (`&FFFF0000 +`: `boot.6502`, `entry.6502`), so with a Tube
+    on, its loads and saves still go to the host. The tracks could be loaded across at the boot by OSFILE with a
+    parasite address (the filing system doing the transfer), the boot a few seconds longer on DFS (ESTIMATED).
+  - To check, all from memory, none measured: the Master's MOS puts its Tube host code at `&0400`-`&06FF` when a
+    second processor is on, which is the game's (the memory table above); reading the parasite's memory from the host
+    is a type 0 transfer (parasite to host) through that code's entry at `&0406`, a byte at a time from R3, or the
+    game's own few bytes of the same protocol, so the MOS's copy isn't needed; the parasite's client code answers
+    with nothing of the game's running there; no Tube interrupts arrive while the parasite's idle, so the game's
+    IRQ1V needs nothing for it; the zero page the host code uses. The other second processors take the same
+    transfers, with their own addresses.
+  - Answered (Tom, 2026-11-13): "ideally, it'd be the existing disk, reusing most of the existing files", so time
+    attack's disc, using the second processor when it finds one (OSBYTE &EA, say) and the disc otherwise. "ghost files
+    get saved to disk. But if there'd be space to cache them in the 2nd processor RAM as well, great": so whether the
+    eight ghosts fit beside the tracks is to be measured (a ghost's size depends on its lap). The load's time "can be
+    measured when actually starting on this".
+  - Emulators: Tom, "jsbeeb does offer a Master Turbo option but I don't know whether it's accessible in the headless
+    version" (`tools/jsbeeb.mjs`, the jsbeeb MCP's `create_machine`): to check. b2 has a Master with a 6502 second
+    processor, from memory.
 - For Tom to do (his files, `CLAUDE.md`: reminders only, with what each might say; noted 2026-11-12):
   - `README.md`: time attack. `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds
     in `build/tracks_ta`); `tools/ta_checks.sh OUT` checks them, and `tools/suite.sh` runs that too. Perhaps a line
