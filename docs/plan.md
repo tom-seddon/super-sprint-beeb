@@ -326,6 +326,10 @@ adds the logic.
   start over ssh), the build's ST files packed here (`make build/stfiles.tar.gz`, 2.5 MB) and unpacked in a fresh
   clone build the same discs, in 1 min 8 s, with `HATARI=/usr/bin/false`: `docs/st-traces.md`, which also lists
   every ST file, what makes it and what reads it. Not tried: Linux; Windows not supported for now (Tom).
+- Build from a fresh clone by hand, on Linux and on macOS (Tom, 2026-11-12): "I would like to try this by hand, to
+  ensure the instructions cover everything. I'd like this to be straightforward for a person to do by hand without
+  needing agent assistance." Tom does it, following the README alone; what he finds missing or awkward is dealt with
+  then (in a future session).
 - A GitHub Actions build (Tom, 2026-11-10): "a GitHub Actions setup that builds the game and creates a zip file
   with the .adl and .ssd files in it. The zip file and disk images inside it should be named with commit time and
   date (in UTC) as well as the part of the commit hash shown in-game, so that it's easier to check which is the
