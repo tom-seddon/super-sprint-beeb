@@ -3,7 +3,7 @@
 > **Status: IN PROGRESS.** Branch `game-load-faults`, off `main` at 0b3b3c2 (the commit Tom last saw). Tom away; the
 > `beeb-unattended-job` skill. Everything runs on Tom's laptop (agentbox away). Nothing merged, pushed or published.
 >
-> **Resume point**: step 1. If this session ends, the next one starts at the first step not marked done below,
+> **Resume point**: step 3. If this session ends, the next one starts at the first step not marked done below,
 > reading this brief, `docs/plan.md`'s item "The game's loads' two screen faults" and `src/loadcode.6502`.
 
 ## Why
@@ -20,8 +20,8 @@ later, as it'll be worth fixing once everything is merged back into one branch")
 
 ## Steps
 
-1. The brief committed (this).
-2. The two `IF GenTimeAttack`s dropped, so the game has both fixes; time attack's build unchanged (its code already
+1. Done: the brief committed (this).
+2. Done (see its commit): the two `IF GenTimeAttack`s dropped, so the game has both fixes; time attack's build unchanged (its code already
    both). `make game`, `make ta`: the game's discs differ (expected: LoadCode 20 bytes more), time attack's the same
    byte for byte at one `VERSION=`. The room in LoadCode (`&7C00`-`&7FFF`) read from the listing. First checks:
    `boot_check` (DFS, `--adfs`), `flash_check`, `load_check` (DFS, `--adfs`).
