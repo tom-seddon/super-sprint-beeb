@@ -836,3 +836,6 @@ release's notes list each file's SHA-256. Run here from the workflow's own text 
 256` for `sha256sum`): `make -j2 game` then `make -j2 ta` 170 s, the zip 343,847 bytes, its five files as named, the
 notes as expected. Not run on GitHub yet (a push to `ci-build`, Tom's to ask for). Tom wonders whether the zip wants a
 README of its own, written for a PC: on the plan's list, for later.
+Then on GitHub (Tom: "Yes, push ci-build"): run 43589334755 at 42aae0e passed in 8 min 10 s, the release
+`super-sprint-20261114-1103-42aae`, its zip 343,789 bytes; the five files' SHA-256 in its notes the same as 42aae0e's
+built here (`make -j2 game`, `make -j2 ta`, `disc_readme.py --pc`), so nothing downloaded.

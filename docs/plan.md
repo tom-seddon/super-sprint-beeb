@@ -373,8 +373,9 @@ adds the logic.
   README as well"): `make ta` after `make game` (two makes: they share `build/sprint.*`), and one zip holding
   `super-sprint-WHEN.ssd`/`.adl`, `super-sprint-ta-WHEN.ssd`/`.adl` and `README.txt` (`tools/disc_readme.py --pc`:
   the disc's text with CR LF line ends), the release's notes each one's SHA-256. The zip step and the notes run here
-  on a clean tree as the workflow has them: the five files as named. Not yet run on GitHub: that's a push to
-  `ci-build`, Tom's to ask for.
+  on a clean tree as the workflow has them: the five files as named. Run on GitHub 2026-11-14 (run 43589334755, at
+  42aae0e, 8 min 10 s with Hatari from the cache): the release `super-sprint-20261114-1103-42aae`, its zip 343,789
+  bytes, and all five files' SHA-256 in its notes the same as 42aae0e's built here.
   Later perhaps (Tom, 2026-11-14): "I wonder whether perhaps the zip should have a different README from the disk, as
   it's intended for reading on a PC rather than the BBC's tiny screen - but that shouldn't be too hard to sort out
   later." `tools/disc_readme.py` makes both, so a `disc/README-pc.txt` (say) for `--pc` would be the change.
