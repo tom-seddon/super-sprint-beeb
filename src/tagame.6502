@@ -104,6 +104,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     JSR tg_picture                      ; the logo and the maps
     LDA TgOn:BNE track                  ; (after a race: its track's screen, D50)
 .cells
+    JSR tg_hint                         ; F1 OPTIONS
     LDX #7
 .rows
     PHX
@@ -153,7 +154,7 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     STZ TaLit                           ; (the new entry lit no more)
     JSR tg_black
     JSR tg_picture
-    BRA cells
+    JMP cells                           ; (out of a branch's reach)
 .panel
     JSR tg_panel_key                    ; the rest the upgrades', or race
     BCS race
@@ -193,6 +194,8 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     JMP cells
 }
 
+.TgHint                                 ; F1 OPTIONS (front.6502: tools/screens.py's)
+    EQUB TaHintText
 .TrackText                              ; TRACK
     EQUB Gl('T'), Gl('R'), Gl('A'), Gl('C'), Gl('K')
 .TrackTextEnd
@@ -215,6 +218,26 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     JSR front_unpack
     LDA bankbg:ORA #RomselAndy
     STA &FE30                           ; ROMSEL: ANDY in
+    RTS
+}
+
+\\ The menu's key hint, F1 OPTIONS, white, at the screen's top left (tools/screens.py's TaHint: Tom, 2026-11-14), on the
+\\ menu alone: tg_screen clears it. A, X, Y corrupted.
+
+.tg_hint
+{
+    STZ fx:STZ fx+1:STZ fy
+    LDA #TgWhite:STA fink
+    LDX #0
+.next
+    LDA TgHint,X:BMI done
+    PHX
+    JSR front_glyph
+    LDA #6:JSR front_across
+    PLX
+    INX
+    BRA next
+.done
     RTS
 }
 
@@ -314,6 +337,10 @@ FUNCTION Gl(c) = GlyphA + c - 'A'
     INC fy
     DEC tg_lines
     BNE map
+    LDX #TaHintBytes * 8 - 1            ; the menu's F1 OPTIONS cleared: its bytes across the first row (nothing else
+.hint                                   ; of the picture's there, tools/screens.py's)
+    STZ FrontAddr,X
+    DEX:BPL hint
     LDA #TaMenuTop:STA fy               ; the rest cleared: beside the map,
     LDA #TaMenuRow:STA tg_lines
     LDA #TgMapBytes:JSR tg_blank

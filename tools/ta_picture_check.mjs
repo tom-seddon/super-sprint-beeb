@@ -4,13 +4,14 @@
 //   empty, in both columns; upgrades none, all, and between), the menu drawn again (a title's load) and its 32 rows in main
 //   RAM byte for byte as a model has them: tools/screens.py's picture (build/tracks_ta/gen/tamenu.bin), each track's
 //   "TRACK n" in white and its best's time in yellow, " 9.56", name in white and upgrades in green, S2 A1 T2 (D47), in
-//   the small font (the build's table, build/tracks_ta/gen/front.6502's SmallFont), and the yellow box round the
-//   highlighted track; again once the highlight's moved (the box EOR'd: out of one cell, into the next), and after
-//   track 5's entries are poked (its best's name and upgrades those);
-// - the track's screen (step 6e, D48), Return on the menu: the logo kept, the track's map moved from its cell to the first
-//   cell's place, the rest cleared, "TRACK n" in white under it, and its 10 entries (poked: times, names of every
-//   character the font has, a full 10, none and empty entries), each its place in green, time in yellow and name in
-//   white, and its upgrades in green (S2 A1 T2), byte for byte; under the map the upgrades' panel (step 6f, D49):
+//   the small font (the build's table, build/tracks_ta/gen/front.6502's SmallFont), F1 OPTIONS in white at the screen's
+//   top left, and the yellow box round the highlighted track; again once the highlight's moved (the box EOR'd: out of
+//   one cell, into the next), and after track 5's entries are poked (its best's name and upgrades those);
+// - the track's screen (step 6e, D48), Return on the menu: the logo kept (F1 OPTIONS cleared), the track's map moved
+//   from its cell to the first cell's place, the rest cleared, "TRACK n" in white under it, and its 10 entries (poked:
+//   times, names of every character the font has, a full 10, none and empty entries), each its place in green, time
+//   in yellow and name in white, and its upgrades in green (S2 A1 T2), byte for byte; under the map the upgrades'
+//   panel (step 6f, D49):
 //   SPEED, ACCEL., TRACTION and their levels, the wrench and the upgrades left, RACE, the cursor's item in yellow;
 //   the panel driven by keys (right and accelerate) to speed 3, acceleration 2, traction 1: one too many, the count -1
 //   and RACE in red (colour 1 switched red for each one's line by the interrupt), the cursor passing over RACE right
@@ -79,6 +80,7 @@ const ups = (u) => `S${Math.floor(u / 36)} A${Math.floor(u / 6) % 6} T${u % 6}`;
 // the menu: bests, each track's [time (0 none), name, upgrades]; the highlighted track
 function model(bests, track) {
     const l = decode(picture);
+    text(l, "F1 OPTIONS", 0, 0, 3);   // (the key hint, white, at the top left; not on the track's screen)
     for (let t = 0; t < 8; t++) {
         const [x0, y0] = cell(t), x = x0 + syms.TaMenuTextX, [f, name, u] = bests[t];
         text(l, `TRACK ${t + 1}`, x, y0 + syms.TgTrackLine, 3);

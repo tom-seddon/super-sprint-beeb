@@ -807,3 +807,15 @@ Shared with the race's, and in the bank's copy); `SCORES` the keys and sound alo
 the same on every track kept in the fourth bank (`docs/brief-timeattack-2026-11-10.md` §8, 6c's follow-up). Asked
 again as it was built (2026-11-12), whether to copy it back from the shadow screen's copy instead (no bank room, but
 the front end then keeps off the shadow screen's Shared): "Fourth bank, as agreed".
+
+### D56. Time attack's menu's key hint: Decided (2026-11-14)
+Time attack. The menu (D47) shows no keys, and the logo and cells leave little room: above the red stripe, 75 pixels
+by 22 lines left of the logo and 94 by 14 right of it (COUNTED, `build/tracks_ta/gen/tamenu.bin`). Tom, 2026-11-14:
+"it'll probably have to be something brief, squeezed into the top left in the corner of the logo. Just "F1 =
+OPTIONS" will suffice, I think, in the same style as the hint at the bottom of the options screen". The small font has
+no `=`, so the hint is `F1 OPTIONS`, as the options screen's `F9 SOUND ON   F0 EXIT`: 60 pixels. Mocked up in six
+places (in the corner left of the logo, centred or by the stripe, in white or yellow; right of it; at the screen's very
+corner, or 2 pixels in), and Tom picked the very corner, `docs/img/timeattack-hint-e.png`: "I think option E will be
+fine. This decision can be revisited if it proves a problem in practice." (the screen's edge cut off by a TV, say).
+So: `F1 OPTIONS` in white at pixel 0, line 0, drawn on the menu alone (`tagame.6502`'s `tg_hint`); the track's
+screen clears it, and the options screen unpacks the picture again without it.

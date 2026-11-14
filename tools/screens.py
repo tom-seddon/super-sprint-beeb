@@ -517,6 +517,9 @@ TaMenuMapX = 2                          # (the map's pixels in from the cell's e
 TaMenuTextX = 86                        # the text's first pixel into its cell
 TaSplitLines = 3                        # colour 1's switch from red to green (irq.6502: in jsbeeb during line 36): no colour 1 this
                                         # many lines before the logo's end nor twice as many after it
+TaHint = b'f1 options'                  # time attack's menu's key hint, white at the screen's top left (Tom, 2026-11-14: option E,
+TaHintBytes = (len(TaHint) * 6 + 3) // 4    # docs/img/timeattack-hint-e.png): tagame.6502 draws it, and clears these bytes across
+                                        # the first row for the track's screen
 SelectRect = ((28, 34, 87), (53, 34, 87), (53, 88, 141), (53, 145, 199), (28, 145, 199), (3, 145, 199), (3, 88, 141), (3, 34, 87))    # select.6502's RectCol, RectTop, RectBottom
 
 
@@ -545,6 +548,7 @@ def ta_menu_files(out, zx02):
         box[y0, x0:x0 + 160] = box[y0 + TaMenuRow - 1, x0:x0 + 160] = True
         box[y0:y0 + TaMenuRow, x0] = box[y0:y0 + TaMenuRow, x0 + 159] = True
     assert not lidx[box].any(), 'the boxes: over something'
+    assert not lidx[:8, :TaHintBytes * 4].any(), 'the hint\'s place, its row\'s bytes: not clear'
     assert not (lidx[TaLogo[1] - TaSplitLines:TaLogo[1] + 2 * TaSplitLines] == 1).any(), 'colour 1 where the interrupt switches it'
     raw = mode1_bytes(lidx)
     open(f'{out}/tamenu.bin', 'wb').write(raw)
@@ -552,7 +556,7 @@ def ta_menu_files(out, zx02):
     open(f'{out}/tamenu.zx02', 'wb').write(packed)
     print(f'time attack\'s menu: {len(packed):,} bytes packed')
     return [f'TaLogoLines = {TaLogo[1]}', f'TaMenuTop = {TaMenuTop}', f'TaMenuRow = {TaMenuRow}', f'TaMenuTextX = {TaMenuTextX}',
-            f'TaSplitLines = {TaSplitLines}']
+            f'TaSplitLines = {TaSplitLines}', f'TaHintBytes = {TaHintBytes}', 'TaHintText = {' + glyphs(TaHint) + '}']
 
 
 def main(out, zx02):
