@@ -369,6 +369,15 @@ adds the logic.
   after `make game` in the workflow, and time attack's discs (`build/ta.ssd`, `build/ta.adl`) in the release. Open:
   whether they go in the same zip or one of their own, and their names (`super-sprint-ta-…`, say). It reads the same
   ST files, so no more Hatari time; its tracks take about as long as the game's.
+  Both built 2026-11-14 on the branch `ci-zip` (Tom: "Please put all disk images in the same archive, and the disk's
+  README as well"): `make ta` after `make game` (two makes: they share `build/sprint.*`), and one zip holding
+  `super-sprint-WHEN.ssd`/`.adl`, `super-sprint-ta-WHEN.ssd`/`.adl` and `README.txt` (`tools/disc_readme.py --pc`:
+  the disc's text with CR LF line ends), the release's notes each one's SHA-256. The zip step and the notes run here
+  on a clean tree as the workflow has them: the five files as named. Not yet run on GitHub: that's a push to
+  `ci-build`, Tom's to ask for.
+  Later perhaps (Tom, 2026-11-14): "I wonder whether perhaps the zip should have a different README from the disk, as
+  it's intended for reading on a PC rather than the BBC's tiny screen - but that shouldn't be too hard to sort out
+  later." `tools/disc_readme.py` makes both, so a `disc/README-pc.txt` (say) for `--pc` would be the change.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
@@ -400,7 +409,7 @@ adds the logic.
   `font_char` into LowFree's top. The brief lists batch 2 and the levers that cost cycles, for when something needs them.
   Now: the `&3000` area 267 free, ANDY 237, the front end's code 34, the objects' bank 34 (track 5). New code for
   between races goes in the screens' files, in `game.6502` (the first 4K) or main RAM.
-- A time attack version (Tom, 2026-11-10): one player, endless laps, a ghost of the best lap, a table and the ghost
+- ~~A time attack version~~: done, merged into `main` 2026-11-12 (Tom, 2026-11-10): one player, endless laps, a ghost of the best lap, a table and the ghost
   saved per track, a track menu for a front end; its own disc from the same source:
   `docs/brief-timeattack-2026-11-10.md` (built on the branch `timeattack`, merged into `main` 2026-11-12), its questions answered (D36-D50). The ghost's room is the
   cars' bank's three unused car sets (about 8K, ESTIMATED: the green set alone, drawn white for the player and black

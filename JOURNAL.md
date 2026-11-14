@@ -825,3 +825,14 @@ copied with a delay's count poked into test builds of the old and new code (358 
 line hold-up after the vsync and with its load's end 84-90 lines later, the new passes both sweeps (but a 220-line
 hold-up, its redraw then reaching the next field's row). The whole suite here: every verdict 0, 40 min 32 s
 (`disc_races` 1,764 s; time attack's checks 356 s). Ready for Tom's Master; not merged. Tom tried it: "Looks good." Merged into `main`.
+
+## 2026-11-14: the GitHub build's zip, time attack's discs and the README
+
+Tom: "Please put all disk images in the same archive, and the disk's README as well." The workflow
+(`.github/workflows/build.yml`) makes time attack after the game, in its own make (the two share `build/sprint.*`),
+and its one zip holds `super-sprint-WHEN.ssd` and `.adl`, `super-sprint-ta-WHEN.ssd` and `.adl`, and `README.txt`:
+the disc's README (`tools/disc_readme.py --pc`), its lines ending CR LF for a PC rather than CR for `*TYPE`. The
+release's notes list each file's SHA-256. Run here from the workflow's own text on a clean tree (macOS's `shasum -a
+256` for `sha256sum`): `make -j2 game` then `make -j2 ta` 170 s, the zip 343,847 bytes, its five files as named, the
+notes as expected. Not run on GitHub yet (a push to `ci-build`, Tom's to ask for). Tom wonders whether the zip wants a
+README of its own, written for a PC: on the plan's list, for later.
