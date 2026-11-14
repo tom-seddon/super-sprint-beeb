@@ -854,3 +854,17 @@ time attack's checks pass (`MACHINES=2`, 399 s; `make ta` 91 s); the game's disc
 `VERSION=00000`. Built on the branch `ta-menu-hint`; tried on Tom's Master and merged into `main` (Tom: "Tried it.
 Please merge into main").
 
+## 2026-11-14: the select screen's dial after a join
+
+Tom, on his Master at DC7D9: start as white with E, the dial moves with Q and W; green joins with `/`; then neither
+Q and W nor `,` and `.` move it. The ST's `F_0198B6` reads the dial from the starting car's controller alone,
+before and after a join, so `,` and `.` doing nothing is the ST's way; the dial standing still is ours. The joining
+car's panel is drawn by `front_block`, whose `front_shadow_at` set `fshadow` to the shadow screen's and left it, so
+after a join the dial, its rectangle and the seconds were drawn on the screen not shown, while `GsDial` still moved
+(Tom: "the selected track does change, but the highlight doesn't move"). My first look in jsbeeb read `GsDial`
+alone and missed it; the screen shown, read with ACCCON's D, showed it. `front_block` now keeps `fshadow` (6 bytes,
+the front end's code 28 bytes free). Prepare to race's joins were never hit (`initials` sets `fshadow` again), and
+time attack has no `front_block`. MEASURED: `select_check` now has car 1 join after the 16 positions and goes round
+again on the screen shown: the old build fails it (43 wrong, the dial and rectangle left at position 0), the new
+passes. The whole suite here (`agentbox` not reachable): every verdict 0, 3,774 s. Built on the branch
+`select-join-dial`; to try on Tom's Master, not merged.

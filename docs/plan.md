@@ -439,6 +439,13 @@ adds the logic.
   with them (`GHOST1`-`GHOST8`). "That's the basic idea, anyway. I need to think a bit more about the UX though so
   that it works ok across all filing systems." Not designed yet: Tom's to think over first.
 
+- The select screen's dial frozen after a join (Tom, 2026-11-14, on his Master at DC7D9: "the selected track does
+  change, but the highlight doesn't move"): the joining car's panel (`front_block`) left `fshadow` on the shadow
+  screen, so the dial, rectangle and seconds went to the screen not shown. The ST turns the dial by the starter's
+  controller alone, joins or not, as here. Fixed 2026-11-14 on the branch `select-join-dial` (`front_block` keeps
+  `fshadow`); `select_check` goes round the dial again after a join, failing the old build; the whole suite
+  passing. To try on Tom's Master; not merged.
+
 - ~~Time attack's menu: a line of key hints~~: done 2026-11-14, merged into `main` (Tom, 2026-11-14: "Tried it.
   Please merge into main"). (Tom, 2026-11-12, at 6d: "A line of keys perhaps later, maybe squeezed in around the
   logo"; at 6i: "we can think about the hints later".) Designed 2026-11-14 (D56): `F1 OPTIONS` in white at the
