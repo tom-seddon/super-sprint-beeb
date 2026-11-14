@@ -3,7 +3,7 @@
 > **Status: IN PROGRESS.** Branch `game-load-faults`, off `main` at 0b3b3c2 (the commit Tom last saw). Tom away; the
 > `beeb-unattended-job` skill. Everything runs on Tom's laptop (agentbox away). Nothing merged, pushed or published.
 >
-> **Resume point**: step 3. If this session ends, the next one starts at the first step not marked done below,
+> **Resume point**: step 4. If this session ends, the next one starts at the first step not marked done below,
 > reading this brief, `docs/plan.md`'s item "The game's loads' two screen faults" and `src/loadcode.6502`.
 
 ## Why
@@ -25,9 +25,15 @@ later, as it'll be worth fixing once everything is merged back into one branch")
    both). `make game`, `make ta`: the game's discs differ (expected: LoadCode 20 bytes more), time attack's the same
    byte for byte at one `VERSION=`. The room in LoadCode (`&7C00`-`&7FFF`) read from the listing. First checks:
    `boot_check` (DFS, `--adfs`), `flash_check`, `load_check` (DFS, `--adfs`).
-3. Fault test: `boot_check` passes the game only because its loads happen to end elsewhere, so each fault is forced
+3. Done (see its commit): fault test: `boot_check` passes the game only because its loads happen to end elsewhere, so each fault is forced
    with a delay put in a mutant build, at a length measured from where the load's end lands in the frame: without the
    fix it must fail, with it pass. Mutants in the scratchpad only, never committed.
+   MEASURED (DFS, `boot_check` copied with each delay's count poked as it's reached, so one build for each of the old
+   and new code; the delay N lines of 131 cycles; 358 boots, 550 s two at a time):
+   - a hold-up after OSBYTE 19's vsync, `PAST` 0-40 by 1, then 60-240 by 20: the old code fails from 3 to 60 lines
+     (1 field wrong: the row's last line cleared), the new from 220 (its redraw then reaching the next field's row);
+   - the load's end later before `rows_back`, `EDGE` 0-254 by 2: the old code fails at 84-90 (53 or 54 fields wrong:
+     the row's first lines alone, then lit again), the new at none.
 4. The whole suite (`tools/suite.sh OUT`), detached, OUT in the scratchpad; its time and each step's reported (Tom
    asked for time attack's checks' times). Any check whose expected numbers move with the loads being up to a field
    longer: looked at, the cause said, and changed only if it's that.
