@@ -851,5 +851,6 @@ asserts it), and the options screen unpacks the picture again. Escape's way back
 a branch's reach. MEASURED (track 1's build): the first 4K 880 to 825 bytes free. `ta_picture_check` fails with the
 hint left out of its model (33 fields wrong, line 0); the track's screens match the model without it. All eleven of
 time attack's checks pass (`MACHINES=2`, 399 s; `make ta` 91 s); the game's discs the same byte for byte at
-`VERSION=00000`. Built on the branch `ta-menu-hint`, for Tom's Master.
+`VERSION=00000`. Built on the branch `ta-menu-hint`; tried on Tom's Master and merged into `main` (Tom: "Tried it.
+Please merge into main").
 
