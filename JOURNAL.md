@@ -824,4 +824,4 @@ Time attack's discs the same byte for byte; the first 4K 181 to 161 bytes free. 
 copied with a delay's count poked into test builds of the old and new code (358 boots): the old fails with a 3-60
 line hold-up after the vsync and with its load's end 84-90 lines later, the new passes both sweeps (but a 220-line
 hold-up, its redraw then reaching the next field's row). The whole suite here: every verdict 0, 40 min 32 s
-(`disc_races` 1,764 s; time attack's checks 356 s). Ready for Tom's Master; not merged.
+(`disc_races` 1,764 s; time attack's checks 356 s). Ready for Tom's Master; not merged. Tom tried it: "Looks good." Merged into `main`.

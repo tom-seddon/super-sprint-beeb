@@ -1,6 +1,6 @@
 # Brief - the game's loads' two screen faults (an unattended job, 2026-11-14)
 
-> **Status: DONE, ready for Tom's Master** (`docs/report-load-faults-2026-11-14.md`). Branch `game-load-faults`, off `main` at 0b3b3c2 (the commit Tom last saw). Tom away; the
+> **Status: DONE, tried on Tom's Master and merged into `main` 2026-11-14** (`docs/report-load-faults-2026-11-14.md`). Branch `game-load-faults`, off `main` at 0b3b3c2 (the commit Tom last saw). Tom away; the
 > `beeb-unattended-job` skill. Everything runs on Tom's laptop (agentbox away). Nothing merged, pushed or published.
 >
 > **Resume point**: none, all done. If this session ends, the next one starts at the first step not marked done below,

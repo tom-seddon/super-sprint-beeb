@@ -1,6 +1,6 @@
 # Report - the game's loads' two screen faults (2026-11-14)
 
-**Ready for your Master; not merged, not pushed, not published.** This changes when the HUD's row is redrawn and when
+**Tried on Tom's Master and merged into `main`** (Tom, 2026-11-14: "Tested in my Master. Looks good. Please merge it into main."). Before that: ready for your Master; not merged, not pushed, not published. This changes when the HUD's row is redrawn and when
 R8 switches the display off at a load's end, so it waits on real hardware (the brief's gate).
 
 ## Where it ended

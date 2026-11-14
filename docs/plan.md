@@ -406,7 +406,7 @@ adds the logic.
   cars' bank's three unused car sets (about 8K, ESTIMATED: the green set alone, drawn white for the player and black
   for the ghost, D37). Steps 1 to 3 done (`make ta`: `build/ta.ssd`, `build/ta.adl`; one car, endless laps, Escape out; the lap's time,
   the best and the ghost's on the HUD; the dead code out, the fourth bank 1,931 bytes free); step 4, the ghost, recorded and drawn; step 5, each track's ghost and the table saved and loaded; step 6 in pieces (6a room; 6b a plain menu, tried by Tom, then the drones and the demo's code out and the table loaded once; 6c the menu in 32 rows, tried by Tom; then the tunes out, SCORES the keys and sound, Shared kept in the fourth bank, D55, tried by Tom; 6d the menu's picture, the logo and the maps, tried by Tom; then accelerate opens a track and the highlight goes round the cells, tried by Tom; 6e the track's screen, its 10 entries, tried by Tom; then the numbers open a track's screen too, tried by Tom; 6f the upgrades picked on the track's screen, then his changes to it, tried by Tom; 6g the name typed and saved, tried by Tom; 6i the options, tried by Tom; 6h the title's file kept, Escape loading nothing, tried by Tom); step 7, the close: `tools/ta_checks.sh` in the suite, the game's discs the same as `main`'s, tried by Tom and merged into `main` (2026-11-12); D51-D55.
-- The game's loads' two screen faults, found in time attack (2026-11-12) and fixed there only, under `IF GenTimeAttack`
+- ~~The game's loads' two screen faults~~: done 2026-11-14, merged into `main` (Tom, 2026-11-14: "Tested in my Master. Looks good. Please merge it into main."). Found in time attack (2026-11-12) and fixed there only, under `IF GenTimeAttack`
   in `src/loadcode.6502`. For once time attack's merged into one branch (Tom, 2026-11-12: "Please leave the game alone
   for now, but make notes for later, as it'll be worth fixing once everything is merged back into one branch."):
   - The first load's "Loading" redrawn too soon: `load_track.again` clears and redraws the HUD's row from OSBYTE 19's
@@ -423,7 +423,7 @@ adds the logic.
   passes only because its loads happen to end elsewhere, so a fault test is to move one by a few lines.
   Built 2026-11-14 on the branch `game-load-faults` (an unattended job: `docs/brief-load-faults-2026-11-14.md`,
   `docs/report-load-faults-2026-11-14.md`): both fixes the game's too, time attack's discs the same; the fault test
-  failing the old code and passing the new; the whole suite passing (40 min 32 s here). Ready for Tom's Master.
+  failing the old code and passing the new; the whole suite passing (40 min 32 s here). On Tom's Master: "Looks good."
 - Time attack's scores and ghosts merged (Tom, 2026-11-12): a program that merges a player's tables and ghosts
   with another set, so the disc ends up with the best 10 per track across both sets (`TIMES`) and the ghosts that go
   with them (`GHOST1`-`GHOST8`). "That's the basic idea, anyway. I need to think a bit more about the UX though so
