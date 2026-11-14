@@ -440,8 +440,9 @@ adds the logic.
   that it works ok across all filing systems." Not designed yet: Tom's to think over first.
 
 - Time attack's menu: a line of key hints (Tom, 2026-11-12, at 6d: "A line of keys perhaps later, maybe squeezed in
-  around the logo"; at 6i: "we can think about the hints later"). Not designed: where it goes and what it says
-  (the driving keys, 1-8, Return, F1 for the options), in the small font the menu uses.
+  around the logo"; at 6i: "we can think about the hints later"). Designed 2026-11-14 (D56): `F1 OPTIONS` in white
+  at the screen's top left, on the menu alone. Built on the branch `ta-menu-hint` (`docs/img/timeattack-menu-hint.png`),
+  to be tried on Tom's Master.
 - ~~Time attack's menu: each track's best shows its time but not its name or upgrades~~: done 2026-11-13, merged into `main` (Tom, 2026-11-13: "there's no
   name/upgrades display on the time attack main menu. The record lap is shown, but not the corresponding name or
   upgrade details."). Planned and dropped: D47 gives each cell four lines of the small font, the track, the best time,

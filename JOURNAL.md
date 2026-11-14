@@ -839,3 +839,17 @@ README of its own, written for a PC: on the plan's list, for later.
 Then on GitHub (Tom: "Yes, push ci-build"): run 43589334755 at 42aae0e passed in 8 min 10 s, the release
 `super-sprint-20261114-1103-42aae`, its zip 343,789 bytes; the five files' SHA-256 in its notes the same as 42aae0e's
 built here (`make -j2 game`, `make -j2 ta`, `disc_readme.py --pc`), so nothing downloaded.
+
+## 2026-11-14: time attack's menu's key hint
+
+Tom: "Key hints on time attack main menu, I think. I don't think there's much room on the screen, so it'll probably
+have to be something brief, squeezed into the top left in the corner of the logo." The small font has no `=`, so
+`F1 OPTIONS`, as the options screen's hints. Mocked up from `ta_picture_check`'s model (four places beside the logo,
+then two at the screen's very corner, as Tom asked); he picked the very corner, white (D56). `tg_hint` draws it on the
+menu alone; `tg_screen` clears its 15 bytes across the first row (the picture has nothing there: `tools/screens.py`
+asserts it), and the options screen unpacks the picture again. Escape's way back to the menu became a `JMP`, out of
+a branch's reach. MEASURED (track 1's build): the first 4K 880 to 825 bytes free. `ta_picture_check` fails with the
+hint left out of its model (33 fields wrong, line 0); the track's screens match the model without it. All eleven of
+time attack's checks pass (`MACHINES=2`, 399 s; `make ta` 91 s); the game's discs the same byte for byte at
+`VERSION=00000`. Built on the branch `ta-menu-hint`, for Tom's Master.
+
