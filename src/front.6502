@@ -152,7 +152,7 @@ IF GenTimeAttack = 0                    ; (time attack: no prepare to race, D45,
     EQUB HI(PreparePanel0), HI(PreparePanel1), HI(PreparePanel2), HI(PreparePanel3), HI(PreparePanel4), HI(PreparePanel5)
 }
 
-\\ The panel at zxsrc, frows cell rows of car X's part of the screen, drawn with ACCCON as fpanel. A, X, Y corrupted.
+\\ The panel at zxsrc, frows cell rows of car X's part of the screen, drawn with ACCCON as fpanel. fshadow kept; A, X, Y corrupted.
 
 .front_block
 {
@@ -161,7 +161,9 @@ IF GenTimeAttack = 0                    ; (time attack: no prepare to race, D45,
     LDA PanelFrom,X:STA fp
     LDA PanelBytes,X:STA fleft
     PHX
-    JSR front_shadow_at
+    LDA fshadow:PHA
+    JSR front_shadow_at                 ; (this sets fshadow to the shadow screen's: put back, or the select screen's
+    PLA:STA fshadow                     ; dial is drawn on the screen not shown after a join)
     PLX
     LDA #HI(PlayAddr):STA fp+1
     LDA fp:CLC:ADC #LO(PlayAddr):STA fp

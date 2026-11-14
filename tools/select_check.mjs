@@ -1,13 +1,14 @@
 // The select screen's dial (F_0198B6, step 8): build/game.ssd, a game started and right held, every one of the 16 positions
 // compared with tools/screens.py's as it comes round, with the rectangle round its track and nowhere else. game_check only
-// sees the positions its traces end on.
+// sees the positions its traces end on. Then car 1 joins and the 16 come round again on the screen shown (a join's panel
+// once left the dial drawn on the screen not shown: front_block's fshadow).
 //
 // Exit status: 1 if a position's wrong or never seen, else 0.
 //
 // Usage (from the repo root, after make game): node tools/select_check.mjs
 
 import { readFileSync } from "node:fs";
-import { bootDisc, ram, runToAny, symbols } from "./jsbeeb.mjs";
+import { andy, bootDisc, ram, runToAny, symbols } from "./jsbeeb.mjs";
 
 const syms = symbols("build/tracks/t0.json");
 const s = await bootDisc("build/game.ssd");
@@ -25,7 +26,7 @@ for (let started = false; ;) {
     if (!started && cpu.x === 0) { cpu.a = 0x80; started = true; } else cpu.a = 0;
 }
 function compare(p) {
-    const screen = ram(s, syms.PlayAddr, 16000);
+    const screen = ram(s, syms.PlayAddr, 16000, (cpu.acccon & 1) !== 0);  // (the screen shown)
     let diff = 0;
     for (let l = 0; l < 44; l++) for (let c = 0; c < 16; c++) if (screen[lineAt(94 + l) + (32 + c) * 8] !== dial[p * 704 + l * 16 + c]) diff++;
     if (diff) say(`position ${p}: ${diff} bytes of the dial wrong`);
@@ -34,16 +35,26 @@ function compare(p) {
         if ((on === 0xf0) !== (t === p >> 1)) say(`position ${p}: track ${t}'s rectangle ${on ? "on" : "off"}`);
     });
 }
-const seen = new Set();
-let last = -1;
-for (let i = 0; i < 400 && seen.size < 16; i++) {
-    await runToAny(s, [[got, bankbg]], 40000000);
-    const p = peek(syms.SelShown);
-    if (p !== last && !seen.has(p)) { compare(p); seen.add(p); }
-    last = p;
-    s.writeMemory(syms.GsCount, [160]);  // (the time doesn't run out)
-    cpu.a = cpu.x === 0 ? 8 : 0;
+async function round(what) {
+    const seen = new Set();
+    let last = -1;
+    for (let i = 0; i < 400 && seen.size < 16; i++) {
+        await runToAny(s, [[got, bankbg]], 40000000);
+        const p = peek(syms.SelShown);
+        if (p !== last && !seen.has(p)) { compare(p); seen.add(p); }
+        last = p;
+        s.writeMemory(syms.GsCount, [160]);  // (the time doesn't run out)
+        cpu.a = cpu.x === 0 ? 8 : 0;
+    }
+    if (seen.size < 16) say(`${what}: only ${seen.size} positions seen`);
 }
-if (seen.size < 16) say(`only ${seen.size} positions seen`);
-console.log(bad ? `${bad} wrong` : "all 16 positions of the dial right, the rectangle with them");
+await round("car 0 alone");
+for (let i = 0; i < 400 && andy(s, syms.RcDrone + 1)[0]; i++) {
+    await runToAny(s, [[got, bankbg]], 40000000);
+    s.writeMemory(syms.GsCount, [160]);
+    cpu.a = cpu.x === 1 ? 0x80 : 0;  // (car 1's accelerate: it joins)
+}
+if (andy(s, syms.RcDrone + 1)[0]) say("car 1 never joined");
+await round("car 1 joined");
+console.log(bad ? `${bad} wrong` : "all 16 positions of the dial right, the rectangle with them, before and after car 1 joins");
 process.exit(bad ? 1 : 0);
