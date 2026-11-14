@@ -1,10 +1,12 @@
 # The game's discs, built on a push to ci-build (Tom, 2026-11-10: "the new CI branch can be fast-forwarded
 # occasionally to generate a new build. Let's not have a build on every push to `main`"), or by hand from the
 # Actions tab. The result is one zip, super-sprint-YYYYMMDD-HHMM-xxxxx.zip: the commit's time in UTC and the 5 hex
-# digits the options screen shows, holding game.ssd and game.adl named the same way. It's published as a release of
-# that name (Tom, 2026-11-10: "Please update the CI setup to make a release. Then it should be possible to download
-# the results and check them that way"), its notes the commit and the files' SHA-256; a second run of the same commit
-# replaces the zip.
+# digits the options screen shows, holding game.ssd and game.adl named the same way, time attack's ta.ssd and ta.adl
+# as super-sprint-ta-YYYYMMDD-HHMM-xxxxx, and the discs' README as README.txt, its lines ending CR LF for a PC (Tom,
+# 2026-11-14: "Please put all disk images in the same archive, and the disk's README as well"). It's published as a
+# release of that name (Tom, 2026-11-10: "Please update the CI setup to make a release. Then it should be possible to
+# download the results and check them that way"), its notes the commit and the files' SHA-256; a second run of the
+# same commit replaces the zip.
 #
 # The build reads files made by running the ST original in Hatari (docs/st-traces.md), made here: Hatari 2.6.1
 # built from source, as Ubuntu's 2.4.1 can't make them (docs/brief-ci-hatari-2026-11-10.md), and checked against
@@ -95,6 +97,9 @@ jobs:
       - name: Build the discs
         run: make -j2 PYTHON3='${{ steps.python.outputs.python-path }}' game
 
+      - name: Build time attack's discs
+        run: make -j2 PYTHON3='${{ steps.python.outputs.python-path }}' ta     # (not with game's: they share build/sprint.*)
+
       - name: Name and zip them
         id: zip
         run: |
@@ -103,12 +108,19 @@ jobs:
             echo "::error::The tree has changes, so the version would end in m"
             exit 1
           fi
-          name=super-sprint-$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y%m%d-%H%M)-$(make -s version)
+          when=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y%m%d-%H%M)-$(make -s version)
+          name=super-sprint-$when
+          ta=super-sprint-ta-$when
           mkdir -p dist
           cp build/game.ssd dist/$name.ssd
           cp build/game.adl dist/$name.adl
-          (cd dist && zip -X $name.zip $name.ssd $name.adl && sha256sum $name.ssd $name.adl $name.zip)
+          cp build/ta.ssd dist/$ta.ssd
+          cp build/ta.adl dist/$ta.adl
+          '${{ steps.python.outputs.python-path }}' tools/disc_readme.py --pc dist/README.txt
+          files="$name.ssd $name.adl $ta.ssd $ta.adl README.txt"
+          (cd dist && zip -X $name.zip $files && sha256sum $files $name.zip)
           echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "files=$files" >> "$GITHUB_OUTPUT"
           df -h . | tail -1
           du -sh build .venv "$RUNNER_TEMP/hatari"
 
@@ -117,6 +129,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           NAME: ${{ steps.zip.outputs.name }}
+          FILES: ${{ steps.zip.outputs.files }}
         run: |
           {
             echo "Built from $(git log -1 --format='%h, %s')."
@@ -124,7 +137,7 @@ jobs:
             echo 'SHA-256:'
             echo
             echo '```'
-            (cd dist && sha256sum "$NAME.ssd" "$NAME.adl" "$NAME.zip")
+            (cd dist && sha256sum $FILES "$NAME.zip")
             echo '```'
           } > dist/notes.md
           if gh release view "$NAME" > /dev/null 2>&1; then
