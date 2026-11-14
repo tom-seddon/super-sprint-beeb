@@ -814,3 +814,14 @@ before the first race about 400 s, the models being made (`MODELS=3`) by the loo
 `disc_races` about 4½ minutes of builds and checks one at a time (`all_tracks` 89 s, `game_disc` 41 s, the render and
 logic checks), and time attack's build 1½ (54 s and 38 s), each leaving a core idle. The guesses for what might be
 saved are on the plan's list: about 3 to 5 minutes of the 48 between them.
+
+## 2026-11-14: the game's loads' two screen faults (an unattended job)
+
+Tom away; `docs/brief-load-faults-2026-11-14.md`, `docs/report-load-faults-2026-11-14.md`, the branch
+`game-load-faults`. Time attack's two load fixes (2026-11-12) are now the game's too: the HUD's row redrawn 90 lines
+after OSBYTE 19's vsync (`.past`) and `rows_back`'s R8 write from a vsync (`.edge`), the `IF GenTimeAttack`s dropped.
+Time attack's discs the same byte for byte; the first 4K 181 to 161 bytes free. MEASURED, a fault test: `boot_check`
+copied with a delay's count poked into test builds of the old and new code (358 boots): the old fails with a 3-60
+line hold-up after the vsync and with its load's end 84-90 lines later, the new passes both sweeps (but a 220-line
+hold-up, its redraw then reaching the next field's row). The whole suite here: every verdict 0, 40 min 32 s
+(`disc_races` 1,764 s; time attack's checks 356 s). Ready for Tom's Master; not merged.

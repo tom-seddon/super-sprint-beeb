@@ -421,6 +421,9 @@ adds the logic.
   more, every load up to a field longer), then the game's suite, `boot_check` (DFS and ADFS), `flash_check` and
   `load_check` the ones that watch it. `boot_check` caught both in time attack (`--ta`, `--ta --adfs`); the game's
   passes only because its loads happen to end elsewhere, so a fault test is to move one by a few lines.
+  Built 2026-11-14 on the branch `game-load-faults` (an unattended job: `docs/brief-load-faults-2026-11-14.md`,
+  `docs/report-load-faults-2026-11-14.md`): both fixes the game's too, time attack's discs the same; the fault test
+  failing the old code and passing the new; the whole suite passing (40 min 32 s here). Ready for Tom's Master.
 - Time attack's scores and ghosts merged (Tom, 2026-11-12): a program that merges a player's tables and ghosts
   with another set, so the disc ends up with the best 10 per track across both sets (`TIMES`) and the ghosts that go
   with them (`GHOST1`-`GHOST8`). "That's the basic idea, anyway. I need to think a bit more about the UX though so

@@ -1,9 +1,9 @@
 # Brief - the game's loads' two screen faults (an unattended job, 2026-11-14)
 
-> **Status: IN PROGRESS.** Branch `game-load-faults`, off `main` at 0b3b3c2 (the commit Tom last saw). Tom away; the
+> **Status: DONE, ready for Tom's Master** (`docs/report-load-faults-2026-11-14.md`). Branch `game-load-faults`, off `main` at 0b3b3c2 (the commit Tom last saw). Tom away; the
 > `beeb-unattended-job` skill. Everything runs on Tom's laptop (agentbox away). Nothing merged, pushed or published.
 >
-> **Resume point**: step 4. If this session ends, the next one starts at the first step not marked done below,
+> **Resume point**: none, all done. If this session ends, the next one starts at the first step not marked done below,
 > reading this brief, `docs/plan.md`'s item "The game's loads' two screen faults" and `src/loadcode.6502`.
 
 ## Why
@@ -34,10 +34,10 @@ later, as it'll be worth fixing once everything is merged back into one branch")
      (1 field wrong: the row's last line cleared), the new from 220 (its redraw then reaching the next field's row);
    - the load's end later before `rows_back`, `EDGE` 0-254 by 2: the old code fails at 84-90 (53 or 54 fields wrong:
      the row's first lines alone, then lit again), the new at none.
-4. The whole suite (`tools/suite.sh OUT`), detached, OUT in the scratchpad; its time and each step's reported (Tom
+4. Done: the whole suite passed (every verdict 0, 40 min 32 s; the report has each part's time). The whole suite (`tools/suite.sh OUT`), detached, OUT in the scratchpad; its time and each step's reported (Tom
    asked for time attack's checks' times). Any check whose expected numbers move with the loads being up to a field
    longer: looked at, the cause said, and changed only if it's that.
-5. The report, `docs/report-load-faults-2026-11-14.md`, and the plan's item marked built, ready for Tom's Master.
+5. Done: the report, `docs/report-load-faults-2026-11-14.md`, and the plan's item marked built, ready for Tom's Master.
 
 ## Gates
 
