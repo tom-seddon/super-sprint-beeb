@@ -331,7 +331,31 @@ adds the logic.
 - Build from a fresh clone by hand, on Linux and on macOS (Tom, 2026-11-12): "I would like to try this by hand, to
   ensure the instructions cover everything. I'd like this to be straightforward for a person to do by hand without
   needing agent assistance." Tom does it, following the README alone; what he finds missing or awkward is dealt with
-  then (in a future session).
+  then (in a future session). README.md's building section is vague on purpose till then (Tom, 2026-11-15: "I'm being
+  deliberately a bit vague about the build stuff in README.md until I've had a chance to try it from a fresh
+  clone"); what it might mention, for Tom to word:
+  - The prerequisites, in README.md till 2026-11-15 and gone from it now (`CLAUDE.md` still sends a reader there):
+    make, a C compiler (`cc`), CMake 3.21 or later and Ninja (Baron and the ZX02 compressor are built from the
+    submodules); Python 3.14 as `python3.14` (the build makes `.venv` from `requirements.txt`; 3.12 with `make
+    PYTHON3=python3.12`, and on Ubuntu apt's `python3.12-venv`); Hatari 2.5.0 or later (2.6.1 here; Ubuntu 24.04's
+    2.4.1 won't do) and perl, `HATARI` set to it if it isn't at `tools/hatari.sh`'s path; Node 22 for the checks.
+    About 16 minutes from nothing, most of it the ST's traces in Hatari, made once and kept in `build/`; where Hatari
+    doesn't run, `docs/st-traces.md` (`make stfiles`, `build/stfiles.tar.gz`). Linux (Mint 22.3) and macOS; not
+    Windows.
+  - Time attack: `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds in
+    `build/tracks_ta`), after `make game` as a second make (they share `build/sprint.*`: README.md's `make game &&
+    make ta`); `tools/ta_checks.sh OUT` checks them (MERGE's `tools/ta_merge_check.mjs`, DFS and `--adfs`, among
+    them), and `tools/suite.sh` runs that too.
+  - The submodules' own submodules: Baron's build needs `rich/baron/extern/richc` (building `main` in a fresh
+    worktree failed at CMake's configure until it was fetched, 2026-11-12). README.md's `git clone
+    --recurse-submodules` does it; in a clone made without it, `git submodule update --init --recursive`.
+  - The release: `make release` (after `make game` and `make ta`) makes `dist/` as the GitHub build does, the four
+    discs named as the release names them, the zip's `README.txt` and the zip. The READMEs are templates
+    (`tools/disc_readme.py`): `{{version}}` (as the options screen), `{{commit}}`, `{{date}}` (the commit's, UTC,
+    "2026-11-14 11:03"), `{{link}}` (README.md at the commit; without it, it's added at the end after a blank
+    line), and the release zip's discs, `{{game_ssd}}`, `{{game_adl}}`, `{{ta_ssd}}`, `{{ta_adl}}`;
+    `tools/disc_readme.py --check` (in the suite) fails on an unknown name, and the discs' line lengths are checked
+    by eye.
 - A GitHub Actions build (Tom, 2026-11-10): "a GitHub Actions setup that builds the game and creates a zip file
   with the .adl and .ssd files in it. The zip file and disk images inside it should be named with commit time and
   date (in UTC) as well as the part of the commit hash shown in-game, so that it's easier to check which is the
@@ -547,21 +571,6 @@ adds the logic.
     disc ("Disc changed" otherwise); the destination write-enabled; what the merge does (each track's best 10 of
     both, an entry on both counted once, the faster ghost, nothing written till Y); 32K of
     sideways RAM (two banks).
-  - Building, time attack: `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds in
-    `build/tracks_ta`), after `make game` as a second make (they share `build/sprint.*`); `tools/ta_checks.sh OUT`
-    checks them (MERGE's `tools/ta_merge_check.mjs`, DFS and `--adfs`, among them), and `tools/suite.sh` runs that
-    too.
-  - Building, a clone with the submodules' own submodules: Baron's build needs `rich/baron/extern/richc` (building
-    `main` in a fresh worktree failed at CMake's configure until it was fetched, 2026-11-12). The placeholder's
-    `git clone --recurse-submodules` does it; in a clone made without it, `git submodule update --init
-    --recursive`.
-  - Building, the release: `make release` (after `make game` and `make ta`) makes `dist/` as the GitHub build does,
-    the four discs named as the release names them, the zip's `README.txt` and the zip. The READMEs are templates
-    (`tools/disc_readme.py`): `{{version}}` (as the options screen), `{{commit}}`, `{{date}}` (the commit's, UTC,
-    "2026-11-14 11:03"), `{{link}}` (README.md at the commit; without it, it's added at the end after a blank
-    line), and the release zip's discs, `{{game_ssd}}`, `{{game_adl}}`, `{{ta_ssd}}`, `{{ta_adl}}`;
-    `tools/disc_readme.py --check` (in the suite) fails on an unknown name, and the discs' line lengths are checked
-    by eye.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
