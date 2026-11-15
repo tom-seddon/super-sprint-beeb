@@ -5,9 +5,9 @@
 \\ to the prompt it came from; ESCAPE asks before quitting. Assembled on its own (as boot.6502), in NMOS code, so a
 \\ Model B gets the error, and onto time attack's discs alone.
 \\
-\\ Steps 2 and 3 (the brief's §9): the shell; the source read, TIMES and GHOST1-GHOST8, each checked as the game checks
-\\ it and held in sideways RAM; then the destination's read and the merge (§3), what would change said. Nothing
-\\ written yet.
+\\ The steps (the brief's §9): the shell; the source read, TIMES and GHOST1-GHOST8, each checked as the game checks it
+\\ and held in sideways RAM; the destination's read and the merge (§3), what would change said; then, after a Y, what
+\\ changed written, the ghosts then TIMES, as the game writes them.
 
 INCLUDE "../build/gen/trace.6502"       ; GenTimeAttack
 INCLUDE "../build/gen/version.6502"     ; VersionAscii: the build's version, as the options screen has it
@@ -22,6 +22,7 @@ MgLineLen = 78                          ; a typed command's characters at most
 MgBuf = &7000                           ; a file read or written, in main RAM (OSFILE can't reach a bank)
 ASSERT MgBuf + GhBufLen + 4 <= &7C00, "a file's buffer: under MODE 7's screen"
 MgFiles = 9                             ; TIMES, then GHOST1-GHOST8
+MgFileAddr = &4200                      ; a file's load and exec addresses, as the game writes them (GhFileAddr)
 MgBanksNeeded = 2                       ; the source's files' banks (the game assumes 4 free: Tom, so may MERGE)
 MgTables = &3000                        ; the tables in main RAM, each in whole pages (TaTableLen in 5):
 MgSrcT = MgTables                       ; the source's (from its slot, or empty),
@@ -127,8 +128,9 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     ZA_CANJUMP mg_read, mg_write
 
 \\ The write's step: the destination's files read (mg_dest), the merge made (mg_merge) and what would change said
-\\ (mg_report). In step 3 nothing's written. An error (a disc's) goes to mg_brk, back at the write's prompt, and RETURN
-\\ does it all again.
+\\ (mg_report); then if anything would, "Write these? (Y/N)", and Y writes it (mg_save). An error (a disc's: read only,
+\\ full) goes to mg_brk, back at the write's prompt, and RETURN does it all again: the destination read again, so
+\\ what was written before the error is merged as it is, and only what's still to change written.
 \\
 \\ Outputs: C clear (done). A, X, Y corrupted.
 
@@ -137,10 +139,132 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     JSR mg_dest
     JSR mg_merge
     JSR mg_report
-    LDX #LO(MgWriteDone):LDY #HI(MgWriteDone)
+    BEQ done                            ; (nothing would change)
+    LDX #LO(MgAskText):LDY #HI(MgAskText)
     JSR mg_print
+    JSR &FFE0                           ; OSRDCH: the answer, C set on ESCAPE
+    BCC got
+    LDA #126:JSR &FFF4                  ; OSBYTE 126: the ESCAPE acknowledged (a No)
+    LDA #'N'
+.got
+    AND #&DF                            ; (upper case)
+    PHA
+    JSR &FFEE                           ; OSWRCH: the answer shown
+    JSR &FFE7                           ; OSNEWL
+    PLA
+    CMP #'Y':BEQ yes
+    LDX #LO(MgUnwrittenText):LDY #HI(MgUnwrittenText)
+    JSR mg_print
+.done
     CLC
     RTS
+.yes
+    JSR mg_save
+    CLC
+    RTS
+}
+
+\\ What the merge changed, written to the destination: each ghost added or replaced (MgGhost), the source's file out
+\\ of its slot; then TIMES, if any track has new entries (MgNew), MgOutT and its sum (mg_sum, as ta_sum). Each as the
+\\ game writes it (timeattack.6502's ta_save_ghost, ta_save_table): load and exec addresses GhFileAddr's, &4200. Each
+\\ said once it's written: "Written: GHOST3 TIMES".
+\\
+\\ Inputs: MgGhost, MgNew; the slots; MgOutT. Outputs: the files. A, X, Y corrupted.
+
+.mg_save
+{
+    ZA_AUTO2 from                       ; local: the byte copied
+    ZA_AUTO2 to                         ; local: and where to
+    LDX #LO(MgWrittenText):LDY #HI(MgWrittenText)
+    JSR mg_print
+    LDX #1
+.ghost
+    LDA MgGhost,X:BEQ next              ; (kept)
+    JSR mg_name                         ; (MgFile X)
+    LDA #0:STA from:STA to              ; the source's file out of its slot into MgBuf
+    LDA MgSlotHi,X:STA from+1
+    LDA #HI(MgBuf):STA to+1
+    LDA MgLenLo,X:STA MgLen
+    LDA MgLenHi,X:STA MgLen+1
+    LDY MgSlotBank,X
+    LDA MgLenHi,X:TAX
+    INX                                 ; (pages: its whole ones and the part one)
+    LDA &F4:PHA                         ; the ROM paged in now
+    LDA MgBanks,Y:STA &F4:STA &FE30     ; ROMSEL: the slot's bank
+    LDY #0
+.copy
+    LDA (from),Y:STA (to),Y
+    INY
+    BNE copy
+    INC from+1
+    INC to+1
+    DEX
+    BNE copy
+    PLA:STA &F4:STA &FE30               ; ROMSEL: the ROM back
+    JSR mg_file_save
+    LDX MgFile
+.next
+    INX
+    CPX #MgFiles:BNE ghost
+    LDX #7                              ; any new entries?
+.any
+    LDA MgNew,X:BNE table
+    DEX
+    BPL any
+    BMI said                            ; (always: TIMES unchanged)
+    ZA_UNREACHABLE
+.table
+    LDA #LO(MgOutT):STA from            ; MgOutT into MgBuf, whole pages
+    LDA #HI(MgOutT):STA from+1
+    LDA #LO(MgBuf):STA to
+    LDA #HI(MgBuf):STA to+1
+    LDX #5
+    LDY #0
+.out
+    LDA (from),Y:STA (to),Y
+    INY
+    BNE out
+    INC from+1
+    INC to+1
+    DEX
+    BNE out
+    JSR mg_sum
+    STA MgBuf+TaTableLen
+    STY MgBuf+TaTableLen+1
+    LDX #0
+    JSR mg_name
+    LDA #LO(TaTableLen+2):STA MgLen
+    LDA #HI(TaTableLen+2):STA MgLen+1
+    JSR mg_file_save
+.said
+    JSR &FFE7                           ; OSNEWL
+    JSR &FFE7
+    RTS
+}
+
+\\ MgBuf's MgLen bytes saved as file MgName (OSFILE 0), its load and exec addresses &4200 as the game's, then " NAME"
+\\ said.
+\\
+\\ Inputs: MgName, MgBlock's name, MgLen, MgBuf. Outputs: the file. A, X, Y corrupted.
+
+.mg_file_save
+{
+    LDX #15
+    LDA #0
+.clear
+    STA MgBlock+2,X
+    DEX
+    BPL clear
+    LDA #LO(MgFileAddr):STA MgBlock+2:STA MgBlock+6     ; load and exec
+    LDA #HI(MgFileAddr):STA MgBlock+3:STA MgBlock+7
+    LDA #LO(MgBuf):STA MgBlock+10       ; start
+    LDA #HI(MgBuf):STA MgBlock+11
+    LDA #LO(MgBuf):CLC:ADC MgLen:STA MgBlock+14         ; end
+    LDA #HI(MgBuf):ADC MgLen+1:STA MgBlock+15
+    LDX #LO(MgBlock):LDY #HI(MgBlock)
+    LDA #0:JSR &FFDD                    ; OSFILE 0: saved
+    LDA #' ':JSR &FFEE                  ; OSWRCH
+    JMP mg_name_print
 }
 
 \\ The destination's files: TIMES into MgDstT (or MgDstT empty, if it's not there or not right), and each ghost's
@@ -449,7 +573,7 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
 \\ What the merge would change, a line a track: "Track 3  +2 entries, ghost replaced", or "no change"; then "Nothing to
 \\ change." if no track has any.
 \\
-\\ Inputs: MgNew, MgGhost. Outputs: A, X, Y corrupted.
+\\ Inputs: MgNew, MgGhost. Outputs: Z set if nothing would change. A, X, Y corrupted.
 
 .mg_report
 {
@@ -511,6 +635,7 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     LDX #LO(MgNothingText):LDY #HI(MgNothingText)
     JSR mg_print
 .done
+    LDA any                             ; (Z set: nothing would change)
     RTS
 }
 
@@ -912,8 +1037,12 @@ ASSERT 1 + 28 + 1 + 2 + LEN(VersionAscii) - 1 < 40, "the heading's version: on i
 .MgWriteText
     EQUB MgCyan, "Write to:", MgWhite, "type * commands, change", 13
     EQUS " discs, then press RETURN.", 13, 0
-.MgWriteDone
-    EQUS " (Step 3: nothing written.)", 13, 0
+.MgAskText
+    EQUB MgYellow, "Write these? (Y/N) ", 0
+.MgUnwrittenText
+    EQUS " Nothing written.", 13, 13, 0
+.MgWrittenText
+    EQUB MgGreen, "Written:", 0
 .MgDoneText
     EQUB MgGreen, "Done.", MgWhite, "Press RETURN to merge again.", 13, 0
 .MgQuitText

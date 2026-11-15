@@ -27,6 +27,13 @@
 //   source's spoilt (left out at the read). Then D with itself: nothing changes, "Nothing to change." said; then S
 //   into E, whose TIMES is spoilt (said, taken as empty). Seen to fail with the duplicates not matched, and with a tie
 //   going to the later candidate;
+// - step 4, the writes: S into D asked "Write these? (Y/N)", N: "Nothing written."; then Y with D write-protected:
+//   the filing system's error ("Disc read only" on DFS, "Disc protected" on ADFS, MEASURED), the prompt again; then
+//   Y with it writeable: "Written: GHOST1 GHOST3 GHOST5 TIMES", the changed ghosts then TIMES; then again: "Nothing to
+//   change.", nothing asked; then in BASIC each file *LOADed off D as it should be, byte for byte (TIMES the model's
+//   table and its sum, each ghost the source's if added or replaced, else the destination's own, none where neither
+//   had one) and *INFO's load and exec addresses &4200 for those written, as the game's. Seen to fail with the sum's
+//   second byte wrong;
 // - on a Model B (DFS 1.2, PAGE &1900; and the 1770's DFS and ADFS both, PAGE &1F00, the worst case; Tom: a Model B's
 //   test covers a B+'s, which jsbeeb hasn't): MERGE refused with its message, nothing else run (NMOS code to there),
 //   and the machine fine after it: the disc catalogued, BASIC working (MERGE loads above a Model B's PAGE, &1900).
@@ -302,6 +309,7 @@ function holds(s, what, files) {
     o = await type(s, "");
     want("D: its spoilt ghost said", has(o, "GHOST6: not a ghost, taken as none"));
     result("S into D", merge(tables(dst), tables(src), dg, sg), o);
+    await press(s, "KeyN");                             // (Write these? No: step 4's)
     await type(s, "");                                  // (Done: round again; D read, then D written)
     o = await type(s, "");
     want("D read", has(o, "Read: TIMES GHOST1 GHOST2 GHOST3 GHOST5"));
@@ -316,6 +324,80 @@ function holds(s, what, files) {
     o = await type(s, "");
     want("E: its spoilt table said", has(o, "TIMES: not a table, taken as empty"));
     result("S into E", merge(null, tables(src), Array(8).fill(null), sg), o);
+}
+// Step 4, the writes: S into D answered N (nothing written); then Y with D write-protected (the error, the prompt
+// again), and Y with it writeable (written); then again, nothing to change and nothing asked; then back in BASIC each
+// file read off D (*LOAD) as it should be, byte for byte: TIMES the model's table and its sum, each ghost the
+// source's if added or replaced, else the destination's own; their load and exec addresses &4200 (*INFO), as the game's
+{
+    const s = await machine(adfs ? "MasterADFS" : "Master");
+    const mount = async () => adfs && type(s, "*MOUNT");
+    await mount();
+    const S = s._machine.processor.fdc.drives[0]._disc, D = image("w");
+    const src = tableOf({ 0: [[950, 1, "SRC"]], 2: [[500, 2, "NEW"], [600, 0, "TWO"]], 5: [[700, 4, "SIX"]] });
+    const dst = tableOf({ 0: [[1000, 0, "DST"]], 1: [[800, 1, "OLD"]], 5: [[650, 4, "SIX"], [700, 4, "SIX"]] });
+    const sg = [400, null, 900, null, 500, null, null, null], dg = [500, 600, 800, null, null, null, 700, null];
+    const files = (times) => Object.fromEntries(times.map((t, i) => [`GHOST${i + 1}`, t && ghost(t, 100 + 10 * i)]).filter(([, g]) => g));
+    const sf = files(sg), df = files(dg);
+    await swap(s, D);
+    await mount();
+    await save(s, { TIMES: dst, ...df });
+    await swap(s, S);
+    await mount();
+    await save(s, { TIMES: src, ...sf });
+    const m = merge(dst.subarray(0, TableLen), src.subarray(0, TableLen), dg, sg);
+    const wrote = [...m.ghost.flatMap((g, i) => (g ? [`GHOST${i + 1}`] : [])), ...(m.added.some((n) => n) ? ["TIMES"] : [])];
+    const toD = async () => {                           // (S read, D in, the write's prompt's RETURN)
+        await swap(s, S);
+        await mount();
+        await type(s, "");
+        await swap(s, D);
+        await mount();
+        return type(s, "");
+    };
+    await type(s, "*RUN MERGE");
+    await type(s, "");
+    await swap(s, D);
+    await mount();
+    let o = await type(s, "");
+    want("asked", last(s) === "Write these? (Y/N)");
+    o = await press(s, "KeyN");
+    if (process.env.DBG) console.log("N:", JSON.stringify(o.filter((l) => l.trim())), JSON.stringify(screen(s).map(text).slice(-5)));
+    want("N: nothing written", screen(s).map(text).some((l) => l.trim() === "Write these? (Y/N) N") && has(o, "Nothing written.")
+        && has(o, "Done.Press RETURN to merge again."));
+    await press(s, "Enter");
+    D.isWriteable = false;
+    o = await toD();
+    want("D as before the N (the same lines)", m.lines.every((l) => has(o, l)));
+    o = await press(s, "KeyY");
+    const err = o.map((l) => l.trim()).filter((l) => l && l !== "Y" && !/^(Write these|Written)/.test(l));
+    if (process.env.DBG) console.log("read only:", JSON.stringify(err));
+    want(`read only: the error, the prompt again (${JSON.stringify(err)})`, err.length === 2 && err[1] === "*" && last(s) === "*");
+    D.isWriteable = true;
+    o = await type(s, "");
+    want("writeable: the same lines", m.lines.every((l) => has(o, l)));
+    o = await press(s, "KeyY");
+    want(`written: ${wrote.join(" ")} (${JSON.stringify(o.filter((l) => l.includes("Written")))})`, has(o, `Written: ${wrote.join(" ")}`));
+    await press(s, "Enter");
+    o = await toD();
+    want("again: nothing to change, nothing asked", has(o, "Nothing to change.") && !o.some((l) => l.includes("Write these")));
+    await press(s, "Enter");
+    await press(s, "Escape");
+    await press(s, "KeyY");
+    const sum = (t) => { let a = 0, b = 0; for (let i = 0; i < TableLen; i++) a = (a + t[i]) & 255, b = (b + a) & 255; return [a, b]; };
+    const want4 = { TIMES: Uint8Array.from([...m.table, ...sum(m.table)]) };
+    m.ghost.forEach((g, i) => { const n = `GHOST${i + 1}`, f = g ? sf[n] : df[n]; if (f) want4[n] = f; });
+    for (let i = 0; i < 9; i++) {
+        const n = i ? `GHOST${i}` : "TIMES", f = want4[n];
+        o = await type(s, `*INFO ${n}`);
+        if (!f) { want(`D: ${n} none`, has(o, "Not found")); continue; }
+        const line = o.find((l) => l.includes(n.slice(0, 5)) && /[0-9A-F]{6}/.test(l)) ?? "", hex = line.match(/\b[0-9A-F]{6,8}\b/g) ?? [];
+        const written = wrote.includes(n);
+        want(`D: ${n}'s load and exec (${hex.slice(0, 2)})${written ? ", &4200 as the game's" : ""}`, hex.length >= 3 && (!written || hex.slice(0, 2).every((h) => parseInt(h, 16) === 0x4200)));
+        await type(s, `*LOAD ${n} 5000`);
+        const got = s.readMemory(0x5000, f.length);
+        want(`D: ${n} as it should be (${f.length} bytes${written ? ", written" : ", kept"})`, parseInt(hex[2], 16) === f.length && got.every((b, j) => b === f[j]));
+    }
 }
 if (!adfs) for (const model of ["B-DFS1.2", "B1770"]) {
     const s = await machine(model);
@@ -334,5 +416,5 @@ console.log(bad ? `${bad} wrong` : `MERGE right${adfs ? " (ADFS)" : ""}: ${check
     `and write's prompts, *CAT and a bad command at them, RETURN on, ESCAPE and N, round again, ESCAPE and Y to BASIC, ` +
     `which works and has its BRKV back; the source read from two discs, a swap between, ${adfs ? "\"Disc changed\" till *MOUNT, " : ""}` +
     `the right files held byte for byte and 5 wrong ones left out, then a disc with none; three merges as the model's, ` +
-    `table, counts, ghosts and lines${adfs ? "" : "; Model Bs refused, unharmed"})`);
+    `table, counts, ghosts and lines; the writes: N, a read-only disc, Y, every file read back${adfs ? "" : "; Model Bs refused, unharmed"})`);
 process.exit(bad ? 1 : 0);
