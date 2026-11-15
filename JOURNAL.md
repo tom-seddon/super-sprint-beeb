@@ -933,3 +933,18 @@ file under 4 bytes loads over only part of the buffer, its head the last file's,
 the carry check the check's 2-byte GHOST6 is read and held. `ta_merge_check` 51 checks (DFS), 53 (ADFS); all 13 of
 time attack's checks pass (507 s).
 
+## 2026-11-15: MERGE's step 3, the merge
+
+Tom tried step 2 (reading DFS, writing to BeebLink: "Looks good. Please continue."). Step 3: the destination's
+`TIMES` and ghosts read at the write prompt, the merge made and said, track by track; nothing written. The merge
+(`mg_merge`) makes 20 candidates a track (the destination's 10, then the source's), drops empty ones and each of the
+source's that matches one of the destination's (time, upgrades, name to its end), one for one, then takes the least
+time 10 times, the lowest candidate on a tie. `tools/ta_merge_model.mjs` makes the same from the brief by a stable
+sort, and `ta_merge_check` compares three merges with it byte for byte (a designed case on each track, the
+destination with itself, a destination whose `TIMES` is spoilt).
+
+A mistake, found by the model on the first run: `MgMatched` was sized for 10 but cleared for all 20 candidates, so
+its last 10 clears wiped the destination candidates' time-low bytes: their names came through but their times as 0,
+and no duplicate matched. Seen to fail, with the fix in: the duplicates not matched (4 tracks' counts and lines
+wrong), and a tie going to the later candidate (track 8's random table).
+

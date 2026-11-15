@@ -1,6 +1,6 @@
 # Brief - time attack's scores and ghosts merger (2026-11-15)
 
-> **Status: steps 1 (the shell, tried on Tom's Master) and 2 (the source read) built; step 2 to be tried.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
+> **Status: steps 1 and 2 built and tried on Tom's Master; step 3 (the merge, nothing written) built, to be tried.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
 > each tried on Tom's Master before the next (as time attack was).
 >
 > Figures say **MEASURED** (a build's listing or a tool run, named), **COUNTED** (off the source or a listing)
@@ -173,5 +173,18 @@ Each tried on Tom's Master before the next; each its commit, the brief's status 
    swaps with the motor stopped.
 3. The merge and what would change, the destination read; nothing written yet. The model and the oracle's first
    cases.
+   **Built** (2026-11-15; Tom tried step 2 reading DFS and writing to BeebLink: "Looks good"): at the write prompt's
+   RETURN, `mg_dest` reads the destination's `TIMES` into `MgDstT` (or empty: "TIMES: not a table, taken as empty")
+   and each ghost's time ("GHOST6: not a ghost, taken as none"); `mg_merge` takes the source's table out of its slot
+   into `MgSrcT` and makes `MgOutT`, track by track, from 20 candidates (`mg_get`, `mg_put`, `mg_same`: the
+   destination's 10 then the source's, empty ones out, the source's that match the destination's out one for one,
+   names compared to their end), 10 times the least time left, the lowest candidate on a tie; and each ghost, kept,
+   added or replaced; `mg_report` says a line a track ("Track 3  +2 entries, ghost replaced", "no change") and
+   "Nothing to change." The tables in main RAM from `&3000` (5 pages each), MERGE `&2000`-`&2B15`.
+   `tools/ta_merge_model.mjs`, the merge from §3 (a stable sort, not the 6502's way), and `ta_merge_check`'s three
+   merges against it: MgOutT byte for byte, the counts, the ghosts and the lines (91 checks on DFS, 93 on ADFS).
+   Seen to fail with the duplicates not matched and with a tie going to the later candidate. A mistake found by it
+   first: `MgMatched` sized for the destination's 10 but cleared for all 20 candidates, so the clearing wiped the
+   destination's candidates' times.
 4. The writes, the confirmation, round again; the write-protected case; the oracle's every case, in `ta_checks.sh`.
 5. Tom's READMEs' reminders (what to say about MERGE), the plan and journal.
