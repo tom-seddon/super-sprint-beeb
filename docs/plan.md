@@ -545,7 +545,7 @@ adds the logic.
     attack, then `*RUN MERGE`, or `*MERGE`); its two prompts ("Read from", "Write to"), where any `*` commands can
     be typed and discs changed, RETURN on an empty line going on, ESCAPE to quit; on ADFS `*MOUNT` after changing a
     disc ("Disc changed" otherwise); the destination write-enabled; what the merge does (each track's best 10 of
-    both, an entry on both counted once, the faster ghost, nothing written till Y; `SCORES` untouched); 32K of
+    both, an entry on both counted once, the faster ghost, nothing written till Y); 32K of
     sideways RAM (two banks).
   - Building, time attack: `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds in
     `build/tracks_ta`), after `make game` as a second make (they share `build/sprint.*`); `tools/ta_checks.sh OUT`
