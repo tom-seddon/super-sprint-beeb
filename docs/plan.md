@@ -439,13 +439,14 @@ adds the logic.
   Built 2026-11-14 on the branch `game-load-faults` (an unattended job: `docs/brief-load-faults-2026-11-14.md`,
   `docs/report-load-faults-2026-11-14.md`): both fixes the game's too, time attack's discs the same; the fault test
   failing the old code and passing the new; the whole suite passing (40 min 32 s here). On Tom's Master: "Looks good."
-- Time attack's scores and ghosts merged (Tom, 2026-11-12): a program that merges a player's tables and ghosts
+- ~~Time attack's scores and ghosts merged~~: done 2026-11-15, MERGE (D57), merged into `main`. (Tom, 2026-11-12): a program that merges a player's tables and ghosts
   with another set, so the disc ends up with the best 10 per track across both sets (`TIMES`) and the ghosts that go
   with them (`GHOST1`-`GHOST8`). "That's the basic idea, anyway. I need to think a bit more about the UX though so
   that it works ok across all filing systems." Designed 2026-11-15 (D57, `docs/brief-merge-2026-11-15.md`): `MERGE`
   on time attack's discs, a `*` prompt before the read and the write, the best 10 of both, the faster ghost. Branch
   `ta-merge`: all built 2026-11-15 and each step tried (Tom's Master, DFS to BeebLink; step 4 in b2,
-  DFS to DFS: "Looks good"); the READMEs' wording a reminder for Tom (below). To merge into `main` on Tom's word.
+  DFS to DFS: "Looks good"); the READMEs' wording a reminder for Tom (below). Merged into `main` (Tom,
+  2026-11-15: "Yes, merge").
 
 - ~~The select screen's dial frozen after a join~~: done 2026-11-15, merged into `main` (Tom, 2026-11-15: "I've tried
   this on my Master and it looks good. Please merge into main"). (Tom, 2026-11-14, on his Master at DC7D9: "the selected track does

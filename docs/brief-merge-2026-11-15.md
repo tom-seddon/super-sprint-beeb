@@ -1,6 +1,6 @@
 # Brief - time attack's scores and ghosts merger (2026-11-15)
 
-> **Status: DONE (2026-11-15): steps 1-5 built, each tried (Tom's Master, DFS to BeebLink; step 4 in b2, DFS to DFS); to merge into `main` on Tom's word.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
+> **Status: DONE (2026-11-15): steps 1-5 built, each tried (Tom's Master, DFS to BeebLink; step 4 in b2, DFS to DFS); merged into `main` (Tom, 2026-11-15: "Yes, merge").** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
 > each tried on Tom's Master before the next (as time attack was).
 >
 > Figures say **MEASURED** (a build's listing or a tool run, named), **COUNTED** (off the source or a listing)

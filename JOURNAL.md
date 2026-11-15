@@ -963,6 +963,6 @@ its own `TIMES` on the next merge). Step 3's cases now answer the question with 
 Tom tried step 4 in b2, reading DFS and writing DFS ("Looks good. Please continue."), and for step 5: "I think the
 README notes just need adding to the open items list. I'll word the READMEs myself." So the reminder (what MERGE is
 for, how to run it, ADFS's `*MOUNT`, the merge's rules, its RAM) is in the plan's list for Tom, and the brief is done.
-The branch `ta-merge` waits on Tom's word to merge into `main`. Not built, as not asked for: MERGE copying itself onto a
+The branch `ta-merge` merged into `main` (Tom: "Yes, merge"). Not built, as not asked for: MERGE copying itself onto a
 backup disc.
 
