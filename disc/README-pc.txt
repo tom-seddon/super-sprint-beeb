@@ -23,12 +23,13 @@ BBC version:
 
 Brief instructions:
 
-For Super Sprint, use one of the -game disk images.
+For Super Sprint, use one of the super-sprint disk images.
 
 * {{game_ssd}} (DFS)
 * {{game_adl}} (ADFS L)
 
-For Super Sprint (Time Attack), use one of the -ta disk images.
+For Super Sprint (Time Attack), use one of the super-sprint-ta disk
+images.
 
 * {{ta_ssd}} (DFS)
 * {{ta_adl}} (ADFS L)

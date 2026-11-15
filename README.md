@@ -5,17 +5,16 @@ Requires Master 128/Compact. 64 KB of sideways RAM must be available.
 Get the latest release here: https://github.com/tom-seddon/super-sprint-beeb/releases/latest
 
 Inside the zip file, there are five files, named similarly to the zip
-file: 2 `super-sprint-game` disk image files, 2 `super-sprint-ta` disk
+file: 2 `super-sprint` disk image files, 2 `super-sprint-ta` disk
 image files, and a README.
 
 # Super Sprint
 
-Use one of the `super-sprint-game` disk images, either the `.ssd` file
+Use one of the `super-sprint` disk images, either the `.ssd` file
 (DFS) or `.adl` (ADFS), as appropriate (both contain the same
 contents). The disk auto-boots with SHIFT+BREAK.
 
-**The game saves high scores to the disk** - make sure it is write
-enabled.
+**The game saves to the disk** - make sure it is write enabled.
 
 ## Instructions
 
@@ -107,6 +106,11 @@ there is no workaround.)
 If playing on an emulator, you may have to experiment to find keys
 that work well for multiple players.
 
+The sound can also be toggled on and off on this screen.
+
+The hex digits in the bottom right indicate the game version. They
+match the hex digits from the disk image and .zip file names.
+
 ----
 
 # Super Sprint (Time Attack)
@@ -115,8 +119,7 @@ Use one of the `super-sprint-ta` disk images, either the `.ssd` file
 (DFS) or `.adl` (ADFS), as appropriate (both contain the same
 contents). The disk auto-boots with SHIFT+BREAK.
 
-**The game saves lap times and ghost cars to the disk** - make sure it
-is write enabled.
+**The game saves to the disk** - make sure it is write enabled.
 
 Super Sprint (Time Attack) puts a fresh spin on the Super Sprint
 experience. Drive timed laps to beat the current track record. Once a
@@ -173,6 +176,9 @@ will be saved as the ghost car for future races.)
 Press `f1` from the main menu to select the options screen, letting
 you redefine keys and toggle sound.
 
+As with the main game, the version is indicated by the hex digits in
+the bottom right.
+
 ## Merge
 
 Use the merge program to back up or merge your Super Sprint (Time
@@ -180,19 +186,21 @@ Attack) lap times with another set.
 
 Run the merge program with `*MERGE` from the disk.
 
-You'll get a `*` prompt, allowing you to issue `*` commands to select
-the Super Sprint (Time Attack) files you want to merge from - select
-filing system, change drive, mount disk, and so on.
+You'll get a `*` prompt, giving you a chance to change disk if
+necessary to the copy of Super Sprint (Time Attack) to merge from. (If
+using ADFS, for example, you might need to also do `*MOUNT`. Or select
+some other filing system. And so on.)
 
-You can issue as many as required. Once ready, press Return on a blank
-line, and the lap times and ghost cars will be loaded.
+You can issue as many commands as required. Once ready, press Return
+on a blank line, and the lap times and ghost cars will be loaded.
 
-Now you'll get further `*` prompts, to let you locate the Super Sprint
-(Time Attack) files to merge into, as above.
+Now you'll get further `*` prompt, as above. Change disk (or issue `*`
+commands) to the copy of Super Sprint (Time Attack) to merge into, as
+above.
 
-Again, press Return on a blank line. The best 10 lap times from both
-sets will be determined, and the corresponding ghost car, and the
-results written to the disk.
+Again, press Return on a blank line to continue, then confirm the
+operation. The best 10 lap times from both sets will be determined,
+and the corresponding ghost car, and the results written to the disk.
 
 ----
 
@@ -235,7 +243,7 @@ make game && make ta
 The results are:
 
 * Super Sprint: `build/game.ssd` (DFS); `build/game.adl` (ADFS)
-* Super Sprint (Time AttacK): `build/ta.ssd` (DFS); `build/ta.adl` (ADFS)
+* Super Sprint (Time Attack): `build/ta.ssd` (DFS); `build/ta.adl` (ADFS)
 
 ## For AI agents
 
