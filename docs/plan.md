@@ -495,6 +495,15 @@ adds the logic.
   - Emulators: Tom, "jsbeeb does offer a Master Turbo option but I don't know whether it's accessible in the headless
     version" (`tools/jsbeeb.mjs`, the jsbeeb MCP's `create_machine`): to check. b2 has a Master with a 6502 second
     processor, from memory.
+- Possible later (Tom, 2026-11-15: "Note it in the plan as a possible future improvement - I don't fancy waiting for
+  the tests right now"): the game's `!BOOT` loads at `&1200` (`boot.6502`'s `BootOrg`), below a Model B's PAGE (&1900
+  with DFS 1.2, &1F00 with jsbeeb's 1770 model, DFS and ADFS both), over the DFS's workspace, as MERGE did before it
+  moved to `&2000`. In jsbeeb (2026-11-15) both Model Bs still show "Super Sprint needs a Master 128 or Compact" from
+  SHIFT-BREAK on `build/game.ssd` and `build/ta.ssd`, then stop in the MOS (PC `&DC5D`: the error comes before any
+  language is entered; BREAK to go on). Tom: "It might end up a problem with a BBC B with ADFS only? But that'll be a
+  very rare case." The change: `BootOrg` at `&2000` or so (above any PAGE, under `&3000` where the files land); it
+  changes the game's discs, so the whole suite. A check: the boot on Model Bs (DFS 1.2, 1770) refused, PAGE read
+  against `!BOOT`'s load address, as `ta_merge_check` does for MERGE.
 - The suite's wall time (Tom, 2026-11-13: "potentially useful, but still a lot of wall clock time either way. So not
   worth it immediately"). What's measured and what's guessed: `JOURNAL.md`, 2026-11-13, "the checks' times on Tom's
   laptop". In short: on the laptop (2 cores, 4 threads) jsbeeb's checks are bound by the cores, the hyperthreads adding
