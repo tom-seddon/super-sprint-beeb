@@ -442,7 +442,9 @@ adds the logic.
 - Time attack's scores and ghosts merged (Tom, 2026-11-12): a program that merges a player's tables and ghosts
   with another set, so the disc ends up with the best 10 per track across both sets (`TIMES`) and the ghosts that go
   with them (`GHOST1`-`GHOST8`). "That's the basic idea, anyway. I need to think a bit more about the UX though so
-  that it works ok across all filing systems." Not designed yet: Tom's to think over first.
+  that it works ok across all filing systems." Designed 2026-11-15 (D57, `docs/brief-merge-2026-11-15.md`): `MERGE`
+  on time attack's discs, a `*` prompt before the read and the write, the best 10 of both, the faster ghost. Branch
+  `ta-merge`; nothing built.
 
 - ~~The select screen's dial frozen after a join~~: done 2026-11-15, merged into `main` (Tom, 2026-11-15: "I've tried
   this on my Master and it looks good. Please merge into main"). (Tom, 2026-11-14, on his Master at DC7D9: "the selected track does

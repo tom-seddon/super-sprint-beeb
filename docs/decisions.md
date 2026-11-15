@@ -821,3 +821,16 @@ corner, or 2 pixels in), and Tom picked the very corner, `docs/img/timeattack-hi
 fine. This decision can be revisited if it proves a problem in practice." (the screen's edge cut off by a TV, say).
 So: `F1 OPTIONS` in white at pixel 0, line 0, drawn on the menu alone (`tagame.6502`'s `tg_hint`); the track's
 screen clears it, and the options screen unpacks the picture again without it.
+
+### D57. Time attack's scores and ghosts merger: Decided (2026-11-15)
+Time attack (`docs/brief-merge-2026-11-15.md`). Tom, 2026-11-15: a source disc's `TIMES` and ghosts merged into a
+destination's, run from the source with one disc swap, and also a backup: "it should also be possible to use it for
+score backup ... So the tool should give you the option of swapping disks before doing the read". Proposed: no
+detection (a `SCORES` file doesn't tell the discs apart: the game's discs have one too) and no option: the same steps
+for both, a `*` prompt before the read and before the write, RETURN at once reading the disc it ran from. A track's
+table the best 10 of both, an entry on both counted once (time, upgrades and name all the same), the destination's
+first on a tie; its ghost the faster, the destination's on a tie; only what changed written, after a Y. MODE 7, a
+scrolling transcript, the OS's text, `*` commands and errors. Tom: "Yes, sounds good"; "That sounds good"; and "since
+the game assumes 4 banks free, I think it's OK for the tool to assume 4 banks free too".
+So: `MERGE` on time attack's discs, built in the brief's steps.
+
