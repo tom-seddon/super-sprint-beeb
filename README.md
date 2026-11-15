@@ -48,6 +48,8 @@ pressing their accelerate key.
 (Additional players can also join on the prepare to race screen that
 follows.)
 
+![Race](./docs/docimages/game-race.png)
+
 Each race consists of four laps. Beat the drone cars to qualify for
 the next race!
 
@@ -155,6 +157,8 @@ until you're within budget again.
 that lap: `S` for speed, `A` for acceleration, and `T` for traction.)
 
 Choose `RACE` to race.
+
+![Race](./docs/docimages/ta-race.png)
 
 In the race, you always race as the white car, and the ghost, when
 present, always races as the black car. Your current time is shown at
