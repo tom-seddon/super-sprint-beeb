@@ -966,3 +966,17 @@ for, how to run it, ADFS's `*MOUNT`, the merge's rules, its RAM) is in the plan'
 The branch `ta-merge` merged into `main` (Tom: "Yes, merge"). Not built, as not asked for: MERGE copying itself onto a
 backup disc.
 
+## 2026-11-15: the READMEs as templates, and make release
+
+Tom wanted a blank line before the disc README's link, then: "Maybe it's going to need some kind of basic templating,
+so that the disk images' actual names can be inserted into the README as well." Five suggestions, all built on the
+branch `readme-template` ("Start the branch with all five please"): `{{name}}` placeholders in both READMEs, an unknown
+one an error (double braces, as DFS's own `$.!BOOT` would trip a `$` template); `{{link}}` placed by Tom, or the link
+line added after a blank line as before; the release's names made in one place (`tools/disc_readme.py`'s values, as
+the workflow's shell made them), so a disc built here names the release's files; `make release`
+(`tools/release.py`), the workflow's zip made here too, its entries' times the commit's (the same commit, the same zip:
+MEASURED, twice); and `--check` in the suite, the disc's lines MODE 7 would wrap. The release stops if a disc's
+README isn't this build's; that catches another commit (the link's always there) but not another version the README
+doesn't show (MEASURED with `make release VERSION=abcde`), said so in its notes. Tom's two READMEs left as he has them,
+uncommitted, for him to fill in with the placeholders.
+

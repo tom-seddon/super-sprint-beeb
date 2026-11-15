@@ -384,6 +384,13 @@ adds the logic.
   `disc/README-pc.txt`, Tom's text (a placeholder till he writes it), adds the same link to `README.md`, and writes
   it in UTF-8 with CR LF; the disc's README the same byte for byte. Merged into `main` (Tom, 2026-11-15:
   "Yes, merge"); not yet run on GitHub.
+  Then (Tom, 2026-11-15: "Maybe it's going to need some kind of basic templating, so that the disk images' actual
+  names can be inserted into the README as well"), on the branch `readme-template`: both READMEs are templates
+  (`tools/disc_readme.py`: `{{version}}`, `{{commit}}`, `{{date}}`, `{{link}}`, `{{game_ssd}}`, `{{game_adl}}`,
+  `{{ta_ssd}}`, `{{ta_adl}}`; an unknown name stops the build; without `{{link}}` the link line goes after the text,
+  a blank line between; `--check` in the suite says the disc's lines MODE 7 would wrap), the release's names made in
+  one place, and `make release` (`tools/release.py`) makes `dist/` and the zip as the workflow does, which now runs
+  it. Not yet run on GitHub.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
@@ -532,6 +539,12 @@ adds the logic.
     and version in their names, the version the options screen shows); the machines (Master 128, Master Compact,
     four sideways RAM banks free); how to boot (SHIFT-BREAK); the keys; and that the discs save, so want to be
     write-enabled. The link to the full `README.md` is added after it, as on the disc.
+  - The READMEs' placeholders (2026-11-15, `tools/disc_readme.py`): `{{version}}` (as the options screen),
+    `{{commit}}`, `{{date}}` (the commit's, UTC, "2026-11-14 11:03"), `{{link}}` (README.md at the commit; without
+    it, it's added at the end after a blank line), and the release zip's discs, `{{game_ssd}}`, `{{game_adl}}`,
+    `{{ta_ssd}}`, `{{ta_adl}}`. `make release` makes `dist/` to look at (after `make game` and `make ta`), and
+    `tools/disc_readme.py --check` says the disc's lines that MODE 7 would wrap. `README.md` might mention `make
+    release` too.
   - MERGE, time attack's scores and ghosts merger (D57; Tom, 2026-11-15: "I think the README notes just need adding
     to the open items list. I'll word the READMEs myself"), for `disc/README.txt`, `disc/README-pc.txt` and
     `README.md`. Perhaps: what it's for (a backup of a disc's `TIMES` and ghosts, a restore, scores carried to a new
