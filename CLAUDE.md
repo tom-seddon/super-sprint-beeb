@@ -19,7 +19,8 @@ to merging into `main`."
 
 Tom writes `README.md`: don't modify it. Say what you think it needs, and he'll change it. Tom, 2026-11-10: "I would
 like to word README.md in the repo myself, as it's primarily human-facing. Please refrain from modifying it in
-future, and I will update it myself." (The disc's README is another file: `disc/README.txt`, also his text.)
+future, and I will update it myself." (The disc's README is another file: `disc/README.txt`, also his text, and so is the release zip's,
+`disc/README-pc.txt`.)
 
 ## Upstream
 

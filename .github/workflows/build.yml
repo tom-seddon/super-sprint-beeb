@@ -2,8 +2,9 @@
 # occasionally to generate a new build. Let's not have a build on every push to `main`"), or by hand from the
 # Actions tab. The result is one zip, super-sprint-YYYYMMDD-HHMM-xxxxx.zip: the commit's time in UTC and the 5 hex
 # digits the options screen shows, holding game.ssd and game.adl named the same way, time attack's ta.ssd and ta.adl
-# as super-sprint-ta-YYYYMMDD-HHMM-xxxxx, and the discs' README as README.txt, its lines ending CR LF for a PC (Tom,
-# 2026-11-14: "Please put all disk images in the same archive, and the disk's README as well"). It's published as a
+# as super-sprint-ta-YYYYMMDD-HHMM-xxxxx, and a README.txt for a PC, disc/README-pc.txt with the discs' README's link,
+# its lines ending CR LF (Tom, 2026-11-14: "Please put all disk images in the same archive, and the disk's README as
+# well", then "perhaps the zip should have a different README from the disk"). It's published as a
 # release of that name (Tom, 2026-11-10: "Please update the CI setup to make a release. Then it should be possible to
 # download the results and check them that way"), its notes the commit and the files' SHA-256; a second run of the
 # same commit replaces the zip.
