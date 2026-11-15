@@ -15,7 +15,7 @@
 \\ A lap's buffer holds its frames from the one it starts on (the line crossed, or the race's first) to the one
 \\ before the next crossing: as many as the lap's time (ta_lap's measure).
 
-GhBufLen = 3000                         ; a buffer's bytes: 30 s of laps at 2 bytes a frame (§3)
+                                        ; (GhBufLen, a buffer's bytes: tafiles.6502's, MERGE's too)
 GhTurn = &C0
 GhNone = &FE
 GhWhole = &FF

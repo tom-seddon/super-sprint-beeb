@@ -8,9 +8,7 @@
 \\ screen shows them, tagame.6502); its name (step 6g) typed after the race, 10 zero bytes till then. A name is ASCII, A-Z, 0-9, the point, ! and space, ended by a 0 if under 10 (the track's
 \\ screen draws it so, tagame.6502's tg_char).
 
-TaEntries = 80
-TaNameLen = 10
-TaTableLen = TaEntries * (3 + TaNameLen) ; 1,040 bytes
+\ (TaEntries, TaNameLen, TaTableLen: tafiles.6502's, MERGE's too)
 TaTable = GhHead - TaTableLen
 TaTimeLo = TaTable                      ; the columns: each entry's time,
 TaTimeHi = TaTimeLo + TaEntries

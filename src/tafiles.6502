@@ -1,0 +1,9 @@
+\\ tafiles.6502 - time attack's files' sizes, the game's (cars.6502: ghost.6502, tatable.6502, timeattack.6502) and
+\\ MERGE's (merge.6502, D57) alike, so the two read and write the same: TIMES, the table (1,040 bytes, then a
+\\ 2-byte sum: timeattack.6502's ta_sum), and GHOST1-GHOST8, a ghost (a time, 2 bytes, its records' bytes, 2, then
+\\ those, at most GhBufLen).
+
+TaEntries = 80                          ; the table: 10 entries a track
+TaNameLen = 10                          ; an entry's name's characters at most
+TaTableLen = TaEntries * (3 + TaNameLen) ; 1,040 bytes: each entry's time (2), upgrades (1) and name
+GhBufLen = 3000                         ; a ghost's records' bytes at most: 30 s of laps at 2 bytes a frame

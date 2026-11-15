@@ -387,6 +387,7 @@ CarTablePages = {HI(DataId), HI(DataYellow), HI(DataWhite), HI(DataBlack)}
     EQUB GenFrH
 
 IF GenTimeAttack
+    INCLUDE "tafiles.6502"              ; (its files' sizes, MERGE's too)
     INCLUDE "ghost.6502"                ; (time attack's ghost: its code here, its buffers at the bank's end)
     INCLUDE "tatable.6502"              ; (and its table, below them)
 ENDIF
