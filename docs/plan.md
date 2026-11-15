@@ -523,38 +523,45 @@ adds the logic.
     it runs here too, as with `REMOTE=` (the serial builds and short checks, about 4½ minutes, sharing the second core:
     perhaps 2 minutes); time attack's tracks built while the disc's checks run (perhaps 1); `game_adfs` earlier in
     `disc_races`' list (its last 70 s with one job left: perhaps 30 s); `MACHINES=2` on the laptop (about 2%).
-- For Tom to do (his files, `CLAUDE.md`: reminders only, with what each might say; noted 2026-11-12):
-  - `README.md`: time attack. `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds
-    in `build/tracks_ta`); `tools/ta_checks.sh OUT` checks them, and `tools/suite.sh` runs that too. Perhaps a line
-    on what it is: one player, endless laps, a ghost of the best lap, a table and a ghost saved per track.
-  - `README.md`: clone with the submodules' own submodules, `git clone --recursive` (or `git submodule update
-    --init --recursive` in a clone). Baron's build needs `rich/baron/extern/richc`: building `main` in a fresh
-    worktree failed at CMake's configure until it was fetched (2026-11-12).
-  - `disc/README-ta.txt`: time attack's discs' own README (2026-11-15, Tom: "I think maybe it could do with 3
-    versions of the README actually"; the game's is `disc/README-game.txt`, which was `disc/README.txt`). It starts
-    as the old `disc/README.txt`'s committed text, a placeholder. Perhaps: what time attack is, its keys (the menu's,
-    the track's screen's, the name's), that it saves `TIMES`, `GHOST1`-`GHOST8` and `SCORES` to the disc, so the
-    disc wants to be write-enabled.
-  - `disc/README-pc.txt`: the release zip's `README.txt`, read on a PC, so not held to the BBC's 40 columns (and
-    UTF-8). Perhaps: what's in the zip (the game's and time attack's discs, `.ssd` for DFS, `.adl` for ADFS, the date
-    and version in their names, the version the options screen shows); the machines (Master 128, Master Compact,
-    four sideways RAM banks free); how to boot (SHIFT-BREAK); the keys; and that the discs save, so want to be
-    write-enabled. The link to the full `README.md` is added after it, as on the disc.
-  - The READMEs' placeholders (2026-11-15, `tools/disc_readme.py`): `{{version}}` (as the options screen),
-    `{{commit}}`, `{{date}}` (the commit's, UTC, "2026-11-14 11:03"), `{{link}}` (README.md at the commit; without
-    it, it's added at the end after a blank line), and the release zip's discs, `{{game_ssd}}`, `{{game_adl}}`,
-    `{{ta_ssd}}`, `{{ta_adl}}`. `make release` makes `dist/` to look at (after `make game` and `make ta`), and
-    `tools/disc_readme.py --check` (in the suite) fills in all three, an unknown name an error; the discs' line
-    lengths are Tom's to check by eye (2026-11-15). `README.md` might mention `make release` too.
-  - MERGE, time attack's scores and ghosts merger (D57; Tom, 2026-11-15: "I think the README notes just need adding
-    to the open items list. I'll word the READMEs myself"), for `disc/README-ta.txt`, `disc/README-pc.txt` and
-    `README.md`. Perhaps: what it's for (a backup of a disc's `TIMES` and ghosts, a restore, scores carried to a new
-    release's disc, two players' sets merged); how to run it (BREAK out of time attack, then `*RUN MERGE`, or
-    `*MERGE`); its two prompts ("Read from", "Write to"), where any `*` commands can be typed and discs changed,
-    RETURN on an empty line going on, ESCAPE to quit; on ADFS `*MOUNT` after changing a disc ("Disc changed"
-    otherwise); the destination write-enabled; what the merge does (each track's best 10 of both, an entry on both
-    counted once, the faster ghost, nothing written till Y; `SCORES` untouched); 32K of sideways RAM (two banks).
-    `README.md` too: `tools/ta_merge_check.mjs` (DFS and `--adfs`) in `tools/ta_checks.sh`.
+- For Tom to do: `README.md`, his file (`CLAUDE.md`): reminders only, of what it might usefully mention, kept up as
+  things are built (noted 2026-11-12; Tom, 2026-11-15: "I will continue to word the README.md myself, as its contents
+  are primarily for human consumption (barring the short note at the bottom for agent use, pointing them at CLAUDE.md
+  and so on). But please do continue to maintain the list of things that might usefully need mentioning, as it is
+  useful."). Its text now is a placeholder (Tom, 2026-11-15), the note for agents at its end kept. The discs' and
+  the zip's READMEs (`disc/README-game.txt`, `disc/README-ta.txt`, `disc/README-pc.txt`) have Tom's first drafts
+  (`b2c26dd`, 2026-11-15), and anything they're missing goes in `README.md` instead (Tom, 2026-11-15: "I think the
+  zip README is fine as it stands. Any missing README items will be added to the README.md in the repo (since it's
+  Markdown and can therefore include images and stuff)."). The drafts already say the discs' names and filing
+  systems, SHIFT-BREAK, that the scores are saved so the disc wants to be write-enabled, the version, and the link
+  to `README.md` at the build's commit. Perhaps, in `README.md`:
+  - Playing: the machines (Master 128, Master Compact, four sideways RAM banks free); the keys (each player's
+    defaults, changed on the options screen, saved in `SCORES`); the version the options screen shows, the same as
+    the discs' names'.
+  - Time attack, for players: what it is (one player, endless laps, a ghost of the best lap, a table and a ghost
+    saved per track); its keys (the menu's, F1 for the options, the track's screen's, the name's); that it saves
+    `TIMES`, `GHOST1`-`GHOST8` and `SCORES` to the disc, so the disc wants to be write-enabled.
+  - MERGE, time attack's scores and ghosts merger (D57): what it's for (a backup of a disc's `TIMES` and ghosts, a
+    restore, scores carried to a new release's disc, two players' sets merged); how to run it (BREAK out of time
+    attack, then `*RUN MERGE`, or `*MERGE`); its two prompts ("Read from", "Write to"), where any `*` commands can
+    be typed and discs changed, RETURN on an empty line going on, ESCAPE to quit; on ADFS `*MOUNT` after changing a
+    disc ("Disc changed" otherwise); the destination write-enabled; what the merge does (each track's best 10 of
+    both, an entry on both counted once, the faster ghost, nothing written till Y; `SCORES` untouched); 32K of
+    sideways RAM (two banks).
+  - Building, time attack: `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds in
+    `build/tracks_ta`), after `make game` as a second make (they share `build/sprint.*`); `tools/ta_checks.sh OUT`
+    checks them (MERGE's `tools/ta_merge_check.mjs`, DFS and `--adfs`, among them), and `tools/suite.sh` runs that
+    too.
+  - Building, a clone with the submodules' own submodules: Baron's build needs `rich/baron/extern/richc` (building
+    `main` in a fresh worktree failed at CMake's configure until it was fetched, 2026-11-12). The placeholder's
+    `git clone --recurse-submodules` does it; in a clone made without it, `git submodule update --init
+    --recursive`.
+  - Building, the release: `make release` (after `make game` and `make ta`) makes `dist/` as the GitHub build does,
+    the four discs named as the release names them, the zip's `README.txt` and the zip. The READMEs are templates
+    (`tools/disc_readme.py`): `{{version}}` (as the options screen), `{{commit}}`, `{{date}}` (the commit's, UTC,
+    "2026-11-14 11:03"), `{{link}}` (README.md at the commit; without it, it's added at the end after a blank
+    line), and the release zip's discs, `{{game_ssd}}`, `{{game_adl}}`, `{{ta_ssd}}`, `{{ta_adl}}`;
+    `tools/disc_readme.py --check` (in the suite) fails on an unknown name, and the discs' line lengths are checked
+    by eye.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile

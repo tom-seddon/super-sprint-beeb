@@ -995,3 +995,11 @@ says `disc/README-ta.txt`'s line 2 is 41 characters, the old placeholder's, for 
 The MODE 7 line check came out again: "I don't think the column check is worth having, as the README link will
 automatically run over. There won't be much churn in the README, I don't think, so I can check this by eye."
 `disc_readme.py --check` (in the suite) still fills in all three and fails on an unknown name.
+
+## 2026-11-15: three READMEs merged; README.md's list
+
+Tom committed first drafts of the three READMEs (`b2c26dd`), and `readme-template` merged into `main` (fast-forward:
+"Please merge into main"). Then: "I think the zip README is fine as it stands. Any missing README items will be added
+to the README.md in the repo", and the list of what it might mention kept going ("please do continue to maintain the
+list of things that might usefully need mentioning"). So the plan's list for Tom is now `README.md`'s alone, grouped
+as playing, time attack, MERGE and building, less what the drafts already say. Its present text is a placeholder.
