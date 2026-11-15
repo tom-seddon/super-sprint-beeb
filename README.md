@@ -45,13 +45,11 @@ pressing their accelerate key.
 
 ![Select Track](./docs/docimages/game-tracks.png)
 
-(Additional players can also join on the prepare to race screen that
-follows.)
+Additional players can also join on the prepare to race screen that
+follows. Then the race begins! Each race consists of four laps - beat
+the drone cars to qualify for the next one.
 
 ![Race](./docs/docimages/game-race.png)
-
-Each race consists of four laps. Beat the drone cars to qualify for
-the next race!
 
 Steer your vehicle using the left and right keys, and control its
 speed with the accelerator. Hitting the circuit barriers at low speeds
@@ -141,10 +139,10 @@ whichever you're most used to.)
 | Right  | `W`   | `.`   | Pad `6`      |
 | Accel  | `E`   | `/`   | Pad `DELETE` |
 
-![Track Screen](./docs/docimages/ta-track.png)
-
 The track screen shows the current high scores for the selected track,
 and lets you pick a limited number of upgrades for the next race.
+
+![Track Screen](./docs/docimages/ta-track.png)
 
 Use left/right to move the highlight between the options.
 
@@ -165,7 +163,7 @@ present, always races as the black car. Your current time is shown at
 the top left, then `BEST` (your best time this session), then `GHOST`
 (the ghost's time).
 
-Once you're happy, press `ESCAPE` to get back to the track screen. If
+Once you're done, press `ESCAPE` to get back to the track screen. If
 you made it on to the best lap times table, enter your name so it can
 be saved to disk for posterity! (And if you're number 1, your best lap
 will be saved as the ghost car for future races.)
