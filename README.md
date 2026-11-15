@@ -14,6 +14,9 @@ Use one of the `super-sprint-game` disk images, either the `.ssd` file
 (DFS) or `.adl` (ADFS), as appropriate (both contain the same
 contents). The disk auto-boots with SHIFT+BREAK.
 
+**The game saves high scores to the disk** - make sure it is write
+enabled.
+
 ## Instructions
 
 (loosely adapted from the 8-bit instructions)
@@ -108,7 +111,97 @@ that work well for multiple players.
 
 # Super Sprint (Time Attack)
 
-TODO
+Use one of the `super-sprint-ta` disk images, either the `.ssd` file
+(DFS) or `.adl` (ADFS), as appropriate (both contain the same
+contents). The disk auto-boots with SHIFT+BREAK.
+
+**The game saves lap times and ghost cars to the disk** - make sure it
+is write enabled.
+
+Super Sprint (Time Attack) puts a fresh spin on the Super Sprint
+experience. Drive timed laps to beat the current track record. Once a
+record is set, you race against a ghost car that repeatedly drives the
+best lap, to try to beat it.
+
+(If you fail: there are 10 times per track, so you might still make
+the top 10.)
+
+![Main Menu](./docs/docimages/ta-tracks.png)
+
+From the main menu, select the track you want to race. Press `1`-`8`
+to select the track, or use left/right to select and accelerate to
+confirm. (You can use any of the sets of keys from the normal game,
+whichever you're most used to.)
+
+| Action | Set 1 | Set 2 | Set 3        |
+|--------|-------|-------|--------------|
+| Left   | `Q`   | `,`   | Pad `5`      |
+| Right  | `W`   | `.`   | Pad `6`      |
+| Accel  | `E`   | `/`   | Pad `DELETE` |
+
+![Track Screen](./docs/docimages/ta-track.png)
+
+The track screen shows the current high scores for the selected track,
+and lets you pick a limited number of upgrades for the next race.
+
+Use left/right to move the highlight between the options.
+
+`SPEED`, `ACCEL.` and `TRACTION` are the current upgrade levels. Press
+accelerate to cycle between the upgrade level, `0` to `5`. You can
+have up to 5 upgrades overall; if this is exceeded, change the numbers
+until you're within budget again.
+
+(Each lap time on the table shows the upgrades the player used for
+that lap: `S` for speed, `A` for acceleration, and `T` for traction.)
+
+Choose `RACE` to race.
+
+In the race, you always race as the white car, and the ghost, when
+present, always races as the black car. Your current time is shown at
+the top left, then `BEST` (your best time this session), then `GHOST`
+(the ghost's time).
+
+Once you're happy, press `ESCAPE` to get back to the track screen. If
+you made it on to the best lap times table, enter your name so it can
+be saved to disk for posterity! (And if you're number 1, your best lap
+will be saved as the ghost car for future races.)
+
+## Options
+
+Press `f1` from the main menu to select the options screen, letting
+you redefine keys and toggle sound.
+
+## Merge
+
+Use the merge program to back up or merge your Super Sprint (Time
+Attack) lap times with another set.
+
+Run the merge program with `*MERGE` from the disk.
+
+You'll get a `*` prompt, allowing you to issue `*` commands to select
+the Super Sprint (Time Attack) files you want to merge from - select
+filing system, change drive, mount disk, and so on.
+
+You can issue as many as required. Once ready, press Return on a blank
+line, and the lap times and ghost cars will be loaded.
+
+Now you'll get further `*` prompts, to let you locate the Super Sprint
+(Time Attack) files to merge into, as above.
+
+Again, press Return on a blank line. The best 10 lap times from both
+sets will be determined, and the corresponding ghost car, and the
+results written to the disk.
+
+----
+
+# Other BBC Notes
+
+- the game is supplied as DFS and ADFS disk images, but it is intended
+  to be compatible with other filing systems, and should run off ADFS
+  hard disk. Copy the files to the filing system of interest, and
+  `*RUN !BOOT` to start the game
+- for best results, create a physical ADFS disk from the supplied disk
+  image, as the files are arranged to shorten the load times
 
 ----
 
