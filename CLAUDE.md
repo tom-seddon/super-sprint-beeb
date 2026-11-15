@@ -19,8 +19,8 @@ to merging into `main`."
 
 Tom writes `README.md`: don't modify it. Say what you think it needs, and he'll change it. Tom, 2026-11-10: "I would
 like to word README.md in the repo myself, as it's primarily human-facing. Please refrain from modifying it in
-future, and I will update it myself." (The disc's README is another file: `disc/README.txt`, also his text, and so is the release zip's,
-`disc/README-pc.txt`.)
+future, and I will update it myself." (The discs' READMEs are other files: `disc/README-game.txt` and
+`disc/README-ta.txt`, also his text, and so is the release zip's, `disc/README-pc.txt`.)
 
 ## Upstream
 
@@ -83,7 +83,7 @@ What the skills look up, for this project:
   GitHub's build, `.github/workflows/build.yml`, runs on a push to the branch `ci-build` (fast-forwarded to `main`
   when Tom wants a build, not on every push) and publishes a release, one zip of both discs, named by the commit's UTC
   time and version, made by `make release` (`tools/release.py`, into `dist`: so it can be made here first, after `make
-  game` and `make ta`); the READMEs, `disc/README.txt` and `disc/README-pc.txt`, are templates (`{{version}}`,
+  game` and `make ta`); the READMEs, `disc/README-game.txt`, `disc/README-ta.txt` and `disc/README-pc.txt`, are templates (`{{version}}`,
   `{{game_ssd}}` and so on: `tools/disc_readme.py`, `--check` in the suite): `git branch -f ci-build main && git push origin ci-build`.
 - **Memory**: `src/memory.6502` (the map), `docs/memory-map.md` (generated: `tools/memmap.py --write` from the
   play build), `docs/renderer.md` "Memory".

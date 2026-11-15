@@ -78,7 +78,7 @@ def cheat(files, n, syms):
 
 def main(n=8, out='build/cheat.ssd'):
     syms = json.load(open('build/tracks/t0.json'))
-    make_game.main('build/tracks', 'build/zx02', out, patch=lambda files: cheat(files, n, syms))
+    make_game.main('build/tracks', 'build/zx02', out, 'game', patch=lambda files: cheat(files, n, syms))
     print(f'{out}: {n} wrenches a game, 1 lap a race, a low table')
     adfs_disc.main(out, os.path.splitext(out)[0] + '.adl')
 

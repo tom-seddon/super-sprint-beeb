@@ -1,12 +1,13 @@
-"""The READMEs: the disc's, from disc/README.txt, and with --pc the release zip's README.txt, from disc/README-pc.txt,
-both Tom's text, each a template: {{name}} filled in from the build (values()), an unknown name an error. Then each
-file's trailing blank lines dropped. A file without {{link}} gets a blank line and a line linking to README.md at
-the build's commit after it (Tom, 2026-11-10: "so that each release contains a link to its version-appropriate
-README"; 2026-11-15, on the blank line: "The link is quite long in Mode 7. I think it's worth having (just for
-reference) but it'd be nice to separate it visually from the instruction to press Shift+break"); with {{link}}, it's
-where Tom puts it (2026-11-15: "Maybe it's going to need some kind of basic templating, so that the disk images'
-actual names can be inserted into the README as well"). The disc's lines end in CR, as the BBC's *TYPE wants them,
-ASCII; the zip's in CR LF, UTF-8.
+"""The READMEs, each Tom's text and a template: the game's disc's, from disc/README-game.txt, time attack's disc's,
+from disc/README-ta.txt (both README on the disc), and the release zip's README.txt, from disc/README-pc.txt (Tom,
+2026-11-15: "I think maybe it could do with 3 versions of the README actually"). {{name}} is filled in from the build
+(values()), an unknown name an error. Then each file's trailing blank lines dropped. A file without {{link}} gets a
+blank line and a line linking to README.md at the build's commit after it (Tom, 2026-11-10: "so that each release
+contains a link to its version-appropriate README"; 2026-11-15, on the blank line: "The link is quite long in Mode 7.
+I think it's worth having (just for reference) but it'd be nice to separate it visually from the instruction to press
+Shift+break"); with {{link}}, it's where Tom puts it (2026-11-15: "Maybe it's going to need some kind of basic
+templating, so that the disk images' actual names can be inserted into the README as well"). The discs' lines end in
+CR, as the BBC's *TYPE wants them, ASCII; the zip's in CR LF, UTF-8.
 
 The values (values()): {{version}}, the options screen's (the Makefile's VERSION, given to make_game.py and
 release.py; else git's, as the Makefile makes it: 5 hex digits, "m" after them if the tree has changes); {{commit}},
@@ -16,10 +17,11 @@ build's too), {{game_ssd}}, {{game_adl}}, {{ta_ssd}}, {{ta_adl}}: super-sprint-W
 the commit's time, 20261114-1103. tools/suite_remote.sh gives VERSION, COMMIT and WHEN where there's no .git; with
 neither, "(not known)". A tree with changes still has HEAD's commit and time, the nearest there are.
 
-Usage: disc_readme.py [--pc] OUT   (writes the file; tools/make_game.py puts the disc's on the disc as README, and
-                                    tools/release.py the zip's in the zip as README.txt)
-       disc_readme.py --check      (both filled in: an unknown name exit status 1; and the disc's lines that MODE 7
-                                    would wrap, 40 characters or more, said, but for the link's, exit status 0)
+Usage: disc_readme.py game|ta|pc OUT   (writes the file; tools/make_game.py puts game's or ta's on its disc as README,
+                                        and tools/release.py pc's in the zip as README.txt)
+       disc_readme.py --check          (all three filled in: an unknown name exit status 1; and the discs' lines that
+                                        MODE 7 would wrap, 40 characters or more, said, but for the link's, exit
+                                        status 0)
 """
 import os, re, subprocess, sys
 
@@ -27,6 +29,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 Repo = 'https://github.com/tom-seddon/super-sprint-beeb'
 Unknown = '(not known)'
 Placeholder = re.compile(r'\{\{(\w+)\}\}')
+Kinds = ('game', 'ta', 'pc')            # disc/README-KIND.txt; pc's read on a PC, the others on a BBC
 Mode7 = 40                              # a line this long or longer wraps, then its CR LF makes a blank line
 
 
@@ -61,11 +64,12 @@ def values():
     }
 
 
-def text(pc=False, vals=None):
-    """-> the README's text, filled in, its lines ending in \\n."""
+def text(kind, vals=None):
+    """-> README kind's text (Kinds), filled in, its lines ending in \\n."""
+    assert kind in Kinds, kind
     vals = vals or values()
-    name = os.path.join('disc', 'README-pc.txt' if pc else 'README.txt')
-    t = open(os.path.join(ROOT, name), encoding='utf-8' if pc else 'ascii').read().replace('\r\n', '\n')
+    name = os.path.join('disc', f'README-{kind}.txt')
+    t = open(os.path.join(ROOT, name), encoding='utf-8' if kind == 'pc' else 'ascii').read().replace('\r\n', '\n')
     unknown = sorted({n for n in Placeholder.findall(t) if n not in vals or n == 'stamp'})
     if unknown:
         sys.exit(f'{name}: no such value: {", ".join("{{" + n + "}}" for n in unknown)} '
@@ -77,23 +81,27 @@ def text(pc=False, vals=None):
     return t
 
 
-def readme(pc=False, vals=None):
-    """-> the disc's README's bytes, its lines ending CR; or with pc the zip's, ending CR LF."""
-    return text(pc, vals).replace('\n', '\r\n' if pc else '\r').encode('utf-8' if pc else 'ascii')
+def readme(kind, vals=None):
+    """-> README kind's bytes: a disc's (game, ta) its lines ending CR; the zip's (pc) ending CR LF."""
+    pc = kind == 'pc'
+    return text(kind, vals).replace('\n', '\r\n' if pc else '\r').encode('utf-8' if pc else 'ascii')
 
 
 def check():
     vals = values()
-    for pc in (False, True):
-        text(pc, vals)                  # (an unknown name: exits)
-    for n, line in enumerate(text(False, vals).split('\n'), 1):
-        if len(line) >= Mode7 and vals['link'] not in line:
-            print(f'disc/README.txt, filled in, line {n}: {len(line)} characters, so MODE 7 wraps it ({Mode7} or more)')
+    for kind in Kinds:
+        t = text(kind, vals)            # (an unknown name: exits)
+        for n, line in enumerate(t.split('\n'), 1):
+            if kind != 'pc' and len(line) >= Mode7 and vals['link'] not in line:
+                print(f'disc/README-{kind}.txt, filled in, line {n}: {len(line)} characters, so MODE 7 wraps it '
+                      f'({Mode7} or more)')
     print(f'the READMEs filled in: {", ".join(f"{k} {v}" for k, v in vals.items() if k != "stamp")}')
 
 
 if __name__ == '__main__':
     if sys.argv[1:] == ['--check']:
         check()
+    elif len(sys.argv) == 3 and sys.argv[1] in Kinds:
+        open(sys.argv[2], 'wb').write(readme(sys.argv[1]))
     else:
-        open(sys.argv[-1], 'wb').write(readme(sys.argv[1:2] == ['--pc']))
+        sys.exit(__doc__)

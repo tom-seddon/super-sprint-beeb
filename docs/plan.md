@@ -530,8 +530,9 @@ adds the logic.
   - `README.md`: clone with the submodules' own submodules, `git clone --recursive` (or `git submodule update
     --init --recursive` in a clone). Baron's build needs `rich/baron/extern/richc`: building `main` in a fresh
     worktree failed at CMake's configure until it was fetched (2026-11-12).
-  - `disc/README.txt`: time attack's discs get the same README file as the game's (`tools/make_game.py` puts
-    `tools/disc_readme.py`'s on every disc). Text of their own perhaps: what time attack is, its keys (the menu's,
+  - `disc/README-ta.txt`: time attack's discs' own README (2026-11-15, Tom: "I think maybe it could do with 3
+    versions of the README actually"; the game's is `disc/README-game.txt`, which was `disc/README.txt`). It starts
+    as the old `disc/README.txt`'s committed text, a placeholder. Perhaps: what time attack is, its keys (the menu's,
     the track's screen's, the name's), that it saves `TIMES`, `GHOST1`-`GHOST8` and `SCORES` to the disc, so the
     disc wants to be write-enabled.
   - `disc/README-pc.txt`: the release zip's `README.txt`, read on a PC, so not held to the BBC's 40 columns (and
@@ -543,10 +544,10 @@ adds the logic.
     `{{commit}}`, `{{date}}` (the commit's, UTC, "2026-11-14 11:03"), `{{link}}` (README.md at the commit; without
     it, it's added at the end after a blank line), and the release zip's discs, `{{game_ssd}}`, `{{game_adl}}`,
     `{{ta_ssd}}`, `{{ta_adl}}`. `make release` makes `dist/` to look at (after `make game` and `make ta`), and
-    `tools/disc_readme.py --check` says the disc's lines that MODE 7 would wrap. `README.md` might mention `make
+    `tools/disc_readme.py --check` says the discs' lines that MODE 7 would wrap. `README.md` might mention `make
     release` too.
   - MERGE, time attack's scores and ghosts merger (D57; Tom, 2026-11-15: "I think the README notes just need adding
-    to the open items list. I'll word the READMEs myself"), for `disc/README.txt`, `disc/README-pc.txt` and
+    to the open items list. I'll word the READMEs myself"), for `disc/README-ta.txt`, `disc/README-pc.txt` and
     `README.md`. Perhaps: what it's for (a backup of a disc's `TIMES` and ghosts, a restore, scores carried to a new
     release's disc, two players' sets merged); how to run it (BREAK out of time attack, then `*RUN MERGE`, or
     `*MERGE`); its two prompts ("Read from", "Write to"), where any `*` commands can be typed and discs changed,

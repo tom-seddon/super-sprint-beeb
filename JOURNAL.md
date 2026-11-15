@@ -980,3 +980,14 @@ README isn't this build's; that catches another commit (the link's always there)
 doesn't show (MEASURED with `make release VERSION=abcde`), said so in its notes. Tom's two READMEs left as he has them,
 uncommitted, for him to fill in with the placeholders.
 
+
+## 2026-11-15: three READMEs
+
+Tom: "I think maybe it could do with 3 versions of the README actually", the game's disc's, time attack's disc's and
+the zip's. `disc/README.txt` became `disc/README-game.txt` (`git mv`, so Tom's uncommitted text went with it), and
+`disc/README-ta.txt` is new, the old file's committed text for now. `tools/disc_readme.py` takes the kind (`game`, `ta`,
+`pc`; `--pc` is gone), `tools/make_game.py` a fourth argument, the kind of its disc's README (the Makefile gives
+`game` and `ta`, `tools/cheat_disc.py` `game`), and `tools/release.py` checks each disc against its own. `--check`
+looks at both discs' lines. MEASURED: `make game`, `make ta` and `make release` built; each disc's README is its own
+template's, not the other's; `build/ta.ssd` replaced by the game's disc, `release.py` stopped (exit 1). The check
+says `disc/README-ta.txt`'s line 2 is 41 characters, the old placeholder's, for Tom to reword.

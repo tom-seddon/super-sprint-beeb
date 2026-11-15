@@ -2,9 +2,9 @@
 holding that track's slots (tools/track_slots.py: the only bytes the tracks' builds differ in), each part ZX02
 packed, for src/load.6502 to load between races.
 
-Usage: make_game.py DIR ZX02 OUT.ssd   (DIR: tools/all_tracks.sh's build/tracks, t0.ssd .. t7.ssd and their
-listings; ZX02: the compressor, built from the beeb-port-kit's source). Also writes OUT_slots.json, every
-track's slots as its build has them, for tools/load_check.mjs.
+Usage: make_game.py DIR ZX02 OUT.ssd KIND   (DIR: tools/all_tracks.sh's build/tracks, t0.ssd .. t7.ssd and their
+listings; ZX02: the compressor, built from the beeb-port-kit's source; KIND: game or ta, its README's, below). Also
+writes OUT_slots.json, every track's slots as its build has them, for tools/load_check.mjs.
 
 A track's file: a byte, the parts' count; 6 bytes a part (where: 0-3 the bank, as bankbg on, | &80 ANDY, or
 &40 Shared; its address, low and high; its stream's offset in the file, low and high; 0); then the streams.
@@ -18,7 +18,8 @@ Then the boot's files, SPRINT and the banks', are ZX02 packed too, and say so by
 for a raw one is LoadAddr (&3000): a bank's packed file loads at PackedAt and !BOOT unpacks it into its bank; SPRINT's
 loads where it unpacks into itself at &3000, in place, its stream far enough ahead of the output (dfs.in_place_delta).
 
-And README: disc/README.txt filled in, its {{name}}s the build's, and the link to README.md (tools/disc_readme.py), last.
+And README: disc/README-KIND.txt filled in, its {{name}}s the build's, and the link to README.md (tools/disc_readme.py),
+last.
 """
 import hashlib, json, os, sys
 
@@ -94,7 +95,7 @@ def track_file(d, n, zx02):
     return data, [(name, len(raw), len(s)) for (name, _, _, raw), s in zip(parts, streams)]
 
 
-def main(d, zx02, out, patch=None):
+def main(d, zx02, out, kind, patch=None):
     """patch: given the files, raw (but the tracks'), to change in place before they're cut and packed
     (tools/cheat_disc.py's)."""
     img = dfs.read_image(f'{d}/t0.ssd')
@@ -111,7 +112,7 @@ def main(d, zx02, out, patch=None):
         files[f'TRACK{n + 1}'] = dfs.Entry(f'TRACK{n + 1}', data, 0xFF0000 | FileAddr, 0xFF0000, '$', False)
         print(f'TRACK{n + 1}: {len(data):,} bytes ({sum(r for _, r, _ in sizes):,} unpacked): '
               + ', '.join(f'{k} {r}/{p}' for k, r, p in sizes))
-    files['README'] = dfs.Entry('README', disc_readme.readme(), 0, 0, '$', False)
+    files['README'] = dfs.Entry('README', disc_readme.readme(kind), 0, 0, '$', False)
     # the files read between races first, next to the catalogue, as DFS goes back to it for each: those read together as a race ends, then the tracks
     first = ['TRACKP', 'TRACKU', 'TRACKC'] + [f'TRACK{n + 1}' for n in range(8)]
     disc = dfs.build_image(files, layout=first + [f for f in img.files if f not in first] + ['README'], title=img.title, cycle=img.cycle, opt=img.opt)
@@ -122,7 +123,7 @@ def main(d, zx02, out, patch=None):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5 or sys.argv[4] not in ('game', 'ta'):
         print(__doc__)
         sys.exit(2)
     main(*sys.argv[1:])
