@@ -17,6 +17,16 @@
 //   catalogue again only then, MEASURED), its spoilt TIMES (the sum) left out and its ghosts held; on ADFS, B
 //   without *MOUNT first: "Disc changed" (MEASURED), back at the prompt, nothing held, then *MOUNT and one RETURN
 //   reads it (the step run from the prompt); then C, a disc with none: "Nothing to read here.", the prompt again;
+// - step 3, the merge: S's files read, D's at the write's prompt, and the merge as tools/ta_merge_model.mjs (from the
+//   brief, not the 6502) makes it: MgOutT byte for byte, each track's new entries (MgNew), each ghost (MgGhost: kept,
+//   added, replaced) and each track's line said. The tracks: a full table with 3 of the source's, 2 good enough;
+//   duplicates one for one (two alike on the source, one on the destination: one stays); a tie (the destination's
+//   first); the source's alone; the destination's alone; neither; names alike to their end, unlike after it (the
+//   same); and random near-alike tables (duplicates and ties). The ghosts: faster (replaced), slower, tied (kept),
+//   the source's alone (added), the destination's alone, the destination's spoilt (taken as none, said: added), the
+//   source's spoilt (left out at the read). Then D with itself: nothing changes, "Nothing to change." said; then S
+//   into E, whose TIMES is spoilt (said, taken as empty). Seen to fail with the duplicates not matched, and with a tie
+//   going to the later candidate;
 // - on a Model B (DFS 1.2, PAGE &1900; and the 1770's DFS and ADFS both, PAGE &1F00, the worst case; Tom: a Model B's
 //   test covers a B+'s, which jsbeeb hasn't): MERGE refused with its message, nothing else run (NMOS code to there),
 //   and the machine fine after it: the disc catalogued, BASIC working (MERGE loads above a Model B's PAGE, &1900).
@@ -27,6 +37,7 @@
 
 import { readFileSync } from "node:fs";
 import { adfs, discFiles, jsbeebModule, symbols } from "./jsbeeb.mjs";
+import { merge, setEntry } from "./ta_merge_model.mjs";
 
 const { MachineSession } = await jsbeebModule("machine-session.js");
 const fdc = await jsbeebModule("fdc.js");
@@ -84,6 +95,16 @@ const random = (n) => Uint8Array.from({ length: n }, () => (seed = (seed * 11035
 function times({ spoilt = false } = {}) {
     const t = new Uint8Array(TableLen + 2);
     t.set(random(TableLen));
+    let total = 0, totals = 0;
+    for (let i = 0; i < TableLen; i++) total = (total + t[i]) & 255, totals = (totals + total) & 255;
+    t[TableLen] = total, t[TableLen + 1] = spoilt ? totals ^ 1 : totals;
+    return t;
+}
+// a table of given entries, {track (0-7): [[time, upgrades, name (a string, or its 10 bytes)], ...]}, its sum after
+function tableOf(tracks, { spoilt = false } = {}) {
+    const t = new Uint8Array(TableLen + 2);
+    for (const [track, list] of Object.entries(tracks))
+        list.forEach(([time, ups, name], i) => setEntry(t, track * 10 + i, [time, ups, typeof name === "string" ? [...name].map((c) => c.charCodeAt(0)) : name]));
     let total = 0, totals = 0;
     for (let i = 0; i < TableLen; i++) total = (total + t[i]) & 255, totals = (totals + total) & 255;
     t[TableLen] = total, t[TableLen + 1] = spoilt ? totals ^ 1 : totals;
@@ -221,6 +242,81 @@ function holds(s, what, files) {
     o = await type(s, "");
     want("C: nothing to read, the read's prompt again", has(o, "Nothing to read here.") && last(s) === "*");
 }
+// Step 3, the merge: S's files read, D's at the write's prompt, the merge as tools/ta_merge_model.mjs makes it (MgOutT
+// byte for byte, MgNew, MgGhost, and each track's line); then D merged with itself (nothing to change); then S with E,
+// whose TIMES is spoilt (taken as empty)
+{
+    const s = await machine(adfs ? "MasterADFS" : "Master");
+    const mount = async () => adfs && type(s, "*MOUNT");
+    await mount();
+    const S = s._machine.processor.fdc.drives[0]._disc, D = image("d"), E = image("e");
+    const near = () => {                                // (track 8: alike, to be duplicates and ties)
+        const n = random(30), list = [];
+        for (let i = 0; i < 10; i++) list.push([1000 + (n[i * 3] & 7), n[i * 3 + 1] % 3, n[i * 3 + 2] & 1 ? "A" : "B"]);
+        return list.sort((x, y) => x[0] - y[0]);
+    };
+    const src = tableOf({
+        0: [[950, 1, "SRC"], [1250, 2, "SRC"], [2500, 3, "SRC"]],
+        1: [[1000, 5, "TOM"], [1000, 5, "TOM"], [1050, 1, "ZED"]],
+        2: [[1200, 0, "BBB"]],
+        3: [[400, 0, "W"], [410, 1, "X"], [420, 2, "Y"], [430, 3, "Z"]],
+        6: [[900, 3, [65, 66, 0, 9, 9, 9, 9, 9, 9, 9]]],
+        7: near(),
+    });
+    const dst = tableOf({
+        0: Array.from({ length: 10 }, (_, i) => [1000 + 100 * i, i % 6, `DST${i}`]),
+        1: [[1000, 5, "TOM"], [1100, 0, "AL"]],
+        2: [[1200, 0, "AAA"]],
+        4: [[300, 0, "P"], [310, 0, "Q"], [320, 0, "R"], [330, 0, "S"], [340, 0, "T"]],
+        6: [[900, 3, [65, 66, 0, 1, 2, 3, 4, 5, 6, 7]]],
+        7: near(),
+    });
+    const sg = [400, 700, 600, 500, null, 800, null, null], dg = [500, 600, 600, null, 300, null, null, null];
+    const ghosts = (times) => Object.fromEntries(times.map((t, i) => [`GHOST${i + 1}`, t && ghost(t, 50 + i)]).filter(([, g]) => g));
+    await swap(s, D);
+    await mount();
+    await save(s, { TIMES: dst, ...ghosts(dg), GHOST6: ghost(800, 40, { length: 30 }) });   // (GHOST6 spoilt: taken as none)
+    await swap(s, E);
+    await mount();
+    await save(s, { TIMES: tableOf({ 0: [[100, 0, "E"]] }, { spoilt: true }) });
+    await swap(s, S);
+    await mount();
+    await save(s, { TIMES: src, ...ghosts(sg), GHOST8: ghost(0, 30) });                  // (GHOST8 spoilt: left out)
+    await type(s, "*RUN MERGE");
+    let o = await type(s, "");
+    want("S read", has(o, "GHOST8: not a ghost, left out") && has(o, "Read: TIMES GHOST1 GHOST2 GHOST3 GHOST4 GHOST6"));
+    const result = (what, m, out) => {
+        if (process.env.DBG) for (const [n, a] of [["MgSrcT", syms.MgSrcT], ["MgDstT", syms.MgDstT], ["MgOutT", syms.MgOutT]])
+            console.log(what, n, a.toString(16), [...s.readMemory(a, 12)].join(","), "...", [...s.readMemory(a + 240, 12)].join(","));
+        const t = s.readMemory(syms.MgOutT, TableLen), news = s.readMemory(syms.MgNew, 8), gs = s.readMemory(syms.MgGhost + 1, 8);
+        const at = t.findIndex((b, i) => b !== m.table[i]);
+        want(`${what}: the merged table as the model's${at < 0 ? "" : ` (byte ${at}: ${t[at]}, not ${m.table[at]})`}`, at < 0);
+        want(`${what}: each track's new entries ${[...news]} as the model's ${m.added}`, m.added.every((n, i) => news[i] === n));
+        want(`${what}: each ghost ${[...gs]} as the model's ${m.ghost}`, m.ghost.every((g, i) => gs[i] === g));
+        for (const l of m.lines) want(`${what}: "${l}" said`, has(out, l));
+        want(`${what}: "Nothing to change." ${m.nothing ? "" : "not "}said`, has(out, "Nothing to change.") === m.nothing);
+    };
+    const tables = (t) => t.subarray(0, TableLen);
+    await swap(s, D);
+    await mount();
+    o = await type(s, "");
+    want("D: its spoilt ghost said", has(o, "GHOST6: not a ghost, taken as none"));
+    result("S into D", merge(tables(dst), tables(src), dg, sg), o);
+    await type(s, "");                                  // (Done: round again; D read, then D written)
+    o = await type(s, "");
+    want("D read", has(o, "Read: TIMES GHOST1 GHOST2 GHOST3 GHOST5"));
+    o = await type(s, "");
+    result("D into D", merge(tables(dst), tables(dst), dg, dg), o);
+    await type(s, "");                                  // (round again: S read, then E written)
+    await swap(s, S);
+    await mount();
+    await type(s, "");
+    await swap(s, E);
+    await mount();
+    o = await type(s, "");
+    want("E: its spoilt table said", has(o, "TIMES: not a table, taken as empty"));
+    result("S into E", merge(null, tables(src), Array(8).fill(null), sg), o);
+}
 if (!adfs) for (const model of ["B-DFS1.2", "B1770"]) {
     const s = await machine(model);
     let o = await type(s, "PRINT ~PAGE");               // (MERGE loaded at or above it, so the DFS's workspace is kept)
@@ -237,5 +333,6 @@ if (!adfs) for (const model of ["B-DFS1.2", "B1770"]) {
 console.log(bad ? `${bad} wrong` : `MERGE right${adfs ? " (ADFS)" : ""}: ${checked} checked (the heading, version ${version}; the read's ` +
     `and write's prompts, *CAT and a bad command at them, RETURN on, ESCAPE and N, round again, ESCAPE and Y to BASIC, ` +
     `which works and has its BRKV back; the source read from two discs, a swap between, ${adfs ? "\"Disc changed\" till *MOUNT, " : ""}` +
-    `the right files held byte for byte and 5 wrong ones left out, then a disc with none${adfs ? "" : "; Model Bs refused, unharmed"})`);
+    `the right files held byte for byte and 5 wrong ones left out, then a disc with none; three merges as the model's, ` +
+    `table, counts, ghosts and lines${adfs ? "" : "; Model Bs refused, unharmed"})`);
 process.exit(bad ? 1 : 0);

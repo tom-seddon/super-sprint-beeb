@@ -5,8 +5,9 @@
 \\ to the prompt it came from; ESCAPE asks before quitting. Assembled on its own (as boot.6502), in NMOS code, so a
 \\ Model B gets the error, and onto time attack's discs alone.
 \\
-\\ Step 2 (the brief's §9): the shell, and the source read: TIMES and GHOST1-GHOST8, each checked as the game checks
-\\ it and held in sideways RAM. Nothing merged or written yet.
+\\ Steps 2 and 3 (the brief's §9): the shell; the source read, TIMES and GHOST1-GHOST8, each checked as the game checks
+\\ it and held in sideways RAM; then the destination's read and the merge (§3), what would change said. Nothing
+\\ written yet.
 
 INCLUDE "../build/gen/trace.6502"       ; GenTimeAttack
 INCLUDE "../build/gen/version.6502"     ; VersionAscii: the build's version, as the options screen has it
@@ -22,6 +23,13 @@ MgBuf = &7000                           ; a file read or written, in main RAM (O
 ASSERT MgBuf + GhBufLen + 4 <= &7C00, "a file's buffer: under MODE 7's screen"
 MgFiles = 9                             ; TIMES, then GHOST1-GHOST8
 MgBanksNeeded = 2                       ; the source's files' banks (the game assumes 4 free: Tom, so may MERGE)
+MgTables = &3000                        ; the tables in main RAM, each in whole pages (TaTableLen in 5):
+MgSrcT = MgTables                       ; the source's (from its slot, or empty),
+MgDstT = MgTables + &500                ; the destination's (or empty),
+MgOutT = MgTables + &A00                ; and the merged
+ASSERT MgOutT + &500 <= MgBuf AND (TaTableLen + 255) DIV 256 <= 5, "the tables: under MgBuf, 5 pages each"
+MgCands = 2 * 10 + 1                    ; a track's candidates: the destination's 10, the source's, then an empty one
+MgEmpty = 2 * 10                        ; (that one: never anything in it)
 
 SECTION Merge, filename = "MERGE", org = MgOrg, load = &FFFF0000+MgOrg, exec = &FFFF0000+mg_entry
 
@@ -118,15 +126,394 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     JMP (MgStep)
     ZA_CANJUMP mg_read, mg_write
 
-\\ The write's step: in step 2, nothing yet. Outputs: C clear (done). A, X, Y corrupted.
+\\ The write's step: the destination's files read (mg_dest), the merge made (mg_merge) and what would change said
+\\ (mg_report). In step 3 nothing's written. An error (a disc's) goes to mg_brk, back at the write's prompt, and RETURN
+\\ does it all again.
+\\
+\\ Outputs: C clear (done). A, X, Y corrupted.
 
 .mg_write
 {
+    JSR mg_dest
+    JSR mg_merge
+    JSR mg_report
     LDX #LO(MgWriteDone):LDY #HI(MgWriteDone)
     JSR mg_print
     CLC
     RTS
 }
+
+\\ The destination's files: TIMES into MgDstT (or MgDstT empty, if it's not there or not right), and each ghost's
+\\ time (MgDHave, MgDTimeLo, MgDTimeHi), each checked as the source's are (mg_load), one not right said and taken as
+\\ none.
+\\
+\\ Outputs: MgDstT; MgDHave, MgDTimeLo, MgDTimeHi. A, X, Y corrupted.
+
+.mg_dest
+{
+    ZA_AUTO2 from                       ; local: MgBuf's byte
+    ZA_AUTO2 to                         ; local: MgDstT's
+    ZA_AUTO1 none                       ; local: bit 7 set if there's no table (not there, or not right)
+    LDA #1:STA MgSide                   ; (mg_load's texts: the destination's)
+    LDX #0
+    JSR mg_load
+    ROR none                            ; (C: none)
+    LDA #LO(MgBuf):STA from
+    LDA #HI(MgBuf):STA from+1
+    LDA #LO(MgDstT):STA to
+    LDA #HI(MgDstT):STA to+1
+    LDX #5                              ; (TIMES's pages, whole: the rest of MgBuf's harmless)
+    LDY #0
+.table
+    LDA #0
+    BIT none:BMI empty
+    LDA (from),Y
+.empty
+    STA (to),Y
+    INY
+    BNE table
+    INC from+1
+    INC to+1
+    DEX
+    BNE table
+    LDX #1
+.ghost
+    JSR mg_load                         ; (X the file; MgFile it, after)
+    LDX MgFile
+    LDA #0
+    BCS missing
+    LDA MgBuf:STA MgDTimeLo,X
+    LDA MgBuf+1:STA MgDTimeHi,X
+    LDA #1
+.missing
+    STA MgDHave,X
+    INX
+    CPX #MgFiles:BNE ghost
+    LDA #0:STA MgSide
+    RTS
+}
+
+\\ The merge (the brief's §3, D57): MgOutT each track's best 10 of both tables, an entry on both counted once, the
+\\ destination's first on a tie; MgNew each track's entries from the source among them; MgGhost each ghost (by file,
+\\ 1-8): 0 kept, 1 the source's added (the destination had none), 2 the source's replacing a slower one.
+\\
+\\ A track's candidates: the destination's 10 (0-9), then the source's (10-19), each empty one (its time 0) out, and
+\\ each of the source's that's one of the destination's (time, upgrades and name: mg_same), one for one, out (so a disc
+\\ with itself adds nothing, and two alike on one disc stay two); then 10 times the least time left, the lowest
+\\ candidate on a tie (the destination's before the source's, each table's own order kept), or the empty one (MgEmpty)
+\\ when none's left.
+\\
+\\ Inputs: MgHave, the source's TIMES's slot; MgDstT; MgTimeLo, MgTimeHi; MgDHave, MgDTimeLo, MgDTimeHi. Outputs:
+\\ MgSrcT; MgOutT, MgNew, MgGhost. A, X, Y corrupted.
+
+.mg_merge
+{
+    ZA_AUTO2 from                       ; local: the source's table's slot
+    ZA_AUTO2 to                         ; local: MgSrcT
+    ZA_AUTO1 track                      ; local: the track, 0-7
+    ZA_AUTO1 first                      ; local: its first entry, track * 10
+    ZA_AUTO1 c                          ; local: a candidate of the source's
+    ZA_AUTO1 d                          ; local: and one of the destination's
+    ZA_AUTO1 best                       ; local: the least time's, so far
+    ZA_AUTO1 place                      ; local: the merged table's place, 0-9
+
+    \\ the source's table into MgSrcT: out of its slot if it's held, else empty
+
+    LDA #0:STA from:STA to
+    LDA MgSlotHi:STA from+1
+    LDA #HI(MgSrcT):STA to+1
+    LDA &F4:PHA                         ; the ROM paged in now
+    LDY MgSlotBank
+    LDA MgBanks,Y:STA &F4:STA &FE30     ; ROMSEL: TIMES's bank
+    LDX #5                              ; (its pages)
+    LDY #0
+.copy
+    LDA MgHave:BEQ put                  ; (not held: A 0, empty)
+    LDA (from),Y
+.put
+    STA (to),Y
+    INY
+    BNE copy
+    INC from+1
+    INC to+1
+    DEX
+    BNE copy
+    PLA:STA &F4:STA &FE30               ; ROMSEL: the ROM back
+
+    LDA #0:STA track:STA first
+.each
+
+    \\ the candidates: the destination's 10, then the source's; each in if its time's not 0
+
+    LDY #0
+.cand
+    TYA:CLC:ADC first:TAX               ; (the destination's entry)
+    LDA #HI(MgDstT)
+    CPY #10:BCC get
+    TXA:SBC #10:TAX                     ; (C set: the source's entry)
+    LDA #HI(MgSrcT)
+.get
+    JSR mg_get                          ; (Y kept)
+    LDA MgCLo,Y:ORA MgCHi,Y:STA MgIn,Y  ; (not 0: in)
+    LDA #0:STA MgMatched,Y
+    INY
+    CPY #20:BNE cand
+
+    \\ each of the source's that's one of the destination's not yet matched: out, that one matched
+
+    LDA #10:STA c
+.dup
+    LDX c:LDA MgIn,X:BEQ undup
+    LDA #0:STA d
+.match
+    LDX d
+    LDA MgMatched,X:BNE unmatched
+    LDA MgIn,X:BEQ unmatched
+    LDY c
+    JSR mg_same
+    BNE unmatched
+    LDX d:LDA #1:STA MgMatched,X
+    LDX c:LDA #0:STA MgIn,X
+    BEQ undup                           ; (always)
+    ZA_UNREACHABLE
+.unmatched
+    INC d
+    LDA d:CMP #10:BNE match
+.undup
+    INC c
+    LDA c:CMP #20:BNE dup
+
+    \\ the merged 10: each the least time left, the lowest candidate on a tie
+
+    LDX track:LDA #0:STA MgNew,X
+    STA place
+.select
+    LDA #MgEmpty:STA best
+    LDX #0
+.scan
+    LDA MgIn,X:BEQ next
+    LDY best:CPY #MgEmpty:BEQ take      ; (the first in)
+    LDA MgCLo,X:CMP MgCLo,Y             ; (X's time under best's?)
+    LDA MgCHi,X:SBC MgCHi,Y
+    BCS next                            ; (not under: the lower kept on a tie)
+.take
+    STX best
+.next
+    INX
+    CPX #20:BNE scan
+    LDY best
+    CPY #MgEmpty:BEQ out                ; (none left: the empty one)
+    LDA #0:STA MgIn,Y                   ; (taken)
+    CPY #10:BCC out
+    LDX track:INC MgNew,X               ; (the source's)
+.out
+    LDA place:CLC:ADC first:TAX         ; (the merged table's entry)
+    LDA #HI(MgOutT)
+    JSR mg_put
+    INC place
+    LDA place:CMP #10:BNE select
+
+    LDA first:CLC:ADC #10:STA first
+    INC track
+    LDA track:CMP #8:BEQ ghosts
+    JMP each
+
+    \\ each ghost: the source's if it's faster, or the destination has none
+
+.ghosts
+    LDX #1
+.ghost
+    LDA #0
+    LDY MgHave,X:BEQ kept               ; (the source has none)
+    LDY MgDHave,X:BEQ added             ; (the destination has none)
+    LDA MgTimeLo,X:CMP MgDTimeLo,X
+    LDA MgTimeHi,X:SBC MgDTimeHi,X
+    LDA #0                              ; (C kept)
+    BCS kept                            ; (not faster: a tie kept)
+    LDA #2                              ; replaced
+    BNE kept                            ; (always)
+    ZA_UNREACHABLE
+.added
+    LDA #1
+.kept
+    STA MgGhost,X
+    INX
+    CPX #MgFiles:BNE ghost
+    RTS
+}
+
+\\ Entry X of the table at page A (MgSrcT, MgDstT, MgOutT: its columns as TIMES has them, tatable.6502's) into
+\\ candidate Y's (MgCLo, MgCHi, MgCUp, MgCName).
+\\
+\\ Inputs: A, X, Y. Outputs: the candidate. A, X corrupted; Y kept.
+
+.mg_get
+{
+    ZA_AUTO2 t                          ; local: the table
+    ZA_AUTO2 n                          ; local: the entry's name
+    ZA_AUTO1 c                          ; local: the candidate
+    ZA_AUTO1 e                          ; local: the entry
+    STA t+1:LDA #0:STA t
+    STY c:STX e
+    TXA:TAY:LDA (t),Y                   ; its time,
+    LDY c:STA MgCLo,Y
+    LDA e:CLC:ADC #TaEntries:TAY:LDA (t),Y
+    LDY c:STA MgCHi,Y
+    LDA e:CLC:ADC #2*TaEntries:TAY:LDA (t),Y    ; its upgrades,
+    LDY c:STA MgCUp,Y
+    LDA #0:STA n+1                      ; and its name, at the table + 3 * TaEntries + e * 10
+    LDA e:ASL A:STA n                   ; (e * 2)
+    ASL A:ROL n+1
+    ASL A:ROL n+1                       ; (e * 8)
+    CLC:ADC n:STA n
+    LDA n+1:ADC #0:STA n+1
+    LDA n:CLC:ADC #3*TaEntries:STA n
+    LDA n+1:ADC t+1:STA n+1
+    LDX c:LDA MgMul10,X:TAX
+    LDY #0
+.name
+    LDA (n),Y:STA MgCName,X
+    INX
+    INY
+    CPY #TaNameLen:BNE name
+    LDY c
+    RTS
+}
+
+\\ Candidate Y into entry X of the table at page A: mg_get the other way.
+\\
+\\ Inputs: A, X, Y. Outputs: the entry. A, X, Y corrupted.
+
+.mg_put
+{
+    ZA_AUTO2 t                          ; local: the table
+    ZA_AUTO2 n                          ; local: the entry's name
+    ZA_AUTO1 c                          ; local: the candidate
+    ZA_AUTO1 e                          ; local: the entry
+    STA t+1:LDA #0:STA t
+    STY c:STX e
+    LDA MgCLo,Y
+    LDY e:STA (t),Y
+    LDY c:LDA MgCHi,Y:PHA
+    LDA e:CLC:ADC #TaEntries:TAY
+    PLA:STA (t),Y
+    LDY c:LDA MgCUp,Y:PHA
+    LDA e:CLC:ADC #2*TaEntries:TAY
+    PLA:STA (t),Y
+    LDA #0:STA n+1
+    LDA e:ASL A:STA n
+    ASL A:ROL n+1
+    ASL A:ROL n+1
+    CLC:ADC n:STA n
+    LDA n+1:ADC #0:STA n+1
+    LDA n:CLC:ADC #3*TaEntries:STA n
+    LDA n+1:ADC t+1:STA n+1
+    LDX c:LDA MgMul10,X:TAX
+    LDY #0
+.name
+    LDA MgCName,X:STA (n),Y
+    INX
+    INY
+    CPY #TaNameLen:BNE name
+    RTS
+}
+
+\\ Candidates X and Y the same: time, upgrades and name (to its end: its first 0, or 10 characters; what's after an
+\\ ended name not looked at).
+\\
+\\ Inputs: X, Y. Outputs: Z set if they're the same. A, X corrupted.
+
+.mg_same
+{
+    ZA_AUTO1 na                         ; local: X's name's byte
+    ZA_AUTO1 nb                         ; local: Y's
+    ZA_AUTO1 left                       ; local: the characters left
+    LDA MgCLo,X:CMP MgCLo,Y:BNE done
+    LDA MgCHi,X:CMP MgCHi,Y:BNE done
+    LDA MgCUp,X:CMP MgCUp,Y:BNE done
+    LDA MgMul10,X:STA na
+    LDA MgMul10,Y:STA nb
+    LDA #TaNameLen:STA left
+.name
+    LDX na:LDA MgCName,X
+    LDX nb:CMP MgCName,X:BNE done
+    TAX:BEQ done                        ; (both ended: the same, Z set)
+    INC na
+    INC nb
+    DEC left
+    BNE name                            ; (10 the same: Z set)
+.done
+    RTS
+}
+
+\\ What the merge would change, a line a track: "Track 3  +2 entries, ghost replaced", or "no change"; then "Nothing to
+\\ change." if no track has any.
+\\
+\\ Inputs: MgNew, MgGhost. Outputs: A, X, Y corrupted.
+
+.mg_report
+{
+    ZA_AUTO1 track                      ; local: the track, 0-7
+    ZA_AUTO1 any                        ; local: not 0 once a track has a change
+    LDA #0:STA track:STA any
+.line
+    LDX #LO(MgTrackText):LDY #HI(MgTrackText)
+    JSR mg_print
+    LDA track:CLC:ADC #'1':JSR &FFEE    ; OSWRCH
+    LDA #' ':JSR &FFEE:JSR &FFEE
+    LDX track
+    LDA MgNew,X:ORA MgGhost+1,X:BNE changed
+    LDX #LO(MgSameText):LDY #HI(MgSameText)
+    JSR mg_print
+    JMP next
+.changed
+    STA any
+    LDX track
+    LDA MgNew,X:BEQ ghost
+    PHA
+    LDA #'+':JSR &FFEE
+    PLA
+    CMP #10:BCC digit
+    LDA #'1':JSR &FFEE
+    LDA #0
+.digit
+    ORA #'0':JSR &FFEE
+    LDX #LO(MgEntriesText):LDY #HI(MgEntriesText)
+    LDA track:TAY                       ; (1 entry, or entries)
+    LDA MgNew,Y
+    LDY #HI(MgEntriesText)
+    CMP #1:BNE entries
+    LDX #LO(MgEntryText):LDY #HI(MgEntryText)
+.entries
+    JSR mg_print
+    LDX track
+    LDA MgGhost+1,X:BEQ ended
+    LDX #LO(MgCommaText):LDY #HI(MgCommaText)
+    JSR mg_print
+.ghost
+    LDX track
+    LDY MgGhost+1,X:BEQ ended
+    LDX #LO(MgAddedText)
+    CPY #1:BEQ said
+    LDX #LO(MgReplacedText)
+.said
+    LDY #HI(MgAddedText)
+    ASSERT HI(MgAddedText) == HI(MgReplacedText)
+    JSR mg_print
+.ended
+    JSR &FFE7                           ; OSNEWL
+.next
+    INC track
+    LDA track:CMP #8:BEQ last
+    JMP line                            ; (the loop's too long for a branch)
+.last
+    LDA any:BNE done
+    LDX #LO(MgNothingText):LDY #HI(MgNothingText)
+    JSR mg_print
+.done
+    RTS
+}
+
 
 \\ BRKV: an error (a command's, or a filing system's) said, then the prompt again, the stack as it had it. Entered
 \\ from the MOS's BRK handler.
@@ -293,16 +680,7 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     BEQ load                            ; (always)
     ZA_UNREACHABLE
 .wrong
-    JSR mg_name_print
-    LDX MgFile
-    LDA #LO(MgBadGhost):LDY #HI(MgBadGhost)
-    CPX #0:BNE ghost
-    LDA #LO(MgBadTable):LDY #HI(MgBadTable)
-.ghost
-    TAX
-    JSR mg_print
-    SEC
-    RTS
+    JMP mg_wrong
 .length_ghost
     LDA MgLen:CMP #LO(GhBufLen+4+1)     ; (under GhBufLen + 5: in the buffer)
     LDA MgLen+1:SBC #HI(GhBufLen+4+1)
@@ -333,6 +711,25 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     LDA MgLen:STA MgLenLo,X
     LDA MgLen+1:STA MgLenHi,X
     CLC
+    RTS
+}
+
+\\ File MgFile said to be not right: "GHOST2: not a ghost, left out" (the source's), "...taken as none" (the
+\\ destination's), or a table's.
+\\
+\\ Inputs: MgFile, MgName, MgSide. Outputs: C set. A, X, Y corrupted.
+
+.mg_wrong
+{
+    JSR mg_name_print
+    LDA MgFile:BEQ table                ; (TIMES)
+    LDA #2
+.table
+    ORA MgSide:TAX                      ; (the text: a table's or a ghost's, the source's or the destination's)
+    LDY MgBadHi,X
+    LDA MgBadLo,X:TAX
+    JSR mg_print
+    SEC
     RTS
 }
 
@@ -379,6 +776,8 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     ZA_AUTO2 to                         ; local: the slot's
     LDX MgFile
     LDA #1:STA MgHave,X
+    LDA MgBuf:STA MgTimeLo,X            ; (a ghost's time, its first 2 bytes; TIMES's not used)
+    LDA MgBuf+1:STA MgTimeHi,X
     LDA #LO(MgBuf):STA from
     LDA #HI(MgBuf):STA from+1
     LDA #0:STA to
@@ -484,13 +883,37 @@ ASSERT 1 + 28 + 1 + 2 + LEN(VersionAscii) - 1 < 40, "the heading's version: on i
     EQUB MgYellow, "Nothing to read here.", 13, 0
 .MgBadTable
     EQUS ": not a table, left out", 13, 0
+.MgBadTableD
+    EQUS ": not a table, taken as empty", 13, 0
 .MgBadGhost
     EQUS ": not a ghost, left out", 13, 0
+.MgBadGhostD
+    EQUS ": not a ghost, taken as none", 13, 0
+.MgBadLo                                ; mg_load's texts: a table's, the source's then the destination's, then a ghost's
+    EQUB LO(MgBadTable), LO(MgBadTableD), LO(MgBadGhost), LO(MgBadGhostD)
+.MgBadHi
+    EQUB HI(MgBadTable), HI(MgBadTableD), HI(MgBadGhost), HI(MgBadGhostD)
+.MgTrackText
+    EQUS " Track ", 0
+.MgSameText
+    EQUS "no change", 13, 0
+.MgEntryText
+    EQUS " entry", 0
+.MgEntriesText
+    EQUS " entries", 0
+.MgCommaText
+    EQUS ", ", 0
+.MgAddedText
+    EQUS "ghost added", 0
+.MgReplacedText
+    EQUS "ghost replaced", 0
+.MgNothingText
+    EQUB MgYellow, "Nothing to change.", 13, 0
 .MgWriteText
     EQUB MgCyan, "Write to:", MgWhite, "type * commands, change", 13
     EQUS " discs, then press RETURN.", 13, 0
 .MgWriteDone
-    EQUS " (Step 2: nothing merged or written.)", 13, 0
+    EQUS " (Step 3: nothing written.)", 13, 0
 .MgDoneText
     EQUB MgGreen, "Done.", MgWhite, "Press RETURN to merge again.", 13, 0
 .MgQuitText
@@ -516,6 +939,37 @@ ASSERT &AC + 12 <= &C0 AND &A4 + 12 <= &C0, "the slots: in their banks"
     SKIP MgFiles
 .MgLenHi
     SKIP MgFiles
+.MgTimeLo                               ; each of the source's ghosts' time
+    SKIP MgFiles
+.MgTimeHi
+    SKIP MgFiles
+.MgSide                                 ; mg_load's texts: 0 the source's, 1 the destination's
+    EQUB 0
+.MgDHave                                ; each of the destination's ghosts: there and right (1) or not (0),
+    SKIP MgFiles
+.MgDTimeLo                              ; and its time
+    SKIP MgFiles
+.MgDTimeHi
+    SKIP MgFiles
+.MgNew                                  ; the merge: each track's entries from the source,
+    SKIP 8
+.MgGhost                                ; and each ghost (by file, 1-8): 0 kept, 1 added, 2 replaced
+    SKIP MgFiles
+.MgIn                                   ; a track's candidates: each in (not 0) or not,
+    SKIP 20
+.MgMatched                              ; each of the destination's matched by one of the source's (cleared for all
+    SKIP 20                             ; 20 candidates, so 20)
+.MgCLo                                  ; and each one's time, upgrades and name (MgEmpty's all 0, never written)
+    SKIP MgCands
+.MgCHi
+    SKIP MgCands
+.MgCUp
+    SKIP MgCands
+.MgCName
+    SKIP MgCands * TaNameLen
+.MgMul10                                ; candidate * 10, its name's first byte
+    EQUB (0..<MgCands) * 10
+ASSERT MgCands * TaNameLen <= 256, "the candidates' names: a page"
 .MgLen                                  ; a file's length, as read
     SKIP 2
 .MgFile                                 ; the file being read
@@ -534,7 +988,7 @@ ASSERT LO(MgStep) != &FF, "MgStep: at a page's end"
 .MgOldBrk                               ; BRKV as it was
     EQUW 0
 .MgLine                                 ; the line typed, ended by a CR (not saved)
-ASSERT MgLine + MgLineLen + 1 <= &7C00, "the line: under MODE 7's screen"
+ASSERT MgLine + MgLineLen + 1 <= MgTables, "the line: under the tables"
 
 ENDSECTION
 
