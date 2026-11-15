@@ -867,4 +867,5 @@ the front end's code 28 bytes free). Prepare to race's joins were never hit (`in
 time attack has no `front_block`. MEASURED: `select_check` now has car 1 join after the 16 positions and goes round
 again on the screen shown: the old build fails it (43 wrong, the dial and rectangle left at position 0), the new
 passes. The whole suite here (`agentbox` not reachable): every verdict 0, 3,774 s. Built on the branch
-`select-join-dial`; to try on Tom's Master, not merged.
+`select-join-dial`; tried on Tom's Master and merged into `main` (Tom, 2026-11-15: "I've tried this on my Master
+and it looks good. Please merge into main").
