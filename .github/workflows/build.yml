@@ -2,9 +2,10 @@
 # occasionally to generate a new build. Let's not have a build on every push to `main`"), or by hand from the
 # Actions tab. The result is one zip, super-sprint-YYYYMMDD-HHMM-xxxxx.zip: the commit's time in UTC and the 5 hex
 # digits the options screen shows, holding game.ssd and game.adl named the same way, time attack's ta.ssd and ta.adl
-# as super-sprint-ta-YYYYMMDD-HHMM-xxxxx, and a README.txt for a PC, disc/README-pc.txt with the discs' README's link,
+# as super-sprint-ta-YYYYMMDD-HHMM-xxxxx, and a README.txt for a PC, disc/README-pc.txt filled in (tools/disc_readme.py),
 # its lines ending CR LF (Tom, 2026-11-14: "Please put all disk images in the same archive, and the disk's README as
-# well", then "perhaps the zip should have a different README from the disk"). It's published as a
+# well", then "perhaps the zip should have a different README from the disk"). make release makes it all
+# (tools/release.py), as it would here (Tom, 2026-11-15). It's published as a
 # release of that name (Tom, 2026-11-10: "Please update the CI setup to make a release. Then it should be possible to
 # download the results and check them that way"), its notes the commit and the files' SHA-256; a second run of the
 # same commit replaces the zip.
@@ -109,19 +110,7 @@ jobs:
             echo "::error::The tree has changes, so the version would end in m"
             exit 1
           fi
-          when=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y%m%d-%H%M)-$(make -s version)
-          name=super-sprint-$when
-          ta=super-sprint-ta-$when
-          mkdir -p dist
-          cp build/game.ssd dist/$name.ssd
-          cp build/game.adl dist/$name.adl
-          cp build/ta.ssd dist/$ta.ssd
-          cp build/ta.adl dist/$ta.adl
-          '${{ steps.python.outputs.python-path }}' tools/disc_readme.py --pc dist/README.txt
-          files="$name.ssd $name.adl $ta.ssd $ta.adl README.txt"
-          (cd dist && zip -X $name.zip $files && sha256sum $files $name.zip)
-          echo "name=$name" >> "$GITHUB_OUTPUT"
-          echo "files=$files" >> "$GITHUB_OUTPUT"
+          make PYTHON3='${{ steps.python.outputs.python-path }}' release   # (tools/release.py: dist, and name and files here)
           df -h . | tail -1
           du -sh build .venv "$RUNNER_TEMP/hatari"
 

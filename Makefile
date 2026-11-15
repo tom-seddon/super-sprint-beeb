@@ -61,7 +61,7 @@ GEN = build/gen
 # A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
 .DELETE_ON_ERROR:
 
-.PHONY: all baron venv stfiles disasm tracks convert sheets viewer beeb play game ta check clean always version logictrace hazardtrace hazardrace logic logiccheck
+.PHONY: all baron venv stfiles disasm tracks convert sheets viewer beeb play game ta release check clean always version logictrace hazardtrace hazardrace logic logiccheck
 
 all: disasm convert sheets viewer beeb
 
@@ -251,13 +251,18 @@ build/zx02: $(ZX02SRC)/compress.c $(ZX02SRC)/memory.c $(ZX02SRC)/optimize.c $(ZX
 # if missing (an order-only prerequisite: a newer tracer doesn't trace it again).
 game: build/zx02 | $(VENV) build/trace/logic_t0_r0.json
 	tools/all_tracks.sh
-	$(PY) tools/make_game.py build/tracks build/zx02 build/game.ssd
+	VERSION='$(VERSION)' $(PY) tools/make_game.py build/tracks build/zx02 build/game.ssd
 	$(PY) tools/adfs_disc.py build/game.ssd build/game.adl
 # The time attack variant's discs, build/ta.ssd and build/ta.adl, the same way from its own tracks' builds (build/tracks_ta).
 ta: build/zx02 | $(VENV) build/trace/logic_t0_r0.json
 	tools/all_tracks.sh ta
-	$(PY) tools/make_game.py build/tracks_ta build/zx02 build/ta.ssd
+	VERSION='$(VERSION)' $(PY) tools/make_game.py build/tracks_ta build/zx02 build/ta.ssd
 	$(PY) tools/adfs_disc.py build/ta.ssd build/ta.adl
+# The release (tools/release.py): build/game.* and build/ta.* (make game, then make ta: two makes, as they share
+# build/sprint.*) in dist, named as their README names them, with the zip's README.txt and the zip; as the GitHub build
+# makes it (.github/workflows/build.yml runs this), so it can be looked at here first.
+release: | $(VENV)
+	VERSION='$(VERSION)' $(PY) tools/release.py dist
 
 # The ST's files the game's build reads, all made in the original running in Hatari (docs/st-traces.md): `make
 # stfiles` makes any missing, and build/stfiles.tar.gz packs them, for a machine where Hatari doesn't run, to be

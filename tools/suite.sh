@@ -27,6 +27,7 @@ run() {
 
 run prepare make venv baron build/zx02 build/trace/logic_t0_r0.json
 run all_tracks tools/all_tracks.sh
+run readmes .venv/bin/python -P tools/disc_readme.py --check
 run game_disc sh -c 'make build/zx02 && .venv/bin/python tools/make_game.py build/tracks build/zx02 build/game.ssd && .venv/bin/python -P tools/adfs_disc.py build/game.ssd build/game.adl'
 [ -n "$REMOTE" ] && run disc_races tools/disc_races.sh "$OUT/disc_races" &
 run st_frontend .venv/bin/python -P tools/st_frontend.py

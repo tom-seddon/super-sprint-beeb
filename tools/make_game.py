@@ -18,7 +18,7 @@ Then the boot's files, SPRINT and the banks', are ZX02 packed too, and say so by
 for a raw one is LoadAddr (&3000): a bank's packed file loads at PackedAt and !BOOT unpacks it into its bank; SPRINT's
 loads where it unpacks into itself at &3000, in place, its stream far enough ahead of the output (dfs.in_place_delta).
 
-And README: disc/README.txt with a line linking to README.md at the build's commit (tools/disc_readme.py), last.
+And README: disc/README.txt filled in, its {{name}}s the build's, and the link to README.md (tools/disc_readme.py), last.
 """
 import hashlib, json, os, sys
 

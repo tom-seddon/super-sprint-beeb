@@ -82,7 +82,9 @@ What the skills look up, for this project:
   are made in Hatari: `docs/st-traces.md` (and `make stfiles`, `build/stfiles.tar.gz` for a machine without it).
   GitHub's build, `.github/workflows/build.yml`, runs on a push to the branch `ci-build` (fast-forwarded to `main`
   when Tom wants a build, not on every push) and publishes a release, one zip of both discs, named by the commit's UTC
-  time and version: `git branch -f ci-build main && git push origin ci-build`.
+  time and version, made by `make release` (`tools/release.py`, into `dist`: so it can be made here first, after `make
+  game` and `make ta`); the READMEs, `disc/README.txt` and `disc/README-pc.txt`, are templates (`{{version}}`,
+  `{{game_ssd}}` and so on: `tools/disc_readme.py`, `--check` in the suite): `git branch -f ci-build main && git push origin ci-build`.
 - **Memory**: `src/memory.6502` (the map), `docs/memory-map.md` (generated: `tools/memmap.py --write` from the
   play build), `docs/renderer.md` "Memory".
 - **Oracles**: on Tom's laptop, `tools/suite_remote.sh OUT` (the whole suite on the machine `agentbox`: the tree and

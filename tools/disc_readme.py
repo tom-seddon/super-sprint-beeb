@@ -1,44 +1,99 @@
-"""The disc's README: disc/README.txt, Tom's text, with one line after it linking to README.md as it was at the commit
-the build was made from (Tom, 2026-11-10: "so that each release contains a link to its version-appropriate README").
-Its lines end in CR, as the BBC's *TYPE wants them. With --pc, the release zip's: disc/README-pc.txt, also Tom's text,
-and the same line, the lines ending CR LF, in UTF-8 (Tom, 2026-11-14: "perhaps the zip should have a different README
-from the disk, as it's intended for reading on a PC rather than the BBC's tiny screen").
+"""The READMEs: the disc's, from disc/README.txt, and with --pc the release zip's README.txt, from disc/README-pc.txt,
+both Tom's text, each a template: {{name}} filled in from the build (values()), an unknown name an error. Then each
+file's trailing blank lines dropped. A file without {{link}} gets a blank line and a line linking to README.md at
+the build's commit after it (Tom, 2026-11-10: "so that each release contains a link to its version-appropriate
+README"; 2026-11-15, on the blank line: "The link is quite long in Mode 7. I think it's worth having (just for
+reference) but it'd be nice to separate it visually from the instruction to press Shift+break"); with {{link}}, it's
+where Tom puts it (2026-11-15: "Maybe it's going to need some kind of basic templating, so that the disk images'
+actual names can be inserted into the README as well"). The disc's lines end in CR, as the BBC's *TYPE wants them,
+ASCII; the zip's in CR LF, UTF-8.
 
-The commit: COMMIT in the environment (tools/suite_remote.sh gives it where there's no .git), else git's HEAD. With
-neither, no link line. A tree with changes still links to HEAD's README.md, the nearest there is (the options screen's
-version says "m": tools/version.py).
+The values (values()): {{version}}, the options screen's (the Makefile's VERSION, given to make_game.py and
+release.py; else git's, as the Makefile makes it: 5 hex digits, "m" after them if the tree has changes); {{commit}},
+the whole hash (COMMIT, else git's HEAD); {{date}}, the commit's time in UTC, "2026-11-14 11:03" (from WHEN, else
+git's); {{link}}, README.md at that commit; and the release zip's discs' names (tools/release.py's, so the GitHub
+build's too), {{game_ssd}}, {{game_adl}}, {{ta_ssd}}, {{ta_adl}}: super-sprint-WHEN-VERSION.ssd and so on, WHEN
+the commit's time, 20261114-1103. tools/suite_remote.sh gives VERSION, COMMIT and WHEN where there's no .git; with
+neither, "(not known)". A tree with changes still has HEAD's commit and time, the nearest there are.
 
-Usage: disc_readme.py [--pc] OUT   (writes the file; tools/make_game.py puts the disc's on the disc as README, and the
-GitHub build, .github/workflows/build.yml, puts --pc's in its zip as README.txt)
+Usage: disc_readme.py [--pc] OUT   (writes the file; tools/make_game.py puts the disc's on the disc as README, and
+                                    tools/release.py the zip's in the zip as README.txt)
+       disc_readme.py --check      (both filled in: an unknown name exit status 1; and the disc's lines that MODE 7
+                                    would wrap, 40 characters or more, said, but for the link's, exit status 0)
 """
-import os, subprocess, sys
+import os, re, subprocess, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 Repo = 'https://github.com/tom-seddon/super-sprint-beeb'
+Unknown = '(not known)'
+Placeholder = re.compile(r'\{\{(\w+)\}\}')
+Mode7 = 40                              # a line this long or longer wraps, then its CR LF makes a blank line
 
 
-def commit():
-    c = os.environ.get('COMMIT')
-    if c:
-        return c
+def git(*args):
     try:
-        return subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT, capture_output=True, text=True,
-                              check=True).stdout.strip()
+        return subprocess.run(['git', *args], cwd=ROOT, capture_output=True, text=True, check=True,
+                              env={**os.environ, 'TZ': 'UTC'}).stdout.strip() or None
     except (OSError, subprocess.CalledProcessError):
         return None
 
 
-def readme(pc=False):
+def values():
+    """-> the placeholders' values, by name."""
+    commit = os.environ.get('COMMIT') or git('rev-parse', 'HEAD')
+    if commit:
+        assert len(commit) == 40 and all(ch in '0123456789abcdef' for ch in commit), commit
+    version = os.environ.get('VERSION')
+    if version is None:                 # (as the Makefile makes it)
+        short = git('rev-parse', '--short=5', 'HEAD')
+        version = (short + ('m' if git('status', '--porcelain') else '')) if short else ''
+    when = os.environ.get('WHEN') or git('log', '-1', '--format=%cd', '--date=format-local:%Y%m%d-%H%M')
+    assert not when or re.fullmatch(r'\d{8}-\d{4}', when), when
+    stamp = f'{when or "unknown"}-{version or "unknown"}'
+    return {
+        'version': version or Unknown,
+        'commit': commit or Unknown,
+        'date': f'{when[:4]}-{when[4:6]}-{when[6:8]} {when[9:11]}:{when[11:13]}' if when else Unknown,
+        'link': f'{Repo}/blob/{commit}/README.md' if commit else Unknown,
+        'game_ssd': f'super-sprint-{stamp}.ssd', 'game_adl': f'super-sprint-{stamp}.adl',
+        'ta_ssd': f'super-sprint-ta-{stamp}.ssd', 'ta_adl': f'super-sprint-ta-{stamp}.adl',
+        'stamp': stamp,
+    }
+
+
+def text(pc=False, vals=None):
+    """-> the README's text, filled in, its lines ending in \\n."""
+    vals = vals or values()
+    name = os.path.join('disc', 'README-pc.txt' if pc else 'README.txt')
+    t = open(os.path.join(ROOT, name), encoding='utf-8' if pc else 'ascii').read().replace('\r\n', '\n')
+    unknown = sorted({n for n in Placeholder.findall(t) if n not in vals or n == 'stamp'})
+    if unknown:
+        sys.exit(f'{name}: no such value: {", ".join("{{" + n + "}}" for n in unknown)} '
+                 f'(there are {", ".join("{{" + n + "}}" for n in vals if n != "stamp")})')
+    linked = '{{link}}' in t
+    t = Placeholder.sub(lambda m: vals[m.group(1)], t).rstrip('\n') + '\n'
+    if not linked and vals['link'] != Unknown:
+        t += f'\nThe full README, for this version: {vals["link"]}\n'
+    return t
+
+
+def readme(pc=False, vals=None):
     """-> the disc's README's bytes, its lines ending CR; or with pc the zip's, ending CR LF."""
-    code = 'utf-8' if pc else 'ascii'      # (the BBC's: ASCII; a PC's may have more)
-    text = open(os.path.join(ROOT, 'disc', 'README-pc.txt' if pc else 'README.txt'), encoding=code).read()
-    text = text.replace('\r\n', '\n').rstrip('\n') + '\n'
-    c = commit()
-    if c:
-        assert len(c) == 40 and all(ch in '0123456789abcdef' for ch in c), c
-        text += f'The full README, for this version: {Repo}/blob/{c}/README.md\n'
-    return text.replace('\n', '\r\n' if pc else '\r').encode(code)
+    return text(pc, vals).replace('\n', '\r\n' if pc else '\r').encode('utf-8' if pc else 'ascii')
+
+
+def check():
+    vals = values()
+    for pc in (False, True):
+        text(pc, vals)                  # (an unknown name: exits)
+    for n, line in enumerate(text(False, vals).split('\n'), 1):
+        if len(line) >= Mode7 and vals['link'] not in line:
+            print(f'disc/README.txt, filled in, line {n}: {len(line)} characters, so MODE 7 wraps it ({Mode7} or more)')
+    print(f'the READMEs filled in: {", ".join(f"{k} {v}" for k, v in vals.items() if k != "stamp")}')
 
 
 if __name__ == '__main__':
-    open(sys.argv[-1], 'wb').write(readme(sys.argv[1:2] == ['--pc']))
+    if sys.argv[1:] == ['--check']:
+        check()
+    else:
+        open(sys.argv[-1], 'wb').write(readme(sys.argv[1:2] == ['--pc']))
