@@ -13,7 +13,8 @@ INCLUDE "../build/gen/version.6502"     ; VersionAscii: the build's version, as 
 IF GenTimeAttack
 
 MgOrg = &2000                           ; above PAGE on any BBC (MEASURED in jsbeeb: a Model B's &1900 with DFS 1.2, &1F00
-                                        ; with the 1770's DFS), so a Model B or B+ can load it to give its error (Tom)
+                                        ; with the 1770's DFS and ADFS both, the worst case), so a Model B or B+ can load
+                                        ; it to give its error (Tom: a Model B's test covers a B+'s)
 MgLineLen = 78                          ; a typed command's characters at most
 
 SECTION Merge, filename = "MERGE", org = MgOrg, load = &FFFF0000+MgOrg, exec = &FFFF0000+mg_entry

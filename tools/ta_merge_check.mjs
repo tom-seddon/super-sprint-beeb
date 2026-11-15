@@ -7,7 +7,8 @@
 //   at the prompt; RETURN on an empty line on to the write's prompt; ESCAPE there and N, the prompt again; RETURN, the
 //   "Done" line; RETURN, round again to the read's prompt; ESCAPE and Y, back at BASIC's prompt, which works (PRINT)
 //   and has its own BRKV back (a bad command BASIC's error, BASIC's prompt after it);
-// - on a Model B (DFS 1.2, and the 1770's DFS): MERGE refused with its message, nothing else run (NMOS code to there),
+// - on a Model B (DFS 1.2, PAGE &1900; and the 1770's DFS and ADFS both, PAGE &1F00, the worst case; Tom: a Model B's
+//   test covers a B+'s, which jsbeeb hasn't): MERGE refused with its message, nothing else run (NMOS code to there),
 //   and the machine fine after it: the disc catalogued, BASIC working (MERGE loads above a Model B's PAGE, &1900).
 //
 // Exit status: 1 if anything's wrong, else 0.
@@ -102,7 +103,7 @@ const Red = 1, Green = 2, Yellow = 3, Double = 13;   // (teletext's codes, top b
     want("BASIC's BRKV back", has(o, "Bad command") && last(s) === ">");
     s.destroy?.();
 }
-if (!adfs) for (const model of ["B-DFS1.2", "B1770"]) {     // (jsbeeb has no B+)
+if (!adfs) for (const model of ["B-DFS1.2", "B1770"]) {
     const s = await machine(model);
     let o = await type(s, "PRINT ~PAGE");               // (MERGE loaded at or above it, so the DFS's workspace is kept)
     const page = parseInt(o.filter((l) => /^[0-9A-F]+$/.test(l.trim())).at(-1), 16), load = discFiles(disc).MERGE.load;
