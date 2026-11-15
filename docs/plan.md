@@ -380,7 +380,9 @@ adds the logic.
   bytes, and all five files' SHA-256 in its notes the same as 42aae0e's built here.
   Later perhaps (Tom, 2026-11-14): "I wonder whether perhaps the zip should have a different README from the disk, as
   it's intended for reading on a PC rather than the BBC's tiny screen - but that shouldn't be too hard to sort out
-  later." `tools/disc_readme.py` makes both, so a `disc/README-pc.txt` (say) for `--pc` would be the change.
+  later." Built 2026-11-15 on the branch `pc-readme` (Tom: "The PC README"): `tools/disc_readme.py --pc` reads
+  `disc/README-pc.txt`, Tom's text (a placeholder till he writes it), adds the same link to `README.md`, and writes
+  it in UTF-8 with CR LF; the disc's README the same byte for byte. Not yet run on GitHub.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
@@ -511,6 +513,11 @@ adds the logic.
     `tools/disc_readme.py`'s on every disc). Text of their own perhaps: what time attack is, its keys (the menu's,
     the track's screen's, the name's), that it saves `TIMES`, `GHOST1`-`GHOST8` and `SCORES` to the disc, so the
     disc wants to be write-enabled.
+  - `disc/README-pc.txt`: the release zip's `README.txt`, read on a PC, so not held to the BBC's 40 columns (and
+    UTF-8). Perhaps: what's in the zip (the game's and time attack's discs, `.ssd` for DFS, `.adl` for ADFS, the date
+    and version in their names, the version the options screen shows); the machines (Master 128, Master Compact,
+    four sideways RAM banks free); how to boot (SHIFT-BREAK); the keys; and that the discs save, so want to be
+    write-enabled. The link to the full `README.md` is added after it, as on the disc.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile

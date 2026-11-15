@@ -879,3 +879,13 @@ real drivers hit the walls less. The keys' half, ghosting, was done on 2026-11-0
 closed (the plan, D5) and the sparks stay as they are; a plotter of their own, the brief's first fix, stays the way in
 if they're ever wanted fewer.
 
+## 2026-11-15: the release zip's README
+
+Tom: "The PC README" (2026-11-14: "perhaps the zip should have a different README from the disk, as it's intended
+for reading on a PC rather than the BBC's tiny screen"). `tools/disc_readme.py --pc` now reads `disc/README-pc.txt` in
+place of `disc/README.txt`: Tom's text, a placeholder as the disc's still is. The same link to `README.md` at the
+build's commit goes after it; lines end CR LF, and it's UTF-8, as a PC's text may have more than ASCII (the disc's
+stays ASCII with CR). The workflow's step is unchanged. MEASURED: the disc's README byte for byte as `main`'s tool
+makes it, and the game's discs the same at `VERSION=00000` with and without the change. What the text might say is in
+the plan's reminders for Tom. Built on the branch `pc-readme`; not run on GitHub.
+
