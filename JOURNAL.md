@@ -958,3 +958,11 @@ read only" on DFS and "Disc protected" on ADFS. `ta_merge_check` reads every fil
 byte against the model; with the sum's second byte wrong it fails twice (the file read back, and MERGE then refusing
 its own `TIMES` on the next merge). Step 3's cases now answer the question with N.
 
+## 2026-11-15: MERGE done
+
+Tom tried step 4 in b2, reading DFS and writing DFS ("Looks good. Please continue."), and for step 5: "I think the
+README notes just need adding to the open items list. I'll word the READMEs myself." So the reminder (what MERGE is
+for, how to run it, ADFS's `*MOUNT`, the merge's rules, its RAM) is in the plan's list for Tom, and the brief is done.
+The branch `ta-merge` waits on Tom's word to merge into `main`. Not built, as not asked for: MERGE copying itself onto a
+backup disc.
+

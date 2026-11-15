@@ -444,8 +444,8 @@ adds the logic.
   with them (`GHOST1`-`GHOST8`). "That's the basic idea, anyway. I need to think a bit more about the UX though so
   that it works ok across all filing systems." Designed 2026-11-15 (D57, `docs/brief-merge-2026-11-15.md`): `MERGE`
   on time attack's discs, a `*` prompt before the read and the write, the best 10 of both, the faster ghost. Branch
-  `ta-merge`: steps 1-3 (the shell, the source read, the merge said) built and tried on Tom's Master,
-  step 4 (the writes) built 2026-11-15, to be tried.
+  `ta-merge`: all built 2026-11-15 and each step tried (Tom's Master, DFS to BeebLink; step 4 in b2,
+  DFS to DFS: "Looks good"); the READMEs' wording a reminder for Tom (below). To merge into `main` on Tom's word.
 
 - ~~The select screen's dial frozen after a join~~: done 2026-11-15, merged into `main` (Tom, 2026-11-15: "I've tried
   this on my Master and it looks good. Please merge into main"). (Tom, 2026-11-14, on his Master at DC7D9: "the selected track does
@@ -531,6 +531,15 @@ adds the logic.
     and version in their names, the version the options screen shows); the machines (Master 128, Master Compact,
     four sideways RAM banks free); how to boot (SHIFT-BREAK); the keys; and that the discs save, so want to be
     write-enabled. The link to the full `README.md` is added after it, as on the disc.
+  - MERGE, time attack's scores and ghosts merger (D57; Tom, 2026-11-15: "I think the README notes just need adding
+    to the open items list. I'll word the READMEs myself"), for `disc/README.txt`, `disc/README-pc.txt` and
+    `README.md`. Perhaps: what it's for (a backup of a disc's `TIMES` and ghosts, a restore, scores carried to a new
+    release's disc, two players' sets merged); how to run it (BREAK out of time attack, then `*RUN MERGE`, or
+    `*MERGE`); its two prompts ("Read from", "Write to"), where any `*` commands can be typed and discs changed,
+    RETURN on an empty line going on, ESCAPE to quit; on ADFS `*MOUNT` after changing a disc ("Disc changed"
+    otherwise); the destination write-enabled; what the merge does (each track's best 10 of both, an entry on both
+    counted once, the faster ghost, nothing written till Y; `SCORES` untouched); 32K of sideways RAM (two banks).
+    `README.md` too: `tools/ta_merge_check.mjs` (DFS and `--adfs`) in `tools/ta_checks.sh`.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile

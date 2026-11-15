@@ -1,6 +1,6 @@
 # Brief - time attack's scores and ghosts merger (2026-11-15)
 
-> **Status: steps 1-3 built and tried on Tom's Master; step 4 (the writes) built, to be tried.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
+> **Status: DONE (2026-11-15): steps 1-5 built, each tried (Tom's Master, DFS to BeebLink; step 4 in b2, DFS to DFS); to merge into `main` on Tom's word.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
 > each tried on Tom's Master before the next (as time attack was).
 >
 > Figures say **MEASURED** (a build's listing or a tool run, named), **COUNTED** (off the source or a listing)
@@ -137,10 +137,10 @@ And the game reading what MERGE wrote: `ta_table_check`'s and `ta_save_check`'s 
 
 ## 8. Open (Tom)
 
-- The name, `MERGE` (7 characters at most on DFS).
+- The name, `MERGE` (7 characters at most on DFS): kept, nothing said otherwise.
 - Whether MERGE copies itself onto a destination that lacks it, so a backup disc carries the tool (the restore then
-  one swap too). Not planned unless wanted.
-- The wording on screen: the mock-up's is a start.
+  one swap too). Not built: not asked for.
+- The wording on screen: the mock-up's, as built; Tom tried every step without a change.
 
 ## 9. The steps
 
@@ -196,3 +196,6 @@ Each tried on Tom's Master before the next; each its commit, the brief's status 
    and nothing asked, then every file read back in BASIC (`*LOAD`) byte for byte as it should be and `*INFO`'s
    addresses (113 checks on DFS, 115 on ADFS); seen to fail with the sum's second byte wrong.
 5. Tom's READMEs' reminders (what to say about MERGE), the plan and journal.
+   **Done** (2026-11-15; Tom tried step 4 in b2, DFS to DFS: "Looks good. Please continue. I think the README notes
+   just need adding to the open items list. I'll word the READMEs myself."): the reminder in `docs/plan.md`'s list
+   for Tom.
