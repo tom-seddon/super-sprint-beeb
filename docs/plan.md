@@ -260,7 +260,10 @@ adds the logic.
   they're ever wanted fewer, the brief's first fix stands: the sparks a plotter of their own, exact (roughly 40 repeats
   for the 93, ESTIMATED), before dropping sparks when frames run late. The keys' ghosting is done: none on Tom's
   Master, "using the keypress indicators, and no clashes noted" (2026-11-08, D12).
-- The bank probe on real hardware, beyond the default layout (Tom, 2026-11-09: "Please add the bank probe testing
+- ~~The bank probe on real hardware, beyond the default layout~~: closed 2026-11-15. Tom tried it in b2, sideways
+  RAM in banks 0, 1, 2, 4 and 5 and ROM in 6 and 7: "I'm happy enough with this, I think." And too little, RAM in
+  banks 0-2 alone (48K): the error, "needs 64K", "so I think this is working". Not tried: a real Master with
+  cartridge RAM, a Compact. What it was (Tom, 2026-11-09: "Please add the bank probe testing
   to the "Needs people or hardware" section"). Tom's Master has run only its RAM in banks 4-7. In jsbeeb only: the
   RAM in banks 0-3, 1/3/5/7 and 0-7 (the game on the highest 4), and too few (2/5/6, the error in MODE 7). Wanted:
   a Master with cartridge RAM in banks 0-3 (D4: a machine whose 4-7 are ROM may still play), and one with too
