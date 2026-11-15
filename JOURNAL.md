@@ -887,5 +887,6 @@ place of `disc/README.txt`: Tom's text, a placeholder as the disc's still is. Th
 build's commit goes after it; lines end CR LF, and it's UTF-8, as a PC's text may have more than ASCII (the disc's
 stays ASCII with CR). The workflow's step is unchanged. MEASURED: the disc's README byte for byte as `main`'s tool
 makes it, and the game's discs the same at `VERSION=00000` with and without the change. What the text might say is in
-the plan's reminders for Tom. Built on the branch `pc-readme`; not run on GitHub.
+the plan's reminders for Tom. Built on the branch `pc-readme`, merged into `main` (Tom: "Yes, merge"); not run
+on GitHub.
 

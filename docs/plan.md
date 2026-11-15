@@ -382,7 +382,8 @@ adds the logic.
   it's intended for reading on a PC rather than the BBC's tiny screen - but that shouldn't be too hard to sort out
   later." Built 2026-11-15 on the branch `pc-readme` (Tom: "The PC README"): `tools/disc_readme.py --pc` reads
   `disc/README-pc.txt`, Tom's text (a placeholder till he writes it), adds the same link to `README.md`, and writes
-  it in UTF-8 with CR LF; the disc's README the same byte for byte. Not yet run on GitHub.
+  it in UTF-8 with CR LF; the disc's README the same byte for byte. Merged into `main` (Tom, 2026-11-15:
+  "Yes, merge"); not yet run on GitHub.
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
