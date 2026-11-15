@@ -5,10 +5,12 @@
 \\ to the prompt it came from; ESCAPE asks before quitting. Assembled on its own (as boot.6502), in NMOS code, so a
 \\ Model B gets the error, and onto time attack's discs alone.
 \\
-\\ Step 1 (the brief's §9): the shell. Nothing read or written yet.
+\\ Step 2 (the brief's §9): the shell, and the source read: TIMES and GHOST1-GHOST8, each checked as the game checks
+\\ it and held in sideways RAM. Nothing merged or written yet.
 
 INCLUDE "../build/gen/trace.6502"       ; GenTimeAttack
 INCLUDE "../build/gen/version.6502"     ; VersionAscii: the build's version, as the options screen has it
+INCLUDE "tafiles.6502"                  ; the files' sizes, as the game has them
 
 IF GenTimeAttack
 
@@ -16,6 +18,10 @@ MgOrg = &2000                           ; above PAGE on any BBC (MEASURED in jsb
                                         ; with the 1770's DFS and ADFS both, the worst case), so a Model B or B+ can load
                                         ; it to give its error (Tom: a Model B's test covers a B+'s)
 MgLineLen = 78                          ; a typed command's characters at most
+MgBuf = &7000                           ; a file read or written, in main RAM (OSFILE can't reach a bank)
+ASSERT MgBuf + GhBufLen + 4 <= &7C00, "a file's buffer: under MODE 7's screen"
+MgFiles = 9                             ; TIMES, then GHOST1-GHOST8
+MgBanksNeeded = 2                       ; the source's files' banks (the game assumes 4 free: Tom, so may MERGE)
 
 SECTION Merge, filename = "MERGE", org = MgOrg, load = &FFFF0000+MgOrg, exec = &FFFF0000+mg_entry
 
@@ -41,6 +47,9 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     ZA_UNREACHABLE                      ; the BRK doesn't come back
 .master
     LDA #15:LDX #0:JSR &FFF4            ; OSBYTE 15: the keys typed ahead flushed
+    LDA #22:JSR &FFEE                   ; MODE 7, cleared: the screen the banks' probe wants
+    LDA #7:JSR &FFEE
+    JSR mg_banks                        ; (an error to the caller, if there aren't two)
     LDA &202:STA MgOldBrk               ; BRKV: mg_brk's, so an error goes back to the prompt
     LDA &203:STA MgOldBrk+1
     LDA #LO(mg_brk):STA &202
@@ -52,14 +61,12 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
 .again
     LDX #LO(MgReadText):LDY #HI(MgReadText)
     JSR mg_print
-    JSR mg_prompt
-    LDX #LO(MgReadDone):LDY #HI(MgReadDone)
-    JSR mg_print
+    LDX #LO(mg_read):LDY #HI(mg_read)
+    JSR mg_prompt                       ; (till something's read)
     LDX #LO(MgWriteText):LDY #HI(MgWriteText)
     JSR mg_print
+    LDX #LO(mg_write):LDY #HI(mg_write)
     JSR mg_prompt
-    LDX #LO(MgWriteDone):LDY #HI(MgWriteDone)
-    JSR mg_print
     LDX #LO(MgDoneText):LDY #HI(MgDoneText)
     JSR mg_print
 .key
@@ -74,13 +81,16 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     JMP again
 }
 
-\\ The * prompt: lines typed and run as commands (OSCLI), till RETURN on an empty one. An error (mg_brk) comes back
-\\ to the prompt from mg_line; ESCAPE asks before quitting.
+\\ The * prompt: lines typed and run as commands (OSCLI); RETURN on an empty one runs its step (mg_read, mg_write),
+\\ and returns once that's done it (C clear), else it's the prompt again. An error, a command's or the step's (mg_brk),
+\\ comes back to the prompt from mg_line, the stack as the prompt had it, so the caller's return kept (the step's run
+\\ from below it); ESCAPE asks before quitting.
 \\
-\\ Outputs: the commands' effects. A, X, Y corrupted.
+\\ Inputs: X (low), Y (high): the step. Outputs: the commands' effects and the step's. A, X, Y corrupted.
 
 .mg_prompt
 {
+    STX MgStep:STY MgStep+1
     TSX:STX MgStack                     ; (the stack as mg_line has it: mg_brk puts it back so)
 }                                       ; (on into mg_line)
 .mg_line
@@ -89,16 +99,32 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     LDX #LO(MgWord):LDY #HI(MgWord)
     LDA #0:JSR &FFF1                    ; OSWORD 0: a line, Y its length; C set on ESCAPE
     BCS escape
-    CPY #0:BEQ done                     ; (RETURN alone)
+    CPY #0:BEQ step                     ; (RETURN alone)
     LDX #LO(MgLine):LDY #HI(MgLine)
     JSR &FFF7                           ; OSCLI: the line as a command (*s before it skipped)
     JMP mg_line
+.step
+    JSR mg_step
+    BCS mg_line                         ; (not done: the prompt again)
+    RTS
 .escape
     LDA #126:JSR &FFF4                  ; OSBYTE 126: the ESCAPE acknowledged
     JSR &FFE7                           ; OSNEWL
     JSR mg_quit                         ; (back if not quitting)
     JMP mg_line
-.done
+}
+
+.mg_step                                ; (the prompt's step, called)
+    JMP (MgStep)
+    ZA_CANJUMP mg_read, mg_write
+
+\\ The write's step: in step 2, nothing yet. Outputs: C clear (done). A, X, Y corrupted.
+
+.mg_write
+{
+    LDX #LO(MgWriteDone):LDY #HI(MgWriteDone)
+    JSR mg_print
+    CLC
     RTS
 }
 
@@ -156,6 +182,265 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own
     RTS                                 ; (to *RUN's caller)
 }
 
+\\ The banks, MgBanks: the highest numbered of 0-7 that the OS's ROM type table doesn't list and that read back what's
+\\ written, as boot.6502 finds the game's. With MODE 7's screen clear: an empty socket reads the last byte the video
+\\ read (the Master's data bus isn't buffered), a space, so a write of its complement never seems to take. &F4 is
+\\ written before ROMSEL, so the OS would page it back. Not there: an error, to *RUN's caller (BRKV not yet MERGE's).
+\\
+\\ Outputs: MgBanks. A, X, Y corrupted.
+
+.mg_banks
+{
+    LDA &F4:PHA                         ; the ROM paged in now
+    LDY #MgBanksNeeded-1                ; banks still to find, less one
+    LDX #7
+.probe
+    LDA &2A1,X:BNE nope                 ; the OS's ROM type table: one it knows
+    STX &F4:STX &FE30                   ; ROMSEL: bank X at &8000
+    LDA &8000:EOR #&FF:STA &8000
+    EOR &8000:BNE nope                  ; not what was written: no RAM, and nothing changed
+    LDA &8000:EOR #&FF:STA &8000        ; put back
+    TXA:STA MgBanks,Y
+    DEY:BMI found
+.nope
+    DEX
+    BPL probe
+    PLA:STA &F4:STA &FE30               ; ROMSEL: the ROM back
+    BRK
+    EQUB 0
+    EQUS "MERGE needs ", AS_STRING(MgBanksNeeded * 16), "K of free sideways RAM", 0
+    ZA_UNREACHABLE                      ; the BRK doesn't come back
+.found
+    PLA:STA &F4:STA &FE30               ; ROMSEL: the ROM back
+    RTS
+}
+
+\\ The source read: TIMES and GHOST1-GHOST8, each that's there and right held in its slot in the banks (MgHave, MgLen),
+\\ one that's there but isn't right said and left out (mg_load), then what was held said. An error (a disc's) goes to
+\\ mg_brk, back at the read's prompt, and RETURN reads them all again.
+\\
+\\ Outputs: MgHave, MgLenLo, MgLenHi; the banks' slots. C set if nothing was held. A, X, Y corrupted.
+
+.mg_read
+{
+    LDX #MgFiles-1
+    LDA #0
+.clear
+    STA MgHave,X
+    DEX
+    BPL clear
+    LDX #0
+.file
+    STX MgFile
+    JSR mg_load
+    BCS next                            ; (not there, or not right)
+    JSR mg_keep
+.next
+    LDX MgFile
+    INX
+    CPX #MgFiles:BNE file
+    LDX #MgFiles-1                      ; anything held?
+.any
+    LDA MgHave,X:BNE some
+    DEX
+    BPL any
+    LDX #LO(MgNoneText):LDY #HI(MgNoneText)
+    JSR mg_print
+    SEC
+    RTS
+.some
+    LDX #LO(MgReadText2):LDY #HI(MgReadText2)
+    JSR mg_print
+    LDX #0
+.say
+    LDA MgHave,X:BEQ unsaid
+    JSR mg_name                         ; (MgFile X)
+    LDA #' ':JSR &FFEE                  ; OSWRCH
+    JSR mg_name_print
+    LDX MgFile
+.unsaid
+    INX
+    CPX #MgFiles:BNE say
+    JSR &FFE7                           ; OSNEWL
+    JSR &FFE7
+    CLC
+    RTS
+}
+
+\\ File X (0 TIMES, 1-8 GHOST1-GHOST8) read into MgBuf and checked as the game checks it (timeattack.6502's
+\\ ta_load_table, ta_load_ghost): TIMES TaTableLen + 2 bytes, its sum its table's; a ghost its head's records' bytes
+\\ + 4, those 1 to GhBufLen, its time not 0. One that's there but not right said: "GHOST2: not a ghost, left out".
+\\
+\\ Inputs: X, the file. Outputs: C clear and MgBuf the file, MgLenLo and MgLenHi its length; C set if it's not there
+\\ or not right. A, X, Y corrupted.
+
+.mg_load
+{
+    JSR mg_name                         ; MgName and MgBlock's name
+    LDX #LO(MgBlock):LDY #HI(MgBlock)
+    LDA #5:JSR &FFDD                    ; OSFILE 5: its catalogue entry, A its type
+    CMP #1:BEQ there                    ; (1: a file)
+    CMP #0:BNE wrong                    ; (0: nothing; 2, a directory: not right)
+    SEC
+    RTS
+.there
+    LDA MgBlock+12:ORA MgBlock+13:BNE wrong ; (64K or more)
+    LDA MgBlock+10:STA MgLen
+    LDA MgBlock+11:STA MgLen+1
+    LDX MgFile:BNE length_ghost
+    LDA MgLen:CMP #LO(TaTableLen+2):BNE wrong
+    LDA MgLen+1:CMP #HI(TaTableLen+2):BNE wrong
+    BEQ load                            ; (always)
+    ZA_UNREACHABLE
+.wrong
+    JSR mg_name_print
+    LDX MgFile
+    LDA #LO(MgBadGhost):LDY #HI(MgBadGhost)
+    CPX #0:BNE ghost
+    LDA #LO(MgBadTable):LDY #HI(MgBadTable)
+.ghost
+    TAX
+    JSR mg_print
+    SEC
+    RTS
+.length_ghost
+    LDA MgLen:CMP #LO(GhBufLen+4+1)     ; (under GhBufLen + 5: in the buffer)
+    LDA MgLen+1:SBC #HI(GhBufLen+4+1)
+    BCS wrong
+.load
+    LDA #LO(MgBuf):STA MgBlock+2        ; the load address, then exec's low byte 0: load there
+    LDA #HI(MgBuf):STA MgBlock+3
+    LDA #&FF:STA MgBlock+4:STA MgBlock+5
+    LDA #0:STA MgBlock+6
+    LDX #LO(MgBlock):LDY #HI(MgBlock)
+    LDA #&FF:JSR &FFDD                  ; OSFILE &FF: loaded
+    LDX MgFile:BNE head
+    JSR mg_sum                          ; TIMES: its sum
+    CMP MgBuf+TaTableLen:BNE wrong
+    CPY MgBuf+TaTableLen+1:BNE wrong
+    BEQ right                           ; (always)
+    ZA_UNREACHABLE
+.head
+    LDA MgBuf:ORA MgBuf+1:BEQ wrong     ; a ghost: its time not 0,
+    LDA MgBuf+2:ORA MgBuf+3:BEQ wrong   ; its records some,
+    LDA MgBuf+2:CLC:ADC #4:TAX          ; and its length theirs + 4 (so GhBufLen at most, the length checked;
+    LDA MgBuf+3:ADC #0                  ; past &FFFF not: a file under 4 bytes leaves MgBuf's head stale)
+    BCS wrong
+    CPX MgLen:BNE wrong
+    CMP MgLen+1:BNE wrong
+.right
+    LDX MgFile
+    LDA MgLen:STA MgLenLo,X
+    LDA MgLen+1:STA MgLenHi,X
+    CLC
+    RTS
+}
+
+\\ The table's sum, as timeattack.6502's ta_sum makes it over MgBuf's TaTableLen bytes: a total of its bytes and a
+\\ total of the totals, each a byte.
+\\
+\\ Outputs: A the total, Y the total of totals. X corrupted.
+
+.mg_sum
+{
+    ZA_AUTO2 at                         ; local: the byte
+    ZA_AUTO1 total                      ; local: the bytes' total
+    ZA_AUTO1 totals                     ; local: the totals' total
+    LDA #LO(MgBuf):STA at
+    LDA #HI(MgBuf):STA at+1
+    LDA #0:STA total:STA totals
+    LDX #HI(TaTableLen)                 ; whole pages, then the last's bytes
+    LDY #0
+.byte
+    CPX #0:BNE add
+    CPY #LO(TaTableLen):BEQ done
+.add
+    LDA (at),Y
+    CLC:ADC total:STA total
+    CLC:ADC totals:STA totals
+    INY
+    BNE byte
+    INC at+1
+    DEX
+    JMP byte
+.done
+    LDA total
+    LDY totals
+    RTS
+}
+
+\\ MgBuf, file MgFile's, copied into its slot in the banks (MgSlotBank, MgSlotHi), its pages whole, and MgHave set.
+\\
+\\ Inputs: MgFile; MgLenHi. Outputs: the slot; MgHave. A, X, Y corrupted.
+
+.mg_keep
+{
+    ZA_AUTO2 from                       ; local: MgBuf's byte
+    ZA_AUTO2 to                         ; local: the slot's
+    LDX MgFile
+    LDA #1:STA MgHave,X
+    LDA #LO(MgBuf):STA from
+    LDA #HI(MgBuf):STA from+1
+    LDA #0:STA to
+    LDA MgSlotHi,X:STA to+1
+    LDY MgSlotBank,X
+    LDA MgLenHi,X:TAX
+    INX                                 ; (pages: its whole ones and the part one)
+    LDA &F4:PHA                         ; the ROM paged in now
+    LDA MgBanks,Y:STA &F4:STA &FE30     ; ROMSEL: the slot's bank
+    LDY #0
+.copy
+    LDA (from),Y:STA (to),Y
+    INY
+    BNE copy
+    INC from+1
+    INC to+1
+    DEX
+    BNE copy
+    PLA:STA &F4:STA &FE30               ; ROMSEL: the ROM back
+    RTS
+}
+
+\\ File X's name (0 TIMES, 1-8 GHOST1-GHOST8) in MgName, ended by a CR, and MgBlock's name pointing at it.
+\\
+\\ Inputs: X. Outputs: MgName; MgBlock. A, X corrupted.
+
+.mg_name
+{
+    STX MgFile
+    LDA #LO(MgName):STA MgBlock
+    LDA #HI(MgName):STA MgBlock+1
+    LDY #6
+    CPX #0:BNE ghost
+.times
+    LDA MgTimesName,Y:STA MgName,Y
+    DEY
+    BPL times
+    RTS
+.ghost
+    LDA MgGhostName,Y:STA MgName,Y
+    DEY
+    BPL ghost
+    TXA:CLC:ADC #'0':STA MgName+5
+    RTS
+}
+
+\\ MgName printed, up to its CR. A, Y corrupted.
+
+.mg_name_print
+{
+    LDY #0
+.char
+    LDA MgName,Y
+    CMP #13:BEQ done
+    JSR &FFEE                           ; OSWRCH
+    INY
+    BNE char                            ; (always)
+    ZA_UNREACHABLE
+.done
+    RTS
+}
+
 \\ The text at X (low), Y (high), ended by a 0, through OSASCI (a CR a new line). A, Y corrupted.
 
 .mg_print
@@ -193,13 +478,19 @@ ASSERT 1 + 28 + 1 + 2 + LEN(VersionAscii) - 1 < 40, "the heading's version: on i
 .MgReadText
     EQUB MgCyan, "Read from:", MgWhite, "type * commands, change", 13
     EQUS " discs, then press RETURN.", 13, 0
-.MgReadDone
-    EQUS " (Step 1: nothing read yet.)", 13, 13, 0
+.MgReadText2
+    EQUB MgGreen, "Read:", 0
+.MgNoneText
+    EQUB MgYellow, "Nothing to read here.", 13, 0
+.MgBadTable
+    EQUS ": not a table, left out", 13, 0
+.MgBadGhost
+    EQUS ": not a ghost, left out", 13, 0
 .MgWriteText
     EQUB MgCyan, "Write to:", MgWhite, "type * commands, change", 13
     EQUS " discs, then press RETURN.", 13, 0
 .MgWriteDone
-    EQUS " (Step 1: nothing merged or written.)", 13, 0
+    EQUS " (Step 2: nothing merged or written.)", 13, 0
 .MgDoneText
     EQUB MgGreen, "Done.", MgWhite, "Press RETURN to merge again.", 13, 0
 .MgQuitText
@@ -207,10 +498,39 @@ ASSERT 1 + 28 + 1 + 2 + LEN(VersionAscii) - 1 < 40, "the heading's version: on i
 .MgWord                                 ; OSWORD 0's block: the line's address, its length at most, its characters'
     EQUW MgLine                         ; range
     EQUB MgLineLen, 32, 126
+.MgTimesName                            ; the files' names, each ended by a CR
+    EQUS "TIMES", 13, 13
+.MgGhostName
+    EQUS "GHOST0", 13                   ; (the 0 the ghost's number)
+.MgSlotBank                             ; each file's slot: its bank (MgBanks' index),
+    EQUB 0, 0, 0, 0, 0, 1, 1, 1, 1
+.MgSlotHi                               ; and its first page (whole pages: TIMES 5, a ghost 12)
+    EQUB &80, &88, &94, &A0, &AC, &80, &8C, &98, &A4
+ASSERT (TaTableLen + 2 + 255) DIV 256 <= 8 AND (GhBufLen + 4 + 255) DIV 256 <= 12, "the slots: each file's pages"
+ASSERT &AC + 12 <= &C0 AND &A4 + 12 <= &C0, "the slots: in their banks"
+.MgBanks                                ; the banks found (mg_banks)
+    SKIP MgBanksNeeded
+.MgHave                                 ; each file: held (1) or not (0)
+    SKIP MgFiles
+.MgLenLo                                ; and its length
+    SKIP MgFiles
+.MgLenHi
+    SKIP MgFiles
+.MgLen                                  ; a file's length, as read
+    SKIP 2
+.MgFile                                 ; the file being read
+    SKIP 1
+.MgName                                 ; its name, ended by a CR
+    SKIP 7
+.MgBlock                                ; OSFILE's block
+    SKIP 18
 .MgCaller                               ; the stack at the start, for the quit
     EQUB 0
 .MgStack                                ; the stack at the prompt, for an error
     EQUB 0
+.MgStep                                 ; the prompt's step (JMP (MgStep): not at a page's end, the NMOS 6502's
+    EQUW 0                              ; indirect JMP reading the wrong page there)
+ASSERT LO(MgStep) != &FF, "MgStep: at a page's end"
 .MgOldBrk                               ; BRKV as it was
     EQUW 0
 .MgLine                                 ; the line typed, ended by a CR (not saved)
