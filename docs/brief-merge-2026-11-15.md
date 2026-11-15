@@ -1,6 +1,6 @@
 # Brief - time attack's scores and ghosts merger (2026-11-15)
 
-> **Status: step 1 built (the shell), to be tried on Tom's Master.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
+> **Status: steps 1 (the shell, tried on Tom's Master) and 2 (the source read) built; step 2 to be tried.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
 > each tried on Tom's Master before the next (as time attack was).
 >
 > Figures say **MEASURED** (a build's listing or a tool run, named), **COUNTED** (off the source or a listing)
@@ -130,8 +130,8 @@ into a drive), and the files written read back off the image and compared with a
 - ghosts faster, slower, tied, missing on either side;
 - refused files on either side (length, sum, a ghost's head);
 - a write-protected destination: the error, back at the prompt, then written once it's allowed;
-- `*` commands at both prompts (`*DRIVE`, `Bad command`), on DFS and ADFS (`*MOUNT` after a swap: whether ADFS wants
-  it is to be MEASURED).
+- `*` commands at both prompts (`*DRIVE`, `Bad command`), on DFS and ADFS (`*MOUNT` after a swap: ADFS wants it,
+  "Disc changed" till then, MEASURED at step 2).
 
 And the game reading what MERGE wrote: `ta_table_check`'s and `ta_save_check`'s readers on a merged disc.
 
@@ -156,6 +156,21 @@ Each tried on Tom's Master before the next; each its commit, the brief's status 
    same. On ADFS the check `*MOUNT`s first, power-on having mounted nothing; whether a swap wants `*MOUNT` again is
    step 2's to measure.
 2. The source read: files checked and held in sideways RAM, what was found said.
+   **Built** (2026-11-15): `mg_banks` finds two banks as `boot.6502` finds the game's (MODE 7 cleared first: an empty
+   socket reads the video's last byte, a space); `mg_read` reads `TIMES` and `GHOST1`-`GHOST8` through `MgBuf`
+   (`&7000`), checks each as the game does (`mg_load`: `TIMES` 1,042 bytes and its sum, `mg_sum` as `ta_sum`; a ghost
+   its head's records + 4, 1 to 3,000 of them, its time not 0, and no wrap past `&FFFF`, as a file under 4 bytes leaves
+   the buffer's head stale) and copies the right ones into fixed slots (`mg_keep`: `TIMES` and `GHOST1`-`GHOST4` in
+   the first bank, `GHOST5`-`GHOST8` in the second, whole pages); "GHOST2: not a ghost, left out" for one not right;
+   "Read: TIMES GHOST1 ..." or "Nothing to read here." and the prompt again. The files' sizes now in
+   `src/tafiles.6502`, the game's and MERGE's (the game's builds the same byte for byte). The prompt runs its step
+   itself (`mg_prompt`'s `MgStep`), so an error in the step (ADFS's "Disc changed") lands back in the prompt's loop
+   and RETURN runs the step again: the first build called the step after the prompt returned, so the step's return
+   address took the prompt's place on the stack and an error there needed RETURN twice (found by the check).
+   MEASURED in jsbeeb: a swap with the drive's motor still running (0.1 s) leaves both filing systems on the old
+   disc's catalogue (DFS then writes with it), but after 5 s, as a person's swap, DFS reads the new one and ADFS
+   says "Disc changed" (OSFILE 5 included) till `*MOUNT`; so the prompt's `*MOUNT` is the way on ADFS, and the check
+   swaps with the motor stopped.
 3. The merge and what would change, the destination read; nothing written yet. The model and the oracle's first
    cases.
 4. The writes, the confirmation, round again; the write-protected case; the oracle's every case, in `ta_checks.sh`.

@@ -915,3 +915,21 @@ and passing at `&2000` (23 checks; jsbeeb has no B+). Tom: the 1770 model is "a 
 DFS+ADFS installed. DFS only will be PAGE=&1900. But this is good, as it'll cover all bases", and a Model B's test
 covers a B+'s.
 
+## 2026-11-15: MERGE's step 2, the source read
+
+Tom tried step 1 ("Tried it, go on"). Step 2 (`docs/brief-merge-2026-11-15.md`): two banks found as `boot.6502` finds
+the game's; `TIMES` and the ghosts read through `&7000`, checked as the game checks them, held in fixed slots, the
+wrong ones said. The files' sizes moved to `src/tafiles.6502`, shared with the game (its builds the same).
+
+Measured on the way, in jsbeeb: swapping a disc while the drive's motor still runs (0.1 s) leaves DFS and ADFS on the
+old catalogue, DFS even writing with it; after 5 s, as a real swap takes, DFS reads the new catalogue, and ADFS
+refuses with "Disc changed" (OSFILE 5 too) till `*MOUNT`. So the check swaps with the motor stopped, and on ADFS the
+prompt's `*MOUNT` is the way on.
+
+A mistake, found by the check: the first build ran the read after the prompt returned, so the read's return address
+took the prompt's place on the stack, and after an error in the read (ADFS's "Disc changed") RETURN came back into the
+middle of it: two RETURNs to read again. Now the prompt runs its step itself (`MgStep`). And a trap guarded: a ghost
+file under 4 bytes loads over only part of the buffer, its head the last file's, and `&FFFE + 4` wraps to 2; without
+the carry check the check's 2-byte GHOST6 is read and held. `ta_merge_check` 51 checks (DFS), 53 (ADFS); all 13 of
+time attack's checks pass (507 s).
+
