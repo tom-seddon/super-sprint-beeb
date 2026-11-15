@@ -948,3 +948,13 @@ its last 10 clears wiped the destination candidates' time-low bytes: their names
 and no duplicate matched. Seen to fail, with the fix in: the duplicates not matched (4 tracks' counts and lines
 wrong), and a tie going to the later candidate (track 8's random table).
 
+## 2026-11-15: MERGE's step 4, the writes
+
+Tom tried step 3 (DFS to BeebLink again: "Looks good. Please continue."). Step 4: "Write these? (Y/N)" when anything
+would change; Y writes the changed ghosts, then `TIMES` with its sum, as the game writes them (load and exec `&4200`);
+N writes nothing. An error goes back to the write prompt, and RETURN reads the destination again and merges it as it
+then is, so a write stopped part way is finished by the next. MEASURED in jsbeeb: a write-protected disc says "Disc
+read only" on DFS and "Disc protected" on ADFS. `ta_merge_check` reads every file back in BASIC afterwards, byte for
+byte against the model; with the sum's second byte wrong it fails twice (the file read back, and MERGE then refusing
+its own `TIMES` on the next merge). Step 3's cases now answer the question with N.
+

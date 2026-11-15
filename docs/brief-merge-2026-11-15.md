@@ -1,6 +1,6 @@
 # Brief - time attack's scores and ghosts merger (2026-11-15)
 
-> **Status: steps 1 and 2 built and tried on Tom's Master; step 3 (the merge, nothing written) built, to be tried.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
+> **Status: steps 1-3 built and tried on Tom's Master; step 4 (the writes) built, to be tried.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
 > each tried on Tom's Master before the next (as time attack was).
 >
 > Figures say **MEASURED** (a build's listing or a tool run, named), **COUNTED** (off the source or a listing)
@@ -187,4 +187,12 @@ Each tried on Tom's Master before the next; each its commit, the brief's status 
    first: `MgMatched` sized for the destination's 10 but cleared for all 20 candidates, so the clearing wiped the
    destination's candidates' times.
 4. The writes, the confirmation, round again; the write-protected case; the oracle's every case, in `ta_checks.sh`.
+   **Built** (2026-11-15; Tom tried step 3, DFS to BeebLink again: "Looks good"): if anything would change, "Write
+   these? (Y/N)" (ESCAPE a No); Y writes (`mg_save`) each ghost added or replaced, out of its slot, then `TIMES` if any
+   track has new entries (`MgOutT` and its sum), each with load and exec `&4200` as the game's (`mg_file_save`),
+   "Written: GHOST1 GHOST3 TIMES"; N "Nothing written." An error (MEASURED: "Disc read only" on DFS, "Disc
+   protected" on ADFS) goes back to the write prompt, and RETURN reads the destination again, so only what's still
+   to change is written. MERGE `&2000`-`&2C55`. `ta_merge_check`: N, a write-protected disc, Y, then nothing to change
+   and nothing asked, then every file read back in BASIC (`*LOAD`) byte for byte as it should be and `*INFO`'s
+   addresses (113 checks on DFS, 115 on ADFS); seen to fail with the sum's second byte wrong.
 5. Tom's READMEs' reminders (what to say about MERGE), the plan and journal.

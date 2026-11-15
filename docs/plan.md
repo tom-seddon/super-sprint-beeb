@@ -444,8 +444,8 @@ adds the logic.
   with them (`GHOST1`-`GHOST8`). "That's the basic idea, anyway. I need to think a bit more about the UX though so
   that it works ok across all filing systems." Designed 2026-11-15 (D57, `docs/brief-merge-2026-11-15.md`): `MERGE`
   on time attack's discs, a `*` prompt before the read and the write, the best 10 of both, the faster ghost. Branch
-  `ta-merge`: steps 1 (the shell) and 2 (the source read) built and tried on Tom's Master, step 3 (the
-  merge, nothing written) built 2026-11-15, to be tried.
+  `ta-merge`: steps 1-3 (the shell, the source read, the merge said) built and tried on Tom's Master,
+  step 4 (the writes) built 2026-11-15, to be tried.
 
 - ~~The select screen's dial frozen after a join~~: done 2026-11-15, merged into `main` (Tom, 2026-11-15: "I've tried
   this on my Master and it looks good. Please merge into main"). (Tom, 2026-11-14, on his Master at DC7D9: "the selected track does
