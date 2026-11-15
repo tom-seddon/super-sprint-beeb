@@ -551,26 +551,17 @@ adds the logic.
   things are built (noted 2026-11-12; Tom, 2026-11-15: "I will continue to word the README.md myself, as its contents
   are primarily for human consumption (barring the short note at the bottom for agent use, pointing them at CLAUDE.md
   and so on). But please do continue to maintain the list of things that might usefully need mentioning, as it is
-  useful."). Its text now is a placeholder (Tom, 2026-11-15), the note for agents at its end kept. The discs' and
-  the zip's READMEs (`disc/README-game.txt`, `disc/README-ta.txt`, `disc/README-pc.txt`) have Tom's first drafts
-  (`b2c26dd`, 2026-11-15), and anything they're missing goes in `README.md` instead (Tom, 2026-11-15: "I think the
-  zip README is fine as it stands. Any missing README items will be added to the README.md in the repo (since it's
-  Markdown and can therefore include images and stuff)."). The drafts already say the discs' names and filing
-  systems, SHIFT-BREAK, that the scores are saved so the disc wants to be write-enabled, the version, and the link
-  to `README.md` at the build's commit. Perhaps, in `README.md`:
-  - Playing: the machines (Master 128, Master Compact, four sideways RAM banks free); the keys (each player's
-    defaults, changed on the options screen, saved in `SCORES`); the version the options screen shows, the same as
-    the discs' names'.
-  - Time attack, for players: what it is (one player, endless laps, a ghost of the best lap, a table and a ghost
-    saved per track); its keys (the menu's, F1 for the options, the track's screen's, the name's); that it saves
-    `TIMES`, `GHOST1`-`GHOST8` and `SCORES` to the disc, so the disc wants to be write-enabled.
-  - MERGE, time attack's scores and ghosts merger (D57): what it's for (a backup of a disc's `TIMES` and ghosts, a
-    restore, scores carried to a new release's disc, two players' sets merged); how to run it (BREAK out of time
-    attack, then `*RUN MERGE`, or `*MERGE`); its two prompts ("Read from", "Write to"), where any `*` commands can
-    be typed and discs changed, RETURN on an empty line going on, ESCAPE to quit; on ADFS `*MOUNT` after changing a
-    disc ("Disc changed" otherwise); the destination write-enabled; what the merge does (each track's best 10 of
-    both, an entry on both counted once, the faster ghost, nothing written till Y); 32K of
-    sideways RAM (two banks).
+  useful."). The discs' and the zip's READMEs (`disc/README-game.txt`, `disc/README-ta.txt`,
+  `disc/README-pc.txt`) have Tom's first drafts (`b2c26dd`, 2026-11-15), and anything they're missing goes in
+  `README.md` instead (Tom, 2026-11-15: "I think the zip README is fine as it stands. Any missing README items will be
+  added to the README.md in the repo (since it's Markdown and can therefore include images and stuff)."). Its building
+  section's notes are in the fresh-clone build item, above.
+  Nothing outstanding (2026-11-15): README.md, as Tom wrote it that day, covers playing (the machines and 64 KB of
+  sideways RAM, the keys, the options, the sound, the version), time attack and MERGE. Not needed (Tom, 2026-11-15: "I
+  don't think points 1 or 3 need documenting"): time attack's name typed on the keyboard; MERGE's ESCAPE, an entry
+  on both discs kept once, and its summary before the Y. What's saved to the disc isn't spelt out (Tom: "I have
+  modified README.md so it doesn't specify what gets saved to the disk"). MERGE's 32K of sideways RAM dropped: a
+  machine that runs time attack has the game's 64K.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
