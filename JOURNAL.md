@@ -890,3 +890,21 @@ makes it, and the game's discs the same at `VERSION=00000` with and without the 
 the plan's reminders for Tom. Built on the branch `pc-readme`, merged into `main` (Tom: "Yes, merge"); not run
 on GitHub.
 
+## 2026-11-15: time attack's scores and ghosts merger, D57 and step 1
+
+Tom's design (`docs/brief-merge-2026-11-15.md`, D57): run from the source disc, one swap to the destination, and
+usable for a backup. Neither detecting which case (a `SCORES` file doesn't tell: the game's discs have one) nor an
+option: a `*` prompt before the read and before the write, RETURN at once reading the disc it ran from. MODE 7, a
+transcript through the OS; the source held in sideways RAM (Tom: the game assumes 4 banks, so the tool can).
+
+Step 1, the shell: `src/merge.6502`, its own assembly after `sprint.6502` (as `boot.6502`), the section only when
+`GenTimeAttack`, so MERGE is on time attack's discs alone and the game's are the same byte for byte. 670 bytes at
+`&E00`, NMOS code so a Model B gets an error. Errors through BRKV, back at the prompt they came from (the stack as
+the prompt had it); an error's line not preceded by a blank one when the cursor's already at a line's start (OSBYTE
+134). `tools/ta_merge_check.mjs` drives it from BASIC's prompt with jsbeeb's `type()` and VDU capture, reading the
+prompts off MODE 7's screen (`&350` the top line's address). Two harness traps: `type()` always ends with RETURN, so
+single keys are pressed; and the same key twice in a row (RETURN, RETURN) is lost unless the OS's scan sees it let
+go, so each key waits 200,000 cycles first. ADFS at power-on has nothing mounted ("No directory"), so the check
+`*MOUNT`s first. Seen to fail with BRKV left on the quit. All 13 of time attack's checks pass (`MACHINES=2`, 397 s;
+merge 4 s, merge_adfs 3 s).
+

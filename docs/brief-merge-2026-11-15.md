@@ -1,6 +1,6 @@
 # Brief - time attack's scores and ghosts merger (2026-11-15)
 
-> **Status: written, nothing built.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
+> **Status: step 1 built (the shell), to be tried on Tom's Master.** Branch `ta-merge`, off `main` at d4908fc. Decision D57. Built in small steps,
 > each tried on Tom's Master before the next (as time attack was).
 >
 > Figures say **MEASURED** (a build's listing or a tool run, named), **COUNTED** (off the source or a listing)
@@ -148,6 +148,13 @@ Each tried on Tom's Master before the next; each its commit, the brief's status 
 
 1. The shell: MODE 7, the heading, the two prompts with `*` commands and errors back to the prompt, ESCAPE; built
    onto time attack's discs. Nothing read or written.
+   **Built** (4a5eea3, 2026-11-15): `src/merge.6502`, its own assembly after `sprint.6502`, only when
+   `GenTimeAttack`: 670 bytes at `&E00` (MEASURED, the listing), NMOS code (a Model B gets "MERGE needs a Master 128
+   or Compact"). `tools/ta_merge_check.mjs` (DFS and `--adfs`, in `ta_checks.sh`): the heading on the screen, the
+   prompts, `*CAT` and a bad command at them, RETURN on, ESCAPE and N, round again, ESCAPE and Y back to BASIC with its
+   BRKV; seen to fail with BRKV left on the quit. All 13 of time attack's checks pass (397 s); the game's discs the
+   same. On ADFS the check `*MOUNT`s first, power-on having mounted nothing; whether a swap wants `*MOUNT` again is
+   step 2's to measure.
 2. The source read: files checked and held in sideways RAM, what was found said.
 3. The merge and what would change, the destination read; nothing written yet. The model and the oracle's first
    cases.
