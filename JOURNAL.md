@@ -907,4 +907,9 @@ single keys are pressed; and the same key twice in a row (RETURN, RETURN) is los
 go, so each key waits 200,000 cycles first. ADFS at power-on has nothing mounted ("No directory"), so the check
 `*MOUNT`s first. Seen to fail with BRKV left on the quit. All 13 of time attack's checks pass (`MACHINES=2`, 397 s;
 merge 4 s, merge_adfs 3 s).
+Then (Tom: "if it's to load and B or B+, even if only so it can print an error, MERGE can't load at $e00. I think
+$2000 would be a safer choice"): MERGE at `&2000`. At `&E00` jsbeeb's Model B gave the error and went on unharmed
+(`*CAT`, BASIC), so that wasn't a test of it: the check now reads PAGE on each Model B (`PRINT ~PAGE`: &1900 with DFS
+1.2, &1F00 with the 1770's, MEASURED) against MERGE's load address in the disc's catalogue, failing at `&E00` and
+passing at `&2000` (23 checks; jsbeeb has no B+).
 

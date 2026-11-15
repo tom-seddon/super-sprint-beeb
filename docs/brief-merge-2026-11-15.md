@@ -108,8 +108,8 @@ Mock-up (40 columns):
 Memory: a set is at most 25,074 bytes (COUNTED: `TIMES` 1,042 and 8 ghosts of 3,004). The source's held in sideways
 RAM, which the tool may assume as the game does (4 banks free; found as `boot.6502` finds them, its message if
 they're not there). A file's read into main RAM, OSFILE being unable to reach a bank, and copied across, as the game
-does. The destination's read one file at a time beside it. The code in main RAM from `&E00` or so, under the MODE 7
-screen at `&7C00`.
+does. The destination's read one file at a time beside it. The code in main RAM from `&2000`, under the MODE 7 screen
+at `&7C00`: above PAGE on any BBC, so a Model B or B+ can load it to give its error (Tom, 2026-11-15).
 
 ## 6. Where it lives
 

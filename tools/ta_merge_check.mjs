@@ -7,14 +7,15 @@
 //   at the prompt; RETURN on an empty line on to the write's prompt; ESCAPE there and N, the prompt again; RETURN, the
 //   "Done" line; RETURN, round again to the read's prompt; ESCAPE and Y, back at BASIC's prompt, which works (PRINT)
 //   and has its own BRKV back (a bad command BASIC's error, BASIC's prompt after it);
-// - on a Model B (DFS 1.2): MERGE refused with its message, nothing else run (NMOS code to there).
+// - on a Model B (DFS 1.2, and the 1770's DFS): MERGE refused with its message, nothing else run (NMOS code to there),
+//   and the machine fine after it: the disc catalogued, BASIC working (MERGE loads above a Model B's PAGE, &1900).
 //
 // Exit status: 1 if anything's wrong, else 0.
 //
 // Usage (from the repo root, after make ta): node tools/ta_merge_check.mjs [--adfs]
 
 import { readFileSync } from "node:fs";
-import { adfs, jsbeebModule } from "./jsbeeb.mjs";
+import { adfs, discFiles, jsbeebModule } from "./jsbeeb.mjs";
 
 const { MachineSession } = await jsbeebModule("machine-session.js");
 const disc = adfs ? "build/ta.adl" : "build/ta.ssd";
@@ -101,13 +102,20 @@ const Red = 1, Green = 2, Yellow = 3, Double = 13;   // (teletext's codes, top b
     want("BASIC's BRKV back", has(o, "Bad command") && last(s) === ">");
     s.destroy?.();
 }
-if (!adfs) {
-    const s = await machine("B-DFS1.2");
-    const o = await type(s, "*RUN MERGE");
-    want(`a Model B refused (${JSON.stringify(o.slice(-3))})`, has(o, "MERGE needs a Master 128 or Compact") && o.at(-1) === ">");
+if (!adfs) for (const model of ["B-DFS1.2", "B1770"]) {     // (jsbeeb has no B+)
+    const s = await machine(model);
+    let o = await type(s, "PRINT ~PAGE");               // (MERGE loaded at or above it, so the DFS's workspace is kept)
+    const page = parseInt(o.filter((l) => /^[0-9A-F]+$/.test(l.trim())).at(-1), 16), load = discFiles(disc).MERGE.load;
+    want(`MERGE's load, &${load.toString(16)}, above the Model B's (${model}) PAGE, &${page.toString(16)}`, page >= 0xe00 && load >= page);
+    o = await type(s, "*RUN MERGE");
+    want(`a Model B (${model}) refused (${JSON.stringify(o.slice(-3))})`, has(o, "MERGE needs a Master 128 or Compact") && o.at(-1) === ">");
+    o = await type(s, "*CAT");                          // (the DFS's workspace, under PAGE, left alone by the load)
+    want(`the Model B's (${model}) disc after it (${JSON.stringify(o.slice(-3))})`, o.some((l) => /\bMERGE\b/.test(l)) && o.at(-1) === ">");
+    o = await type(s, "PRINT 6*7");
+    want(`the Model B's (${model}) BASIC after it`, has(o, "42") && o.at(-1) === ">");
 }
 
 console.log(bad ? `${bad} wrong` : `MERGE's shell right${adfs ? " (ADFS)" : ""}: ${checked} checked (the heading, version ${version}; the read's ` +
     `and write's prompts, *CAT and a bad command at them, RETURN on, ESCAPE and N, round again, ESCAPE and Y to BASIC, ` +
-    `which works and has its BRKV back${adfs ? "" : "; a Model B refused"})`);
+    `which works and has its BRKV back${adfs ? "" : "; Model Bs refused, unharmed"})`);
 process.exit(bad ? 1 : 0);
