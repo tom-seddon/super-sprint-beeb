@@ -869,3 +869,13 @@ again on the screen shown: the old build fails it (43 wrong, the dial and rectan
 passes. The whole suite here (`agentbox` not reachable): every verdict 0, 3,774 s. Built on the branch
 `select-join-dial`; tried on Tom's Master and merged into `main` (Tom, 2026-11-15: "I've tried this on my Master
 and it looks good. Please merge into main").
+
+## 2026-11-15: the three-person playtest
+
+Tom asked why it was open: the frame drops, as measured in Phase 5 (`docs/brief-phase5.md` step 4). With three
+humans driving at random, the worst race repeated a frame in 4.1% of fields (track 5's race 17, 93 in 2,246), the
+sparks the cause (about 1,490 cycles each to draw and erase; 7 repeats with them left out); put aside on 2026-11-04 as
+real drivers hit the walls less. The keys' half, ghosting, was done on 2026-11-08. Tom, 2026-11-15: "There were some frame drops noticeable, but they weren't too bothersome in practice." So the item's
+closed (the plan, D5) and the sparks stay as they are; a plotter of their own, the brief's first fix, stays the way in
+if they're ever wanted fewer.
+

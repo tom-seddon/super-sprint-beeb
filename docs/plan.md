@@ -255,8 +255,10 @@ adds the logic.
 ### After Phase 5: what's left
 - Joysticks (D5): left open, not urgent (Tom, 2026-11-03). The Master 128's two analogue ones, and the
   Compact's, read differently (D33); a choice beside the keys in the options, saved with them.
-- The three-person playtest: the sparks that repeat up to 4.1% of fields with three humans driving at random
-  (put aside for it, Tom, 2026-11-04; `docs/brief-phase5.md` step 4). The keys' ghosting is done: none on Tom's
+- ~~The three-person playtest~~: done 2026-11-15 (Tom: "There were some frame drops noticeable, but they weren't too bothersome in practice."). The sparks that repeat up to 4.1% of fields with three
+  humans driving at random (put aside for it, Tom, 2026-11-04; `docs/brief-phase5.md` step 4): left as they are. If
+  they're ever wanted fewer, the brief's first fix stands: the sparks a plotter of their own, exact (roughly 40 repeats
+  for the 93, ESTIMATED), before dropping sparks when frames run late. The keys' ghosting is done: none on Tom's
   Master, "using the keypress indicators, and no clashes noted" (2026-11-08, D12).
 - The bank probe on real hardware, beyond the default layout (Tom, 2026-11-09: "Please add the bank probe testing
   to the "Needs people or hardware" section"). Tom's Master has run only its RAM in banks 4-7. In jsbeeb only: the
@@ -526,7 +528,7 @@ adds the logic.
 | D2 | Frame rate | Decided (Tom, 2026-11-01): 50 fps the goal; logic once a frame, as the ST |
 | D3 | Multiload or all in memory | Decided (Tom, 2026-11-01): one track's data per race, loaded through the OS |
 | D4 | Machines | Decided (Tom, 2026-11-01): Master 128 only, CMOS opcodes allowed; 4 free banks of sideways RAM needed; the Compact too (D33, Tom, 2026-11-07) |
-| D5 | Controls | Decided in part (Tom, 2026-11-01): any player on the keyboard, all three included; joysticks optional, left open, not urgent (Tom, 2026-11-03); three on the keys waits on a three-person playtest |
+| D5 | Controls | Decided in part (Tom, 2026-11-01): any player on the keyboard, all three included; joysticks optional, left open, not urgent (Tom, 2026-11-03); three on the keys played, the playtest done (Tom, 2026-11-15: frame drops noticeable, not too bothersome) |
 | D6 | HUD | Decided (Tom, 2026-11-01): one row of 8-pixel text above the play area |
 | D8 | Object sprites | Decided (Tom, 2026-11-01): the explosion and helicopter snapped to 4-pixel steps |
 | D7 | Bringing the OS back for a load | Decided (Tom, 2026-11-01): leave the OS's memory alone; HAZEL through a bank only if needed |

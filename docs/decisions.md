@@ -72,6 +72,8 @@ ghosting allows, is left until later.
 Tom, 2026-11-03: "D5: let's leave joysticks open for now. I think it's probably worth supporting, but not urgent. Joysticks weren't terribly popular on the BBC, and the sort of digital arcade-type joystick that would work for ST Super Sprint even less so." And: "3 players on keyboard is a bit of a squeeze but this can wait until a proper 3 person playtest."
 So the joysticks are open and not part of Phase 4; the three-player keyboard waits on a three-person
 playtest (with D12's real-keyboard check).
+The playtest, 2026-11-15 (D12's keyboard check done 2026-11-08): Tom, "There were some frame drops noticeable, but they weren't too bothersome in practice." So the sparks' repeats (up to 4.1% of
+fields with three random drivers, `docs/brief-phase5.md` step 4) stay as they are.
 
 ### D6. The HUD: Decided (2026-11-01)
 Tom: "it might be worth showing the scores and lap indicators as simple 8-pixel text, outside the main 320x200
