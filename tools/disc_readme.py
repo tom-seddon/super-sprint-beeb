@@ -19,9 +19,10 @@ neither, "(not known)". A tree with changes still has HEAD's commit and time, th
 
 Usage: disc_readme.py game|ta|pc OUT   (writes the file; tools/make_game.py puts game's or ta's on its disc as README,
                                         and tools/release.py pc's in the zip as README.txt)
-       disc_readme.py --check          (all three filled in: an unknown name exit status 1; and the discs' lines that
-                                        MODE 7 would wrap, 40 characters or more, said, but for the link's, exit
-                                        status 0)
+       disc_readme.py --check          (all three filled in: an unknown name exit status 1. No check of the discs'
+                                        line lengths: Tom, 2026-11-15, "I don't think the column check is worth
+                                        having, as the README link will automatically run over. There won't be much
+                                        churn in the README, I don't think, so I can check this by eye.")
 """
 import os, re, subprocess, sys
 
@@ -30,7 +31,6 @@ Repo = 'https://github.com/tom-seddon/super-sprint-beeb'
 Unknown = '(not known)'
 Placeholder = re.compile(r'\{\{(\w+)\}\}')
 Kinds = ('game', 'ta', 'pc')            # disc/README-KIND.txt; pc's read on a PC, the others on a BBC
-Mode7 = 40                              # a line this long or longer wraps, then its CR LF makes a blank line
 
 
 def git(*args):
@@ -90,11 +90,7 @@ def readme(kind, vals=None):
 def check():
     vals = values()
     for kind in Kinds:
-        t = text(kind, vals)            # (an unknown name: exits)
-        for n, line in enumerate(t.split('\n'), 1):
-            if kind != 'pc' and len(line) >= Mode7 and vals['link'] not in line:
-                print(f'disc/README-{kind}.txt, filled in, line {n}: {len(line)} characters, so MODE 7 wraps it '
-                      f'({Mode7} or more)')
+        text(kind, vals)                # (an unknown name: exits)
     print(f'the READMEs filled in: {", ".join(f"{k} {v}" for k, v in vals.items() if k != "stamp")}')
 
 

@@ -991,3 +991,7 @@ the zip's. `disc/README.txt` became `disc/README-game.txt` (`git mv`, so Tom's u
 looks at both discs' lines. MEASURED: `make game`, `make ta` and `make release` built; each disc's README is its own
 template's, not the other's; `build/ta.ssd` replaced by the game's disc, `release.py` stopped (exit 1). The check
 says `disc/README-ta.txt`'s line 2 is 41 characters, the old placeholder's, for Tom to reword.
+
+The MODE 7 line check came out again: "I don't think the column check is worth having, as the README link will
+automatically run over. There won't be much churn in the README, I don't think, so I can check this by eye."
+`disc_readme.py --check` (in the suite) still fills in all three and fails on an unknown name.

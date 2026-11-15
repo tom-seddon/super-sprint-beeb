@@ -544,8 +544,8 @@ adds the logic.
     `{{commit}}`, `{{date}}` (the commit's, UTC, "2026-11-14 11:03"), `{{link}}` (README.md at the commit; without
     it, it's added at the end after a blank line), and the release zip's discs, `{{game_ssd}}`, `{{game_adl}}`,
     `{{ta_ssd}}`, `{{ta_adl}}`. `make release` makes `dist/` to look at (after `make game` and `make ta`), and
-    `tools/disc_readme.py --check` says the discs' lines that MODE 7 would wrap. `README.md` might mention `make
-    release` too.
+    `tools/disc_readme.py --check` (in the suite) fills in all three, an unknown name an error; the discs' line
+    lengths are Tom's to check by eye (2026-11-15). `README.md` might mention `make release` too.
   - MERGE, time attack's scores and ghosts merger (D57; Tom, 2026-11-15: "I think the README notes just need adding
     to the open items list. I'll word the READMEs myself"), for `disc/README-ta.txt`, `disc/README-pc.txt` and
     `README.md`. Perhaps: what it's for (a backup of a disc's `TIMES` and ghosts, a restore, scores carried to a new
