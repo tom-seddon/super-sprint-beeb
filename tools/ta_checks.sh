@@ -7,9 +7,9 @@
 #
 # On the DFS disc: the ghost every frame (ta_ghost_check), its files (ta_save_check), the table (ta_table_check), the
 # menu (ta_menu_check), its 32 rows (ta_rows_check), SCORES (ta_scores_check), the pictures (ta_picture_check), the
-# options (ta_options_check) and the boot (boot_check --ta). On the ADFS disc too: the boot (boot_adfs), the ghost
-# (ghost_adfs: every track loaded, raced twice, the second race with the ghost the first saved), and the ADFS cases
-# ta_save_check and ta_scores_check have.
+# options (ta_options_check), the boot (boot_check --ta) and MERGE (ta_merge_check). On the ADFS disc too: the boot
+# (boot_adfs), MERGE (merge_adfs), the ghost (ghost_adfs: every track loaded, raced twice, the second race with the
+# ghost the first saved), and the ADFS cases ta_save_check and ta_scores_check have.
 #
 # tools/suite.sh runs it after time attack's build, so tools/suite_remote.sh runs it on another machine.
 #
@@ -18,7 +18,7 @@
 OUT=${1:?usage: tools/ta_checks.sh OUT}
 mkdir -p "$OUT"
 rm -f "$OUT"/*.log "$OUT"/*.status
-CHECKS="ghost menu rows table save scores picture options boot boot_adfs ghost_adfs"
+CHECKS="ghost menu rows table save scores picture options boot boot_adfs ghost_adfs merge merge_adfs"
 export OUT
 # (the longest first: the ghost's two)
 { echo ghost ta_ghost_check
@@ -32,6 +32,8 @@ export OUT
   echo rows ta_rows_check
   echo boot boot_check --ta
   echo boot_adfs boot_check --ta --adfs
+  echo merge ta_merge_check
+  echo merge_adfs ta_merge_check --adfs
 } | xargs -P ${MACHINES:-4} -L 1 sh -c 'n=$0; t=$1; shift; s=$(date +%s); node tools/$t.mjs "$@" > "$OUT/$n.log" 2>&1; echo $? > "$OUT/$n.status"; echo "$n $(( $(date +%s) - s ))s" > "$OUT/$n.time"'
 fail=0
 for c in $CHECKS; do

@@ -1,0 +1,219 @@
+\\ merge.6502 - MERGE, time attack's scores and ghosts merger (D57, docs/brief-merge-2026-11-15.md): a source disc's
+\\ TIMES and GHOST1-GHOST8 merged into a destination's. Run by *RUN, the OS alive (after BREAK: the game has the
+\\ machine while it runs); MODE 7, a transcript through the OS: a heading, then a * prompt before the read and before
+\\ the write, where any commands can be typed and discs changed, RETURN on an empty line going on. An error goes back
+\\ to the prompt it came from; ESCAPE asks before quitting. Assembled on its own (as boot.6502), in NMOS code, so a
+\\ Model B gets the error, and onto time attack's discs alone.
+\\
+\\ Step 1 (the brief's §9): the shell. Nothing read or written yet.
+
+INCLUDE "../build/gen/trace.6502"       ; GenTimeAttack
+INCLUDE "../build/gen/version.6502"     ; VersionAscii: the build's version, as the options screen has it
+
+IF GenTimeAttack
+
+MgOrg = &E00                            ; PAGE on a Master, whatever the filing system (its workspace hidden)
+MgLineLen = 78                          ; a typed command's characters at most
+
+SECTION Merge, filename = "MERGE", org = MgOrg, load = &FFFF0000+MgOrg, exec = &FFFF0000+mg_entry
+
+ZA_POOL &70..&8F                        ; the OS leaves these to us (BASIC's own below them, kept for the quit)
+
+\\ Run by *RUN: the heading, then the read's prompt, the write's, and round again till ESCAPE and Y.
+\\
+\\ Inputs:
+\\     none
+\\
+\\ Outputs:
+\\     none: back to *RUN's caller on a quit, BRKV put back
+
+.mg_entry
+{
+    ZA_ENTRY
+    TSX:STX MgCaller                    ; (the quit's way back)
+    LDA #0:LDX #1:JSR &FFF4             ; OSBYTE 0: the OS's version in X
+    CPX #3:BCS master                   ; 3 on: a Master's
+    BRK
+    EQUB 0
+    EQUS "MERGE needs a Master 128 or Compact", 0
+    ZA_UNREACHABLE                      ; the BRK doesn't come back
+.master
+    LDA #15:LDX #0:JSR &FFF4            ; OSBYTE 15: the keys typed ahead flushed
+    LDA &202:STA MgOldBrk               ; BRKV: mg_brk's, so an error goes back to the prompt
+    LDA &203:STA MgOldBrk+1
+    LDA #LO(mg_brk):STA &202
+    LDA #HI(mg_brk):STA &203
+    LDX #LO(MgHeading):LDY #HI(MgHeading)
+    JSR mg_print
+    LDX #LO(MgHeadingEnd):LDY #HI(MgHeadingEnd)
+    JSR mg_print
+.again
+    LDX #LO(MgReadText):LDY #HI(MgReadText)
+    JSR mg_print
+    JSR mg_prompt
+    LDX #LO(MgReadDone):LDY #HI(MgReadDone)
+    JSR mg_print
+    LDX #LO(MgWriteText):LDY #HI(MgWriteText)
+    JSR mg_print
+    JSR mg_prompt
+    LDX #LO(MgWriteDone):LDY #HI(MgWriteDone)
+    JSR mg_print
+    LDX #LO(MgDoneText):LDY #HI(MgDoneText)
+    JSR mg_print
+.key
+    JSR &FFE0                           ; OSRDCH: a key, C set on ESCAPE
+    BCC got
+    LDA #126:JSR &FFF4                  ; OSBYTE 126: the ESCAPE acknowledged
+    JSR mg_quit                         ; (back if not quitting)
+    JMP key
+.got
+    CMP #13:BNE key                     ; (RETURN)
+    JSR &FFE7                           ; OSNEWL
+    JMP again
+}
+
+\\ The * prompt: lines typed and run as commands (OSCLI), till RETURN on an empty one. An error (mg_brk) comes back
+\\ to the prompt from mg_line; ESCAPE asks before quitting.
+\\
+\\ Outputs: the commands' effects. A, X, Y corrupted.
+
+.mg_prompt
+{
+    TSX:STX MgStack                     ; (the stack as mg_line has it: mg_brk puts it back so)
+}                                       ; (on into mg_line)
+.mg_line
+{
+    LDA #'*':JSR &FFEE                  ; OSWRCH
+    LDX #LO(MgWord):LDY #HI(MgWord)
+    LDA #0:JSR &FFF1                    ; OSWORD 0: a line, Y its length; C set on ESCAPE
+    BCS escape
+    CPY #0:BEQ done                     ; (RETURN alone)
+    LDX #LO(MgLine):LDY #HI(MgLine)
+    JSR &FFF7                           ; OSCLI: the line as a command (*s before it skipped)
+    JMP mg_line
+.escape
+    LDA #126:JSR &FFF4                  ; OSBYTE 126: the ESCAPE acknowledged
+    JSR &FFE7                           ; OSNEWL
+    JSR mg_quit                         ; (back if not quitting)
+    JMP mg_line
+.done
+    RTS
+}
+
+\\ BRKV: an error (a command's, or a filing system's) said, then the prompt again, the stack as it had it. Entered
+\\ from the MOS's BRK handler.
+\\
+\\ Inputs:
+\\     &FD, &FE: the MOS's pointer to the error number, its message after it, ended by a 0
+
+.mg_brk
+{
+    ZA_ENTRY
+    LDX MgStack:TXS
+    CLI
+    LDA #126:JSR &FFF4                  ; OSBYTE 126: an ESCAPE acknowledged (one that stopped a command: *CAT, say)
+    LDA #134:JSR &FFF4                  ; OSBYTE 134: the cursor's column in X
+    TXA:BEQ start                       ; (a line begun: ended first)
+    JSR &FFE7                           ; OSNEWL
+.start
+    LDY #1
+.char
+    LDA (&FD),Y:BEQ said
+    JSR &FFEE                           ; OSWRCH
+    INY
+    BNE char
+.said
+    JSR &FFE7                           ; OSNEWL
+    JMP mg_line
+}
+
+\\ ESCAPE: "Quit? (Y/N)". Y: BRKV put back and back to *RUN's caller; anything else returns.
+\\
+\\ Outputs: A, X, Y corrupted.
+
+.mg_quit
+{
+    LDX #LO(MgQuitText):LDY #HI(MgQuitText)
+    JSR mg_print
+    JSR &FFE0                           ; OSRDCH
+    BCC got
+    LDA #126:JSR &FFF4                  ; OSBYTE 126: an ESCAPE acknowledged (a No)
+    LDA #'N'
+.got
+    AND #&DF                            ; (upper case)
+    PHA
+    JSR &FFEE                           ; OSWRCH: the answer shown
+    JSR &FFE7                           ; OSNEWL
+    PLA
+    CMP #'Y':BEQ quit
+    RTS
+.quit
+    LDA MgOldBrk:STA &202               ; BRKV: as it was
+    LDA MgOldBrk+1:STA &203
+    LDX MgCaller:TXS
+    RTS                                 ; (to *RUN's caller)
+}
+
+\\ The text at X (low), Y (high), ended by a 0, through OSASCI (a CR a new line). A, Y corrupted.
+
+.mg_print
+{
+    ZA_AUTO2 at                         ; local: the text
+    STX at:STY at+1
+    LDY #0
+.next
+    LDA (at),Y:BEQ done
+    JSR &FFE3                           ; OSASCI
+    INY
+    BNE next
+    INC at+1
+    BNE next                            ; (always)
+    ZA_UNREACHABLE
+.done
+    RTS
+}
+
+MgRed = 129                             ; teletext's codes: alphanumerics in a colour,
+MgGreen = 130
+MgYellow = 131
+MgCyan = 134
+MgWhite = 135
+MgDouble = 141                          ; double height (on both of its lines)
+
+.MgHeading                              ; MODE 7, then the heading
+    EQUB 22, 7
+    EQUB MgDouble, MgRed, "SUPER SPRINT", MgYellow, "TIME ATTACK", 13
+    EQUB MgDouble, MgRed, "SUPER SPRINT", MgYellow, "TIME ATTACK", 13
+    EQUB MgWhite, "Scores and ghosts merge     ", MgGreen, "v ", VersionAscii    ; (its 0 ends it)
+ASSERT 1 + 28 + 1 + 2 + LEN(VersionAscii) - 1 < 40, "the heading's version: on its line (40 wraps)"
+.MgHeadingEnd
+    EQUS 13, 13, 0
+.MgReadText
+    EQUB MgCyan, "Read from:", MgWhite, "type * commands, change", 13
+    EQUS " discs, then press RETURN.", 13, 0
+.MgReadDone
+    EQUS " (Step 1: nothing read yet.)", 13, 13, 0
+.MgWriteText
+    EQUB MgCyan, "Write to:", MgWhite, "type * commands, change", 13
+    EQUS " discs, then press RETURN.", 13, 0
+.MgWriteDone
+    EQUS " (Step 1: nothing merged or written.)", 13, 0
+.MgDoneText
+    EQUB MgGreen, "Done.", MgWhite, "Press RETURN to merge again.", 13, 0
+.MgQuitText
+    EQUB MgYellow, "Quit? (Y/N) ", 0
+.MgWord                                 ; OSWORD 0's block: the line's address, its length at most, its characters'
+    EQUW MgLine                         ; range
+    EQUB MgLineLen, 32, 126
+.MgCaller                               ; the stack at the start, for the quit
+    EQUB 0
+.MgStack                                ; the stack at the prompt, for an error
+    EQUB 0
+.MgOldBrk                               ; BRKV as it was
+    EQUW 0
+.MgLine                                 ; the line typed, ended by a CR (not saved)
+ASSERT MgLine + MgLineLen + 1 <= &7C00, "the line: under MODE 7's screen"
+
+ENDSECTION
+
+ENDIF

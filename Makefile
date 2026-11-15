@@ -238,7 +238,7 @@ $(GEN)/tunes_fixed.bin: tools/tune_gen.py tools/sound_gen.py tools/ay2sn.py buil
 $(GEN)/tunes_circle.bin $(GEN)/tunes_fixed.6502: $(GEN)/tunes_fixed.bin
 
 build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(GEN)/tunes_fixed.bin $(GEN)/tunes_fixed.6502 $(GEN)/version.6502 $(LOGICDEPS) $(BARON)
-	$(BARON) -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 > build/sprint.lst
+	$(BARON) -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 src/merge.6502 > build/sprint.lst
 
 # The game's disc (Phase 5, 3b): every track's play build (tools/all_tracks.sh, which checks their layout),
 # then track 1's as it boots and a packed file for each track's slots (tools/make_game.py). The compressor is
