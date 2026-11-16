@@ -1,9 +1,9 @@
 # Brief - time attack's ghost checks split on agentbox (2026-11-16)
 
-> **Status: IN PROGRESS.** An unattended job (Tom away). Branch `ghost-split`, off `main` at 85c48f4. Nothing
+> **Status: DONE (2026-11-16): steps 1-6; waiting on Tom's word to merge.** An unattended job (Tom away). Branch `ghost-split`, off `main` at 85c48f4. Nothing
 > merged, nothing pushed. Report: `docs/report-ghost-split-2026-11-16.md`, written last.
 >
-> **Resume point:** step 6 (step 5 committed; its confirming run, `tools/suite_remote.sh` with no settings, noted with it). If this session ends, the next starts at the step named here, reading this brief, then
+> **Resume point:** none: done. If this session ends, the next starts at the step named here, reading this brief, then
 > `tools/ta_checks.sh`, `tools/suite_remote.sh` and the step's notes below.
 >
 > Figures say **MEASURED** (a run, named), **COUNTED** (off the source or a listing) or **ESTIMATED**.
@@ -68,3 +68,6 @@ None of hardware: the checks' scripts alone change, not the discs. Not merged, n
 - Step 5: `GHOSTS=2` kept, `tools/suite_remote.sh`'s default (agentbox), 214-222 s to 179-182 (about 35 s, 16%; three
   runs each, the ranges apart). `tools/ta_checks.sh` takes 1 to 4 (5 and up put track 5 or 8 alone), default 1 (the
   laptop, `tools/suite.sh` alone: unchanged).
+  Confirming run at 7910266, `tools/suite_remote.sh` with no settings: the ghost checks in two pieces each
+  (`ghost.0`, `ghost.1`, `ghost_adfs.0`, `ghost_adfs.1`), every verdict 0 (61), 182 s there.
+- Step 6: the report, `docs/report-ghost-split-2026-11-16.md`; the plan's item; `CLAUDE.md`'s oracles; the journal.

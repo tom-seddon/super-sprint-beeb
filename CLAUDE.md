@@ -72,7 +72,7 @@ What the skills look up, for this project:
   in the objects' and fourth banks from the boot, so a race's end loads nothing (6h: `timeattack.6502`'s `ta_park`); its boot by
   `node tools/boot_check.mjs --ta` (and with `--adfs`); a race's name typed for the checks by
   `tools/ta_name.mjs`; its merger, `MERGE` (`src/merge.6502`, D57, `docs/brief-merge-2026-11-15.md`), by
-  `node tools/ta_merge_check.mjs` (and `--adfs`). `tools/ta_checks.sh OUT` runs them all, MACHINES at a time (the ghost's on `build/ta.adl` too),
+  `node tools/ta_merge_check.mjs` (and `--adfs`). `tools/ta_checks.sh OUT` runs them all, MACHINES at a time (the ghost's on `build/ta.adl` too; each ghost check in GHOSTS pieces, by track, 2 on agentbox),
   and `tools/suite.sh` runs it after time attack's build (its front end's tables kept in `build/tracks_ta/gen`); no
   tunes (`GenTunes` 0); the races driven by `tools/ta_pilot.mjs`, an autopilot along the drones' path.
 - **Build**: `make beeb` (`TRACE=race`, `t0`-`t7`, `heli1`-`heli3` or `attract` picks the race) makes

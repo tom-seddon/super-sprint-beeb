@@ -1023,3 +1023,15 @@ fits a row. Tom tried an ADFS-only Model B in b2 ("got the expected error", then
 in BBC B+ADFS mode. I'm happy with this."). Merged into `main` without the Master's try (Tom: "I'm confident enough
 that this'll work OK on the real Master too, so please merge into main. This can always be fixed if I'm proven
 wrong."); not pushed.
+
+## 2026-11-16: time attack's ghost checks split on agentbox (an unattended job)
+
+Tom away ("Sounds good. Please continue."); `docs/brief-ghost-split-2026-11-16.md`,
+`docs/report-ghost-split-2026-11-16.md`, the branch `ghost-split`. agentbox back. `tools/ta_checks.sh` takes
+`GHOSTS`: each ghost check as that many pieces by track, its verdict made from theirs. MEASURED, `tools/suite_remote.sh`
+three runs a setting, the suite's time there: the baseline 214-222 s, the ghost checks its tail (63-74 s, the next
+check 32-35); `GHOSTS=2` 179-182; 4, 182-185 (`merge_adfs` the tail then); 8 wrong every run, the pieces of track 5
+alone and track 8 alone: neither draws a ghost in the check's 2400 frames, split or not (the other six cover them in
+the whole check). So 2 on agentbox, `GHOSTS` 1 to 4, the laptop 1 as before; the confirming run 182 s, every verdict 0.
+For Tom (the report): tracks 5 and 8 never show the ghost check a ghost; and about 105 s of agentbox's 180 is still
+one step after another (the short checks one at a time, time attack's build after them). Not merged.

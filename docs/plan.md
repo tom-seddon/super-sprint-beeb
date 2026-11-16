@@ -517,19 +517,16 @@ adds the logic.
   very rare case." The change: `BootOrg` at `&2000` or so (above any PAGE, under `&3000` where the files land); it
   changes the game's discs, so the whole suite. A check: the boot on Model Bs (DFS 1.2, 1770) refused, PAGE read
   against `!BOOT`'s load address, as `ta_merge_check` does for MERGE.
-- The suite's wall time: the laptop's half built 2026-11-16 on the branch `suite-boot` (the report above): the disc's
-  jobs in the background in their own copy, and longest first, 2,637 s to about 2,465 (MEASURED, one run each);
-  `MACHINES=2` no better (dropped). Left: agentbox's half, the ghost checks split by track. What it was (Tom,
-  2026-11-13: "potentially useful, but still a lot of wall clock time either way. So not
-  worth it immediately"). What's measured and what's guessed: `JOURNAL.md`, 2026-11-13, "the checks' times on Tom's
-  laptop". In short: on the laptop (2 cores, 4 threads) jsbeeb's checks are bound by the cores, the hyperthreads adding
-  nothing, so splitting time attack's ghost checks was slower there and was dropped. To try:
-  - On agentbox, when it's back: time attack's ghost checks split by track (`GHOSTS=4 MACHINES=8`), where there are
-    more cores than jobs and the two ghost checks are the longest wait. Untested; roughly half their wait, guessed.
-  - For the game's suite, all untested guesses: `disc_races` started in the background as soon as the disc's made when
-    it runs here too, as with `REMOTE=` (the serial builds and short checks, about 4½ minutes, sharing the second core:
-    perhaps 2 minutes); time attack's tracks built while the disc's checks run (perhaps 1); `game_adfs` earlier in
-    `disc_races`' list (its last 70 s with one job left: perhaps 30 s); `MACHINES=2` on the laptop (about 2%).
+- The suite's wall time: done 2026-11-16, both halves. The laptop's on the branch `suite-boot`, merged
+  (`docs/report-suite-boot-2026-11-16.md`): the disc's jobs in the background in their own copy, and longest first,
+  2,637 s to about 2,465 (MEASURED, one run each); `MACHINES=2` no better (dropped). agentbox's on the branch
+  `ghost-split`, not merged (`docs/report-ghost-split-2026-11-16.md`): time attack's ghost checks in two pieces each
+  (`GHOSTS=2`, `tools/suite_remote.sh`'s default), the suite there 214-222 s to 179-182 (MEASURED, three runs each);
+  4 no better, 8 wrong (tracks 5 and 8 draw no ghost in the check, so a piece of either alone fails). The report has
+  two things for Tom: the ghost check never sees a ghost on tracks 5 and 8, and what agentbox's suite still waits on
+  (about 105 s of its 180 one step after another). What it was (Tom, 2026-11-13: "potentially useful, but still a lot
+  of wall clock time either way. So not worth it immediately"); the laptop's measurements, `JOURNAL.md`, 2026-11-13,
+  "the checks' times on Tom's laptop".
 - For Tom to do: `README.md`, his file (`CLAUDE.md`): reminders only, of what it might usefully mention, kept up as
   things are built (noted 2026-11-12; Tom, 2026-11-15: "I will continue to word the README.md myself, as its contents
   are primarily for human consumption (barring the short note at the bottom for agent use, pointing them at CLAUDE.md
