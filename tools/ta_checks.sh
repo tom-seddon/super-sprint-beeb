@@ -11,12 +11,11 @@
 # (boot_adfs), MERGE (merge_adfs), the ghost (ghost_adfs: every track loaded, raced twice, the second race with the
 # ghost the first saved), and the ADFS cases ta_save_check and ta_scores_check have.
 #
-# GHOSTS (1 to 4, default 1) splits each ghost check into that many pieces, each its own machine racing a share of the
+# GHOSTS (1 to 8, default 1) splits each ghost check into that many pieces, each its own machine racing a share of the
 # eight tracks (TRACKS=0,2,4,6 and 1,3,5,7 for 2), their logs and statuses OUT/ghost.0 and so on, ghost's and
-# ghost_adfs's made from them (wrong if any piece is wrong or left none). Not above 4: tracks 5 and 8 (TRACKS 4 and 7)
-# draw no ghost in the check's 2400 frames, and a piece of them alone is wrong for it (MEASURED, GHOSTS=8: those two
-# pieces, every run). Only where there are more cores than checks: on a laptop with 2 cores, GHOSTS=2 was slower
-# (JOURNAL.md, 2026-11-13); tools/suite_remote.sh gives agentbox 2 (docs/report-ghost-split-2026-11-16.md).
+# ghost_adfs's made from them (wrong if any piece is wrong or left none). Only where there are more cores than checks:
+# on a laptop with 2 cores, GHOSTS=2 was slower (JOURNAL.md, 2026-11-13); tools/suite_remote.sh gives agentbox 2
+# (docs/report-ghost-split-2026-11-16.md).
 #
 # tools/suite.sh runs it after time attack's build, so tools/suite_remote.sh runs it on another machine.
 #
@@ -28,7 +27,7 @@ rm -f "$OUT"/*.log "$OUT"/*.status "$OUT"/*.time
 CHECKS="ghost menu rows table save scores picture options boot boot_adfs ghost_adfs merge merge_adfs"
 export OUT
 GHOSTS=${GHOSTS:-1}
-case $GHOSTS in [1-4]) ;; *) echo "GHOSTS is 1 to 4"; exit 1 ;; esac
+case $GHOSTS in [1-8]) ;; *) echo "GHOSTS is 1 to 8"; exit 1 ;; esac
 # piece k of GHOSTS: tracks k, k+GHOSTS, ... (- for all, as one)
 tracks() { [ "$GHOSTS" = 1 ] && { echo -; return; }; i=$1; l=; while [ $i -lt 8 ]; do l=$l${l:+,}$i; i=$((i + GHOSTS)); done; echo $l; }
 pieces() { [ "$GHOSTS" = 1 ] && { echo $1; return; }; k=0; while [ $k -lt $GHOSTS ]; do echo $1.$k; k=$((k + 1)); done; }

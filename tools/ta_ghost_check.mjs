@@ -7,7 +7,8 @@
 // unless an explosion, first in the list (the player's drawn over it). So the recording's coding and the
 // playback's decoding are checked together: what's drawn is what the player was.
 //
-// Exit status: 1 if any frame's list differs, or no ghost is drawn on any track; else 0.
+// Exit status: 1 if any frame's list differs, or a track raced draws no ghost (each track's own, so the check holds for
+// any TRACKS); else 0.
 //
 // Each track raced PASSES times (default 2) on the one machine: a race starts with the ghost its track's last race
 // saved (step 5: GHOSTn, written at the next load), its lap 1 with it from the first frame and the HUD's ghost time
@@ -36,7 +37,7 @@ const bt = peek(syms.banktrace), bc = peek(syms.bankcars);
 const key = (r) => (r ? r.join(",") : "none");
 const { toSsdOrDsd } = await jsbeebModule("disc.js");
 const written = () => toSsdOrDsd(s._machine.processor.fdc.drives[0].disc);
-let wrong = 0, total = 0, anyDrawn = 0;
+let wrong = 0, total = 0, anyDrawn = 0, ghostless = [];
 const TRACKS = (process.env.TRACKS || "0,1,2,3,4,5,6,7").split(",").map(Number);
 const PASSES = Number(process.env.PASSES || 2);
 const saved = {};                       // each track's ghost as its last race left it: its records and time
@@ -103,6 +104,7 @@ for (let pass = 0; pass < PASSES; pass++) for (const t of TRACKS) {
     }
     wrong += bad;
     anyDrawn += drawn;
+    if (!drawn) ghostless.push(`${pass + 1}/${t + 1}`);
     if (ghosts) saved[t] = { recs: ghost, time: ghostTime };
     console.log(`pass ${pass + 1}, track ${t + 1}: ${frames} frames, ${ghost && !ghosts ? "the saved ghost, " : ""}${ghosts} ghosts, the ghost drawn on ${drawn}, waiting on ${waited}; ${bad} wrong${firstBad ? ": first " + firstBad : ""}`);
     s.writeMemory(syms.GmAbandon, [1]); s.writeMemory(syms.LoadWant, [0xff]);
@@ -120,5 +122,5 @@ for (let pass = 0; pass < PASSES; pass++) for (const t of TRACKS) {
         }
     }
 }
-console.log(`${total} frames, the ghost drawn on ${anyDrawn}, ${wrong} wrong`);
-process.exit(wrong || !anyDrawn ? 1 : 0);
+console.log(`${total} frames, the ghost drawn on ${anyDrawn}, ${wrong} wrong${ghostless.length ? `; no ghost drawn (pass/track): ${ghostless.join(" ")}` : ""}`);
+process.exit(wrong || ghostless.length ? 1 : 0);
