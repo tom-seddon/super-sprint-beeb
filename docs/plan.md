@@ -350,7 +350,11 @@ adds the logic.
     if it's older; another with `make PYTHON3=...`; on Ubuntu apt's `python3.12-venv`; a Mac's own `python3` is too
     old); Hatari is the submodule `extern/hatari` (v2.6.1), built by make as Baron is, so SDL2's and zlib's headers
     (`libsdl2-dev`, `zlib1g-dev` on Ubuntu; on a Mac, Homebrew's `sdl2`, or `HATARI` set to an app of 2.5.0 or later),
-    and perl; Node 22 for the checks.
+    and perl; Node 22 for the checks. On Ubuntu 24.04 or Mint 22 and later (CMake 3.21 for Baron, Python 3.12;
+    the packages as apt names them, 2026-11-16; `libreadline-dev` as GitHub's build has it, optional to Hatari;
+    pip fetches the three Python packages from PyPI):
+    `sudo apt-get install git build-essential cmake ninja-build perl python3 python3-venv libsdl2-dev zlib1g-dev
+    libreadline-dev`. Disk: about 1.1 GB for `build/` (MEASURED on the Mac, a fresh clone).
     About 16 minutes from nothing one job at a time, most of it the ST's traces in Hatari, made once and kept in
     `build/` (about 5 minutes at `-j64` on Tom's Linux PC); where Hatari
     doesn't run, `docs/st-traces.md` (`make stfiles`, `build/stfiles.tar.gz`). Linux (Mint 22.3) and macOS; not
