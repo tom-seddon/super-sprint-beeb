@@ -410,14 +410,19 @@ adds the logic.
   later." Built 2026-11-15 on the branch `pc-readme` (Tom: "The PC README"): `tools/disc_readme.py --pc` reads
   `disc/README-pc.txt`, Tom's text (a placeholder till he writes it), adds the same link to `README.md`, and writes
   it in UTF-8 with CR LF; the disc's README the same byte for byte. Merged into `main` (Tom, 2026-11-15:
-  "Yes, merge"); not yet run on GitHub.
+  "Yes, merge").
   Then (Tom, 2026-11-15: "Maybe it's going to need some kind of basic templating, so that the disk images' actual
   names can be inserted into the README as well"), on the branch `readme-template`: both READMEs are templates
   (`tools/disc_readme.py`: `{{version}}`, `{{commit}}`, `{{date}}`, `{{link}}`, `{{game_ssd}}`, `{{game_adl}}`,
   `{{ta_ssd}}`, `{{ta_adl}}`; an unknown name stops the build; without `{{link}}` the link line goes after the text,
-  a blank line between; `--check` in the suite says the disc's lines MODE 7 would wrap), the release's names made in
-  one place, and `make release` (`tools/release.py`) makes `dist/` and the zip as the workflow does, which now runs
-  it. Not yet run on GitHub.
+  a blank line between; `--check` in the suite, an unknown name failing it, the discs' line lengths Tom's to check by
+  eye), the release's names made in one place, and `make release` (`tools/release.py`) makes `dist/` and the zip as
+  the workflow does, which now runs it. Then three READMEs (Tom, 2026-11-15: "I think maybe it could do with 3
+  versions of the README actually"): `disc/README-game.txt`, `disc/README-ta.txt` and `disc/README-pc.txt`, Tom's
+  first drafts in `b2c26dd`; merged into `main` (Tom: "Please merge into main").
+  Run on GitHub 2026-11-16 (run 43778634091, at fd53abd, 6 min 43 s with Hatari from the cache): the release
+  `super-sprint-20261115-2353-fd53a`, its zip 349,786 bytes, and all six SHA-256s in its notes (the five files and
+  the zip) the same as `make release`'s at fd53abd here (MEASURED: the notes' lines diffed against `dist/`'s).
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
