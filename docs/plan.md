@@ -597,6 +597,14 @@ Worth noting, not needed for a first release (Tom, 2026-11-16).
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
+- `make sheets` leaving files in the tree (Tom, 2026-11-16: "`make sheets` should really not leave files lying
+  around"; it's in `make all`, the default till 2026-11-16). `tools/compare_sheets.py` writes straight into
+  `docs/img` (its `OUT`): `st-tracks.png`, `option-KEY-tracks.png` for each option, `track1-options.png` to
+  `track8-options.png` and `cars-options.png`. Ten of them are tracked, Phase 2's comparisons (`docs/colours.md`):
+  `st-tracks.png`, `option-a`, `a2`, `b`, `b2`, `c` and `d-tracks.png`, `track4-` and `track6-options.png`,
+  `cars-options.png`; so a run shows as changes wherever a picture comes out differently, and leaves the six other
+  tracks' sheets (and any other option's) untracked. The likely fix: write to `build/sheets`, and copy one into
+  `docs/img` by hand when a doc wants it. Not looked at further.
 
 - The suite on agentbox faster still (Tom, 2026-11-16: "I think at this stage maybe it isn't quite worth it for 2
   minutes. Please add this to the list of things for consideration for a future update, as it'd help with the
