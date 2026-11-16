@@ -1035,3 +1035,13 @@ alone and track 8 alone: neither draws a ghost in the check's 2400 frames, split
 the whole check). So 2 on agentbox, `GHOSTS` 1 to 4, the laptop 1 as before; the confirming run 182 s, every verdict 0.
 For Tom (the report): tracks 5 and 8 never show the ghost check a ghost; and about 105 s of agentbox's 180 is still
 one step after another (the short checks one at a time, time attack's build after them). Not merged.
+
+Then, Tom: "Why don't these 2 tracks draw ghosts?" and "Yes, fix the autopilot". A probe on agentbox: the autopilot
+wedged against a wall on track 5 from frame 400 and track 8 from 600, to 6,000, so no lap and no ghost (its header
+had said so since it was written). It steered for each segment's far end, moving on up to 4 segments a frame: on
+track 8 it skipped a hairpin at speed and turned the short way into a pocket under a barrier; on track 5, wide off a
+corner, it drove into the outer wall's bulge; and a car bouncing off a wall ignores its input (`RcBounce`), a slight
+turn along one straightened, so neither got free. Now a point 320 ahead along the path, on only past a segment's
+end, and a wall's wedge freed (let go while bouncing, then a target just ahead on the line): every track laps with
+the look-ahead from 240 to 400 (MEASURED; without the freeing, 300-340). The ghost check now wants a ghost on every
+track raced (shown failing), so `GHOSTS` 1 to 8: the suite there passes at 2, 4 and 8 (179, 181, 188 s); 2 stays.

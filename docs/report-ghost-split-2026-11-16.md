@@ -17,7 +17,21 @@ pieces each on agentbox, four tracks a piece (`GHOSTS=2`); the laptop is as it w
    scratch tree: `GHOSTS=1` the same 13 checks as before; 2, 3 and 8 split as meant; one wrong piece made its ghost
    check wrong and the script exit 1.
 2. **`GHOSTS` passed to agentbox** by `tools/suite_remote.sh` (3320948), then **2 kept** as its default (7910266), and
-   `GHOSTS` limited to 1-4 (below).
+   `GHOSTS` limited to 1-4 at first (lifted in 4).
+3. **The autopilot fixed** (8537ea8, after the first report, Tom: "Yes, fix the autopilot"). The ghost check had
+   never seen a ghost on tracks 5 and 8: the autopilot (`tools/ta_pilot.mjs`) wedged against a wall there and never
+   finished a lap (MEASURED, a probe: track 5 stuck from frame 400, track 8 from 600, to 6,000). It steered for each
+   segment's far end, moving on up to 4 segments a frame: on track 8 it skipped a hairpin's short segments at speed
+   and turned the short way, clockwise, into a pocket under a barrier; on track 5, wide off a fast corner, it drove
+   up into the outer wall's bulge. And a car bouncing off a wall ignores its input (`human.6502`'s `RcBounce`), a
+   slight turn along one straightened (its nudge), so it never got free. Now it steers for a point 320 along the
+   path from its place on it, moves on only past a segment's end, and wedged (under 32 moved in 64 frames) lets go
+   while it bounces, then turns for a point just ahead on the line. MEASURED, each track one race of 2400 frames:
+   every track records a ghost with the look-ahead anywhere from 240 to 400 (without the recovery, 300-340 only);
+   320 chosen.
+4. **A ghost on every track** (8972c9b): the check failed only if no track drew one, which let 5 and 8 pass with
+   none; now each track raced must, so any split holds, and `GHOSTS` is 1 to 8. Shown failing: 300 frames a race,
+   no lap done, "no ghost drawn (pass/track): 1/1 1/5 2/1 2/5", exit 1.
 
 The runs (`tools/suite_remote.sh`, the suite's own time on agentbox):
 
@@ -28,23 +42,22 @@ The runs (`tools/suite_remote.sh`, the suite's own time on agentbox):
 | `GHOSTS=4` | 185, 185, 182 s | 39-42 s | 20-23 s | all 0 |
 | `GHOSTS=8` | 189, 189, 192 s | 46-48 s | 12-14 s | ghost and ghost_adfs wrong, every run |
 | `GHOSTS=2`, the default, at 7910266 | 182 s | 39 s | 36, 39 s | all 0 (61) |
+| The autopilot fixed, at 8972c9b: `GHOSTS=2` | 179 s | 37 s | 37, 36 s | all 0 (61) |
+| ... `GHOSTS=4` | 181 s | 39 s | 21, 23 s | all 0 (61) |
+| ... `GHOSTS=8` | 188 s | 46 s | 14, 14 s | all 0 (61) |
 
 At 2 the ghost checks end about when `merge_adfs` does (33-35 s), which is now time attack's longest check; 4 gains
 nothing (its ghost pieces done in about 21 s, `merge_adfs` then the tail).
 
 ## Decisions TAKEN - please review
 
-- **`GHOSTS` at most 4.** At 8 the pieces with track 5 alone and track 8 alone fail (below). 5 to 7 would put one of
-  those tracks alone too. So `tools/ta_checks.sh` refuses more than 4.
+- **The autopilot's look-ahead, 320** (eighths of a pixel): the middle of 240-400, where every track laps.
 
 ## For you to see
 
-- **The ghost check never sees a ghost on tracks 5 and 8.** In its 2400 frames a race, the autopilot's laps there
-  record no ghost: "0 ghosts, the ghost drawn on 0" on both passes, both discs, every run, split or not (the
-  baseline's logs). Those two tracks' frames are still checked (0 wrong), but only with no ghost to draw; the other
-  six tracks draw it, and the check's rule ("wrong if no ghost is drawn on any track") is met by them. Not changed
-  here (you agreed: report anything else, don't change it). If you want those tracks covered: more frames for them,
-  or a look at why the autopilot's laps there don't make a ghost (gates on track 5 and 8? D36 kept the ST's).
+- **Tracks 5 and 8 now checked with a ghost**: since the autopilot's fix, each track's two races on each disc draw
+  the ghost (the second from the saved file), so `GHOST5` and `GHOST8` are checked too, which they never were. The autopilot's laps changed on the other tracks too (a different line): every check that uses
+  it (`ta_ghost_check`, `ta_save_check`, `ta_table_check`) passes.
 - **What the rest of agentbox's suite is waiting on** (the baseline's run 1): the builds to the game's disc 51 s; then
   the short checks one at a time, 51-114 s, beside the disc's races (51-154 s, done before time attack starts); time
   attack's tracks 114-145 s and its disc 145-156 s, one after another; its checks from 158 s. So about 105 s of the
@@ -53,8 +66,8 @@ nothing (its ghost pieces done in about 21 s, `merge_adfs` then the tail).
 
 ## What's open
 
-- Nothing of this item. The plan's "suite's wall time" can close, if you agree, with the two notes above as new items
-  or not, as you choose.
+- Nothing of this item. The plan's "suite's wall time" can close, if you agree, with the note above on what
+  agentbox's suite still waits on as a new item or not, as you choose.
 
 ## Branch ledger
 

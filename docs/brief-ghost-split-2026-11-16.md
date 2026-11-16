@@ -71,3 +71,8 @@ None of hardware: the checks' scripts alone change, not the discs. Not merged, n
   Confirming run at 7910266, `tools/suite_remote.sh` with no settings: the ghost checks in two pieces each
   (`ghost.0`, `ghost.1`, `ghost_adfs.0`, `ghost_adfs.1`), every verdict 0 (61), 182 s there.
 - Step 6: the report, `docs/report-ghost-split-2026-11-16.md`; the plan's item; `CLAUDE.md`'s oracles; the journal.
+- After the report (Tom, 2026-11-16: "Yes, fix the autopilot"): the autopilot steering for a point 320 along the
+  path, moving on only past a segment's end, and freeing itself from a wall (8537ea8); every track laps with the
+  look-ahead from 240 to 400 (MEASURED). The ghost check wrong if any track raced draws no ghost, and `GHOSTS` 1 to 8
+  (8972c9b; shown failing with 300 frames a race). `tools/suite_remote.sh` at 8972c9b: `GHOSTS` 2, 4 and 8, every
+  verdict 0 (61) each, 179, 181 and 188 s; 2 stays.

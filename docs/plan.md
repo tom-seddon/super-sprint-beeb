@@ -522,9 +522,9 @@ adds the logic.
   2,637 s to about 2,465 (MEASURED, one run each); `MACHINES=2` no better (dropped). agentbox's on the branch
   `ghost-split`, not merged (`docs/report-ghost-split-2026-11-16.md`): time attack's ghost checks in two pieces each
   (`GHOSTS=2`, `tools/suite_remote.sh`'s default), the suite there 214-222 s to 179-182 (MEASURED, three runs each);
-  4 no better, 8 wrong (tracks 5 and 8 draw no ghost in the check, so a piece of either alone fails). The report has
-  two things for Tom: the ghost check never sees a ghost on tracks 5 and 8, and what agentbox's suite still waits on
-  (about 105 s of its 180 one step after another). What it was (Tom, 2026-11-13: "potentially useful, but still a lot
+  4 and 8 no better. On the way the time attack autopilot fixed (Tom: "Yes, fix the autopilot"): it wedged on tracks
+  5 and 8, so the ghost check never saw a ghost there; now every track laps and the check wants a ghost on each. The
+  report has one thing for Tom: what agentbox's suite still waits on (about 105 s of its 180 one step after another). What it was (Tom, 2026-11-13: "potentially useful, but still a lot
   of wall clock time either way. So not worth it immediately"); the laptop's measurements, `JOURNAL.md`, 2026-11-13,
   "the checks' times on Tom's laptop".
 - For Tom to do: `README.md`, his file (`CLAUDE.md`): reminders only, of what it might usefully mention, kept up as
