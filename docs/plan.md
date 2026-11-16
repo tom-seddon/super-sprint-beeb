@@ -335,6 +335,15 @@ adds the logic.
   then (in a future session). README.md's building section is vague on purpose till then (Tom, 2026-11-15: "I'm being
   deliberately a bit vague about the build stuff in README.md until I've had a chance to try it from a fresh
   clone"); what it might mention, for Tom to word:
+  - Linux done, 2026-11-16, on the branch `fresh-clone-linux`: Tom's first clone on his Linux PC (Mint 22.3, an AMD
+    2990WX) wanted `python3.14`, which Mint hasn't, and a Hatari of 2.5.0 or later, where apt's is 2.4.1. So now
+    `python3` (checked for 3.12 or later), Hatari 2.6.1 as the submodule `extern/hatari` built by make (as Baron),
+    `tools/hatari.sh` saying why it stops, and `game` and `ta` making every ST file first under make's `-j`. Then
+    (Tom): a fresh clone of the branch made a working `game.ssd`; `make -j64 game && make -j64 ta` about 5 minutes
+    from the clone (about 11 before the last change), and about 2 min 13 s again straight after (every track built
+    again: `tools/all_tracks.sh`, the later version's item). macOS not tried, and broken till it's given `PYTHON3`
+    and `HATARI` or Homebrew's `sdl2` (Tom: "I don't mind temporarily breaking the Mac build for now"; he may not
+    want Hatari built there, "since installing dependencies can be a pain").
   - The prerequisites, in README.md till 2026-11-15 and gone from it now (`CLAUDE.md` still sends a reader there):
     make, a C compiler (`cc`), CMake 3.21 or later and Ninja (Baron and the ZX02 compressor are built from the
     submodules); Python 3.12 or later as `python3` (the build makes `.venv` from `requirements.txt`, stopping first
@@ -342,7 +351,8 @@ adds the logic.
     old); Hatari is the submodule `extern/hatari` (v2.6.1), built by make as Baron is, so SDL2's and zlib's headers
     (`libsdl2-dev`, `zlib1g-dev` on Ubuntu; on a Mac, Homebrew's `sdl2`, or `HATARI` set to an app of 2.5.0 or later),
     and perl; Node 22 for the checks.
-    About 16 minutes from nothing, most of it the ST's traces in Hatari, made once and kept in `build/`; where Hatari
+    About 16 minutes from nothing one job at a time, most of it the ST's traces in Hatari, made once and kept in
+    `build/` (about 5 minutes at `-j64` on Tom's Linux PC); where Hatari
     doesn't run, `docs/st-traces.md` (`make stfiles`, `build/stfiles.tar.gz`). Linux (Mint 22.3) and macOS; not
     Windows.
   - Time attack: `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds in

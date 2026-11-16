@@ -1047,3 +1047,29 @@ the look-ahead from 240 to 400 (MEASURED; without the freeing, 300-340). The gho
 track raced (shown failing), so `GHOSTS` 1 to 8: the suite there passes at 2, 4 and 8 (179, 181, 188 s); 2 stays.
 The suite's further speed-ups costed and put on the plan's list for a later version (Tom: "I think at this stage
 maybe it isn't quite worth it for 2 minutes."). Merged into `main` (Tom: "Please merge this into main."); not pushed.
+
+## 2026-11-16: the build from a fresh clone on Linux
+
+Tom tried the plan's last open item by hand: `git clone --recurse-submodules`, then `make game && make ta`, on his
+Linux PC (Mint 22.3, an AMD 2990WX, 64 threads). The branch `fresh-clone-linux`, pushed for his clones. What a
+reader of README.md alone would have hit, and what's done:
+- Python: the Makefile wanted `python3.14`, and Mint has 3.12. Now `python3`, and the `.venv` rule stops first if
+  it's older than 3.12 (numpy 2.5.4's floor on PyPI; `-P` needs 3.11), saying so (shown with a fake 3.9.6).
+- Hatari: `tools/hatari.sh` ran the Mac's app by default; elsewhere nothing ran and it exited 0 (perl's `exec`
+  failing quietly), and apt's 2.4.1 writes traces that break later. Hatari is now the submodule `extern/hatari`,
+  pinned to v2.6.1 (Tom: "the source code will then be pinned to the tested version"), its tree the same file for
+  file as the tarball GitHub's build had checked by SHA-256; make builds it into `build/hatari` as it does Baron
+  (54 s), every rule that runs Hatari waiting for it unless `HATARI` is set (Tom: "make it the default, like
+  Baron"). `tools/hatari.sh` stops with the reason if there's no Hatari or it's older than 2.5.0, on the terminal
+  too, as the tracers keep its stderr. GitHub's build uses the submodule, the binary cached by its commit (not run
+  there yet). Here from no `build/`: all 120 ST files as `docs/stfiles-sha256.txt`, both games' discs built,
+  `boot_check` passing on all four.
+- Tom's first clone of the branch built, `make -j64`, but in about 11 minutes, `tools/all_tracks.sh` one core busy:
+  its makes get no jobserver, so each tracer ran one at a time inside the first track's build that wanted it. Now
+  `game` and `ta` make every ST file first, at the top level (here, from no ST files, `make -j64 game` 2 min 31 s).
+  The track builds themselves still one at a time, each `-j1`: noted on the plan's list for a later version (Tom:
+  nothing needs doing; the 2990WX's cores slow beside agentbox's M4 Max).
+- Tom's second clone: a working `game.ssd`, about 5 minutes from the clone with `make -j64`, and about 2 min 13 s
+  for a build straight after (every track built again, as always).
+macOS not tried, and broken till it's given `PYTHON3` and `HATARI` (or SDL2 to build Hatari); for a later session.
+Not merged.
