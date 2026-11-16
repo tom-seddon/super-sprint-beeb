@@ -36,7 +36,7 @@ rsync -a --exclude='obj_*' --exclude='*_room.json' --include='*.json' --exclude=
 version=$(make -s version) || exit 1
 commit=$(git rev-parse HEAD) || exit 1
 when=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y%m%d-%H%M) || exit 1
-ssh -o ServerAliveInterval=30 "$REMOTE" "cd $DIR && rm -rf out/suite && VERSION='$version' COMMIT='$commit' WHEN='$when' HATARI=/usr/bin/false REMOTE= MACHINES=${MACHINES:-14} MODELS=${MODELS:-12} sh tools/suite.sh out/suite $2 > out/suite.log 2>&1; echo \$? > out/suite.status"
+ssh -o ServerAliveInterval=30 "$REMOTE" "cd $DIR && rm -rf out/suite && VERSION='$version' COMMIT='$commit' WHEN='$when' HATARI=/usr/bin/false REMOTE= MACHINES=${MACHINES:-14} MODELS=${MODELS:-12} GHOSTS=${GHOSTS:-1} sh tools/suite.sh out/suite $2 > out/suite.log 2>&1; echo \$? > out/suite.status"
 [ $? = 0 ] || exit 1
 mkdir -p "$OUT"
 rsync -a "$REMOTE:$DIR/out/suite/" "$OUT/" || exit 1
