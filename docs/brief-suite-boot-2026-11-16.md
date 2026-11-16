@@ -3,7 +3,7 @@
 > **Status: IN PROGRESS.** An unattended job (Tom away). Branch `suite-boot`, off `main` at 8688a11. Nothing merged,
 > nothing pushed. Report: `docs/report-suite-boot-2026-11-16.md`, written last.
 >
-> **Resume point:** step 2. If this session ends, the next starts at the step named here, reading this brief, then
+> **Resume point:** step 3 (the disc's jobs ordered longest first, then `MACHINES=2`). If this session ends, the next starts at the step named here, reading this brief, then
 > `tools/suite.sh` and the step's notes below.
 >
 > Figures say **MEASURED** (a run, named), **COUNTED** (off the source or a listing) or **ESTIMATED**.
@@ -48,3 +48,20 @@ fine to me." Then, of the defaults below: "These all sound good. Please begin.")
 - Step 1 (2026-11-16): `tools/suite.sh` gives `make_game.py` its kind (`game`, `ta`), and lists `merge` and
   `merge_adfs` among time attack's verdicts. MEASURED: its `game_disc` line exit 0 (43 s), the old exit 2. The rest in
   step 2's run.
+- Step 2 (2026-11-16): the baseline at 436f1a9, 2,637 s: 249 s before the disc's jobs (the builds 108, the short
+  checks 141, mostly one core), the disc's jobs 1,868 s (the races 249-1,995; the tail, from 2,006 to 2,117, fewer
+  than four jobs, `game_adfs` 122 s the last), time attack's build 90 s and checks 430 s (the ghost checks 426 and
+  429 s). `crash_check` and `options_check` failed: a file was added to the tree 174 s in (this job's draft check),
+  so the next build rewrote `build/gen/version.6502` as 436f1m while the disc said 436f1 (MEASURED: the files'
+  times, the logs' lines). Not the game's fault; the lesson: nothing changes in the tree while the suite runs (the
+  brief's notes kept in the scratchpad meanwhile).
+- Step 3, run A (2026-11-16): the disc's jobs failed in 3 s, every one: the copy made `.mcp.json` a directory
+  (`mkdir -p` of a path with no `/`), so `tools/jsbeeb.mjs` couldn't read its pin. A mistake of mine: the copy's test
+  counted files, not where they went. Fixed (amended into bdad135), then tested: every path of `tools/disc_files.sh`
+  in the copy (find against the list), and `boot_check` passing in it. Run A2 started.
+- Step 3, run A2 at bdad135 (2026-11-16): every verdict 0, 2,500 s against the baseline's 2,637 (137 s, 5%: about the
+  2-2.5 minutes the idle core's arithmetic predicted, the 249 s mostly on one core and time attack's 90 s of builds
+  now beside the disc's jobs). The disc's jobs 101-2,500 s; time attack's build and checks inside them (the ghost
+  checks 927 and 939 s, sharing the cores, against 426 and 429). One run each, so within this laptop's noise in
+  principle, but as predicted; kept, as the copy also keeps a change to build/gen during the run (the baseline's
+  failure) from the disc's jobs. The tail: `game_adfs` alone for the last 61 s.
