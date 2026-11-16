@@ -17,12 +17,15 @@ OUT=${1:?usage: tools/suite.sh OUT [quick]}
 export REMOTE=${REMOTE-}
 mkdir -p "$OUT"
 : > "$OUT/verdicts.txt"
+began=$(date +%s)
+echo "began $began" > "$OUT/times.txt"          # (each step's start and end, seconds since 1970, for the wall time)
 run() {
     name=$1; shift
     start=$(date +%s)
     "$@" > "$OUT/$name.log" 2>&1
     status=$?
     echo "$name $status $(( $(date +%s) - start ))s" >> "$OUT/verdicts.txt"
+    echo "$name $start $(date +%s)" >> "$OUT/times.txt"
 }
 
 run prepare make venv baron build/zx02 build/trace/logic_t0_r0.json
@@ -67,4 +70,5 @@ for c in ghost menu rows table save scores picture options boot boot_adfs ghost_
 done
 fail=$(awk '$2 != 0 { bad = 1 } END { print bad + 0 }' "$OUT/verdicts.txt")
 echo "done $fail" >> "$OUT/verdicts.txt"
+echo "done $(date +%s) $(( $(date +%s) - began ))s" >> "$OUT/times.txt"
 exit $fail

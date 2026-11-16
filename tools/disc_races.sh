@@ -8,7 +8,8 @@
 # race with cars put where one pixel of the wall probes decides (hprobe, state only), and the faults it's there
 # for put back (--probes). Then the disc's other checks, which read only it and what it was made from:
 # tools/break_check.mjs, tools/crash_check.mjs, tools/game_check.mjs, tools/attract_check.mjs, tools/flash_check.mjs, tools/options_check.mjs, tools/select_check.mjs, tools/upgrades_check.mjs, tools/circle_check.mjs, tools/initials_check.mjs, tools/tune_check.mjs (and again with --off: tune_off), tools/save_check.mjs, game_check and load_check again on build/game.adl (--adfs: game_adfs, load_adfs) and tools/load_check.mjs (last, as a race's job soon leaves a machine
-# free). Exit status 1 if any is wrong, or if any job left no status.
+# free). Exit status 1 if any is wrong, or if any job left no status. Each job's start and end (seconds since 1970)
+# in OUT/<job>.time, for the suite's wall time.
 #
 # The jobs run on this machine, or with REMOTE=host on that one (tools/remote.sh copies what they read there, and
 # their logs back). Either way MACHINES run at once (default 4 here, 14 there). The models are made here.
@@ -23,7 +24,7 @@ CHECKS="boot_check break_check crash_check game_check attract_check flash_check 
 if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools/disc_races.sh jobs OUT)
     export OUT=$2                       # (not in the command: BSD xargs -I cuts an argument at 255 bytes)
     mkdir -p "$OUT"
-    rm -f "$OUT"/*.log "$OUT"/*.status
+    rm -f "$OUT"/*.log "$OUT"/*.status "$OUT"/*.time
     { for j in $ROTATIONS; do echo races_$j disc_races --rotate $j; done
       echo probe disc_races --races hprobe --tracks 0
       echo silence disc_races --races h012 --tracks 0 --noscreen --silence     # (a race the fault showed in)
@@ -33,23 +34,26 @@ if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools
       echo game_adfs game_check --adfs
       echo load_adfs load_check --adfs
       echo boot_adfs boot_check --adfs
-    } | xargs -P ${MACHINES:-4} -L 1 sh -c 'n=$0; t=$1; shift; node tools/$t.mjs "$@" > "$OUT/$n.log" 2>&1; echo $? > "$OUT/$n.status"'
+    } | xargs -P ${MACHINES:-4} -L 1 sh -c 'n=$0; t=$1; shift; s=$(date +%s); node tools/$t.mjs "$@" > "$OUT/$n.log" 2>&1; echo $? > "$OUT/$n.status"; echo "$s $(date +%s)" > "$OUT/$n.time"'
     exit 0
 fi
 
 OUT=${1:?usage: tools/disc_races.sh OUT}
 REMOTE=${REMOTE-}
 mkdir -p "$OUT"
+models=$(date +%s)
 for r in $RACES; do for n in 0 1 2 3 4 5 6 7; do
     m=build/check/model_t${n}_$r.bin
     if [ ! -f $m ] || [ build/trace/race_t${n}_$r.json -nt $m ] || [ tools/render_model.py -nt $m ]; then echo "$n $r"; fi
 done; done | xargs -P ${MODELS:-3} -L 1 sh -c '.venv/bin/python -P tools/render_model.py $0 build/trace/race_t$0_$1.json build/check/model_t$0_$1.bin --cue build/trace/logic_t$0_$1.json > /dev/null' || exit 1
+models="$models $(date +%s)"            # (written after the jobs, which clear OUT's *.time)
 if [ -n "$REMOTE" ]; then
     export REMOTE ROTATIONS
     tools/remote.sh "$OUT" || exit 1
 else
     tools/disc_races.sh jobs "$OUT"
 fi
+echo "$models" > "$OUT/models.time"
 fail=0
 status() { [ "$(cat "$OUT/$1.status" 2>/dev/null)" = 0 ] || { echo "$1: failed (status $(cat "$OUT/$1.status" 2>/dev/null))"; fail=1; }; }
 for j in $ROTATIONS; do
