@@ -40,7 +40,9 @@ instructions or edit them.
 
 The build's Baron is `rich/baron`'s (0.6, 4f71e73), the one submodule there that isn't only for reference:
 make builds it with CMake and Ninja into `build/baron/src/baron` (`make baron`) and assembles with that. The
-`baron` on the PATH is the same commit, for use by hand. Prerequisites for the build: `README.md`.
+`baron` on the PATH is the same commit, for use by hand. Hatari, which makes the ST's files, is the same: the
+submodule `extern/hatari` (v2.6.1), built into `build/hatari` (`make hatari`) unless `HATARI` names another
+(`docs/st-traces.md`). Prerequisites for the build: `README.md`.
 
 ## The beeb-port-kit
 

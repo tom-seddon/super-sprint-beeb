@@ -11,12 +11,17 @@ the original's files, by the tools here. That includes the models the render che
 Hatari's runs are deterministic. A fresh clone's files, all made again in Hatari, were the same byte for byte as this
 checkout's (2026-11-09, all 88 in the pack below). `docs/stfiles-sha256.txt` holds the hashes of the pack's 120 files
 as made here (2026-11-10, with the clean track dumps): `sha256sum -c docs/stfiles-sha256.txt` checks a set.
-GitHub's build (`.github/workflows/build.yml`) makes the files in Hatari 2.6.1 on Linux and fails if any differs from
+GitHub's build (`.github/workflows/build.yml`) makes the files in Hatari 2.6.1 (`make hatari`) on Linux and fails if any differs from
 this list, so a change to what a tracer writes needs the list made again, from the files made here: `make
 build/stfiles.tar.gz && tar tzf build/stfiles.tar.gz | LC_ALL=C sort | xargs shasum -a 256 > docs/stfiles-sha256.txt`.
 
-`tools/hatari.sh` looks for Hatari at `/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari`. Set `HATARI` to run
-another. Hatari 2.6.1 made all of these (2.5.0 or later is needed: `docs/brief-ci-hatari-2026-11-10.md`). A file is made
+Hatari is the submodule `extern/hatari`, pinned to v2.6.1, the version that made all of these: make builds it with
+CMake and Ninja into `build/hatari` (`make hatari`, about a minute; it needs SDL2's and zlib's headers, `libsdl2-dev`
+and `zlib1g-dev` on Ubuntu) before the first file it needs, as it does Baron, and `tools/hatari.sh` runs
+`build/hatari/src/hatari`. Set `HATARI` to run another, and make doesn't build it; `tools/hatari.sh` stops, saying
+why, if there's no Hatari there or it's older than 2.5.0 (2.4.1's memory dumps break the tracers:
+`docs/brief-ci-hatari-2026-11-10.md`). The tracers keep its output in their own files, so it says so on the terminal
+too. A tracer run outside make (`tools/game_traces.sh`, `tools/human_traces.sh`) wants `make hatari` first. A file is made
 if it's missing and then kept: a newer tracer or `tools/hatari.sh` doesn't make it again (their timestamps are only the
 last checkout's), so to make one again after changing its tracer, delete it.
 
@@ -64,7 +69,8 @@ make game
 
 `-m` matters. It gives the files the time they were unpacked, not the time they were made. Without it they're older
 than a fresh clone's tools (git gives files the time of the checkout), and make would try to make them again in
-Hatari.
+Hatari. And with `HATARI` unset, make builds Hatari before it sees every file is there: `HATARI=/usr/bin/false make
+game` doesn't, and fails loudly if anything does call Hatari.
 
 Tested on agentbox (2026-11-09). A fresh clone of `repo-baron`, the pack unpacked, then `HATARI=/usr/bin/false
 make game`, so that any call to Hatari would fail. No `baron` on its PATH, and no Hatari it can run. The build took
