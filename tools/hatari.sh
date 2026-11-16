@@ -4,7 +4,7 @@
 # Debugger scripts: --parse file. Exit after N frames: --run-vbls N.
 set -e
 cd "$(dirname "$0")/.."
-HATARI=${HATARI:-/Users/tom/Applications/Hatari.app/Contents/MacOS/Hatari}   # (elsewhere: HATARI=...)
+HATARI=${HATARI:-build/hatari/src/hatari}   # (make hatari builds it, from the submodule extern/hatari; or HATARI=...)
 # The game's files copied for this run alone (so several can run at once), and removed after.
 mkdir -p build
 disk=$(mktemp -d build/stdisk.XXXXXX)
