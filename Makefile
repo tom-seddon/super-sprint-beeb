@@ -62,7 +62,7 @@ GEN = build/gen
 # A generator that fails part-way has written some of its files: its target goes, so the next make reruns it.
 .DELETE_ON_ERROR:
 
-.PHONY: all baron hatari venv stfiles disasm tracks convert sheets viewer beeb play game ta release check clean always version logictrace hazardtrace hazardrace logic logiccheck
+.PHONY: all baron hatari venv stfiles disasm tracks convert sheets viewer beeb play game ta discs release check clean always version logictrace hazardtrace hazardrace logic logiccheck
 
 all: disasm convert sheets viewer beeb
 
@@ -284,6 +284,11 @@ ta: build/zx02 | $(VENV) $(STFILES)
 	tools/all_tracks.sh ta
 	VERSION='$(VERSION)' $(PY) tools/make_game.py build/tracks_ta build/zx02 build/ta.ssd ta
 	$(PY) tools/adfs_disc.py build/ta.ssd build/ta.adl
+# All four discs in one command: make game, then make ta (one after the other: they share build/sprint.*). $(MAKE)
+# passes each make's -j on, with its jobserver.
+discs:
+	$(MAKE) game
+	$(MAKE) ta
 # The release (tools/release.py): build/game.* and build/ta.* (make game, then make ta: two makes, as they share
 # build/sprint.*) in dist, named as their README names them, with the zip's README.txt and the zip; as the GitHub build
 # makes it (.github/workflows/build.yml runs this), so it can be looked at here first.
