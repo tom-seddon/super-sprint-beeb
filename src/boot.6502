@@ -16,10 +16,12 @@ BanksNeeded = 4
 LoadingRow = (HudAddr - &3000) DIV RowBytes   ; the OS's text row at HudAddr, in MODE 1 from &3000
 ASSERT &3000 + LoadingRow * RowBytes == HudAddr, "the HUD's row is one of the OS's"
 
-BootOrg = &1200                         ; below where the files load
+BootOrg = &2000                         ; above a Model B's PAGE (&1900 with DFS 1.2, &1F00 with the 1770's DFS
+                                        ; and ADFS), so its load leaves their workspace alone; below where the
+                                        ; files load
 LoadAddr = &3000                        ; where a bank's file loads, to be copied in, and SPRINT
 
-SECTION Boot, filename = "!BOOT", org = BootOrg, load = &FFFF0000+BootOrg, exec = &FFFF0000+boot_entry
+SECTION Boot, filename = "!BOOT", org = BootOrg, guard = LoadAddr, load = &FFFF0000+BootOrg, exec = &FFFF0000+boot_entry
 
 ZA_POOL &70..&8F                        ; the OS leaves these to us
 

@@ -3,7 +3,7 @@
 > **Status: IN PROGRESS.** An unattended job (Tom away). Branch `suite-boot`, off `main` at 8688a11. Nothing merged,
 > nothing pushed. Report: `docs/report-suite-boot-2026-11-16.md`, written last.
 >
-> **Resume point:** step 5 (`BootOrg` at `&2000`), then step 6's whole suite. If this session ends, the next starts at the step named here, reading this brief, then
+> **Resume point:** step 6 (the whole suite at step 5's commit), then step 7. If this session ends, the next starts at the step named here, reading this brief, then
 > `tools/suite.sh` and the step's notes below.
 >
 > Figures say **MEASURED** (a run, named), **COUNTED** (off the source or a listing) or **ESTIMATED**.
@@ -76,3 +76,8 @@ fine to me." Then, of the defaults below: "These all sound good. Please begin.")
   1770), the rest right: the refusal shown, `*CAT` and BASIC after BREAK. Its first run also had the refusal wrong:
   the message, 42 characters, wraps on MODE 7's 40 ("...Master 128 or Compa" / "ct"), so the check reads the rows
   run together now. The wrap's for Tom to see (the report).
+- Step 5: `BootOrg` `&2000`, its section guarded below `LoadAddr` (`&3000`). MEASURED, both discs built at b30bdb2's
+  source and at this, `VERSION=00000`, `COMMIT` and `WHEN` pinned: on each `.ssd` only `!BOOT` differs, its load and
+  exec `&1200` to `&2000` and its bytes, 719 both (4 sectors: the catalogue's and its 3); `modelb_check` right (16
+  checked); `boot_check` and `boot_check --ta` right, "Loading" and the title's file at the same fields as before
+  (129, 138, 468; 126, 135, 394).
