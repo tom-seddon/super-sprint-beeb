@@ -3,7 +3,7 @@
 > **Status: IN PROGRESS.** An unattended job (Tom away). Branch `ghost-split`, off `main` at 85c48f4. Nothing
 > merged, nothing pushed. Report: `docs/report-ghost-split-2026-11-16.md`, written last.
 >
-> **Resume point:** step 4. If this session ends, the next starts at the step named here, reading this brief, then
+> **Resume point:** step 6 (step 5 committed; its confirming run, `tools/suite_remote.sh` with no settings, noted with it). If this session ends, the next starts at the step named here, reading this brief, then
 > `tools/ta_checks.sh`, `tools/suite_remote.sh` and the step's notes below.
 >
 > Figures say **MEASURED** (a run, named), **COUNTED** (off the source or a listing) or **ESTIMATED**.
@@ -52,3 +52,19 @@ None of hardware: the checks' scripts alone change, not the discs. Not merged, n
   `TRACKS`): `GHOSTS=1` the same 13 checks as before, `TRACKS` unset; 2, 3 and 8 the tracks split as said, the other
   checks without `TRACKS`; one piece wrong (`GHOSTS=3`, tracks 1,4,7 on the DFS disc) made `ghost` wrong,
   `ghost_adfs` right, the exit 1; `GHOSTS=9` refused. The real checks in step 4's runs.
+- Step 4: `GHOSTS` 2, 4 and 8 on agentbox at 3320948, three runs each. MEASURED (the suite's own time there; time
+  attack's checks; its two ghost checks' longest pieces):
+
+      baseline (1)   222 214 216 s   ta_checks 64-74 s   ghost 63-64, ghost_adfs 63-74 s
+      GHOSTS=2       181 182 179 s   ta_checks 36-39 s   34-38, 35-39 s   every verdict 0
+      GHOSTS=4       185 185 182 s   ta_checks 39-42 s   20-21, 21-23 s   every verdict 0
+      GHOSTS=8       189 189 192 s   ta_checks 46-48 s   12-13, 13-14 s   ghost and ghost_adfs wrong, every run
+
+  With 2, the ghost checks end with `merge_adfs` (33-35 s); with 4, `merge_adfs`, last in the list, starts late and is
+  the tail (ta_checks 39-42 against its 33-36). With 8: tracks 5 and 8 (TRACKS 4 and 7) draw no ghost in the check's
+  2400 frames, so their pieces alone fail its rule (no ghost drawn: wrong), on both discs, every run. They draw none in
+  the whole check either (the baseline's log: "0 ghosts" on both passes); the other six cover for them. A gap in the
+  check, for Tom (the report); not changed here.
+- Step 5: `GHOSTS=2` kept, `tools/suite_remote.sh`'s default (agentbox), 214-222 s to 179-182 (about 35 s, 16%; three
+  runs each, the ranges apart). `tools/ta_checks.sh` takes 1 to 4 (5 and up put track 5 or 8 alone), default 1 (the
+  laptop, `tools/suite.sh` alone: unchanged).

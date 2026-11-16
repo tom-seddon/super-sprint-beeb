@@ -7,8 +7,9 @@
 # or .venv), and the ST's files from build/ (docs/st-traces.md: Hatari makes them, and it needn't run there), their
 # times kept so make judges them as it does here. There the suite makes its own .venv and Baron (the README's
 # prerequisites: make, a C compiler, CMake, Ninja, Python 3.14, and Node for the checks), everything else in build/,
-# and the races' models (MODELS at a time, default 12), with HATARI=/usr/bin/false: an ST file missing here fails
-# the suite there, and wants making here first (make stfiles, or the script that makes it).
+# and the races' models (MODELS at a time, default 12), time attack's ghost checks in GHOSTS pieces each (default 2:
+# tools/ta_checks.sh), with HATARI=/usr/bin/false: an ST file missing here fails the suite there, and wants making
+# here first (make stfiles, or the script that makes it).
 # Its OUT comes back here as OUT, with the discs it built (OUT/game.ssd, OUT/game.adl, and time attack's,
 # OUT/ta.ssd, OUT/ta.adl).
 #
@@ -36,7 +37,7 @@ rsync -a --exclude='obj_*' --exclude='*_room.json' --include='*.json' --exclude=
 version=$(make -s version) || exit 1
 commit=$(git rev-parse HEAD) || exit 1
 when=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y%m%d-%H%M) || exit 1
-ssh -o ServerAliveInterval=30 "$REMOTE" "cd $DIR && rm -rf out/suite && VERSION='$version' COMMIT='$commit' WHEN='$when' HATARI=/usr/bin/false REMOTE= MACHINES=${MACHINES:-14} MODELS=${MODELS:-12} GHOSTS=${GHOSTS:-1} sh tools/suite.sh out/suite $2 > out/suite.log 2>&1; echo \$? > out/suite.status"
+ssh -o ServerAliveInterval=30 "$REMOTE" "cd $DIR && rm -rf out/suite && VERSION='$version' COMMIT='$commit' WHEN='$when' HATARI=/usr/bin/false REMOTE= MACHINES=${MACHINES:-14} MODELS=${MODELS:-12} GHOSTS=${GHOSTS:-2} sh tools/suite.sh out/suite $2 > out/suite.log 2>&1; echo \$? > out/suite.status"
 [ $? = 0 ] || exit 1
 mkdir -p "$OUT"
 rsync -a "$REMOTE:$DIR/out/suite/" "$OUT/" || exit 1
