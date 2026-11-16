@@ -3,7 +3,7 @@
 > **Status: IN PROGRESS.** An unattended job (Tom away). Branch `ghost-split`, off `main` at 85c48f4. Nothing
 > merged, nothing pushed. Report: `docs/report-ghost-split-2026-11-16.md`, written last.
 >
-> **Resume point:** step 3. If this session ends, the next starts at the step named here, reading this brief, then
+> **Resume point:** step 4. If this session ends, the next starts at the step named here, reading this brief, then
 > `tools/ta_checks.sh`, `tools/suite_remote.sh` and the step's notes below.
 >
 > Figures say **MEASURED** (a run, named), **COUNTED** (off the source or a listing) or **ESTIMATED**.
@@ -46,3 +46,9 @@ None of hardware: the checks' scripts alone change, not the discs. Not merged, n
   attack's tracks 114-145, its disc 145-156, `modelb_check` 156-158; time attack's checks 158-222 (64 s; 72 and 74 in
   runs 2 and 3). In those, the ghost checks the longest, 63-74 s, the next `merge_adfs` 32-35 s. So the suite's tail is
   the ghost checks alone, about 30-40 s of it past everything else.
+- Step 3: `tools/ta_checks.sh` takes `GHOSTS` (1 to 8, default 1): piece k of each ghost check races tracks k,
+  k+GHOSTS, ...; `ghost` and `ghost_adfs` made from their pieces (wrong if any is or left no status; the log theirs
+  in turn; the time the longest). MEASURED with stand-in checks (a scratch tree, each printing its arguments and
+  `TRACKS`): `GHOSTS=1` the same 13 checks as before, `TRACKS` unset; 2, 3 and 8 the tracks split as said, the other
+  checks without `TRACKS`; one piece wrong (`GHOSTS=3`, tracks 1,4,7 on the DFS disc) made `ghost` wrong,
+  `ghost_adfs` right, the exit 1; `GHOSTS=9` refused. The real checks in step 4's runs.
