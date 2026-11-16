@@ -3,7 +3,7 @@
 > **Status: IN PROGRESS.** An unattended job (Tom away). Branch `ghost-split`, off `main` at 85c48f4. Nothing
 > merged, nothing pushed. Report: `docs/report-ghost-split-2026-11-16.md`, written last.
 >
-> **Resume point:** step 2. If this session ends, the next starts at the step named here, reading this brief, then
+> **Resume point:** step 3. If this session ends, the next starts at the step named here, reading this brief, then
 > `tools/ta_checks.sh`, `tools/suite_remote.sh` and the step's notes below.
 >
 > Figures say **MEASURED** (a run, named), **COUNTED** (off the source or a listing) or **ESTIMATED**.
@@ -39,3 +39,10 @@ tracks (`TRACKS=`, which the check takes already), on agentbox only: on the lapt
 None of hardware: the checks' scripts alone change, not the discs. Not merged, not pushed: Tom's word for the merge.
 
 ## 4. Notes as the steps land
+
+- Step 2 (2026-11-16): the baseline at 9787068, `tools/suite_remote.sh` three times, every verdict 0 each time.
+  MEASURED: the suite 222, 214 and 216 s on agentbox (218-227 s with the copying, here). Run 1's steps: the builds to
+  the game's disc 51 s; the disc's races beside the rest, 51-154 s; the short checks, one at a time, 51-114 s; time
+  attack's tracks 114-145, its disc 145-156, `modelb_check` 156-158; time attack's checks 158-222 (64 s; 72 and 74 in
+  runs 2 and 3). In those, the ghost checks the longest, 63-74 s, the next `merge_adfs` 32-35 s. So the suite's tail is
+  the ghost checks alone, about 30-40 s of it past everything else.
