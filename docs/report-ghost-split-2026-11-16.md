@@ -66,8 +66,9 @@ nothing (its ghost pieces done in about 21 s, `merge_adfs` then the tail).
 
 ## What's open
 
-- Nothing of this item. The plan's "suite's wall time" can close, if you agree, with the note above on what
-  agentbox's suite still waits on as a new item or not, as you choose.
+- Nothing of this item. The note above on what agentbox's suite still waits on: on the plan's list for a possible
+  later version (Tom, 2026-11-16: "I think at this stage maybe it isn't quite worth it for 2 minutes."), with three
+  changes costed (about 179 s to 150, or 120 with the track builds in parallel; ESTIMATED).
 
 ## Branch ledger
 

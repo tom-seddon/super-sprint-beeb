@@ -524,7 +524,7 @@ adds the logic.
   (`GHOSTS=2`, `tools/suite_remote.sh`'s default), the suite there 214-222 s to 179-182 (MEASURED, three runs each);
   4 and 8 no better. On the way the time attack autopilot fixed (Tom: "Yes, fix the autopilot"): it wedged on tracks
   5 and 8, so the ghost check never saw a ghost there; now every track laps and the check wants a ghost on each. The
-  report has one thing for Tom: what agentbox's suite still waits on (about 105 s of its 180 one step after another). What it was (Tom, 2026-11-13: "potentially useful, but still a lot
+  report's note on what agentbox's suite still waits on is now an item for a later version, below. What it was (Tom, 2026-11-13: "potentially useful, but still a lot
   of wall clock time either way. So not worth it immediately"); the laptop's measurements, `JOURNAL.md`, 2026-11-13,
   "the checks' times on Tom's laptop".
 - For Tom to do: `README.md`, his file (`CLAUDE.md`): reminders only, of what it might usefully mention, kept up as
@@ -579,6 +579,28 @@ Worth noting, not needed for a first release (Tom, 2026-11-16).
 - For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
   What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
   OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
+
+- The suite on agentbox faster still (Tom, 2026-11-16: "I think at this stage maybe it isn't quite worth it for 2
+  minutes. Please add this to the list of things for consideration for a future update, as it'd help with the
+  iteration time when making the changes."). MEASURED, `tools/suite_remote.sh` at 8972c9b, `GHOSTS=2`, 179 s: the
+  game's 8 track builds one at a time, 0-39 s; its disc, 39-42; the disc's checks in the background, 42-147 (their
+  longest, one batch of races, 105 s alone); meanwhile 5 builds and 18 short checks one at a time, 42-105; time
+  attack's 8 track builds and disc one at a time, 105-137; its checks 142-179, the last. They're one at a time because
+  every build writes `build/sprint.*` and `build/gen` (the Makefile names `build/` in 104 places, no setting to move
+  it); the disc's checks escaped by running in their own copy (`OUT/disc_races/tree`). Three changes, each in copies
+  the same way, ESTIMATED, none tried:
+  1. Time attack built and checked in its own copy (`OUT/ta/tree`, the source copied, the ST's traces, `.venv`, Baron
+     and the ZX02 compressor linked) from the start: done by about 85-90 s, inside the disc's checks, so the suite
+     about 150 s. `modelb_check`, reading both discs, moved to the end.
+  2. The short checks beside each other: each build's outputs copied to a folder of its own, its checks run there in
+     the background, the builds (1-2 s each) still one at a time. Little alone once (1) is done; needed if (3)
+     shortens the disc's checks' wait.
+  3. The track builds 8 at a time, each in its own copy (`tools/all_tracks.sh`, the game's and time attack's), its
+     disc and listing gathered as now, the slots check unchanged: the disc made at about 12 s, not 42, so the suite
+     about the disc's start and its longest batch of races, about 120 s against 179.
+  Below that, the 105 s batch of races split. On the laptop (2 cores) nothing spare: a setting `tools/suite_remote.sh`
+  turns on for agentbox, as `GHOSTS`, `tools/suite.sh` alone as it is. Each kept only if every check passes and the
+  suite is clearly faster, three runs each.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
