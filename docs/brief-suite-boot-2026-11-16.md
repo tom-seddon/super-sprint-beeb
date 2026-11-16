@@ -3,7 +3,7 @@
 > **Status: IN PROGRESS.** An unattended job (Tom away). Branch `suite-boot`, off `main` at 8688a11. Nothing merged,
 > nothing pushed. Report: `docs/report-suite-boot-2026-11-16.md`, written last.
 >
-> **Resume point:** step 3 (the disc's jobs ordered longest first, then `MACHINES=2`). If this session ends, the next starts at the step named here, reading this brief, then
+> **Resume point:** step 5 (`BootOrg` at `&2000`), then step 6's whole suite. If this session ends, the next starts at the step named here, reading this brief, then
 > `tools/suite.sh` and the step's notes below.
 >
 > Figures say **MEASURED** (a run, named), **COUNTED** (off the source or a listing) or **ESTIMATED**.
@@ -65,3 +65,14 @@ fine to me." Then, of the defaults below: "These all sound good. Please begin.")
   checks 927 and 939 s, sharing the cores, against 426 and 429). One run each, so within this laptop's noise in
   principle, but as predicted; kept, as the copy also keeps a change to build/gen during the run (the baseline's
   failure) from the disc's jobs. The tail: `game_adfs` alone for the last 61 s.
+- Step 3, run B at b30bdb2 (the disc's jobs longest first): every verdict 0, 2,469 s against A2's 2,500 (31 s). Small
+  for the whole, but the tail shows it: the last six jobs ended within 6 s of each other (2,463-2,469), where A2 had
+  `game_adfs` alone for its last 61 s. Kept.
+- Step 3, run C at b30bdb2 with `MACHINES=2`: every verdict 0, 2,462 s against B's 2,469 (7 s: noise). Dropped, as
+  before for time attack's checks alone (437 against 447 s, 2026-11-13); nothing to undo, it's the environment's.
+  So the suite: 2,637 s to about 2,465 (6.5%), MEASURED, one run each.
+- Step 4: `tools/modelb_check.mjs`, in `tools/suite.sh` after time attack's disc (13 s). MEASURED at b30bdb2's discs
+  (`!BOOT` at `&1200`): 4 wrong, each disc on each Model B its load below PAGE (`&1900` on DFS 1.2, `&1F00` on the
+  1770), the rest right: the refusal shown, `*CAT` and BASIC after BREAK. Its first run also had the refusal wrong:
+  the message, 42 characters, wraps on MODE 7's 40 ("...Master 128 or Compa" / "ct"), so the check reads the rows
+  run together now. The wrap's for Tom to see (the report).

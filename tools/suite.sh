@@ -62,6 +62,7 @@ run keys_check node tools/keys_check.mjs
 # which the disc's jobs don't read where they run
 run ta_tracks tools/all_tracks.sh ta
 run ta_disc sh -c '.venv/bin/python tools/make_game.py build/tracks_ta build/zx02 build/ta.ssd ta && .venv/bin/python -P tools/adfs_disc.py build/ta.ssd build/ta.adl'
+run modelb_check node tools/modelb_check.mjs   # (both discs refused on a Model B, !BOOT above its PAGE)
 run ta_checks tools/ta_checks.sh "$OUT/ta"
 wait
 for c in boot_check break_check crash_check game_check attract_check flash_check options_check select_check upgrades_check circle_check initials_check tune_check tune_off save_check load_check game_adfs load_adfs boot_adfs; do            # (each on its own line, as the disc's jobs left it)
