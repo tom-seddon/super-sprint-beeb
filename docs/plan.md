@@ -599,7 +599,15 @@ Worth noting, not needed for a first release (Tom, 2026-11-16).
      shortens the disc's checks' wait.
   3. The track builds 8 at a time, each in its own copy (`tools/all_tracks.sh`, the game's and time attack's), its
      disc and listing gathered as now, the slots check unchanged: the disc made at about 12 s, not 42, so the suite
-     about the disc's start and its longest batch of races, about 120 s against 179.
+     about the disc's start and its longest batch of races, about 120 s against 179. It would help the build
+     itself too, on a machine of many slow cores: Tom's Linux PC (an AMD 2990WX, 2018), building a fresh clone with
+     `make -j64 game && make -j64 ta` (2026-11-16), sat on `tools/all_tracks.sh`, one core busy, where agentbox (an
+     M4 Max, much faster a core) doesn't notice. Here at `-j32`, `make game` 2 min 6 s and `make ta` 1 min 5 s
+     (MEASURED, 2026-11-16), most of it the 8 track builds one after another. And each of those is `-j1` too: the
+     script runs `make beeb` from a plain recipe, so make passes it no jobserver ("jobserver unavailable: using -j1.
+     Add '+' to parent make rule.", in every `build/all_tracks_t*.log`); `+tools/all_tracks.sh` in the `game` and
+     `ta` rules would pass `-j` on. What that saves isn't measured (likely little: much of a track's build is Baron
+     alone). Tom, 2026-11-16: nothing needs doing for now.
   Below that, the 105 s batch of races split. On the laptop (2 cores) nothing spare: a setting `tools/suite_remote.sh`
   turns on for agentbox, as `GHOSTS`, `tools/suite.sh` alone as it is. Each kept only if every check passes and the
   suite is clearly faster, three runs each.
