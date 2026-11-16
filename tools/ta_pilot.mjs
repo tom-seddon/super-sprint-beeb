@@ -1,8 +1,9 @@
 // An autopilot for car 0, for time attack's checks (tools/ta_ghost_check.mjs): along the drones' path (the ST's, read
 // from SUPER.DAT as tools/gen_logic.py does) as a drone takes its segments (drone.6502's next_segment, an even car's
-// lane), steering for the segment's end, lifting off to turn (a turn accelerating costs speed) and not turning below
-// speed 6. Crude: it laps 6 of the 8 tracks; on tracks 5 and 8 it wedges against a wall. Lost (put back after a
-// wreck), it takes the nearest segment.
+// lane), steering for a point Ahead along the path, lifting off to turn (a turn accelerating costs speed) and not
+// turning below speed 6. Wedged against a wall, it lets go and turns off it. Lost (put back after a wreck), it takes
+// the nearest segment. It laps all 8 tracks (till 2026-11-16 it steered for each segment's end and wedged on tracks 5
+// and 8: docs/report-ghost-split-2026-11-16.md).
 //
 // Usage: const pilot = makePilot(s, syms) at logic_frame.played (the logic's bank and ANDY in), then pilot() there
 // each frame: RcInput's byte for car 0.
@@ -21,6 +22,13 @@ function path(track) {
         return { x: word(4 * i), y: word(4 * i + 1), len: word(4 * i + 2) & 255, dlo: d & 255, dhi: d >> 8 };
     });
 }
+
+// How far ahead along the path it steers (eighths of a pixel, as RcX8), and how near a segment's end counts as reached.
+// Every track laps with Ahead anywhere from 8 * 30 to 8 * 50 (MEASURED, 2026-11-16: the ghost check, each track one
+// pass); 8 * 40 the middle.
+const Ahead = 8 * 40, Reached = 8 * 4;
+// Wedged: moved less than Stuck in StuckFrames frames; then FreeFrames getting free, for a target FreeAhead on
+const Stuck = 8 * 4, StuckFrames = 64, FreeFrames = 100, FreeAhead = 8 * 8;
 
 export function makePilot(s, syms) {
     const cpu = s._machine.processor;
@@ -44,7 +52,8 @@ export function makePilot(s, syms) {
         let t = ((x - p.x) * vx + (y - p.y) * vy) / L; const tc = Math.max(0, Math.min(1, t));
         return [Math.hypot(x - p.x - tc * vx, y - p.y - tc * vy), t];
     };
-    let held = 0;
+    const hist = [];                    // (the car's places, the last StuckFrames)
+    let freeing = 0;                    // (frames left to get free of a wall)
     const input = function () {
         const x = w16(syms.RcX8Lo, syms.RcX8Hi), y = w16(syms.RcY8Lo, syms.RcY8Hi), dir = m(syms.RcDir);
         let [d, t] = segDist(P[idx], x, y);
@@ -52,13 +61,34 @@ export function makePilot(s, syms) {
             let best = 1e9; for (let i = 0; i < n; i++) { const [di] = segDist(P[i], x, y); if (di < best) { best = di; idx = i; } }
             [d, t] = segDist(P[idx], x, y);
         }
-        for (let k = 0; k < 4 && (t > 0.999 || Math.hypot(P[idx].ex - x, P[idx].ey - y) < 8 * 20); k++) { idx = next(idx); [d, t] = segDist(P[idx], x, y); }
-        const p = P[idx];
-        const tx = p.ex - x, ty = p.ey - y;
+        // on to the next segment once past this one's end (or at it), never past a bend's segments in one go
+        for (let k = 0; k < 4 && (t > 0.999 || Math.hypot(P[idx].ex - x, P[idx].ey - y) < Reached); k++) { idx = next(idx); [d, t] = segDist(P[idx], x, y); }
+        // wedged (moved under Stuck in StuckFrames): a wall's bounce ignores the input (human.6502's RcBounce), so
+        // driving on into it never turns, and a slight turn along a wall is straightened (its nudge). So for
+        // FreeFrames: nothing while it bounces, then for a target just ahead on the line (a sharp turn off the wall)
+        hist.push([x, y]);
+        if (hist.length > StuckFrames) hist.shift();
+        if (!freeing && hist.length === StuckFrames && Math.hypot(x - hist[0][0], y - hist[0][1]) < Stuck) { freeing = FreeFrames; hist.length = 0; }
+        // the target: Ahead along the path from the car's place on it (so back to the line when off it, and round a
+        // bend the way the path goes), not the segment's end
+        let i = idx, tc = Math.max(0, Math.min(1, t)), left = freeing ? FreeAhead : Ahead;
+        let gx = P[i].x + tc * (P[i].ex - P[i].x), gy = P[i].y + tc * (P[i].ey - P[i].y);
+        for (let k = 0; k < 8; k++) {
+            const r = Math.hypot(P[i].ex - gx, P[i].ey - gy);
+            if (r >= left) { gx += ((P[i].ex - gx) * left) / r; gy += ((P[i].ey - gy) * left) / r; break; }
+            left -= r; i = next(i); gx = P[i].x; gy = P[i].y;
+        }
+        const tx = gx - x, ty = gy - y;
         let want = 0, bestDot = -1e9;
         for (let f = 0; f < 16; f++) { const dot = (DX[f] * tx + DY[f] * ty) / Math.hypot(DX[f], DY[f]); if (dot > bestDot) { bestDot = dot; want = f; } }
         const diff = (want - dir + 16) & 15;
         const speed = m(syms.RcSpeedLo) | (m(syms.RcSpeedHi) << 8);
+        if (freeing) {
+            freeing--;
+            if (m(syms.RcBounce)) return 0;                             // (still bouncing: nothing)
+            if (diff !== 0) return diff <= 8 ? 8 : 4;                   // (turned for the target before going)
+            return 0x80;
+        }
         if (diff === 0 || (speed & 0x8000) || speed < 6) return 0x80;   // (a turn costs speed: none from a standstill)
         return diff <= 8 ? 8 : 4;                                       // (a turn accelerating costs speed: lift off)
     };
