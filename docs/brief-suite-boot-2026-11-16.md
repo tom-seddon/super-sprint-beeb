@@ -1,9 +1,9 @@
 # Brief - the suite's wall time, and !BOOT above a Model B's PAGE (2026-11-16)
 
-> **Status: IN PROGRESS.** An unattended job (Tom away). Branch `suite-boot`, off `main` at 8688a11. Nothing merged,
+> **Status: DONE (2026-11-16): steps 1-7; ready for Tom's Master, not merged.** An unattended job (Tom away). Branch `suite-boot`, off `main` at 8688a11. Nothing merged,
 > nothing pushed. Report: `docs/report-suite-boot-2026-11-16.md`, written last.
 >
-> **Resume point:** step 6 (the whole suite at step 5's commit), then step 7. If this session ends, the next starts at the step named here, reading this brief, then
+> **Resume point:** none: done. Next is Tom's: the boot on his Master, then whether to merge. If this session ends, the next starts at the step named here, reading this brief, then
 > `tools/suite.sh` and the step's notes below.
 >
 > Figures say **MEASURED** (a run, named), **COUNTED** (off the source or a listing) or **ESTIMATED**.
@@ -81,3 +81,6 @@ fine to me." Then, of the defaults below: "These all sound good. Please begin.")
   exec `&1200` to `&2000` and its bytes, 719 both (4 sectors: the catalogue's and its 3); `modelb_check` right (16
   checked); `boot_check` and `boot_check --ta` right, "Loading" and the title's file at the same fields as before
   (129, 138, 468; 126, 135, 394).
+- Step 6: the whole suite at 4168329, every verdict 0 (61), 2,460 s; `modelb_check` among them, the boots' fields as
+  before (DFS 129, 138, 468; time attack 126, 135, 394; ADFS 217, 226, 659).
+- Step 7: the report, `docs/report-suite-boot-2026-11-16.md`; the plan's two items; `CLAUDE.md`'s oracles; the journal.

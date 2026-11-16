@@ -1003,3 +1003,19 @@ Tom committed first drafts of the three READMEs (`b2c26dd`), and `readme-templat
 to the README.md in the repo", and the list of what it might mention kept going ("please do continue to maintain the
 list of things that might usefully need mentioning"). So the plan's list for Tom is now `README.md`'s alone, grouped
 as playing, time attack, MERGE and building, less what the drafts already say. Its present text is a placeholder.
+
+## 2026-11-16: the suite's wall time, and !BOOT above a Model B's PAGE (an unattended job)
+
+Tom away ("These all sound good. Please begin."); `docs/brief-suite-boot-2026-11-16.md`,
+`docs/report-suite-boot-2026-11-16.md`, the branch `suite-boot`. First a fault of mine: `tools/suite.sh` still called
+`make_game.py` with three arguments after d0ac217 made the README's kind its fourth (exit 2); fixed. Then the suite
+timed step by step (`OUT/times.txt`, the disc's jobs' `.time`), MEASURED on the laptop, one run each: the baseline
+2,637 s; the disc's jobs in the background in their own copy (`OUT/disc_races/tree`, `tools/disc_files.sh`: copied
+before the builds after the disc's rewrite `build/gen`, the traces and models hard-linked), 2,500; the jobs longest
+first, 2,469 (the last six ending within 6 s, where `game_adfs` had run alone for 61); `MACHINES=2`, 2,462, noise,
+dropped. The baseline's two failures were mine (a file added to the tree mid-run changed the version in `build/gen`
+after the disc was made), as was run A's (the copy made `.mcp.json` a directory). Then `tools/modelb_check.mjs`
+(both discs on jsbeeb's Model Bs: refused, `!BOOT`'s load against PAGE, `*CAT` and BASIC after), 4 wrong at `&1200`,
+and `BootOrg` at `&2000`: only `!BOOT` differs on the discs (built before and after, the version, commit and date
+pinned), the check right, and the whole suite at 4168329 every verdict 0 in 2,460 s. Ready for Tom's Master; not
+merged. The refusal, 42 characters, wraps mid-word on a Model B's MODE 7; for Tom.
