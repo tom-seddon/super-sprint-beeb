@@ -64,7 +64,8 @@ None. The two items were as the plan had them, and the four suite guesses were j
   128 or Compa" / "ct". It was so at `&1200` too. Changed (Tom, 2026-11-16, first: "I think for the shorter message,
   remove the `a `", then of the suggestions: "I think `Super Sprint needs a BBC Master` would be better actually"):
   "Super Sprint needs a BBC Master", 31, one row (the OS's newline before it), `boot.6502` asserting it's no more
-  than 40 (MEASURED: the assertion fails at 42). `modelb_check` right, the boots' fields as before.
+  than 40 (MEASURED: the assertion fails at 42). `modelb_check` right, the boots' fields as before. Tom, in b2 (2026-11-16): "Looks good in b2 in BBC B+ADFS mode.
+  I'm happy with this."
 - An ADFS-only Model B, your worry, can't be tried in jsbeeb (it has none). Tom tried it in b2 (2026-11-16): "Tried
   on b2 with BBC B+ADFS - got the expected error."
 
