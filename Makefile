@@ -5,7 +5,8 @@
 #   make check     the renderer test in headless jsbeeb (a Master 128): every frame of the ST race against
 #                  the model, and each frame's work timed (tools/render_check.mjs)
 
-PYTHON3 ?= python3.14
+# Python 3.12 or later (requirements.txt's numpy needs it; PY's -P 3.11): the .venv rule checks.
+PYTHON3 ?= python3
 PY = .venv/bin/python -P
 VENV = .venv/installed
 
@@ -77,6 +78,7 @@ baron: $(BARON)
 # The Python virtual environment (git-ignored), made on first use and refreshed when requirements.txt changes.
 venv: $(VENV)
 $(VENV): requirements.txt
+	@$(PYTHON3) -c 'import sys; v = sys.version.split()[0]; sys.exit(0 if sys.version_info >= (3, 12) else f"The build needs Python 3.12 or later; $(PYTHON3) is {v}. Use another with: make PYTHON3=...")'
 	$(PYTHON3) -m venv .venv
 	.venv/bin/pip install -r requirements.txt
 	touch $@

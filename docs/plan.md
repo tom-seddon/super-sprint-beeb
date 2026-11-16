@@ -337,8 +337,9 @@ adds the logic.
   clone"); what it might mention, for Tom to word:
   - The prerequisites, in README.md till 2026-11-15 and gone from it now (`CLAUDE.md` still sends a reader there):
     make, a C compiler (`cc`), CMake 3.21 or later and Ninja (Baron and the ZX02 compressor are built from the
-    submodules); Python 3.14 as `python3.14` (the build makes `.venv` from `requirements.txt`; 3.12 with `make
-    PYTHON3=python3.12`, and on Ubuntu apt's `python3.12-venv`); Hatari 2.5.0 or later (2.6.1 here; Ubuntu 24.04's
+    submodules); Python 3.12 or later as `python3` (the build makes `.venv` from `requirements.txt`, stopping first
+    if it's older; another with `make PYTHON3=...`; on Ubuntu apt's `python3.12-venv`; a Mac's own `python3` is too
+    old); Hatari 2.5.0 or later (2.6.1 here; Ubuntu 24.04's
     2.4.1 won't do) and perl, `HATARI` set to it if it isn't at `tools/hatari.sh`'s path; Node 22 for the checks.
     About 16 minutes from nothing, most of it the ST's traces in Hatari, made once and kept in `build/`; where Hatari
     doesn't run, `docs/st-traces.md` (`make stfiles`, `build/stfiles.tar.gz`). Linux (Mint 22.3) and macOS; not
