@@ -3,7 +3,7 @@
 > **Status: IN PROGRESS.** An unattended job (Tom away). Branch `suite-boot`, off `main` at 8688a11. Nothing merged,
 > nothing pushed. Report: `docs/report-suite-boot-2026-11-16.md`, written last.
 >
-> **Resume point:** step 1. If this session ends, the next starts at the step named here, reading this brief, then
+> **Resume point:** step 2. If this session ends, the next starts at the step named here, reading this brief, then
 > `tools/suite.sh` and the step's notes below.
 >
 > Figures say **MEASURED** (a run, named), **COUNTED** (off the source or a listing) or **ESTIMATED**.
@@ -44,3 +44,7 @@ fine to me." Then, of the defaults below: "These all sound good. Please begin.")
 - The ADFS-only Model B can't be tried in jsbeeb (it has no such model); said so in the report.
 
 ## 4. Notes as the steps land
+
+- Step 1 (2026-11-16): `tools/suite.sh` gives `make_game.py` its kind (`game`, `ta`), and lists `merge` and
+  `merge_adfs` among time attack's verdicts. MEASURED: its `game_disc` line exit 0 (43 s), the old exit 2. The rest in
+  step 2's run.

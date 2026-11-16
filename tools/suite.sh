@@ -28,7 +28,7 @@ run() {
 run prepare make venv baron build/zx02 build/trace/logic_t0_r0.json
 run all_tracks tools/all_tracks.sh
 run readmes .venv/bin/python -P tools/disc_readme.py --check
-run game_disc sh -c 'make build/zx02 && .venv/bin/python tools/make_game.py build/tracks build/zx02 build/game.ssd && .venv/bin/python -P tools/adfs_disc.py build/game.ssd build/game.adl'
+run game_disc sh -c 'make build/zx02 && .venv/bin/python tools/make_game.py build/tracks build/zx02 build/game.ssd game && .venv/bin/python -P tools/adfs_disc.py build/game.ssd build/game.adl'
 [ -n "$REMOTE" ] && run disc_races tools/disc_races.sh "$OUT/disc_races" &
 run st_frontend .venv/bin/python -P tools/st_frontend.py
 run st_screens .venv/bin/python -P tools/st_screens_check.py
@@ -59,9 +59,9 @@ done
 # time attack (docs/brief-timeattack-2026-11-10.md): its tracks' builds and discs (make ta), then its checks
 # (tools/ta_checks.sh, MACHINES at a time), here wherever the races went: the builds share build/sprint.*
 run ta_tracks tools/all_tracks.sh ta
-run ta_disc sh -c '.venv/bin/python tools/make_game.py build/tracks_ta build/zx02 build/ta.ssd && .venv/bin/python -P tools/adfs_disc.py build/ta.ssd build/ta.adl'
+run ta_disc sh -c '.venv/bin/python tools/make_game.py build/tracks_ta build/zx02 build/ta.ssd ta && .venv/bin/python -P tools/adfs_disc.py build/ta.ssd build/ta.adl'
 run ta_checks tools/ta_checks.sh "$OUT/ta"
-for c in ghost menu rows table save scores picture options boot boot_adfs ghost_adfs; do
+for c in ghost menu rows table save scores picture options boot boot_adfs ghost_adfs merge merge_adfs; do
     status=$(cat "$OUT/ta/$c.status" 2>/dev/null)
     echo "ta_$c ${status:-missing}" >> "$OUT/verdicts.txt"
 done
