@@ -343,7 +343,32 @@ adds the logic.
     from the clone (about 11 before the last change), and about 2 min 13 s again straight after (every track built
     again: `tools/all_tracks.sh`, the later version's item). macOS not tried, and broken till it's given `PYTHON3`
     and `HATARI` or Homebrew's `sdl2` (Tom: "I don't mind temporarily breaking the Mac build for now"; he may not
-    want Hatari built there, "since installing dependencies can be a pain").
+    want Hatari built there, "since installing dependencies can be a pain"). Then `make` alone makes all four discs
+    (`make discs`: `make game`, then `make ta`), Tom's clone of it checked ("Looks good"), and README.md's building
+    section his (`bab1f32`).
+  - Next, in a session on the Mac (Tom, 2026-11-16), on the branch `fresh-clone-linux`, not yet merged: macOS's
+    build (above), and **GitHub's build, not yet run since it changed** (`074e8a2`: Hatari from `extern/hatari` by
+    `make hatari`, no tarball or SHA-256; the local OS doesn't matter, it runs on GitHub). To check it:
+    1. Start it. `gh workflow run build.yml --ref fresh-clone-linux` (or the Actions tab, "Run workflow", the
+       branch picked) runs the branch's workflow without touching `ci-build`; `main`'s copy has
+       `workflow_dispatch`, which GitHub needs. Either way it publishes a release named after the commit, as every
+       run does (Tom deleted the test ones before): Tom's call whether a branch commit gets one, or whether to wait
+       till it's merged and push `ci-build` as usual (`git branch -f ci-build main && git push origin ci-build`).
+    2. The first run misses the cache (its key is now `hatari-<extern/hatari's commit>-Linux-ubuntu-24.04`): the
+       "Build Hatari" step runs `make hatari` (about 2 minutes on 2 CPUs, ESTIMATED from the old step's 2 min 11 s)
+       and copies the binary to the cache's folder; "Make the ST's files" prints "Hatari v2.6.1"; "Check them
+       against the Mac's" passes (`docs/stfiles-sha256.txt`); the discs, time attack's and the release follow. The
+       old cache, `hatari-2.6.1-Linux-ubuntu-24.04`, is unused now and can be deleted (`gh cache list`,
+       `gh cache delete`), or left to expire.
+    3. Run it again (same commit, or the next): a cache hit, "Build Hatari" skipped, and no `cmake -S extern/hatari`
+       in "Build the discs" or later (`HATARI` is set for every step from the first, through `GITHUB_ENV`, so make
+       doesn't build its own).
+    4. Compare the release's notes (the five files' SHA-256 and the zip's) with `make release`'s `dist/` built
+       locally at the same commit, as was done for fd53abd: the discs carry the commit, so only the same commit
+       compares (`make` then `make release`, once the Mac builds).
+    Checked here first (2026-11-16): a depth-1 fetch of `extern/hatari`'s pinned commit works (the workflow fetches
+    its submodules `--depth 1`), Hatari's build leaves the submodule's tree clean (the workflow fails if the tree has
+    changes, as the version would end in `m`), and the YAML parses. Not run: `gh` isn't on Tom's Linux PC.
   - The prerequisites, in README.md till 2026-11-15 and gone from it now (`CLAUDE.md` still sends a reader there):
     make, a C compiler (`cc`), CMake 3.21 or later and Ninja (Baron and the ZX02 compressor are built from the
     submodules); Python 3.12 or later as `python3` (the build makes `.venv` from `requirements.txt`, stopping first
