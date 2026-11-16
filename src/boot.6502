@@ -44,7 +44,7 @@ ZA_POOL &70..&8F                        ; the OS leaves these to us
     BRK
     EQUB 0
 .refusal
-    EQUS "Super Sprint needs Master 128 or Compact"
+    EQUS "Super Sprint needs a BBC Master"
 .refusal_end
     EQUB 0
     ZA_UNREACHABLE                      ; the BRK doesn't come back

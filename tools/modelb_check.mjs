@@ -1,7 +1,7 @@
 // The game's and time attack's discs on a Model B, which they refuse (boot.6502: NMOS code to there): SHIFT-BREAK
 // on jsbeeb's Model B with DFS 1.2 (PAGE &1900) and on its 1770 model (DFS and ADFS both, PAGE &1F00, the worst case;
 // Tom, 2026-11-15: a Model B's test covers a B+'s, which jsbeeb hasn't), build/game.ssd and build/ta.ssd each:
-// - "Super Sprint needs Master 128 or Compact" on MODE 7's screen within 10 s of the boot;
+// - "Super Sprint needs a BBC Master" on MODE 7's screen within 10 s of the boot;
 // - after BREAK, !BOOT's load address (its catalogue's) at or above the machine's PAGE, so its load leaves the
 //   filing system's workspace, under PAGE, alone (the plan's "Possible later", 2026-11-15: it was &1200, below both);
 // - the machine fine after it: *CAT lists the disc's files, BASIC works.
@@ -15,7 +15,7 @@
 import { discFiles, jsbeebModule } from "./jsbeeb.mjs";
 
 const { MachineSession } = await jsbeebModule("machine-session.js");
-const Refused = "Super Sprint needs Master 128 or Compact";
+const Refused = "Super Sprint needs a BBC Master";
 let bad = 0, checked = 0;
 const want = (what, ok) => (ok ? checked++ : bad++ < 30 && console.log(`${what}: wrong`));
 
