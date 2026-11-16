@@ -359,8 +359,9 @@ adds the logic.
     line), and the release zip's discs, `{{game_ssd}}`, `{{game_adl}}`, `{{ta_ssd}}`, `{{ta_adl}}`;
     `tools/disc_readme.py --check` (in the suite) fails on an unknown name, and the discs' line lengths are checked
     by eye.
-- A GitHub Actions build (Tom, 2026-11-10): "a GitHub Actions setup that builds the game and creates a zip file
-  with the .adl and .ssd files in it. The zip file and disk images inside it should be named with commit time and
+- ~~A GitHub Actions build~~: closed 2026-11-16 (Tom: "Yes, close it"), after the run at fd53abd below. What it was
+  (Tom, 2026-11-10): "a GitHub Actions setup that builds the game and creates a zip file with the .adl and .ssd files
+  in it. The zip file and disk images inside it should be named with commit time and
   date (in UTC) as well as the part of the commit hash shown in-game, so that it's easier to check which is the
   newer version if you end up with multiple copies." Names like `super-sprint-20261110-1432-e6e28.zip` (Tom: "The
   name format is fine"). The build reads the ST's files Hatari makes (`docs/st-traces.md`), which aren't in the
