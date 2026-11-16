@@ -253,8 +253,6 @@ adds the logic.
   195 (prepare's) to 1,682 (the circle's) free, their parts under ANDY 45 to 357. `docs/memory-map.md` has the rest.
 
 ### After Phase 5: what's left
-- Joysticks (D5): left open, not urgent (Tom, 2026-11-03). The Master 128's two analogue ones, and the
-  Compact's, read differently (D33); a choice beside the keys in the options, saved with them.
 - ~~The three-person playtest~~: done 2026-11-15 (Tom: "There were some frame drops noticeable, but they weren't too bothersome in practice."). The sparks that repeat up to 4.1% of fields with three
   humans driving at random (put aside for it, Tom, 2026-11-04; `docs/brief-phase5.md` step 4): left as they are. If
   they're ever wanted fewer, the brief's first fix stands: the sparks a plotter of their own, exact (roughly 40 repeats
@@ -424,9 +422,6 @@ adds the logic.
   Run on GitHub 2026-11-16 (run 43778634091, at fd53abd, 6 min 43 s with Hatari from the cache): the release
   `super-sprint-20261115-2353-fd53a`, its zip 349,786 bytes, and all six SHA-256s in its notes (the five files and
   the zip) the same as `make release`'s at fd53abd here (MEASURED: the notes' lines diffed against `dist/`'s).
-- For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
-  What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
-  OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
 - ~~The build's version shown in the game~~ (Tom, 2026-11-08: "probably git commit?", "so it's easier to be
   confident about which build you're playing"): done 2026-11-09, on the options screen's status line, bottom right,
   in green, the small font: the commit's first 5 hex digits, "m" after them if the tree had changes (Tom: "the
@@ -510,33 +505,6 @@ adds the logic.
   `S2 A1 T2` (green). So the name and upgrades on lines 29 and 39 as the mock-up, nothing for a track with no best;
   `ta_picture_check`'s model of the menu to match. Built 2026-11-13 on the branch `ta-menu-names`, as that
   (`docs/img/timeattack-menu-names.png`, bests poked); Tom, 2026-11-13: "Track names on the main menu look good."
-- Speculative: time attack with its tracks in a second processor's RAM (Tom, 2026-11-13). "the second processor doesn't
-  actually get used for anything. Tracks are loaded into second processor RAM initially, then the game runs on the host
-  as normal. But instead of loading tracks from disk, they're read from the second processor using one of the Tube
-  remote peek operations. Scores are saved to disk as normal." "In principle, this could be made to work with any
-  second processor, but start with the 6502 one as I have the hardware to test on." So a Master 128 with a Master
-  Turbo or an external 6502 second processor (the Compact has no Tube). Not designed. What's known:
-  - The room: time attack's eight track files, packed, are 51,818 bytes on `build/ta.ssd` (COUNTED, 5,882 to 6,875
-    each), against a 6502 second processor's 64K less its client ROM and low pages: they fit as they are, with some
-    room spare.
-  - The game's OSFILE blocks already give host addresses (`&FFFF0000 +`: `boot.6502`, `entry.6502`), so with a Tube
-    on, its loads and saves still go to the host. The tracks could be loaded across at the boot by OSFILE with a
-    parasite address (the filing system doing the transfer), the boot a few seconds longer on DFS (ESTIMATED).
-  - To check, all from memory, none measured: the Master's MOS puts its Tube host code at `&0400`-`&06FF` when a
-    second processor is on, which is the game's (the memory table above); reading the parasite's memory from the host
-    is a type 0 transfer (parasite to host) through that code's entry at `&0406`, a byte at a time from R3, or the
-    game's own few bytes of the same protocol, so the MOS's copy isn't needed; the parasite's client code answers
-    with nothing of the game's running there; no Tube interrupts arrive while the parasite's idle, so the game's
-    IRQ1V needs nothing for it; the zero page the host code uses. The other second processors take the same
-    transfers, with their own addresses.
-  - Answered (Tom, 2026-11-13): "ideally, it'd be the existing disk, reusing most of the existing files", so time
-    attack's disc, using the second processor when it finds one (OSBYTE &EA, say) and the disc otherwise. "ghost files
-    get saved to disk. But if there'd be space to cache them in the 2nd processor RAM as well, great": so whether the
-    eight ghosts fit beside the tracks is to be measured (a ghost's size depends on its lap). The load's time "can be
-    measured when actually starting on this".
-  - Emulators: Tom, "jsbeeb does offer a Master Turbo option but I don't know whether it's accessible in the headless
-    version" (`tools/jsbeeb.mjs`, the jsbeeb MCP's `create_machine`): to check. b2 has a Master with a 6502 second
-    processor, from memory.
 - `!BOOT` above a Model B's PAGE: done 2026-11-16 on the branch `suite-boot`, merged into `main` (an unattended job,
   `docs/report-suite-boot-2026-11-16.md`), `BootOrg` `&2000`, `tools/modelb_check.mjs` in the suite; a Model B with ADFS
   only refused it in b2 (Tom, 2026-11-16: "Tried on b2 with BBC B+ADFS - got the expected error."); the refusal now "Super Sprint needs a BBC
@@ -577,6 +545,43 @@ adds the logic.
   on both discs kept once, and its summary before the Y. What's saved to the disc isn't spelt out (Tom: "I have
   modified README.md so it doesn't specify what gets saved to the disk"). MERGE's 32K of sideways RAM dropped: a
   machine that runs time attack has the game's 64K.
+
+#### For a possible later version
+
+Worth noting, not needed for a first release (Tom, 2026-11-16).
+
+- Joysticks (D5): left open, not urgent (Tom, 2026-11-03). The Master 128's two analogue ones, and the
+  Compact's, read differently (D33); a choice beside the keys in the options, saved with them.
+- Speculative: time attack with its tracks in a second processor's RAM (Tom, 2026-11-13). "the second processor doesn't
+  actually get used for anything. Tracks are loaded into second processor RAM initially, then the game runs on the host
+  as normal. But instead of loading tracks from disk, they're read from the second processor using one of the Tube
+  remote peek operations. Scores are saved to disk as normal." "In principle, this could be made to work with any
+  second processor, but start with the 6502 one as I have the hardware to test on." So a Master 128 with a Master
+  Turbo or an external 6502 second processor (the Compact has no Tube). Not designed. What's known:
+  - The room: time attack's eight track files, packed, are 51,818 bytes on `build/ta.ssd` (COUNTED, 5,882 to 6,875
+    each), against a 6502 second processor's 64K less its client ROM and low pages: they fit as they are, with some
+    room spare.
+  - The game's OSFILE blocks already give host addresses (`&FFFF0000 +`: `boot.6502`, `entry.6502`), so with a Tube
+    on, its loads and saves still go to the host. The tracks could be loaded across at the boot by OSFILE with a
+    parasite address (the filing system doing the transfer), the boot a few seconds longer on DFS (ESTIMATED).
+  - To check, all from memory, none measured: the Master's MOS puts its Tube host code at `&0400`-`&06FF` when a
+    second processor is on, which is the game's (the memory table above); reading the parasite's memory from the host
+    is a type 0 transfer (parasite to host) through that code's entry at `&0406`, a byte at a time from R3, or the
+    game's own few bytes of the same protocol, so the MOS's copy isn't needed; the parasite's client code answers
+    with nothing of the game's running there; no Tube interrupts arrive while the parasite's idle, so the game's
+    IRQ1V needs nothing for it; the zero page the host code uses. The other second processors take the same
+    transfers, with their own addresses.
+  - Answered (Tom, 2026-11-13): "ideally, it'd be the existing disk, reusing most of the existing files", so time
+    attack's disc, using the second processor when it finds one (OSBYTE &EA, say) and the disc otherwise. "ghost files
+    get saved to disk. But if there'd be space to cache them in the 2nd processor RAM as well, great": so whether the
+    eight ghosts fit beside the tracks is to be measured (a ghost's size depends on its lap). The load's time "can be
+    measured when actually starting on this".
+  - Emulators: Tom, "jsbeeb does offer a Master Turbo option but I don't know whether it's accessible in the headless
+    version" (`tools/jsbeeb.mjs`, the jsbeeb MCP's `create_machine`): to check. b2 has a Master with a 6502 second
+    processor, from memory.
+- For later (Tom, 2026-11-08): Econet. "I don't have an Econet setup, so that will definitely have to wait for later."
+  What's known: D26's check on ANFS in jsbeeb (the logon refused, LowFree untouched); the loads and the save go through
+  OSFILE with no filing system named, so nothing is expected to differ, but nothing has run on a network.
 
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
