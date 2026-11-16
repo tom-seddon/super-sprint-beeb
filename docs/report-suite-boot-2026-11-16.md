@@ -62,8 +62,8 @@ None. The two items were as the plan had them, and the four suite guesses were j
 
 - On a Model B the refusal, 42 characters, wraps on MODE 7's 40 columns, mid-word: "Super Sprint needs a Master 128
   or Compa" / "ct". It was so at `&1200` too. Something shorter would fit, if you want it changed.
-- An ADFS-only Model B, your worry, can't be tried in jsbeeb (it has none); `&2000` is above any Model B PAGE I know
-  of, but that one is unmeasured.
+- An ADFS-only Model B, your worry, can't be tried in jsbeeb (it has none). Tom tried it in b2 (2026-11-16): "Tried
+  on b2 with BBC B+ADFS - got the expected error."
 
 ## What's open
 

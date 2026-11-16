@@ -538,7 +538,8 @@ adds the logic.
     version" (`tools/jsbeeb.mjs`, the jsbeeb MCP's `create_machine`): to check. b2 has a Master with a 6502 second
     processor, from memory.
 - `!BOOT` above a Model B's PAGE: built 2026-11-16 on the branch `suite-boot` (an unattended job,
-  `docs/report-suite-boot-2026-11-16.md`), `BootOrg` `&2000`, `tools/modelb_check.mjs` in the suite; ready for Tom's
+  `docs/report-suite-boot-2026-11-16.md`), `BootOrg` `&2000`, `tools/modelb_check.mjs` in the suite; a Model B with ADFS
+  only refused it in b2 (Tom, 2026-11-16: "Tried on b2 with BBC B+ADFS - got the expected error."); ready for Tom's
   Master, not merged. What it was (Tom, 2026-11-15: "Note it in the plan as a possible future improvement - I don't fancy waiting for
   the tests right now"): the game's `!BOOT` loads at `&1200` (`boot.6502`'s `BootOrg`), below a Model B's PAGE (&1900
   with DFS 1.2, &1F00 with jsbeeb's 1770 model, DFS and ADFS both), over the DFS's workspace, as MERGE did before it
