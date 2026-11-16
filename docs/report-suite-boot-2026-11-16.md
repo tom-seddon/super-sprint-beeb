@@ -1,6 +1,7 @@
 # Report - the suite's wall time, and !BOOT above a Model B's PAGE (2026-11-16)
 
-Branch `suite-boot`, off `main` at 8688a11. Brief: `docs/brief-suite-boot-2026-11-16.md`. Nothing merged, nothing
+Branch `suite-boot`, off `main` at 8688a11. Brief: `docs/brief-suite-boot-2026-11-16.md`. Merged into `main`
+2026-11-16 (Tom: "I'm confident enough that this'll work OK on the real Master too, so please merge into main."); not
 pushed.
 
 **Waiting on your Master:** `!BOOT` now loads at `&2000`, not `&1200`. Every disc's boot changes (only `!BOOT`: its
@@ -79,4 +80,4 @@ None. The two items were as the plan had them, and the four suite guesses were j
 
 | Branch | Head | Merged | Pushed | Published |
 |---|---|---|---|---|
-| `suite-boot` | the commit adding this report, its last | no | no | no |
+| `suite-boot` | the merge's commit, its last | yes (fast-forward) | no | no |

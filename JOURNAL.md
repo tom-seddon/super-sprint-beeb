@@ -1017,5 +1017,9 @@ dropped. The baseline's two failures were mine (a file added to the tree mid-run
 after the disc was made), as was run A's (the copy made `.mcp.json` a directory). Then `tools/modelb_check.mjs`
 (both discs on jsbeeb's Model Bs: refused, `!BOOT`'s load against PAGE, `*CAT` and BASIC after), 4 wrong at `&1200`,
 and `BootOrg` at `&2000`: only `!BOOT` differs on the discs (built before and after, the version, commit and date
-pinned), the check right, and the whole suite at 4168329 every verdict 0 in 2,460 s. Ready for Tom's Master; not
-merged. The refusal, 42 characters, wraps mid-word on a Model B's MODE 7; for Tom.
+pinned), the check right, and the whole suite at 4168329 every verdict 0 in 2,460 s. The refusal, 42 characters,
+wrapped mid-word on a Model B's MODE 7: now "Super Sprint needs a BBC Master" (Tom's choice), `boot.6502` asserting it
+fits a row. Tom tried an ADFS-only Model B in b2 ("got the expected error", then of the new message: "Looks good in b2
+in BBC B+ADFS mode. I'm happy with this."). Merged into `main` without the Master's try (Tom: "I'm confident enough
+that this'll work OK on the real Master too, so please merge into main. This can always be fixed if I'm proven
+wrong."); not pushed.

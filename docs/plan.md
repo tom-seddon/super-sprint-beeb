@@ -537,10 +537,10 @@ adds the logic.
   - Emulators: Tom, "jsbeeb does offer a Master Turbo option but I don't know whether it's accessible in the headless
     version" (`tools/jsbeeb.mjs`, the jsbeeb MCP's `create_machine`): to check. b2 has a Master with a 6502 second
     processor, from memory.
-- `!BOOT` above a Model B's PAGE: built 2026-11-16 on the branch `suite-boot` (an unattended job,
+- `!BOOT` above a Model B's PAGE: done 2026-11-16 on the branch `suite-boot`, merged into `main` (an unattended job,
   `docs/report-suite-boot-2026-11-16.md`), `BootOrg` `&2000`, `tools/modelb_check.mjs` in the suite; a Model B with ADFS
-  only refused it in b2 (Tom, 2026-11-16: "Tried on b2 with BBC B+ADFS - got the expected error."); ready for Tom's
-  Master, not merged. What it was (Tom, 2026-11-15: "Note it in the plan as a possible future improvement - I don't fancy waiting for
+  only refused it in b2 (Tom, 2026-11-16: "Tried on b2 with BBC B+ADFS - got the expected error."); the refusal now "Super Sprint needs a BBC
+  Master", on one row. Merged without the Master's try (Tom: "This can always be fixed if I'm proven wrong."). What it was (Tom, 2026-11-15: "Note it in the plan as a possible future improvement - I don't fancy waiting for
   the tests right now"): the game's `!BOOT` loads at `&1200` (`boot.6502`'s `BootOrg`), below a Model B's PAGE (&1900
   with DFS 1.2, &1F00 with jsbeeb's 1770 model, DFS and ADFS both), over the DFS's workspace, as MERGE did before it
   moved to `&2000`. In jsbeeb (2026-11-15) both Model Bs still show "Super Sprint needs a Master 128 or Compact" from

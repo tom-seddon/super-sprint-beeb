@@ -1,6 +1,6 @@
 # Brief - the suite's wall time, and !BOOT above a Model B's PAGE (2026-11-16)
 
-> **Status: DONE (2026-11-16): steps 1-7; ready for Tom's Master, not merged.** An unattended job (Tom away). Branch `suite-boot`, off `main` at 8688a11. Nothing merged,
+> **Status: DONE (2026-11-16): steps 1-7; merged into `main` 2026-11-16 at Tom's word, before his Master's try.** An unattended job (Tom away). Branch `suite-boot`, off `main` at 8688a11. Nothing merged,
 > nothing pushed. Report: `docs/report-suite-boot-2026-11-16.md`, written last.
 >
 > **Resume point:** none: done. Next is Tom's: the boot on his Master, then whether to merge. If this session ends, the next starts at the step named here, reading this brief, then
