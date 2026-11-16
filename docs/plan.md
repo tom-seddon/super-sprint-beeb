@@ -520,7 +520,7 @@ adds the logic.
 - The suite's wall time: done 2026-11-16, both halves. The laptop's on the branch `suite-boot`, merged
   (`docs/report-suite-boot-2026-11-16.md`): the disc's jobs in the background in their own copy, and longest first,
   2,637 s to about 2,465 (MEASURED, one run each); `MACHINES=2` no better (dropped). agentbox's on the branch
-  `ghost-split`, not merged (`docs/report-ghost-split-2026-11-16.md`): time attack's ghost checks in two pieces each
+  `ghost-split`, merged (`docs/report-ghost-split-2026-11-16.md`): time attack's ghost checks in two pieces each
   (`GHOSTS=2`, `tools/suite_remote.sh`'s default), the suite there 214-222 s to 179-182 (MEASURED, three runs each);
   4 and 8 no better. On the way the time attack autopilot fixed (Tom: "Yes, fix the autopilot"): it wedged on tracks
   5 and 8, so the ghost check never saw a ghost there; now every track laps and the check wants a ghost on each. The

@@ -1045,3 +1045,5 @@ turn along one straightened, so neither got free. Now a point 320 ahead along th
 end, and a wall's wedge freed (let go while bouncing, then a target just ahead on the line): every track laps with
 the look-ahead from 240 to 400 (MEASURED; without the freeing, 300-340). The ghost check now wants a ghost on every
 track raced (shown failing), so `GHOSTS` 1 to 8: the suite there passes at 2, 4 and 8 (179, 181, 188 s); 2 stays.
+The suite's further speed-ups costed and put on the plan's list for a later version (Tom: "I think at this stage
+maybe it isn't quite worth it for 2 minutes."). Merged into `main` (Tom: "Please merge this into main."); not pushed.

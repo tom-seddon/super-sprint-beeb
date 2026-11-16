@@ -1,6 +1,6 @@
 # Brief - time attack's ghost checks split on agentbox (2026-11-16)
 
-> **Status: DONE (2026-11-16): steps 1-6; waiting on Tom's word to merge.** An unattended job (Tom away). Branch `ghost-split`, off `main` at 85c48f4. Nothing
+> **Status: DONE (2026-11-16): steps 1-6; merged into `main` 2026-11-16 at Tom's word.** An unattended job (Tom away). Branch `ghost-split`, off `main` at 85c48f4. Nothing
 > merged, nothing pushed. Report: `docs/report-ghost-split-2026-11-16.md`, written last.
 >
 > **Resume point:** none: done. If this session ends, the next starts at the step named here, reading this brief, then

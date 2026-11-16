@@ -1,7 +1,7 @@
 # Report - time attack's ghost checks split on agentbox (2026-11-16)
 
-Branch `ghost-split`, off `main` at 85c48f4. Brief: `docs/brief-ghost-split-2026-11-16.md`. Nothing merged, nothing
-pushed. Nothing for your Master: only the checks' scripts changed, not the discs.
+Branch `ghost-split`, off `main` at 85c48f4. Brief: `docs/brief-ghost-split-2026-11-16.md`. Merged into `main`
+2026-11-16 (Tom: "Please merge this into main."); not pushed. Nothing for your Master: only the checks' scripts changed, not the discs.
 
 ## Where it ended
 
@@ -74,4 +74,4 @@ nothing (its ghost pieces done in about 21 s, `merge_adfs` then the tail).
 
 | Branch | Head | Merged | Pushed | Published |
 |---|---|---|---|---|
-| `ghost-split` | the commit adding this report, its last | no | no | no |
+| `ghost-split` | the merge's commit, its last | yes (fast-forward) | no | no |
