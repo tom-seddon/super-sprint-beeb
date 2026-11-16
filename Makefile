@@ -1,6 +1,7 @@
 # Super Sprint for the BBC Master: tools for studying the ST original (Phases 1-2), and the renderer test
 # (Phase 3). Generated files go in build/ (git-ignored); comparison pictures in docs/img/.
 #
+#   make           all four discs (make discs: make game, then make ta)
 #   make beeb      build/sprint.ssd: the renderer test (!BOOT, SPRINTA-D the banks, SPRINT), playing TRACE
 #   make check     the renderer test in headless jsbeeb (a Master 128): every frame of the ST race against
 #                  the model, and each frame's work timed (tools/render_check.mjs)
@@ -64,6 +65,8 @@ GEN = build/gen
 
 .PHONY: all baron hatari venv stfiles disasm tracks convert sheets viewer beeb play game ta discs release check clean always version logictrace hazardtrace hazardrace logic logiccheck
 
+# make alone: all four discs (discs, below). make all: the tools for studying the original, and the renderer test.
+.DEFAULT_GOAL := discs
 all: disasm convert sheets viewer beeb
 
 # Baron, the assembler: the submodule rich/baron built with CMake and Ninja into build/baron, so the build doesn't

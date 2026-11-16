@@ -170,7 +170,7 @@ adds the logic.
 
 ## How the port gets checked
 
-- `make` (see `Makefile`): the disassembly (`tools/st_disasm.py`), track dumps from Hatari
+- `make all` (see `Makefile`; `make` alone makes the discs, 2026-11-16): the disassembly (`tools/st_disasm.py`), track dumps from Hatari
   (`tools/st_dump_tracks.py`), conversions (`tools/convert.py`), comparison sheets, viewer discs. Python in
   `.venv` (pillow, numpy, capstone); generated data in `build/`.
 - **The original, running:** Hatari 2.6.1 headless (`tools/hatari.sh`, TOS 1.04). Breakpoints and pokes give
@@ -361,7 +361,7 @@ adds the logic.
     Windows.
   - Time attack: `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds in
     `build/tracks_ta`), after `make game` as a second make (they share `build/sprint.*`: README.md's `make game &&
-    make ta`). `make discs` does both, one after the other, `-j` passed on (Tom, 2026-11-16: "a make target that
+    make ta`). `make discs`, or `make` alone (its default), does both, one after the other, `-j` passed on (Tom, 2026-11-16: "a make target that
     does `make game` then `make ta`, so the user can build everything in one command"; `make -j64 discs` MEASURED,
     the inner makes running the missing traces side by side); `tools/ta_checks.sh OUT` checks them (MERGE's `tools/ta_merge_check.mjs`, DFS and `--adfs`, among
     them), and `tools/suite.sh` runs that too.
