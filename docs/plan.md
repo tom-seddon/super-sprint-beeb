@@ -353,15 +353,17 @@ adds the logic.
     and perl; Node 22 for the checks. On Ubuntu 24.04 or Mint 22 and later (CMake 3.21 for Baron, Python 3.12;
     the packages as apt names them, 2026-11-16; `libreadline-dev` as GitHub's build has it, optional to Hatari;
     pip fetches the three Python packages from PyPI):
-    `sudo apt-get install git build-essential cmake ninja-build perl python3 python3-venv libsdl2-dev zlib1g-dev
-    libreadline-dev`. Disk: about 1.1 GB for `build/` (MEASURED on the Mac, a fresh clone).
+    `sudo apt-get install build-essential cmake ninja-build perl python3 python3-venv libsdl2-dev zlib1g-dev
+    libreadline-dev` (git taken as there: Tom, "we can also assume `git` is always installed in practice"). Disk: about 1.1 GB for `build/` (MEASURED on the Mac, a fresh clone).
     About 16 minutes from nothing one job at a time, most of it the ST's traces in Hatari, made once and kept in
     `build/` (about 5 minutes at `-j64` on Tom's Linux PC); where Hatari
     doesn't run, `docs/st-traces.md` (`make stfiles`, `build/stfiles.tar.gz`). Linux (Mint 22.3) and macOS; not
     Windows.
   - Time attack: `make ta` makes its discs, `build/ta.ssd` and `build/ta.adl` (from its tracks' builds in
     `build/tracks_ta`), after `make game` as a second make (they share `build/sprint.*`: README.md's `make game &&
-    make ta`); `tools/ta_checks.sh OUT` checks them (MERGE's `tools/ta_merge_check.mjs`, DFS and `--adfs`, among
+    make ta`). `make discs` does both, one after the other, `-j` passed on (Tom, 2026-11-16: "a make target that
+    does `make game` then `make ta`, so the user can build everything in one command"; `make -j64 discs` MEASURED,
+    the inner makes running the missing traces side by side); `tools/ta_checks.sh OUT` checks them (MERGE's `tools/ta_merge_check.mjs`, DFS and `--adfs`, among
     them), and `tools/suite.sh` runs that too.
   - The submodules' own submodules: Baron's build needs `rich/baron/extern/richc` (building `main` in a fresh
     worktree failed at CMake's configure until it was fetched, 2026-11-12). README.md's `git clone
