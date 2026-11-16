@@ -629,8 +629,8 @@ Worth noting, not needed for a first release (Tom, 2026-11-16).
 | D33 | The Master Compact | Decided (Tom, 2026-11-07): a target; tried by Tom 2026-11-08, works |
 | D34 | The score pickups' digits | Agreed (Tom, 2026-11-08): black on the yellow box, seen on his CRT |
 | D35 | "Loading" from the boot's start | Agreed (Tom's, 2026-11-09): the boot's shadow screen says it while the files load; on his Master, "Looks much better" |
-| D36 | Time attack's gates | Decided (Tom, 2026-11-10): the ST's schedule, kept; to be revisited after playing it |
-| D37 | Time attack's ghost | Decided (Tom, 2026-11-10): a black car, solid, no flicker; the green set alone, the player through `DataWhite`, the ghost `DataBlack`; to be revisited once running |
+| D36 | Time attack's gates | Decided (Tom, 2026-11-10): the ST's schedule, kept; closed after play (Tom, 2026-11-16) |
+| D37 | Time attack's ghost | Decided (Tom, 2026-11-10): a black car, solid, no flicker; the green set alone, the player through `DataWhite`, the ghost `DataBlack`; closed after play (Tom, 2026-11-16) |
 | D38 | Time attack's first lap | Decided (Tom, 2026-11-10): a standing start, timed; the ghost shown from the race's start |
 | D39 | Time attack's names | Decided (Tom, 2026-11-10): up to 10 characters, typed on the keyboard |
 | D40 | Time attack's table | Decided (Tom, 2026-11-10): one table, 10 entries a track, resident; the menu every track's best, a screen a track's 10 |

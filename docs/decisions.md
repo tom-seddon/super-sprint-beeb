@@ -544,7 +544,7 @@ Costs 5 bytes of the first 4K (the vsync wait in the load's code); `!BOOT` and t
 `tools/boot_check.mjs` (in the suite, both discs) watches every field. Tom, on his Master: "Looks much better";
 agreed.
 
-### D36. Time attack's gates: Decided (2026-11-10), to be revisited after play
+### D36. Time attack's gates: Decided (2026-11-10), closed (2026-11-16)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §5). Proposed: the ST's gates on their own schedule; none; or the
 schedule started again at each crossing of the line. The ST's is fixed, not random (`docs/st-logic.md` §3), a gate
 repeating every 216 + 180 * its number frames (ESTIMATED), so a lap's time depends a little on where the gates are
@@ -552,9 +552,10 @@ when it starts. Tom, 2026-11-10: "I think keep the ST's schedule, and accept the
 strategic about how they time crossing the line. I may end up having to change my mind about this after playing it
 though."
 So: tracks 3, 5 and 8 keep their gates, on the ST's schedule from the race's start, as in the game. The ghost, drawn
-from its recorded positions, isn't affected by them. Revisited once Tom has played it.
+from its recorded positions, isn't affected by them.
+Closed after play, as it is: Tom, 2026-11-16: "I think D36 and D37 can be closed. It's had a bit of playtesting now."
 
-### D37. Time attack's ghost car: Decided (2026-11-10), to be revisited once running
+### D37. Time attack's ghost car: Decided (2026-11-10), closed (2026-11-16)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §3). Proposed: solid, in green, yellow or black, or flickering at
 25 Hz. Tom, 2026-11-10: "I think use the black car. I'm not very keen on the idea of flicker. Again, this may have to
 change once I see it running." And on all the first answers: "A number of the first pass answers will be slightly
@@ -570,6 +571,7 @@ the 16 facings (COUNTED, `build/ta/car_colours.png`): the green set 11 pixels fr
 car; the yellow set 83 and 29. Tom: "The green set".
 So: time attack keeps the green car's set alone; the player is drawn through `DataWhite`, the ghost, every frame,
 through `DataBlack`. The ghost's room in the cars' bank is about 8,070 bytes (ESTIMATED).
+Closed after play, as it is: Tom, 2026-11-16: "I think D36 and D37 can be closed. It's had a bit of playtesting now."
 
 ### D38. Time attack's first lap: Decided (2026-11-10)
 Time attack (`docs/brief-timeattack-2026-11-10.md` §3). Proposed: lap 1 a standing start from the grid, timed; the
