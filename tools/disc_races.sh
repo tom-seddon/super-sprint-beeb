@@ -11,15 +11,35 @@
 # free). Exit status 1 if any is wrong, or if any job left no status. Each job's start and end (seconds since 1970)
 # in OUT/<job>.time, for the suite's wall time.
 #
-# The jobs run on this machine, or with REMOTE=host on that one (tools/remote.sh copies what they read there, and
-# their logs back). Either way MACHINES run at once (default 4 here, 14 there). The models are made here.
+# The jobs run on this machine, in a copy of what they read (OUT/tree, removed after), or with REMOTE=host on that
+# one (tools/remote.sh copies what they read there, and their logs back): either way the builds can go on meanwhile.
+# MACHINES run at once (default 4 here, 14 there). The models are made here.
 #
 # Usage (from the repo root, after make game): tools/disc_races.sh OUT   (OUT outside the repository; ROTATIONS="0"
-# in the environment runs only those of the eleven)
+# in the environment runs only those of the eleven). tools/disc_races.sh copy OUT first copies what the jobs read but
+# the traces and models, so the builds can go on before this starts.
 
 RACES="r1 r2 r4 r17 r50 h012 h12 h01 h02"     # (and demo0 demo17: state only, so no models)
 ROTATIONS=${ROTATIONS:-0 1 2 3 4 5 6 7 8 9 10}
 CHECKS="boot_check break_check crash_check game_check attract_check flash_check options_check select_check upgrades_check circle_check initials_check tune_check save_check load_check"
+
+# What the jobs read (tools/disc_files.sh), in OUT/tree, where they run here: copy OUT copies the rest (build/gen's
+# tables, the discs, the tools), as the builds after the disc's rewrite build/gen (tools/suite.sh runs it before them);
+# copy OUT links hard-links the traces and models (or symlinks them, on another volume), once the models are made.
+copy() {
+    tools/disc_files.sh | while read -r f; do
+        case $f in build/trace/*|build/check/*) [ "$2" = links ] || continue ;; *) [ "$2" = links ] && continue ;; esac
+        case $f in */*) mkdir -p "$1/tree/${f%/*}" || exit 1 ;; *) mkdir -p "$1/tree" || exit 1 ;; esac
+        if [ "$2" = links ]; then ln -f "$f" "$1/tree/$f" 2>/dev/null || ln -sf "$PWD/$f" "$1/tree/$f" || exit 1
+        else cp -p "$f" "$1/tree/$f" || exit 1
+        fi
+    done
+}
+if [ "$1" = copy ]; then                # (tools/disc_races.sh copy OUT: the rest copied, before the builds go on)
+    rm -rf "$2/tree"
+    copy "$2" rest
+    exit
+fi
 
 if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools/disc_races.sh jobs OUT)
     export OUT=$2                       # (not in the command: BSD xargs -I cuts an argument at 255 bytes)
@@ -41,6 +61,8 @@ fi
 OUT=${1:?usage: tools/disc_races.sh OUT}
 REMOTE=${REMOTE-}
 mkdir -p "$OUT"
+[ -n "$REMOTE" ] || [ -n "$DISC_COPIED" ] || { rm -rf "$OUT/tree"; copy "$OUT" rest; } || exit 1   # (tools/suite.sh
+                                        # copies first, and says so: DISC_COPIED=1)
 models=$(date +%s)
 for r in $RACES; do for n in 0 1 2 3 4 5 6 7; do
     m=build/check/model_t${n}_$r.bin
@@ -51,7 +73,11 @@ if [ -n "$REMOTE" ]; then
     export REMOTE ROTATIONS
     tools/remote.sh "$OUT" || exit 1
 else
-    tools/disc_races.sh jobs "$OUT"
+    # here, in OUT/tree: the traces and models (15GB, which nothing rewrites) linked in now, beside the rest
+    copy "$OUT" links || exit 1
+    out=$(cd "$OUT" && pwd)
+    (cd "$OUT/tree" && sh tools/disc_races.sh jobs "$out")
+    rm -rf "$OUT/tree"
 fi
 echo "$models" > "$OUT/models.time"
 fail=0
