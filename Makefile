@@ -252,30 +252,6 @@ $(GEN)/tunes_circle.bin $(GEN)/tunes_fixed.6502: $(GEN)/tunes_fixed.bin
 build/sprint.ssd: $(wildcard src/*.6502) $(GEN)/cars.6502 $(GEN)/front.6502 $(GEN)/tunes_fixed.bin $(GEN)/tunes_fixed.6502 $(GEN)/version.6502 $(LOGICDEPS) $(BARON)
 	$(BARON) -v --symbols build/sprint.json -o $@ --opt 2 src/boot.6502 src/sprint.6502 src/merge.6502 > build/sprint.lst
 
-# The game's disc (Phase 5, 3b): every track's play build (tools/all_tracks.sh, which checks their layout),
-# then track 1's as it boots and a packed file for each track's slots (tools/make_game.py). The compressor is
-# the beeb-port-kit's ZX02, built from its source (one compressor, so the disc doesn't depend on the machine).
-ZX02SRC = reference/beeb-port-kit/template/tools/zx02src/src
-build/zx02: $(ZX02SRC)/compress.c $(ZX02SRC)/memory.c $(ZX02SRC)/optimize.c $(ZX02SRC)/zx02.c
-	mkdir -p build
-	cc -O2 -o $@ $^
-# tools/all_tracks.sh copies track 1's logic trace for each track's room before it calls make, so it's made here
-# if missing (an order-only prerequisite: a newer tracer doesn't trace it again).
-game: build/zx02 | $(VENV) build/trace/logic_t0_r0.json
-	tools/all_tracks.sh
-	VERSION='$(VERSION)' $(PY) tools/make_game.py build/tracks build/zx02 build/game.ssd game
-	$(PY) tools/adfs_disc.py build/game.ssd build/game.adl
-# The time attack variant's discs, build/ta.ssd and build/ta.adl, the same way from its own tracks' builds (build/tracks_ta).
-ta: build/zx02 | $(VENV) build/trace/logic_t0_r0.json
-	tools/all_tracks.sh ta
-	VERSION='$(VERSION)' $(PY) tools/make_game.py build/tracks_ta build/zx02 build/ta.ssd ta
-	$(PY) tools/adfs_disc.py build/ta.ssd build/ta.adl
-# The release (tools/release.py): build/game.* and build/ta.* (make game, then make ta: two makes, as they share
-# build/sprint.*) in dist, named as their README names them, with the zip's README.txt and the zip; as the GitHub build
-# makes it (.github/workflows/build.yml runs this), so it can be looked at here first.
-release: | $(VENV)
-	VERSION='$(VERSION)' $(PY) tools/release.py dist
-
 # The ST's files the game's build reads, all made in the original running in Hatari (docs/st-traces.md): `make
 # stfiles` makes any missing, and build/stfiles.tar.gz packs them, for a machine where Hatari doesn't run, to be
 # unpacked there in the repo root with `tar -xmzf` (-m: their times the unpacking's, so newer than a fresh clone's
@@ -287,6 +263,32 @@ build/stfiles.tar.gz: $(STFILES)
 	tar -czf $@ build/gfx/bg_t?.npy build/gfx/mask?_t?.npy build/gfx/bgclean_t?.npy build/gfx/maskclean?_t?.npy $(filter build/trace/%,$(STFILES)) $(STSCREENS) \
 		build/st_screens/*_[01].bin
 	ls -l $@
+
+# The game's disc (Phase 5, 3b): every track's play build (tools/all_tracks.sh, which checks their layout),
+# then track 1's as it boots and a packed file for each track's slots (tools/make_game.py). The compressor is
+# the beeb-port-kit's ZX02, built from its source (one compressor, so the disc doesn't depend on the machine).
+ZX02SRC = reference/beeb-port-kit/template/tools/zx02src/src
+build/zx02: $(ZX02SRC)/compress.c $(ZX02SRC)/memory.c $(ZX02SRC)/optimize.c $(ZX02SRC)/zx02.c
+	mkdir -p build
+	cc -O2 -o $@ $^
+# Every ST file is made here first if missing (order-only: a newer tracer doesn't trace it again), with make's -j:
+# tools/all_tracks.sh's makes get no jobserver (one track at a time, each -j1), so in a fresh clone the tracers
+# would otherwise run one at a time inside the first track's build. It also copies track 1's logic trace for each
+# track's room before it calls make.
+game: build/zx02 | $(VENV) $(STFILES)
+	tools/all_tracks.sh
+	VERSION='$(VERSION)' $(PY) tools/make_game.py build/tracks build/zx02 build/game.ssd game
+	$(PY) tools/adfs_disc.py build/game.ssd build/game.adl
+# The time attack variant's discs, build/ta.ssd and build/ta.adl, the same way from its own tracks' builds (build/tracks_ta).
+ta: build/zx02 | $(VENV) $(STFILES)
+	tools/all_tracks.sh ta
+	VERSION='$(VERSION)' $(PY) tools/make_game.py build/tracks_ta build/zx02 build/ta.ssd ta
+	$(PY) tools/adfs_disc.py build/ta.ssd build/ta.adl
+# The release (tools/release.py): build/game.* and build/ta.* (make game, then make ta: two makes, as they share
+# build/sprint.*) in dist, named as their README names them, with the zip's README.txt and the zip; as the GitHub build
+# makes it (.github/workflows/build.yml runs this), so it can be looked at here first.
+release: | $(VENV)
+	VERSION='$(VERSION)' $(PY) tools/release.py dist
 
 # The model each frame's play area is checked against, and the check.
 CUETRACE = $(if $(filter --logic,$(GENFLAGS)),$(LOGICTRACE))
