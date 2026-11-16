@@ -231,14 +231,22 @@ BBC Micro version written by Claude Code (with occasional input from Tom Seddon)
 
 # Building
 
-(Claude did pretty much all of this. You'd be mostly on your own
-here.)
+## Linux
+
+On an apt-based Linux: (you'd be on your own for some other kind)
 
 ```
+sudo apt-get install git build-essential cmake ninja-build perl python3 python3-venv libsdl2-dev zlib1g-dev libreadline-dev
 git clone --recurse-submodules https://github.com/tom-seddon/super-sprint-beeb.git
 cd super-sprint-beeb
-make game && make ta
+make -j$(nproc)
 ```
+
+## macOS
+
+To be continued.
+
+## Build results
 
 The results are:
 
