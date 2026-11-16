@@ -11,8 +11,11 @@
 # same commit replaces the zip.
 #
 # The build reads files made by running the ST original in Hatari (docs/st-traces.md), made here: Hatari 2.6.1
-# built from source, as Ubuntu's 2.4.1 can't make them (docs/brief-ci-hatari-2026-11-10.md), and checked against
-# docs/stfiles-sha256.txt, the Mac's. The suite isn't run: its traces want about 13 GB and hours on 2 CPUs.
+# built from the submodule extern/hatari by make hatari, as Ubuntu's 2.4.1 can't make them
+# (docs/brief-ci-hatari-2026-11-10.md), and checked against docs/stfiles-sha256.txt, the Mac's. The binary is cached
+# by the submodule's commit and given to make as HATARI, so make doesn't build it again (a restored build/hatari would
+# be: the checkout's sources are newer than its objects). The suite isn't run: its traces want about 13 GB and hours
+# on 2 CPUs.
 
 name: Build the discs
 
@@ -28,10 +31,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  HATARI_VERSION: 2.6.1
-  HATARI_SHA256: 75f09c8deddb511b8c1574b84c507743097db9abc6edbb078f942efa8677547e
-
 jobs:
   discs:
     runs-on: ubuntu-24.04
@@ -42,8 +41,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Fetch rich/baron (with its extern/richc) and the beeb-port-kit
-        run: git submodule update --init --recursive --depth 1 rich/baron reference/beeb-port-kit
+      - name: Fetch rich/baron (with its extern/richc), extern/hatari and the beeb-port-kit
+        id: submodules
+        run: |
+          git submodule update --init --recursive --depth 1 rich/baron extern/hatari reference/beeb-port-kit
+          echo "hatari=$(git rev-parse HEAD:extern/hatari)" >> "$GITHUB_OUTPUT"
+          echo "HATARI=$RUNNER_TEMP/hatari/bin/hatari" >> "$GITHUB_ENV"   # (every make's: the cached one)
 
       - name: Install the packages for Baron and Hatari
         run: |
@@ -63,19 +66,14 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ${{ runner.temp }}/hatari/bin
-          key: hatari-${{ env.HATARI_VERSION }}-${{ runner.os }}-ubuntu-24.04
+          key: hatari-${{ steps.submodules.outputs.hatari }}-${{ runner.os }}-ubuntu-24.04
 
       - name: Build Hatari
         if: steps.hatari-cache.outputs.cache-hit != 'true'
-        working-directory: ${{ runner.temp }}
         run: |
-          curl -fsSL -o hatari.tar.gz https://github.com/hatari/hatari/archive/refs/tags/v$HATARI_VERSION.tar.gz
-          echo "$HATARI_SHA256  hatari.tar.gz" | sha256sum -c -
-          tar -xzf hatari.tar.gz
-          cmake -S hatari-$HATARI_VERSION -B hatari/build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build hatari/build --target hatari
-          mkdir -p hatari/bin
-          cp hatari/build/src/hatari hatari/bin/
+          make hatari
+          mkdir -p "$RUNNER_TEMP/hatari/bin"
+          cp build/hatari/src/hatari "$RUNNER_TEMP/hatari/bin/"
 
       - name: Save Hatari
         if: steps.hatari-cache.outputs.cache-hit != 'true'
@@ -86,8 +84,8 @@ jobs:
 
       - name: Make the ST's files in Hatari
         run: |
-          "$RUNNER_TEMP/hatari/bin/hatari" --version || true   # (it prints, then exits 1)
-          HATARI="$RUNNER_TEMP/hatari/bin/hatari" make -j2 PYTHON3='${{ steps.python.outputs.python-path }}' stfiles
+          "$HATARI" --version || true   # (it prints, then exits 1; tools/hatari.sh checks it's 2.5.0 or later)
+          make -j2 PYTHON3='${{ steps.python.outputs.python-path }}' stfiles
 
       - name: Check them against the Mac's
         run: |
