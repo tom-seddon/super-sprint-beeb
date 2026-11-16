@@ -7,8 +7,8 @@
 # (`make hazardtrace` records them); and tools/human_traces.sh's, with two or three humans; and the demo. Then the
 # race with cars put where one pixel of the wall probes decides (hprobe, state only), and the faults it's there
 # for put back (--probes). Then the disc's other checks, which read only it and what it was made from:
-# tools/break_check.mjs, tools/crash_check.mjs, tools/game_check.mjs, tools/attract_check.mjs, tools/flash_check.mjs, tools/options_check.mjs, tools/select_check.mjs, tools/upgrades_check.mjs, tools/circle_check.mjs, tools/initials_check.mjs, tools/tune_check.mjs (and again with --off: tune_off), tools/save_check.mjs, game_check and load_check again on build/game.adl (--adfs: game_adfs, load_adfs) and tools/load_check.mjs (last, as a race's job soon leaves a machine
-# free). Exit status 1 if any is wrong, or if any job left no status. Each job's start and end (seconds since 1970)
+# tools/break_check.mjs, tools/crash_check.mjs, tools/game_check.mjs, tools/attract_check.mjs, tools/flash_check.mjs, tools/options_check.mjs, tools/select_check.mjs, tools/upgrades_check.mjs, tools/circle_check.mjs, tools/initials_check.mjs, tools/tune_check.mjs (and again with --off: tune_off), tools/save_check.mjs, game_check and load_check again on build/game.adl (--adfs: game_adfs, load_adfs) and
+# tools/load_check.mjs; the longest first. Exit status 1 if any is wrong, or if any job left no status. Each job's start and end (seconds since 1970)
 # in OUT/<job>.time, for the suite's wall time.
 #
 # The jobs run on this machine, in a copy of what they read (OUT/tree, removed after), or with REMOTE=host on that
@@ -45,15 +45,29 @@ if [ "$1" = jobs ]; then                # (the jobs alone, where they run: tools
     export OUT=$2                       # (not in the command: BSD xargs -I cuts an argument at 255 bytes)
     mkdir -p "$OUT"
     rm -f "$OUT"/*.log "$OUT"/*.status "$OUT"/*.time
-    { for j in $ROTATIONS; do echo races_$j disc_races --rotate $j; done
-      echo probe disc_races --races hprobe --tracks 0
-      echo silence disc_races --races h012 --tracks 0 --noscreen --silence     # (a race the fault showed in)
-      echo probes disc_races --probes
-      for c in $CHECKS; do echo $c $c; done
-      echo tune_off tune_check --off
-      echo game_adfs game_check --adfs
-      echo load_adfs load_check --adfs
-      echo boot_adfs boot_check --adfs
+    # (the longest first, so the last to end is a short one: their times at 436f1a9, MACHINES=4 here, 2026-11-16)
+    { for j in $ROTATIONS; do echo races_$j disc_races --rotate $j; done   # 464-748 s each
+      echo game_check game_check                                            # 194 s
+      echo game_adfs game_check --adfs                                      # 122
+      echo save_check save_check                                            # 99
+      echo attract_check attract_check                                      # 95
+      echo tune_check tune_check                                            # 61
+      echo initials_check initials_check                                    # 60
+      echo tune_off tune_check --off                                        # 58
+      echo flash_check flash_check                                          # 57
+      echo circle_check circle_check                                        # 48
+      echo probe disc_races --races hprobe --tracks 0                       # 45
+      echo upgrades_check upgrades_check                                    # 44
+      echo load_adfs load_check --adfs                                     # 43
+      echo probes disc_races --probes                                       # 42
+      echo load_check load_check                                            # 41
+      echo silence disc_races --races h012 --tracks 0 --noscreen --silence  # 40 (a race the fault showed in)
+      echo options_check options_check                                      # 29
+      echo crash_check crash_check                                          # 22
+      echo select_check select_check                                        # 9
+      echo break_check break_check                                          # 7
+      echo boot_adfs boot_check --adfs                                      # 7
+      echo boot_check boot_check                                            # 5
     } | xargs -P ${MACHINES:-4} -L 1 sh -c 'n=$0; t=$1; shift; s=$(date +%s); node tools/$t.mjs "$@" > "$OUT/$n.log" 2>&1; echo $? > "$OUT/$n.status"; echo "$s $(date +%s)" > "$OUT/$n.time"'
     exit 0
 fi
