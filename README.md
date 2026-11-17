@@ -187,12 +187,13 @@ Attack) lap times with another set.
 Run the merge program with `*MERGE` from the disk.
 
 You'll get a `*` prompt, giving you a chance to change disk if
-necessary to the copy of Super Sprint (Time Attack) to merge from. (If
-using ADFS, for example, you might need to also do `*MOUNT`. Or select
-some other filing system. And so on.)
+necessary to the copy of Super Sprint (Time Attack) to merge from. You
+can also issue any `*` commands required. (If using ADFS, you'll need
+to do `*MOUNT`. Or, you can select some other filing system. And so
+on.)
 
-You can issue as many commands as required. Once ready, press Return
-on a blank line, and the lap times and ghost cars will be loaded.
+x1Once ready, press Return on a blank line, and the lap times and ghost
+cars will be loaded.
 
 Now you'll get further `*` prompt, as above. Change disk (or issue `*`
 commands) to the copy of Super Sprint (Time Attack) to merge into, as
