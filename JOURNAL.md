@@ -1118,3 +1118,7 @@ row (seen failing on the old build: 2 wrong), and passes, 113 checks on DFS and 
 Noted upstream. Not merged.
 
 Tom tried the branch's time attack discs (6d549) on his Master, from floppies: "Looks good." Merged into `main` by fast-forward (Tom: "Yes, merge it"); not pushed.
+
+Tom's README.md now says `*MOUNT` on ADFS (8f6bb20, e58d982). `main` and `ci-build` pushed at 3f0d853 (Tom: "Yes,
+push both"): GitHub's run 44070992130 passed in 5 min 54 s, Hatari from the cache this time; its release
+`super-sprint-20261117-1106-3f0d8` has the same six SHA-256s as `make discs` and `make release` here.
