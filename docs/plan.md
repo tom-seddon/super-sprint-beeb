@@ -346,7 +346,8 @@ adds the logic.
     want Hatari built there, "since installing dependencies can be a pain"). Then `make` alone makes all four discs
     (`make discs`: `make game`, then `make ta`), Tom's clone of it checked ("Looks good"), and README.md's building
     section his (`bab1f32`).
-  - Next, in a session on the Mac (Tom, 2026-11-16), on the branch `fresh-clone-linux`, not yet merged: macOS's
+  - Then the session on the Mac (Tom, 2026-11-16), on the branch `fresh-clone-linux`, merged into `main` 2026-11-17
+    (Tom: "Yes, merge it"), not pushed: macOS's
     build (above), and **GitHub's build, not yet run since it changed**. Done there so far (2026-11-17): on macOS
     make doesn't build Hatari, and `HATARI` is required when a file wants it (Tom: "don't build it in the Mac case.
     Require the user to have it installed somewhere, or build it themselves, and require them to specify the path";
