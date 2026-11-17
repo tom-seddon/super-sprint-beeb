@@ -1117,4 +1117,4 @@ every copy starts the same. On the branch `merge-mount`: both of MERGE's prompts
 row (seen failing on the old build: 2 wrong), and passes, 113 checks on DFS and 115 on ADFS. MERGE `&2000`-`&2CC9`.
 Noted upstream. Not merged.
 
-Tom tried the branch's time attack discs (6d549) on his Master, from floppies: "Looks good."
+Tom tried the branch's time attack discs (6d549) on his Master, from floppies: "Looks good." Merged into `main` by fast-forward (Tom: "Yes, merge it"); not pushed.
