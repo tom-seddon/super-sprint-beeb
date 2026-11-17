@@ -596,8 +596,10 @@ adds the logic.
   and `ci-build` pushed at 3499f3f, GitHub's release `super-sprint-20261117-0207-3499f` (run 44001098445), its six
   SHA-256s the same as `make discs` and `make release` here; Tom tried it. Then, with MERGE's `*MOUNT` reminder
   (below), `main` and `ci-build` pushed at 3f0d853: release `super-sprint-20261117-1106-3f0d8` (run 44070992130,
-  Hatari from the cache), its six SHA-256s again the same as here; Tom testing it. Any faults fixed and released again;
-  a good one is the first release. Then the post-release items (`At the end of the project`, below).
+  Hatari from the cache), its six SHA-256s again the same as here; Tom to test it (he'd tried 3499f3f's). Any faults
+  fixed and released again; a good one is the first release. Meanwhile the post-release items (`At the end of the
+  project`, below), started 2026-11-17 on the branch `upstream-review` (Tom: "I don't think there'll be enough to go
+  wrong to interfere with doing this post-build stuff").
   - MERGE's prompts, `*MOUNT` on ADFS: on the branch `merge-mount` (tried on Tom's Master, floppies, 2026-11-17: "Looks
     good"), merged into `main` 2026-11-17 (Tom: "Yes, merge it"), in the release at 3f0d853. Tom asked how the `.adl` discs' ids
     are made (`tools/adfs_disc.py`: `&5350`, fixed), then: "The player will need to swap disks while running the
@@ -767,6 +769,8 @@ Worth noting, not needed for a first release (Tom, 2026-11-16).
 | D53 | Time attack's driving keys | Decided (Tom, 2026-11-11): any of the three players' sets drives the car |
 | D54 | Time attack's options | Decided (Tom, 2026-11-11): its own simplified screen, mostly text with the logo; keys and sound as the game's |
 | D55 | Time attack's tunes and SCORES | Decided (Tom, 2026-11-12): no tunes, room kept for front-end sound effects; SCORES the keys and sound alone |
+| D56 | Time attack's menu's key hint | Decided (Tom, 2026-11-14): `F1 OPTIONS` in white at the screen's very corner, on the menu alone |
+| D57 | Time attack's scores and ghosts merger | Decided (Tom, 2026-11-15): `MERGE` on time attack's discs, a `*` prompt before the read and the write, the best 10 of both, the faster ghost |
 
 ## Risks
 
@@ -774,7 +778,7 @@ Worth noting, not needed for a first release (Tom, 2026-11-16).
   42 fields in the nine races repeat a frame (a gate stepping, cars under a bridge and against walls,
   together).
 - **Keyboard ghosting**: none possible on paper with the chosen nine keys (each in its own column), and none
-  seen on Tom's Master (2026-11-08, D12). A less cramped set, still to choose, needs the same checks.
+  seen on Tom's Master (2026-11-08, D12); nor with the less cramped set, his, since 2026-11-09.
 - **Room**: main RAM has 1,019 bytes free (after the crash handler, 2026-11-10), the `&3000` area 267 and the fourth bank 95 (2026-11-09, after the RAM
   hunt's batch 1); its brief's batch 2 has more (`docs/brief-ram-2026-11-09.md`).
 - **A filing system in sideways RAM** (MMFS is often loaded that way; Tom's MMFS run in b2 worked) leaves 3 banks; the game needs 4 free
