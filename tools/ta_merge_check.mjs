@@ -4,7 +4,7 @@
 // so the read goes on):
 // - the heading on the screen: double height, SUPER SPRINT in red and TIME ATTACK in yellow on both of its lines, then
 //   "Scores and ghosts merge" and the build's version (build/tracks_ta/gen/version.6502's) in green;
-// - the read's prompt; a command run there (*CAT: the disc's files, MERGE among them); a bad one (Bad command), back
+// - the read's prompt, its ADFS *MOUNT reminder (each line on its own row), and the write's; a command run there (*CAT: the disc's files, MERGE among them); a bad one (Bad command), back
 //   at the prompt; RETURN on an empty line on to the write's prompt; ESCAPE there and N, the prompt again; RETURN, the
 //   "Done" line; RETURN, round again to the read's prompt; ESCAPE and Y, back at BASIC's prompt, which works (PRINT)
 //   and has its own BRKV back (a bad command BASIC's error, BASIC's prompt after it);
@@ -93,6 +93,9 @@ const has = (lines, t) => lines.some((l) => l.trim() === t);
 // the screen's last row with anything on it (the cursor's, as the OS waits)
 const last = (s) => screen(s).map(text).filter((l) => l.trim()).at(-1)?.trim();
 const Red = 1, Green = 2, Yellow = 3, Double = 13;   // (teletext's codes, top bit off)
+// the prompts' lines after their first, the same for both, each on a row of its own (so none wraps)
+const PromptTail = ["discs, then press RETURN. (On ADFS,", "don't forget to *MOUNT after changing", "discs.)"];
+const hasTail = (lines) => PromptTail.every((t) => has(lines, t));
 
 // time attack's files (tafiles.6502), made here: TIMES, 1,040 bytes and their sum (a total of the bytes and a total of
 // the totals, each a byte: timeattack.6502's ta_sum); a ghost, its time, its records' bytes and those
@@ -170,7 +173,7 @@ function holds(s, what, files) {
     want("the heading's second line", heading.every((b, i) => rows[1][i] === b));
     want(`the heading's version line ("${text(rows[2])}")`, text(rows[2]) === ` Scores and ghosts merge      v ${version}`
         && rows[2][29] === Green);
-    want("the read's prompt", has(out, "Read from:type * commands, change") && has(out, "discs, then press RETURN.")
+    want("the read's prompt", has(out, "Read from:type * commands, change") && hasTail(out)
         && last(s) === "*");
     let o = await type(s, "CAT");
     want("*CAT at the prompt", o.some((l) => /\bMERGE\b/.test(l)) && last(s) === "*");
@@ -179,7 +182,8 @@ function holds(s, what, files) {
     want("a bad command: its error, then the prompt", at > 0 && last(s) === "*");
     want("a bad command: no blank line before its error", shown[at - 1] === "*FOO");
     o = await type(s, "");
-    want("RETURN: the write's prompt", has(o, "Read: GHOST1") && has(o, "Write to:type * commands, change") && last(s) === "*");
+    want("RETURN: the write's prompt", has(o, "Read: GHOST1") && has(o, "Write to:type * commands, change")
+        && hasTail(o) && last(s) === "*");
     o = await press(s, "Escape");
     want("ESCAPE: asked", last(s) === "Quit? (Y/N)");
     o = await press(s, "KeyN");

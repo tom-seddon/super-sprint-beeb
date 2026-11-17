@@ -1001,7 +1001,9 @@ ASSERT 1 + 28 + 1 + 2 + LEN(VersionAscii) - 1 < 40, "the heading's version: on i
     EQUS 13, 13, 0
 .MgReadText
     EQUB MgCyan, "Read from:", MgWhite, "type * commands, change", 13
-    EQUS " discs, then press RETURN.", 13, 0
+    EQUS " discs, then press RETURN. (On ADFS,", 13
+    EQUS " don't forget to *MOUNT after changing", 13
+    EQUS " discs.)", 13, 0
 .MgReadText2
     EQUB MgGreen, "Read:", 0
 .MgNoneText
@@ -1036,7 +1038,9 @@ ASSERT 1 + 28 + 1 + 2 + LEN(VersionAscii) - 1 < 40, "the heading's version: on i
     EQUB MgYellow, "Nothing to change.", 13, 0
 .MgWriteText
     EQUB MgCyan, "Write to:", MgWhite, "type * commands, change", 13
-    EQUS " discs, then press RETURN.", 13, 0
+    EQUS " discs, then press RETURN. (On ADFS,", 13
+    EQUS " don't forget to *MOUNT after changing", 13
+    EQUS " discs.)", 13, 0
 .MgAskText
     EQUB MgYellow, "Write these? (Y/N) ", 0
 .MgUnwrittenText
