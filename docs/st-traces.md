@@ -21,7 +21,15 @@ and `zlib1g-dev` on Ubuntu) before the first file it needs, as it does Baron, an
 `build/hatari/src/hatari`. Set `HATARI` to run another, and make doesn't build it; `tools/hatari.sh` stops, saying
 why, if there's no Hatari there or it's older than 2.5.0 (2.4.1's memory dumps break the tracers:
 `docs/brief-ci-hatari-2026-11-10.md`). The tracers keep its output in their own files, so it says so on the terminal
-too. A tracer run outside make (`tools/game_traces.sh`, `tools/human_traces.sh`) wants `make hatari` first. A file is made
+too. A tracer run outside make (`tools/game_traces.sh`, `tools/human_traces.sh`) wants `make hatari` first.
+
+On macOS make never builds it: `HATARI` names a Hatari the user installed or built, 2.5.0 or later (Tom, 2026-11-17:
+"Require the user to have it installed somewhere, or build it themselves, and require them to specify the path"),
+the app itself or the binary inside it, `~/` taken as the home folder (as zsh doesn't for `make HATARI=~/...`): `make
+HATARI=~/Applications/Hatari.app`, or `HATARI` exported. Without it, `tools/hatari.sh` stops, saying so, when a file
+wants making, and not before: with every file there, make never runs it. Checked 2026-11-17 on the Mac:
+`build/trace/tunes.json` deleted, `make build/trace/tunes.json` stopped, and with `HATARI=~/Applications/Hatari.app`
+(2.6.1) made it again, the same as `docs/stfiles-sha256.txt`'s. A file is made
 if it's missing and then kept: a newer tracer or `tools/hatari.sh` doesn't make it again (their timestamps are only the
 last checkout's), so to make one again after changing its tracer, delete it.
 
@@ -69,7 +77,7 @@ make game
 
 `-m` matters. It gives the files the time they were unpacked, not the time they were made. Without it they're older
 than a fresh clone's tools (git gives files the time of the checkout), and make would try to make them again in
-Hatari. And with `HATARI` unset, make builds Hatari before it sees every file is there: `HATARI=/usr/bin/false make
+Hatari. And with `HATARI` unset (not on macOS), make builds Hatari before it sees every file is there: `HATARI=/usr/bin/false make
 game` doesn't, and fails loudly if anything does call Hatari.
 
 Tested on agentbox (2026-11-09). A fresh clone of `repo-baron`, the pack unpacked, then `HATARI=/usr/bin/false

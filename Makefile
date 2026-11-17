@@ -80,13 +80,17 @@ baron: $(BARON)
 
 # Hatari, the ST emulator the ST's files are made in (docs/st-traces.md): the submodule extern/hatari (v2.6.1, the
 # version they were made with) built the same way into build/hatari, the hatari target alone; tools/hatari.sh runs
-# it. With HATARI set (another Hatari, or /usr/bin/false where the ST's files were unpacked) it isn't built.
+# it. With HATARI set (another Hatari, or /usr/bin/false where the ST's files were unpacked) it isn't built, and on
+# macOS it never is: HATARI names one the user installed or built (Tom, 2026-11-17: "Require the user to have it
+# installed somewhere, or build it themselves, and require them to specify the path"), and tools/hatari.sh stops,
+# saying so, if a file wants making and HATARI isn't set.
+UNAME := $(shell uname -s)
 HATARI_BIN = build/hatari/src/hatari
 $(HATARI_BIN): always
 	@[ -f build/hatari/build.ninja ] || cmake -S extern/hatari -B build/hatari -G Ninja -DCMAKE_BUILD_TYPE=Release
 	@cmake --build build/hatari --target hatari
 hatari: $(HATARI_BIN)
-ST_HATARI = tools/hatari.sh $(if $(HATARI),,$(HATARI_BIN))
+ST_HATARI = tools/hatari.sh $(if $(HATARI)$(filter Darwin,$(UNAME)),,$(HATARI_BIN))
 
 # The Python virtual environment (git-ignored), made on first use and refreshed when requirements.txt changes.
 venv: $(VENV)

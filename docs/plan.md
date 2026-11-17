@@ -347,7 +347,13 @@ adds the logic.
     (`make discs`: `make game`, then `make ta`), Tom's clone of it checked ("Looks good"), and README.md's building
     section his (`bab1f32`).
   - Next, in a session on the Mac (Tom, 2026-11-16), on the branch `fresh-clone-linux`, not yet merged: macOS's
-    build (above), and **GitHub's build, not yet run since it changed** (`074e8a2`: Hatari from `extern/hatari` by
+    build (above), and **GitHub's build, not yet run since it changed**. Done there so far (2026-11-17): on macOS
+    make doesn't build Hatari, and `HATARI` is required when a file wants it (Tom: "don't build it in the Mac case.
+    Require the user to have it installed somewhere, or build it themselves, and require them to specify the path";
+    "It's OK if it's a second-class citizen"; "just testing it at the Makefile level will be good enough"):
+    `docs/st-traces.md`. Still to go through with Tom, one by one: `gh`, not on the Mac either (the Actions tab, or
+    MacPorts' `gh`); the Mac's `python3`, Apple's 3.9.6 (`PYTHON3=python3.14`, MacPorts'); its packages, MacPorts'
+    not Homebrew's; then a fresh clone built. GitHub's build (`074e8a2`: Hatari from `extern/hatari` by
     `make hatari`, no tarball or SHA-256; the local OS doesn't matter, it runs on GitHub). To check it:
     1. Start it. `gh workflow run build.yml --ref fresh-clone-linux` (or the Actions tab, "Run workflow", the
        branch picked) runs the branch's workflow without touching `ci-build`; `main`'s copy has
@@ -374,7 +380,7 @@ adds the logic.
     submodules); Python 3.12 or later as `python3` (the build makes `.venv` from `requirements.txt`, stopping first
     if it's older; another with `make PYTHON3=...`; on Ubuntu apt's `python3.12-venv`; a Mac's own `python3` is too
     old); Hatari is the submodule `extern/hatari` (v2.6.1), built by make as Baron is, so SDL2's and zlib's headers
-    (`libsdl2-dev`, `zlib1g-dev` on Ubuntu; on a Mac, Homebrew's `sdl2`, or `HATARI` set to an app of 2.5.0 or later),
+    (`libsdl2-dev`, `zlib1g-dev` on Ubuntu; on a Mac, not built: `HATARI` set to an app of 2.5.0 or later, below),
     and perl; Node 22 for the checks. On Ubuntu 24.04 or Mint 22 and later (CMake 3.21 for Baron, Python 3.12;
     the packages as apt names them, 2026-11-16; `libreadline-dev` as GitHub's build has it, optional to Hatari;
     pip fetches the three Python packages from PyPI):

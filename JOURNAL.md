@@ -1073,3 +1073,16 @@ reader of README.md alone would have hit, and what's done:
   for a build straight after (every track built again, as always).
 macOS not tried, and broken till it's given `PYTHON3` and `HATARI` (or SDL2 to build Hatari); for a later session.
 Not merged.
+
+## 2026-11-17: the build on the Mac, Hatari not built there
+
+On the branch `fresh-clone-linux`, going through the Mac's build with Tom point by point. First, Hatari (Tom:
+"don't build it in the Mac case. Require the user to have it installed somewhere, or build it themselves, and
+require them to specify the path"; "It's OK if it's a second-class citizen"): on macOS make never builds it, and
+`tools/hatari.sh` stops, saying to set `HATARI`, only when a file wants making. `HATARI` may be the app itself
+(`Contents/MacOS/Hatari` added) and may start `~/` (zsh doesn't expand `make HATARI=~/...`). Checked at the Makefile
+level (Tom: "good enough"): `make -n game` no longer configures Hatari; `build/trace/tunes.json` deleted, `make` of it
+stopped without `HATARI` and with `HATARI=~/Applications/Hatari.app` made it again (51 s), the same as
+`docs/stfiles-sha256.txt`'s; `tools/hatari.sh`'s messages for no `HATARI`, a missing one and `/usr/bin/false` seen.
+Linux unchanged (`ST_HATARI` the same off Darwin). Still to go: `gh`, the Mac's `python3`, MacPorts' packages, a
+fresh clone.
