@@ -266,9 +266,12 @@ and the manual can be wrong, so "to measure" where it matters. The answers to th
   0-7, 6 ms on both for 0, 1, 4, 5 and 30 ms (1770) or 3 ms (1772) for 2, 3, 6, 7, the odd ones without ADFS's
   precompensation. The kit's figures are the 177x's own step bits; how the DFS turns one into the other, and its "byte
   11 reads `&25`" as FDRIVE 0, to measure.
-- **`&FE20`-`&FE3F` at 2 MHz** (288-296, from KC and jsbeeb): F.6-8 lists VIDPROC (`&FE20`) and the 1770 (`&FE28`) as
-  1 MHz, `&FE24`, ROMSEL, ACCCON and INTOFF/INTON as 2 MHz. jsbeeb 2.18.0's `is1MHzAccess` has all of `&FE20`-`&FE3F`
-  at 2 MHz. To measure on a Master (it bears on `&FE21` loops and qdisc's 35.4 cycles a byte).
+- **`&FE20`-`&FE3F` at 2 MHz** (288-296, from KC and jsbeeb, "still unmeasured on hardware"): F.6-8 lists VIDPROC
+  (`&FE20`) and the 1770 (`&FE28`) as 1 MHz, `&FE24`, ROMSEL, ACCCON and INTOFF/INTON as 2 MHz. **VIDPROC is 2 MHz**:
+  Tom, 2026-11-17, "Verified on a Master 128", so KC is right and the manual wrong there (Tom has filed a bug report on
+  it); the kit's line can say measured. **The 1770 is 1 MHz**, as the manual says (Tom: "The document is correct about
+  FDC being 1 MHz"), so on a Master `&FE20`-`&FE3F` isn't all 2 MHz: `&FE28`-`&FE2F` is stretched. That bears on any
+  timing of the 1770's registers, qdisc's 35.4 cycles a byte (1080, measured in jsbeeb) among them.
 - **OSBYTE `&7A` with no key** (1144: "documented as X = 0 (NAUG)", jsbeeb 255): the manual says 255 (D.2-35/36), as
   jsbeeb does. The NAUG's line not checked.
 - **The BREAK intercept** (1046-1048, `JMP (&FFFC)`): D.2-82 has it entered twice a BREAK, C set then clear, and
@@ -311,7 +314,11 @@ and the manual can be wrong, so "to measure" where it matters. The answers to th
   the kit (776). The 65C12 (O.4): no RMB/SMB/BBR/BBS, no WAI/STP, no cycle counts: nothing new.
 
 ### jsbeeb
-- `&FE20` (VIDPROC) and `&FE28` (the 1770) at 2 MHz, where F.6-8 says 1 MHz (above).
+- **The Master's 1770 at 2 MHz**: `is1MHzAccess` (2.18.0 and 2.23.0, `src/6502.js`) takes the Model B's table,
+  `FEslowdown = [true, false, true, ...]` by `(addr >>> 5) & 7`, for every model, so `&FE20`-`&FE3F` is 2 MHz on the
+  Master too, where its 1770 sits at `&FE28` (the same file's `case 0xfe28: return this.model.isMaster ? this.fdc...`).
+  The manual (F.6-8) and Tom have it at 1 MHz: a likely jsbeeb bug, each access to the 1770 a cycle or so short.
+  VIDPROC at 2 MHz there is right (Tom, on a Master 128). Not measured in jsbeeb, read from the source.
 - ACCCON: no IRQ for IRR; E not applied while Y is set (above). Both from 2.18.0's `6502.js`; 2.23.0's
   `writeAcccon` and `is1MHzAccess` are the same (diffed).
 
