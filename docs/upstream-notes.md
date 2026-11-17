@@ -7,6 +7,20 @@ decide which would be real improvements for each upstream.
 Each note says what was found, how it was checked, and what's still to check. Add to this file whenever a fault,
 a gap or a workaround looks like it isn't only this project's.
 
+**Checked against each upstream's latest, 2026-11-17**, before going through them with Tom (the plan's "At the end of
+the project"): none of the notes below is dealt with there yet, so each still stands as written.
+- The kit: `origin/master` at a460d4e, two commits after the submodule's 341c985 (2026-11-14, from two Amstrad CPC
+  demo ports): `docs/hardware-facts.md` +89 lines, `docs/gotchas.md` +105, `PORTING.md` +32, nothing on DDRB, the
+  flash, `&0900`-`&0CFF`, OSWORD 10, the keypad, an empty socket, ADFS's disc id or ROMSEL's reading (`git grep` of
+  each). One new gotcha is near ours on overlays (below). The submodule not moved.
+- jsbeeb-mcp 4.5.0 (2026-11-08; pinned here 4.3.0) and jsbeeb 2.23.0 (pinned 2.18.0), read from their npm packages:
+  `set_breakpoint` still takes `address`, `type` and `bank` alone, no tool reads the VIAs, an empty socket's read and
+  the disc's starting place unchanged in `6502.js` and `disc-drive.js`. New since: stepping back (`step_back`,
+  `reverse_continue`, `who_wrote`) and sideways ROMs placed by bank (`create_machine`'s `bank_roms`, which would
+  make the bank probe's layouts easier to set up). `MasterADFS` with no disc not run again.
+- Baron: `rich/baron`'s 4f71e73 is its remote's latest. Hatari: v2.6.1 is still its latest release (its `main` not
+  read for the prompt).
+
 ## beeb-port-kit (`reference/beeb-port-kit`)
 
 ### DDRB `&0F` cuts a Master off from its CMOS chip
@@ -32,8 +46,9 @@ a gap or a workaround looks like it isn't only this project's.
 - `lib/loader.6502`'s header says a load after the takeover is possible, but its contract is the load before it.
   `src/load.6502` and `src/loadcode.6502` here do the whole round trip: zero page `&90`-`&FF` swapped, the VIAs,
   IRQ1V, NMIs (OSBYTE 143's owner kept), BRKV, the load's code run from the blanked screen.
-- **Could be**: a `lib/` file or a section of `PORTING.md`. Wait until it's proved on DFS, ADFS, MMFS and Econet
-  (Phase 5's step 11).
+- **Could be**: a `lib/` file or a section of `PORTING.md`. Proved since on DFS and ADFS L (Tom's Master 128 and a
+  Compact), MMFS and a hard disc in b2, and BeebLink (Phase 5, 2026-11-08); Econet never run (only ANFS's logon
+  refused in jsbeeb, D26).
 
 ### `&0900`-`&0AFF` in the memory tables
 - `docs/hardware-facts.md` calls `&0A00` the printer buffer. Tom, from the Master Reference Manual: `&0900`-`&0AFF`
@@ -43,6 +58,14 @@ a gap or a workaround looks like it isn't only this project's.
   workspace." And: "The $b00...$cff region is documented in one of the Master reference manuals, so it's an
   official Acorn guideline I guess!" jsbeeb's DFS and ADFS left both pages alone, which says nothing about Econet
   (D26).
+
+### A load that gives ACCCON back to the OS can show the wrong screen
+- **Found** (the kit, or jsbeeb; filed under Baron till 2026-11-17): a game double-buffering on the
+  Master's shadow RAM and restoring the OS's ACCCON for a load inherits its D bit: with the OS showing shadow, the load
+  showed the shadow screen, not the main one being written. jsbeeb's Master boots with D clear, so nothing there showed
+  it; seen on Tom's Master (2026-11-05: old HUD row stuck, "Loading" unseen), reproduced by setting D in the saved value.
+  His had it set, he suspects, because the tool writing his disc selected MODE 135, shadow MODE 7, so any machine or
+  tool that boots in a shadow mode will do it. Worth a line in `gotchas.md`, and perhaps a way to boot jsbeeb that way.
 
 ### OSWORD 10 after ANDY is overwritten
 - **Found** (2026-11-04): with the game's data in ANDY, OSWORD 10 returned 8 zero lines for every character: MOS
@@ -68,6 +91,9 @@ a gap or a workaround looks like it isn't only this project's.
   whether the stop counted. Any port with loaded overlays meets this, and only a check with a stop in more than one
   of them would show it.
 - **In the kit**: the gate's comment names "your overlay addresses" for the filing system during boot only.
+  Since (a460d4e, 2026-11-14, not in the submodule): `gotchas.md` class 5, "With code in two sideways banks at
+  `&8000`, an address hook fires in both", from Isometrikum: gate on ROMSEL and on the boot. That's the banks' case;
+  files loaded over each other in one bank, this one, still isn't there.
   Neither `docs/verification.md` nor `harness.mjs` mentions jsbeeb's breakpoint conditions.
 - **Done here since** (2026-11-07): `fileGate` in `tools/jsbeeb.mjs` finds the label's section and file in the
   symbols, reads the file's bytes off the disc, and returns a jsbeeb condition on the bytes at `PC`: four, or more
@@ -150,13 +176,6 @@ slower loads showed up there before anyone knew why. Tool gaps only:
   jump needs `ZA_CANJUMP` with a target, and `ZA_UNREACHABLE` after it isn't accepted, so there's no way to say
   "this never comes back". Worked round here by setting a flag and jumping from the frame loop's top level, which
   is arguably better code, so this may be nothing. Worth asking Rich only if another case turns up.
-
-- **The kit, or jsbeeb: a load that gives ACCCON back to the OS can show the wrong screen.** A game double-buffering on the
-  Master's shadow RAM and restoring the OS's ACCCON for a load inherits its D bit: with the OS showing shadow, the load
-  showed the shadow screen, not the main one being written. jsbeeb's Master boots with D clear, so nothing there showed
-  it; seen on Tom's Master (2026-11-05: old HUD row stuck, "Loading" unseen), reproduced by setting D in the saved value.
-  His had it set, he suspects, because the tool writing his disc selected MODE 135, shadow MODE 7, so any machine or
-  tool that boots in a shadow mode will do it. Worth a line in `gotchas.md`, and perhaps a way to boot jsbeeb that way.
 
 ## Hatari
 
