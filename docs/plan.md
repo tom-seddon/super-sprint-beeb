@@ -616,9 +616,8 @@ adds the logic.
   `README.md` instead (Tom, 2026-11-15: "I think the zip README is fine as it stands. Any missing README items will be
   added to the README.md in the repo (since it's Markdown and can therefore include images and stuff)."). Its building
   section's notes are in the fresh-clone build item, above.
-  Outstanding (2026-11-17): MERGE's section says "you might need to also do `*MOUNT`" on ADFS; it's needed after
-  every swap now (MERGE's prompts say so, `merge-mount`: two discs can share an id, and ADFS then doesn't notice).
-  Otherwise nothing outstanding (2026-11-15): README.md, as Tom wrote it that day, covers playing (the machines and 64 KB of
+  MERGE's `*MOUNT` on ADFS: in Tom's README.md since 8f6bb20 (2026-11-17: "If using ADFS, you'll need to do
+  `*MOUNT`"). Otherwise nothing outstanding (2026-11-15): README.md, as Tom wrote it that day, covers playing (the machines and 64 KB of
   sideways RAM, the keys, the options, the sound, the version), time attack and MERGE. Not needed (Tom, 2026-11-15: "I
   don't think points 1 or 3 need documenting"): time attack's name typed on the keyboard; MERGE's ESCAPE, an entry
   on both discs kept once, and its summary before the Y. What's saved to the disc isn't spelt out (Tom: "I have
