@@ -1086,3 +1086,9 @@ stopped without `HATARI` and with `HATARI=~/Applications/Hatari.app` made it aga
 `docs/stfiles-sha256.txt`'s; `tools/hatari.sh`'s messages for no `HATARI`, a missing one and `/usr/bin/false` seen.
 Linux unchanged (`ST_HATARI` the same off Darwin). Still to go: `gh`, the Mac's `python3`, MacPorts' packages, a
 fresh clone.
+
+Then the Mac's `python3` (Apple's 3.9.6) left as it is (Tom: "I think it'll be OK as-is"): make already stops
+before `.venv`, saying to give `PYTHON3=`. Tom's fresh clones of the branch: his laptop (`make -j5
+PYTHON3=/opt/local/bin/python3.14 HATARI=~/Applications/Hatari.app/Contents/MacOS/Hatari`) and a Mac Studio
+(`-j16`), the discs the same on both and tried in jsbeeb ("Looks good"); README.md's macOS section his. Left:
+GitHub's build, not run since it changed. Not merged.

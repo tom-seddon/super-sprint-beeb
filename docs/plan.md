@@ -351,10 +351,12 @@ adds the logic.
     make doesn't build Hatari, and `HATARI` is required when a file wants it (Tom: "don't build it in the Mac case.
     Require the user to have it installed somewhere, or build it themselves, and require them to specify the path";
     "It's OK if it's a second-class citizen"; "just testing it at the Makefile level will be good enough"):
-    `docs/st-traces.md`. Still to go through with Tom, one by one: `gh`, not on the Mac either (the Actions tab, or
-    MacPorts' `gh`), which only GitHub's build's check wants; the Mac's prerequisites from anywhere, not MacPorts'
-    or Homebrew's (SDL2 no longer needed, as Hatari isn't built: cc, cmake, ninja, a Python, Hatari); then a fresh
-    clone built. The Mac's `python3`, Apple's 3.9.6: left as it is (Tom, 2026-11-17: "I think it'll be OK
+    `docs/st-traces.md`. Then the Mac's fresh clone, done (Tom, 2026-11-17: "Looks good"): built on his laptop
+    (`make -j5 PYTHON3=/opt/local/bin/python3.14 HATARI=~/Applications/Hatari.app/Contents/MacOS/Hatari`) and on a
+    Mac Studio (`-j16`), the discs the same on both, tried in jsbeeb; README.md's macOS section his. Its
+    prerequisites from anywhere, not MacPorts' or Homebrew's (SDL2 no longer needed, as Hatari isn't built: cc,
+    cmake, ninja, a Python, Hatari). `gh` isn't on the Mac either (the Actions tab, or MacPorts' `gh`): only
+    GitHub's build's check wants it. The Mac's `python3`, Apple's 3.9.6: left as it is (Tom, 2026-11-17: "I think it'll be OK
     as-is. I'll add something to the README about this"), make stopping before `.venv` and saying to give
     `PYTHON3=` (seen here), once, as `.venv` is made once. For README.md (Tom's): `make -j$(nproc)` has no `nproc`
     on macOS (`sysctl -n hw.ncpu`). GitHub's build (`074e8a2`: Hatari from `extern/hatari` by
