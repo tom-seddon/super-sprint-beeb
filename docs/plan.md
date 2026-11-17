@@ -596,7 +596,8 @@ adds the logic.
   and `ci-build` pushed at 3499f3f, GitHub's release `super-sprint-20261117-0207-3499f` (run 44001098445), its six
   SHA-256s the same as `make discs` and `make release` here; Tom testing it. Any faults fixed and released again;
   a good one is the first release. Then the post-release items (`At the end of the project`, below).
-  - MERGE's prompts, `*MOUNT` on ADFS: on the branch `merge-mount`, not merged. Tom asked how the `.adl` discs' ids
+  - MERGE's prompts, `*MOUNT` on ADFS: on the branch `merge-mount` (tried on Tom's Master, floppies, 2026-11-17: "Looks
+    good"), not merged. Tom asked how the `.adl` discs' ids
     are made (`tools/adfs_disc.py`: `&5350`, fixed), then: "The player will need to swap disks while running the
     merge tool. If they're merging scores from somebody else running the same version, the disk IDs may well be the
     same." MEASURED in jsbeeb: ADFS knows a changed disc by the map's id alone, and writes a new low byte (by timing)
