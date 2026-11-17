@@ -570,7 +570,7 @@ adds the logic.
   `S2 A1 T2` (green). So the name and upgrades on lines 29 and 39 as the mock-up, nothing for a track with no best;
   `ta_picture_check`'s model of the menu to match. Built 2026-11-13 on the branch `ta-menu-names`, as that
   (`docs/img/timeattack-menu-names.png`, bests poked); Tom, 2026-11-13: "Track names on the main menu look good."
-- `!BOOT` above a Model B's PAGE: done 2026-11-16 on the branch `suite-boot`, merged into `main` (an unattended job,
+- ~~`!BOOT` above a Model B's PAGE~~: done 2026-11-16 on the branch `suite-boot`, merged into `main` (an unattended job,
   `docs/report-suite-boot-2026-11-16.md`), `BootOrg` `&2000`, `tools/modelb_check.mjs` in the suite; a Model B with ADFS
   only refused it in b2 (Tom, 2026-11-16: "Tried on b2 with BBC B+ADFS - got the expected error."); the refusal now "Super Sprint needs a BBC
   Master", on one row. Merged without the Master's try (Tom: "This can always be fixed if I'm proven wrong."). What it was (Tom, 2026-11-15: "Note it in the plan as a possible future improvement - I don't fancy waiting for
@@ -582,7 +582,7 @@ adds the logic.
   very rare case." The change: `BootOrg` at `&2000` or so (above any PAGE, under `&3000` where the files land); it
   changes the game's discs, so the whole suite. A check: the boot on Model Bs (DFS 1.2, 1770) refused, PAGE read
   against `!BOOT`'s load address, as `ta_merge_check` does for MERGE.
-- The suite's wall time: done 2026-11-16, both halves. The laptop's on the branch `suite-boot`, merged
+- ~~The suite's wall time~~: done 2026-11-16, both halves. The laptop's on the branch `suite-boot`, merged
   (`docs/report-suite-boot-2026-11-16.md`): the disc's jobs in the background in their own copy, and longest first,
   2,637 s to about 2,465 (MEASURED, one run each); `MACHINES=2` no better (dropped). agentbox's on the branch
   `ghost-split`, merged (`docs/report-ghost-split-2026-11-16.md`): time attack's ghost checks in two pieces each
