@@ -89,6 +89,21 @@ moved (`tools/seed_check.mjs`) all ran. Fixed here: banks 7 to 0 only (8-15 are 
 the shadow screen MODE 129 just cleared on show, and a bank counted only if it reads back the `&FF` EOR written.
 Worth a line in the recipe and in `gotchas.md`.
 
+### ADFS knows a changed floppy by its id alone
+- **Found** (2026-11-17, in jsbeeb's Master 128, ADFS from MOS 3.20; Tom asked how the `.adl` discs' ids are made):
+  after a swap (the motor stopped first, as a person's), ADFS said "Disc changed" only when the free space map's id
+  (`&1FB`-`&1FC`) differed. A disc with the same id but another directory, or another map, went unnoticed: `*INFO`
+  and `*CAT` gave the first disc's catalogue. ADFS writes a new low byte on every map write (a `*SAVE`, a file
+  overwritten too), depending on timing (`&5350`, then `&91 &DA &A0 &23`, or `&15 &D4 &A3 &41` with pauses
+  between): the high byte stays. So two discs from one image, once written, share an id about 1 time in 256, and a
+  write after an unmounted swap uses the other disc's map and directory. `*MOUNT` reads both again.
+- **Here**: `tools/adfs_disc.py` gives every disc `&5350`; every copy of a release's image starts the same however
+  it's chosen. MERGE (time attack's merger, a disc swap at its prompts) says to `*MOUNT` after changing discs on
+  ADFS (Tom's wording).
+- **In the kit**: nothing on ADFS's disc id in `docs/hardware-facts.md` or `docs/gotchas.md`. **Could be**: a
+  gotcha for a port that asks for a disc swap on ADFS (a save disc, a second side). Not seen on real hardware, or
+  on the Compact's ADFS.
+
 ### Smaller
 - A self-patching copy loop that doesn't reset its operands works until it's run a second time (`shared_copy` and
   `load_go` here, 3c). Perhaps a line in `docs/gotchas.md`, if a port's loader is ever re-run.

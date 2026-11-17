@@ -592,6 +592,20 @@ adds the logic.
   report's note on what agentbox's suite still waits on is now an item for a later version, below. What it was (Tom, 2026-11-13: "potentially useful, but still a lot
   of wall clock time either way. So not worth it immediately"); the laptop's measurements, `JOURNAL.md`, 2026-11-13,
   "the checks' times on Tom's laptop".
+- The first release (Tom, 2026-11-17: "I'm thinking the game is in a good state for the first release"): `main`
+  and `ci-build` pushed at 3499f3f, GitHub's release `super-sprint-20261117-0207-3499f` (run 44001098445), its six
+  SHA-256s the same as `make discs` and `make release` here; Tom testing it. Any faults fixed and released again;
+  a good one is the first release. Then the post-release items (`At the end of the project`, below).
+  - MERGE's prompts, `*MOUNT` on ADFS: on the branch `merge-mount`, not merged. Tom asked how the `.adl` discs' ids
+    are made (`tools/adfs_disc.py`: `&5350`, fixed), then: "The player will need to swap disks while running the
+    merge tool. If they're merging scores from somebody else running the same version, the disk IDs may well be the
+    same." MEASURED in jsbeeb: ADFS knows a changed disc by the map's id alone, and writes a new low byte (by timing)
+    on each map write, so two written copies of one image share an id about 1 time in 256; then a write without
+    `*MOUNT` uses the other disc's map and directory. The id the image starts with can't help (every copy of a
+    release is the same). So both prompts now end, in Tom's words, "(On ADFS, don't forget to *MOUNT after changing
+    discs.)", on four rows (`ta_merge_check` checks each line on its own row; seen failing on the old build). Not
+    built: a guard in MERGE comparing ADFS's map in memory with the disc's (where ADFS keeps it unmeasured, and the
+    Compact's ADFS untried); MERGE running `*MOUNT` itself (it resets `*DIR` and the drive). `docs/upstream-notes.md`.
 - For Tom to do: `README.md`, his file (`CLAUDE.md`): reminders only, of what it might usefully mention, kept up as
   things are built (noted 2026-11-12; Tom, 2026-11-15: "I will continue to word the README.md myself, as its contents
   are primarily for human consumption (barring the short note at the bottom for agent use, pointing them at CLAUDE.md
@@ -601,7 +615,9 @@ adds the logic.
   `README.md` instead (Tom, 2026-11-15: "I think the zip README is fine as it stands. Any missing README items will be
   added to the README.md in the repo (since it's Markdown and can therefore include images and stuff)."). Its building
   section's notes are in the fresh-clone build item, above.
-  Nothing outstanding (2026-11-15): README.md, as Tom wrote it that day, covers playing (the machines and 64 KB of
+  Outstanding (2026-11-17): MERGE's section says "you might need to also do `*MOUNT`" on ADFS; it's needed after
+  every swap now (MERGE's prompts say so, `merge-mount`: two discs can share an id, and ADFS then doesn't notice).
+  Otherwise nothing outstanding (2026-11-15): README.md, as Tom wrote it that day, covers playing (the machines and 64 KB of
   sideways RAM, the keys, the options, the sound, the version), time attack and MERGE. Not needed (Tom, 2026-11-15: "I
   don't think points 1 or 3 need documenting"): time attack's name typed on the keyboard; MERGE's ESCAPE, an entry
   on both discs kept once, and its summary before the Y. What's saved to the disc isn't spelt out (Tom: "I have

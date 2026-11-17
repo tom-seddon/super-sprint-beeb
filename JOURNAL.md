@@ -1098,3 +1098,21 @@ from `extern/hatari` (1 min 33 s) and cached, the ST's files all the Mac's; the 
 Hatari's build skipped. Both released the same six SHA-256s, and all six are the same as `make discs` then `make
 release` here at the same commit.
 Merged into `main` (Tom: "Yes, merge it"); not pushed.
+
+## 2026-11-17: the first release's candidate, and MERGE's prompts on ADFS
+
+`main` and `ci-build` pushed at 3499f3f (Tom: "I'm thinking the game is in a good state for the first release"):
+GitHub's run 44001098445 passed (8 min 20 s, Hatari built again: a branch can't use another branch's cache), its
+release `super-sprint-20261117-0207-3499f` the same six SHA-256s as `make discs` and `make release` here. Tom testing.
+
+Then Tom asked how the `.adl` discs' ids are made: `tools/adfs_disc.py`'s fixed `&5350`. As MERGE asks for a disc
+swap, measured in jsbeeb (the Master's ADFS, a swap with the motor stopped): "Disc changed" only when the map's id
+differs; the same id with another directory, or another map, went unnoticed, `*INFO` and `*CAT` giving the first
+disc's catalogue. ADFS writes a new low byte to the id on every map write (`*SAVE`, an overwrite too), by timing:
+from `&5350`, `&91 &DA &A0 &23` with no pause between saves, `&15 &D4 &A3 &41` and `&8D &DC &C7 &4D` with pauses; the
+high byte stays. So two written discs from one release share an id about 1 time in 256, and MERGE writing after a
+swap without `*MOUNT` would use the source's map and directory on the destination. The image's id can't help, as
+every copy starts the same. On the branch `merge-mount`: both of MERGE's prompts end "(On ADFS, don't forget to
+*MOUNT after changing discs.)" (Tom's wording), on four rows; `ta_merge_check` checks the lines, each on its own
+row (seen failing on the old build: 2 wrong), and passes, 113 checks on DFS and 115 on ADFS. MERGE `&2000`-`&2CC9`.
+Noted upstream. Not merged.

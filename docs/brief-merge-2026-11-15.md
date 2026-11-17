@@ -105,6 +105,9 @@ Mock-up (40 columns):
  Done. Press RETURN to merge again.
 ```
 
+(2026-11-17, the branch `merge-mount`: each prompt's second line now goes on, "(On ADFS, / don't forget to *MOUNT
+after changing / discs.)", Tom's wording, as ADFS can miss a swap between discs with the same id: `docs/plan.md`.)
+
 Memory: a set is at most 25,074 bytes (COUNTED: `TIMES` 1,042 and 8 ghosts of 3,004). The source's held in sideways
 RAM, which the tool may assume as the game does (4 banks free; found as `boot.6502` finds them, its message if
 they're not there). A file's read into main RAM, OSFILE being unable to reach a bank, and copied across, as the game
