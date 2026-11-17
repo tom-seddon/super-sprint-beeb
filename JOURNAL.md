@@ -1092,3 +1092,8 @@ before `.venv`, saying to give `PYTHON3=`. Tom's fresh clones of the branch: his
 PYTHON3=/opt/local/bin/python3.14 HATARI=~/Applications/Hatari.app/Contents/MacOS/Hatari`) and a Mac Studio
 (`-j16`), the discs the same on both and tried in jsbeeb ("Looks good"); README.md's macOS section his. Left:
 GitHub's build, not run since it changed. Not merged.
+
+GitHub's build, run on the branch at eaf45cb from the Actions tab (Tom), twice: the first 7 min 22 s, Hatari built
+from `extern/hatari` (1 min 33 s) and cached, the ST's files all the Mac's; the second 5 min 42 s, the cache hit and
+Hatari's build skipped. Both released the same six SHA-256s, and all six are the same as `make discs` then `make
+release` here at the same commit.

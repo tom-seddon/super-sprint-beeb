@@ -381,6 +381,14 @@ adds the logic.
     Checked here first (2026-11-16): a depth-1 fetch of `extern/hatari`'s pinned commit works (the workflow fetches
     its submodules `--depth 1`), Hatari's build leaves the submodule's tree clean (the workflow fails if the tree has
     changes, as the version would end in `m`), and the YAML parses. Not run: `gh` isn't on Tom's Linux PC.
+    Run 2026-11-17, at eaf45cb from the Actions tab (Tom): both passed. The first (43996753802) 7 min 22 s, "Build
+    Hatari" 1 min 33 s, the ST's files 2 min 30 s and all 120 the Mac's, the discs 1 min 33 s, time attack's 50 s;
+    the second (43998801826) 5 min 42 s, a cache hit, "Build Hatari" and "Save Hatari" skipped, the discs 1 min 48 s
+    (no Hatari built in them: its build alone is 1 min 33 s; the logs want a sign-in, so not read, and `make -n game`
+    and `make -n stfiles` with `HATARI` set plan no Hatari). The release, `super-sprint-20261117-0133-eaf45`, the
+    same six SHA-256s from both runs, and all six (the four discs, README.txt, the zip) the same as `make discs` and
+    `make release` here at eaf45cb. Left for Tom: the old cache, `hatari-2.6.1-Linux-ubuntu-24.04` (delete it in the
+    Actions tab's Caches, or let it expire), and the release, kept or deleted.
   - The prerequisites, in README.md till 2026-11-15 and gone from it now (`CLAUDE.md` still sends a reader there):
     make, a C compiler (`cc`), CMake 3.21 or later and Ninja (Baron and the ZX02 compressor are built from the
     submodules); Python 3.12 or later as `python3` (the build makes `.venv` from `requirements.txt`, stopping first
