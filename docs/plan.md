@@ -329,7 +329,8 @@ adds the logic.
   start over ssh), the build's ST files packed here (`make build/stfiles.tar.gz`, 2.5 MB) and unpacked in a fresh
   clone build the same discs, in 1 min 8 s, with `HATARI=/usr/bin/false`: `docs/st-traces.md`, which also lists
   every ST file, what makes it and what reads it. Not tried: Linux; Windows not supported for now (Tom).
-- Build from a fresh clone by hand, on Linux and on macOS (Tom, 2026-11-12): "I would like to try this by hand, to
+- ~~Build from a fresh clone by hand, on Linux and on macOS~~: closed 2026-11-17 (Tom: "Please close the plan
+  item"), after the Mac's clones and GitHub's build below. What it was (Tom, 2026-11-12): "I would like to try this by hand, to
   ensure the instructions cover everything. I'd like this to be straightforward for a person to do by hand without
   needing agent assistance." Tom does it, following the README alone; what he finds missing or awkward is dealt with
   then (in a future session). README.md's building section is vague on purpose till then (Tom, 2026-11-15: "I'm being
@@ -388,8 +389,8 @@ adds the logic.
     (no Hatari built in them: its build alone is 1 min 33 s; the logs want a sign-in, so not read, and `make -n game`
     and `make -n stfiles` with `HATARI` set plan no Hatari). The release, `super-sprint-20261117-0133-eaf45`, the
     same six SHA-256s from both runs, and all six (the four discs, README.txt, the zip) the same as `make discs` and
-    `make release` here at eaf45cb. Left for Tom: the old cache, `hatari-2.6.1-Linux-ubuntu-24.04` (delete it in the
-    Actions tab's Caches, or let it expire), and the release, kept or deleted.
+    `make release` here at eaf45cb. The old cache, `hatari-2.6.1-Linux-ubuntu-24.04`, left to expire (Tom); the release
+    deleted (Tom).
   - The prerequisites, in README.md till 2026-11-15 and gone from it now (`CLAUDE.md` still sends a reader there):
     make, a C compiler (`cc`), CMake 3.21 or later and Ninja (Baron and the ZX02 compressor are built from the
     submodules); Python 3.12 or later as `python3` (the build makes `.venv` from `requirements.txt`, stopping first
