@@ -44,6 +44,13 @@ make builds it with CMake and Ninja into `build/baron/src/baron` (`make baron`) 
 submodule `extern/hatari` (v2.6.1), built into `build/hatari` (`make hatari`) unless `HATARI` names another; on
 macOS never, `HATARI` required (here `~/Applications/Hatari.app`: `docs/st-traces.md`). Prerequisites for the build: `README.md`.
 
+## The Master Reference Manual
+
+`reference/Master_Reference_Manual_Part_1.pdf` and `_Part_2.pdf` (stardot's 2019 remaster; Tom added them
+2026-11-17) are the Master's own documentation: Part 1 the MOS, OSBYTE/OSWORD, the VDU, the hardware and memory map
+(F.6 is what each low page is for), the filing systems (J.10, ADFS's map); Part 2 BASIC, the 65C12 (O.4) and the
+assembler. Cite them by section and page (F.6-4). `pdftotext -layout` makes a searchable text, into the scratchpad.
+
 ## The beeb-port-kit
 
 `reference/beeb-port-kit` (a submodule) is Kieran Connell's kit from his ports: `PORTING.md`, `docs/`
