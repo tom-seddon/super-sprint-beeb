@@ -352,8 +352,12 @@ adds the logic.
     Require the user to have it installed somewhere, or build it themselves, and require them to specify the path";
     "It's OK if it's a second-class citizen"; "just testing it at the Makefile level will be good enough"):
     `docs/st-traces.md`. Still to go through with Tom, one by one: `gh`, not on the Mac either (the Actions tab, or
-    MacPorts' `gh`); the Mac's `python3`, Apple's 3.9.6 (`PYTHON3=python3.14`, MacPorts'); its packages, MacPorts'
-    not Homebrew's; then a fresh clone built. GitHub's build (`074e8a2`: Hatari from `extern/hatari` by
+    MacPorts' `gh`), which only GitHub's build's check wants; the Mac's prerequisites from anywhere, not MacPorts'
+    or Homebrew's (SDL2 no longer needed, as Hatari isn't built: cc, cmake, ninja, a Python, Hatari); then a fresh
+    clone built. The Mac's `python3`, Apple's 3.9.6: left as it is (Tom, 2026-11-17: "I think it'll be OK
+    as-is. I'll add something to the README about this"), make stopping before `.venv` and saying to give
+    `PYTHON3=` (seen here), once, as `.venv` is made once. For README.md (Tom's): `make -j$(nproc)` has no `nproc`
+    on macOS (`sysctl -n hw.ncpu`). GitHub's build (`074e8a2`: Hatari from `extern/hatari` by
     `make hatari`, no tarball or SHA-256; the local OS doesn't matter, it runs on GitHub). To check it:
     1. Start it. `gh workflow run build.yml --ref fresh-clone-linux` (or the Actions tab, "Run workflow", the
        branch picked) runs the branch's workflow without touching `ci-build`; `main`'s copy has
