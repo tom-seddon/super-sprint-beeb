@@ -1138,3 +1138,13 @@ OSWORD 10 note), the low pages' table the Model B's, the masked-loads evidence w
 enabled during the call"), FDRIVE and the bus speeds at odds with it; gaps (ACCCON's top bits, E, ADFS's deferred
 writes, a save's errors); jsbeeb at 2 MHz for VIDPROC and the 1770 where the manual says 1. Nothing measured; not
 merged.
+
+Then the notes' "to measure" points that jsbeeb can settle, measured there (2.18.0, one-off probes from BASIC, not
+kept): a Model B's MOS leaves DDRB `&0F`, a Master's `&CF`; OSWORD 10 reads `&8900 + 8(n - 32)`, `*FX20` restores
+32-126 and `*FX25,0` 32-255; ANDY's writes by command (`*KEY` from `&8022` up, a maze's flood fill all of
+`&8400`-`&87FF`); OSBYTE 68 no RAM test; a SEI'd load masked on the 1770 DFS only (ADFS 3 interrupts, DFS 1.2 on the
+8271 137); OSFILE's save writing back length and attributes; ADFS's "Disc changed" 200; FDRIVE in CMOS 11's bits 0-2,
+the DFS using rate 0 or 3 as the manual says; jsbeeb's `&FE28` 4 cycles against `&FE4F`'s 6 (Tom: VIDPROC 2 MHz on
+his Master, so the manual's wrong there, and `&FE28`-`&FE2B` 1 MHz, `&FE2C`-`&FE2F` 2); `*CONFIGURE TV 255` sets
+interlace on; PAGE `&E00` on all three of jsbeeb's Masters; `*CONFIGURE BOOT` and `FILE 13` with the game's disc.
+Not merged.
