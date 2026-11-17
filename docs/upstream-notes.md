@@ -270,7 +270,8 @@ and the manual can be wrong, so "to measure" where it matters. The answers to th
   (`&FE20`) and the 1770 (`&FE28`) as 1 MHz, `&FE24`, ROMSEL, ACCCON and INTOFF/INTON as 2 MHz. **VIDPROC is 2 MHz**:
   Tom, 2026-11-17, "Verified on a Master 128", so KC is right and the manual wrong there (Tom has filed a bug report on
   it); the kit's line can say measured. **The 1770 is 1 MHz**, as the manual says (Tom: "The document is correct about
-  FDC being 1 MHz"), so on a Master `&FE20`-`&FE3F` isn't all 2 MHz: `&FE28`-`&FE2F` is stretched. That bears on any
+  FDC being 1 MHz"), so on a Master `&FE20`-`&FE3F` isn't all 2 MHz. Exactly (Tom, 2026-11-17): "FE28-FE2B are
+  1 MHz. FE2C-FE2F appear to be 2 MHz", so the 1770's four registers alone are stretched. That bears on any
   timing of the 1770's registers, qdisc's 35.4 cycles a byte (1080, measured in jsbeeb) among them.
 - **OSBYTE `&7A` with no key** (1144: "documented as X = 0 (NAUG)", jsbeeb 255): the manual says 255 (D.2-35/36), as
   jsbeeb does. The NAUG's line not checked.
@@ -317,7 +318,8 @@ and the manual can be wrong, so "to measure" where it matters. The answers to th
 - **The Master's 1770 at 2 MHz**: `is1MHzAccess` (2.18.0 and 2.23.0, `src/6502.js`) takes the Model B's table,
   `FEslowdown = [true, false, true, ...]` by `(addr >>> 5) & 7`, for every model, so `&FE20`-`&FE3F` is 2 MHz on the
   Master too, where its 1770 sits at `&FE28` (the same file's `case 0xfe28: return this.model.isMaster ? this.fdc...`).
-  The manual (F.6-8) and Tom have it at 1 MHz: a likely jsbeeb bug, each access to the 1770 a cycle or so short.
+  The manual (F.6-8) and Tom have it at 1 MHz, `&FE28`-`&FE2B` exactly (`&FE2C`-`&FE2F` 2 MHz, Tom): a likely jsbeeb
+  bug, each access to the 1770 a cycle or so short.
   VIDPROC at 2 MHz there is right (Tom, on a Master 128). Not measured in jsbeeb, read from the source.
 - ACCCON: no IRQ for IRR; E not applied while Y is set (above). Both from 2.18.0's `6502.js`; 2.23.0's
   `writeAcccon` and `is1MHzAccess` are the same (diffed).
