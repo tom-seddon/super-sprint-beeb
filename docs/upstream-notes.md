@@ -140,6 +140,11 @@ Worth a line in the recipe and in `gotchas.md`.
 - **In the kit**: nothing on ADFS's disc id in `docs/hardware-facts.md` or `docs/gotchas.md`. **Could be**: a
   gotcha for a port that asks for a disc swap on ADFS (a save disc, a second side). Not seen on real hardware, or
   on the Compact's ADFS.
+- **The manual** (`reference/Master_Reference_Manual_Part_1.pdf`, checked 2026-11-17): J.10-2 names sector 1's bytes
+  251-252 "Disc identifier", nothing on how it's made or used; J.8's "Disc changed" (error 200) is "a discrepancy
+  between the current disc and catalogue information held in RAM"; `*MOUNT` (J.7) "reads the free space map and the
+  root directory catalogue into memory". So that the id alone decides it is ours to measure, as above, and worth
+  the gotcha.
 
 ### Smaller
 - A self-patching copy loop that doesn't reset its operands works until it's run a second time (`shared_copy` and
