@@ -192,7 +192,7 @@ can also issue any `*` commands required. (If using ADFS, you'll need
 to do `*MOUNT`. Or, you can select some other filing system. And so
 on.)
 
-x1Once ready, press Return on a blank line, and the lap times and ghost
+Once ready, press Return on a blank line, and the lap times and ghost
 cars will be loaded.
 
 Now you'll get further `*` prompt, as above. Change disk (or issue `*`
