@@ -52,12 +52,23 @@ the project"): none of the notes below is dealt with there yet, so each still st
 
 ### `&0900`-`&0AFF` in the memory tables
 - `docs/hardware-facts.md` calls `&0A00` the printer buffer. Tom, from the Master Reference Manual: `&0900`-`&0AFF`
-  are the tape and serial buffers (D26). To check against the manual before saying the kit's wrong.
+  are the tape and serial buffers (D26). **Checked** (2026-11-17, `reference/Master_Reference_Manual_Part_1.pdf`,
+  section F.6, pages F.6-3 and F.6-4): the printer buffer is `&0880`-`&08BF`; `&0900`-`&09BF` the RS423 output
+  buffer, part of the cassette's output buffer, or envelopes 5-16; `&09C0`-`&09FF` the speech buffer or the rest of
+  the cassette's output; `&0A00`-`&0AFF` the RS423 or cassette input buffer; each free "if" its uses aren't. So on a
+  Master the kit's table (line 811 at a460d4e, "`&0A00` | printer buffer") and its line 596 ("`&0800-&0BFF` (sound,
+  serial, soft keys)") are wrong. The Model B's map isn't in this manual: from memory the same for `&0A00`, not
+  checked.
 - Its table gives `&0B00`-`&0BFF` (soft keys) and `&0C00`-`&0CFF` (user-defined characters) as free once the MOS
   is gone or not printing: the Model B's map. Tom, 2026-11-09: "On the Master 128, this is tagget as Econet
   workspace." And: "The $b00...$cff region is documented in one of the Master reference manuals, so it's an
   official Acorn guideline I guess!" jsbeeb's DFS and ADFS left both pages alone, which says nothing about Econet
-  (D26).
+  (D26). **Checked** (the same page): "&0B00–&0CFF Econet workspace. ... should not be used by programs which might
+  possibly be run in a network environment. Note that this area of the memory map was used for other purposes in
+  previous BBC microcomputer systems." Page 13 likewise: `&0D00`-`&0D5F` the NMI routine, `&0D60`-`&0D7F` Econet's,
+  `&0D80`-`&0D91` unallocated, `&0D92`-`&0D9E` the trackerball's, `&0D9F`-`&0DEF` the expanded vectors, `&0DF0`-`&0DFF`
+  the ROMs' workspace bytes. **Could be**: the kit's table split by machine, a Master's column from F.6. (This
+  project's own plan and `src/memory.6502` had called `&0B00` the soft keys and font too, the Model B's: corrected.)
 
 ### A load that gives ACCCON back to the OS can show the wrong screen
 - **Found** (the kit, or jsbeeb; filed under Baron till 2026-11-17): a game double-buffering on the

@@ -96,7 +96,7 @@ and a CRT: the checkerboard reads as grey and isn't too busy).
 | `&0400`-`&07FF` | 1,024 | The game's (the language's workspace) |
 | `&0800`-`&08FF` | 256 | The OS's: sound, the printer buffer |
 | `&0900`-`&0AFF` | 512 | The game's (D26): the MOS's serial and cassette buffers, unused; kept across loads |
-| `&0B00`-`&0DFF` | 768 | The OS's: soft keys, the font, the NMI handler |
+| `&0B00`-`&0DFF` | 768 | The OS's: Econet's workspace, the NMI handler, the expanded vectors, the ROMs' workspace bytes (the Master Reference Manual, F.6) |
 | `&0E00`-`&2FFF` | 8,704 | IRQ, main loop, game logic, state |
 | `&3000`-`&3EFF` main | 3,840 | The main screen's own variables (ScreenVars: its erase list, the HUD text it shows); tables, a copy in each, always readable (Tom's idea) |
 | `&3F00`-`&7FFF` main | 16,640 | Screen A |

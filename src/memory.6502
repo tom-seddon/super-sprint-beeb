@@ -12,7 +12,7 @@
 \\   &0800  the OS's: sound, the printer buffer
 \\   &0900  free: the MOS's serial and cassette buffers, which the game never uses (D26: LowFree), its
 \\          top (LowCodeOrg) code between races (lowfree.6502)
-\\   &0B00  the OS's: soft keys, the font, the NMI handler
+\\   &0B00  the OS's: Econet's workspace, the NMI handler, the expanded vectors (Master Reference Manual F.6)
 \\   &0E00  main RAM's code: the IRQ, the frame loop, and what pages banks in
 \\   &2A00  a background object's priority bits, on their way from the objects' bank to the cars'
 \\   &2B00  one more of the cars' data tables, made by the loader
