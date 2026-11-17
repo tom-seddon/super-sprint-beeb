@@ -244,7 +244,34 @@ make -j$(nproc)
 
 ## macOS
 
-To be continued.
+You'll need the following prerequisites.
+
+From the App Store:
+
+- Xcode and its command line tools
+
+These can be installed using MacPorts or Homebrew, or built from
+source:
+
+- CMake 3.21 or later
+- Ninja
+- Python 3.12 or better
+
+From its releases page:
+
+- Hatari 2.6.1 or better. Binary releases can be found here:
+  https://framagit.org/hatari/hatari/-/releases
+
+You'll need to provide paths to Python 3 and Hatari on the command
+line. Supply the path to the Python 3 binary (e.g.,
+`/opt/local/bin/python3.14`), and the path to the Hatari app bundle
+(e.g., `/Applications/Hatari.app`).
+
+```
+git clone --recurse-submodules https://github.com/tom-seddon/super-sprint-beeb.git
+cd super-sprint-beeb
+make -j$(sysctl -n hw.ncpu) PYTHON3=<<Python 3 path>> HATARI=<<Hatari app bundle path>>
+```
 
 ## Build results
 
