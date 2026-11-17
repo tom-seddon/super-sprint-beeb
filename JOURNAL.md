@@ -1122,3 +1122,19 @@ Tom tried the branch's time attack discs (6d549) on his Master, from floppies: "
 Tom's README.md now says `*MOUNT` on ADFS (8f6bb20, e58d982). `main` and `ci-build` pushed at 3f0d853 (Tom: "Yes,
 push both"): GitHub's run 44070992130 passed in 5 min 54 s, Hatari from the cache this time; its release
 `super-sprint-20261117-1106-3f0d8` has the same six SHA-256s as `make discs` and `make release` here.
+
+## 2026-11-17: the post-release items begun, and the Master Reference Manual
+
+Tom hasn't tried the release at 3f0d853 yet (he had 3499f3f's), and started the post-release items meanwhile ("I
+don't think there'll be enough to go wrong"). On the branch `upstream-review`. First the notes' state: the plan's
+table without D56-D57 and a stale keys risk, fixed; a memory note of mine stale. Then `docs/upstream-notes.md` against
+each upstream's latest: the kit two commits on (a460d4e, the CPC demos), jsbeeb-mcp 4.5.0 and jsbeeb 2.23.0 (read from
+npm), Baron and Hatari unchanged: no note dealt with yet. Tom added the Master Reference Manual's two parts to
+`reference/` ("Commit them"). F.6 settled the `&0900`-`&0CFF` note, and showed this project's own plan and
+`src/memory.6502` calling `&0B00` the soft keys and font, the Model B's map (corrected: Econet's workspace). Then five
+agents read the manual against the kit's docs, a group of sections each, their quotes checked by hand in the text and
+jsbeeb's two in its source: the kit's ANDY table wrong for a Master (`&8900`-`&8FFF` the soft font, which answers the
+OSWORD 10 note), the low pages' table the Model B's, the masked-loads evidence weak (the manual: interrupts "may be
+enabled during the call"), FDRIVE and the bus speeds at odds with it; gaps (ACCCON's top bits, E, ADFS's deferred
+writes, a save's errors); jsbeeb at 2 MHz for VIDPROC and the 1770 where the manual says 1. Nothing measured; not
+merged.

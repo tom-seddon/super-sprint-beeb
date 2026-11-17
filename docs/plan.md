@@ -706,10 +706,15 @@ Worth noting, not needed for a first release (Tom, 2026-11-16).
 ### At the end of the project
 - Go through `docs/upstream-notes.md` with Tom: which of the faults and gaps found here would be worthwhile
   issues or PRs for the beeb-port-kit, jsbeeb, Baron and the rest (Tom, 2026-11-04). Add to it as things turn up.
+  Started 2026-11-17 (branch `upstream-review`): every note checked against its upstream's latest (none dealt with
+  there yet), the ACCCON note moved to the kit's section.
 - With it, go through the Master reference manuals for anything relevant to the kit (Tom, 2026-11-09: "As part of
   doing the upstream PR list later, it'd be worth going through the reference manuals, to see if there'd be anything
   relevant for the port kit. Something for a future session as I expect this'll be a lot of tokens."). The kit's
   memory tables give the Model B's map in places (`&0B00`-`&0CFF`, `&0900`-`&0AFF`: `docs/upstream-notes.md`).
+  Done 2026-11-17 on the branch `upstream-review`: the Master Reference Manual in `reference/` (Tom's copy), read
+  against the kit's latest; `docs/upstream-notes.md`'s "From the Master Reference Manual". Left: Tom's pass through the
+  whole file, deciding what goes where; the "to measure" lines first, where he wants them.
 
 ## Decisions
 
