@@ -360,7 +360,7 @@ The ANDY and low-page findings above: the kit's second PR, kieranhj/beeb-port-ki
   `tools/hwtests/etest.bas`: 6 bytes run at `&DE00` with Y set, main `&3000` `&11`, shadow `&22`): E=0 X=0 main, E=1
   X=0 **main**, E=0 X=1 shadow, E=1 X=1 shadow; jsbeeb 2.18.0 the same, line for line. So with HAZEL paged in, E does
   nothing and code there follows X: jsbeeb is right, and the manual's F.2-3 leaves the exception out. A line for the
-  kit: code run from HAZEL (1942's) sees what X says, whatever E is. The kit's sixth PR, drafted 2026-11-18 (branch `master-acccon-e`
+  kit: code run from HAZEL (1942's) sees what X says, whatever E is. The kit's sixth PR, kieranhj/beeb-port-kit#22, opened 2026-11-18 (branch `master-acccon-e`
   on tom-seddon/beeb-port-kit, da5f83e).
 - **Where the extra 32K is** (F.2-4): ANDY, HAZEL and the shadow screen are one RAM, D adding `&8000` to the video's
   address, so with D set a CRTC address below `&3000` shows ANDY or HAZEL (the kit's line 487, explained).
