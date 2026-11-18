@@ -344,10 +344,18 @@ The ANDY and low-page findings above: the kit's second PR, kieranhj/beeb-port-ki
 - **ACCCON's top bits** (F.2-3): IRR (7) set raises an IRQ, TST (6) must be 0, IFJ (5) sends `&FC00`-`&FDFF` to the
   cartridges, ITU (4) picks the internal or external second processor. The kit's "compose every write" (514) could say
   to carry IFJ and ITU from the OS and keep 7 and 6 clear (as `entry.6502` and `load.6502` keep only `&30`). jsbeeb's
-  `writeAcccon` raises no IRQ for IRR, so a stray bit 7 shows only on hardware.
+  `writeAcccon` raises no IRQ for IRR, so a stray bit 7 shows only on hardware. **MEASURED on Tom's Master 128**
+  (2026-11-18, `tools/hwtests/irrtest.bas`: both VIAs' interrupts off, IRR set, a short CLI window, IRQs counted
+  through IRQ1V, the handler clearing IRR): IRR clear 0 IRQs, ACCCON read `&08`; IRR set 1 IRQ, ACCCON read `&88`,
+  `&88` in the handler. So IRR raises an IRQ, reads back, and clearing it in the handler ends it. jsbeeb 2.18.0 the
+  same test: 0 and 0 (it reads back, `&98`). (Tom's ACCCON is `&08` where jsbeeb's is `&18`: ITU, bit 4, his CMOS's
+  Tube setting presumably, not chased.)
 - **The E bit** (F.2-3): code fetched from `&C000`-`&DFFF` sees shadow at `&3000`-`&7FFF`, with no exception for Y.
-  jsbeeb applies E only while Y is clear (code in HAZEL follows X). A port running code from HAZEL (1942's) with E set
-  by a shadow boot would differ: to measure.
+  jsbeeb applies E only while Y is clear (code in HAZEL follows X). **MEASURED on Tom's Master 128** (2026-11-18,
+  `tools/hwtests/etest.bas`: 6 bytes run at `&DE00` with Y set, main `&3000` `&11`, shadow `&22`): E=0 X=0 main, E=1
+  X=0 **main**, E=0 X=1 shadow, E=1 X=1 shadow; jsbeeb 2.18.0 the same, line for line. So with HAZEL paged in, E does
+  nothing and code there follows X: jsbeeb is right, and the manual's F.2-3 leaves the exception out. A line for the
+  kit: code run from HAZEL (1942's) sees what X says, whatever E is.
 - **Where the extra 32K is** (F.2-4): ANDY, HAZEL and the shadow screen are one RAM, D adding `&8000` to the video's
   address, so with D set a CRTC address below `&3000` shows ANDY or HAZEL (the kit's line 487, explained).
 - **The Master's I/O map** (F.6-8/9): the ADC at `&FE18`-`&FE1A` (a B's `&FEC0`), drive control `&FE24`, the 1770
@@ -384,7 +392,8 @@ The ANDY and low-page findings above: the kit's second PR, kieranhj/beeb-port-ki
   Filed as mattgodbolt/jsbeeb#1885, 2026-11-18 (no issue there covered it; `main` at 0506adbe28 has the same table): the
   real Master's map and jsbeeb's from Tom's tester, the code, the manual's F.6-8, and a suggested Master model
   (stretched: below `&FE20`, `&FE28`-`&FE2B`, `&FE40`-`&FE9F`; the TST override kept).
-- ACCCON: no IRQ for IRR; E not applied while Y is set (above). Both from 2.18.0's `6502.js`; 2.23.0's
+- ACCCON: no IRQ for IRR, where a real Master raises one (MEASURED, above: a jsbeeb issue to draft); E not applied
+  while Y is set, which a real Master agrees with (MEASURED, above). Both from 2.18.0's `6502.js`; 2.23.0's
   `writeAcccon` and `is1MHzAccess` are the same (diffed).
 
 ### This project (none urgent)

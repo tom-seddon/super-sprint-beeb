@@ -11,5 +11,8 @@ can't settle. Each was run in jsbeeb first, so its output there is in the notes 
   `&DE00` (the manual's `*MOVE` workspace), saving and putting back what was there; main `&3000` = `&11`, shadow
   `&3000` = `&22`, both put back after; interrupts off throughout.
 
+Results (Tom's Master 128, 2026-11-18, photographed): IRRTEST 0 IRQs, then 1 with IRR set (jsbeeb 0); ETEST the same as
+jsbeeb, line for line (E ignored while Y is set). `docs/upstream-notes.md` has them.
+
 The disc: `build/hwtests/acctest.ssd`, made from jsbeeb's own tokenising (each program loaded, PAGE to TOP saved) with
 the kit's `dfs.py`; `CHAIN "IRRTEST"`, `CHAIN "ETEST"`.
