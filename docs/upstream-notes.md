@@ -393,7 +393,7 @@ The ANDY and low-page findings above: the kit's second PR, kieranhj/beeb-port-ki
   Filed as mattgodbolt/jsbeeb#1885, 2026-11-18 (no issue there covered it; `main` at 0506adbe28 has the same table): the
   real Master's map and jsbeeb's from Tom's tester, the code, the manual's F.6-8, and a suggested Master model
   (stretched: below `&FE20`, `&FE28`-`&FE2B`, `&FE40`-`&FE9F`; the TST override kept).
-- ACCCON: no IRQ for IRR, where a real Master raises one (MEASURED, above). The issue drafted 2026-11-18 (none on
+- ACCCON: no IRQ for IRR, where a real Master raises one (MEASURED, above). Filed as mattgodbolt/jsbeeb#1886, 2026-11-18 (none on
   jsbeeb covers it), with IRRTEST inline. **A level** (MEASURED on Tom's Master, 2026-11-18, `tools/hwtests/irrlvl.bas`:
   a handler leaving IRR set until its 10th IRQ counted 10; jsbeeb 0): the IRQ is held while IRR is set; E not applied
   while Y is set, which a real Master agrees with (MEASURED, above). Both from 2.18.0's `6502.js`; 2.23.0's
