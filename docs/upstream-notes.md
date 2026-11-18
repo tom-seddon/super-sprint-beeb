@@ -244,7 +244,7 @@ slower loads showed up there before anyone knew why. Tool gaps only:
   in MODE 7 and in MODE 1, every one of 64 reads of `&8008` gave the screen's byte (`&41`x64, `&5A`x64, both modes).
   jsbeeb 2.18.0: `&00`x64 every time. So the empty socket reads the video's last byte, as Tom said. Filed as
   mattgodbolt/jsbeeb#1888, 2026-11-18, FLOAT inline. Kit #20's gotcha updated to the measurement (294a76f, pushed 2026-11-18); its description is
-  Tom's to edit (the token can't), and it links `tools/hwtests/float.bas` on `main`.
+  updated by Tom to say measured, linking jsbeeb#1888; the gotcha links `tools/hwtests/float.bas` on `main`.
 - **Every boot keeps the same time**: the disc turns from power-on in step with the fields, near enough, and every
   load waits for it, so a delay before a load is lost: two boots 80,000 cycles apart at `!BOOT`'s start reached
   SPRINT on the same cycle. A real drive's turning has nothing to do with the video. `tools/seed_check.mjs` turns
