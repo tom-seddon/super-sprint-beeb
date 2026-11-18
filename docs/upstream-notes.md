@@ -166,7 +166,7 @@ boot that printed "Loading" and then characters 128-255 and hung (2026-11-09) fi
 isn't proven: jsbeeb's empty socket reads 0 every time, and 770 jsbeeb boots with junk RAM and the disc's timing
 moved (`tools/seed_check.mjs`) all ran. Fixed here: banks 7 to 0 only (8-15 are the Master's ROMs), probed with
 the shadow screen MODE 129 just cleared on show, and a bank counted only if it reads back the `&FF` EOR written.
-Worth a line in the recipe and in `gotchas.md`. The skill's issue drafted 2026-11-18 for waitingforvsync/beeb-baron (its first): the probe's
+Worth a line in the recipe and in `gotchas.md`. Filed as waitingforvsync/beeb-baron#1, 2026-11-18 (its first issue): the probe's
 compare, ROMSEL readable on a Master (the "Smaller" note below), and §10's 1 MHz map confirmed (it matches Tom's
 tester, from beebjit; jsbeeb#1885).
 The manual: banks 0-3 are the cartridges', 8 the empty socket IC27, 9-15 the built-in ROM, 4-7 the RAM (F.2-1/2),
