@@ -309,6 +309,9 @@ and the manual can be wrong, so "to measure" where it matters. The answers to th
   (C.5-5, C.5-13), and `*CONFIGURE TV` without it means 0, on (MEASURED: after `TV 255,1`, `*CONFIGURE TV 255` gave
   `*STATUS TV` 255,0).
 
+The ANDY and low-page findings above: the kit's second PR, drafted 2026-11-18 (branch `master-andy-low-pages` on
+tom-seddon/beeb-port-kit, 6c067c6), with the font's reads in MODE 1 and BREAK measured that day in jsbeeb.
+
 ### The kit: not there, would change code
 - **ACCCON's top bits** (F.2-3): IRR (7) set raises an IRQ, TST (6) must be 0, IFJ (5) sends `&FC00`-`&FDFF` to the
   cartridges, ITU (4) picks the internal or external second processor. The kit's "compose every write" (514) could say
