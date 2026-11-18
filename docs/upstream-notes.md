@@ -224,7 +224,7 @@ and the empty socket, as a gotcha (the kit's own `lib/swram_probe.6502` already 
 slower loads showed up there before anyone knew why. Tool gaps only:
 - **The VIAs' state through the MCP**: DDRA, DDRB, IER, ACR and PCR took `s._machine.processor.sysvia`, jsbeeb's
   internals, from a script. A `read_via` tool, or the registers in `read_registers`, would have shown this at once.
-- (Both tool gaps below drafted 2026-11-18 as two jsbeeb-mcp issues, its repository's own tracker; `main` at
+- (Both tool gaps below filed 2026-11-18 as mattgodbolt/jsbeeb-mcp#68 (breakpoints) and #69 (the VIAs); `main` at
   adc7c650f7 unchanged, no issue there covering either.)
 - **The MCP's `set_breakpoint` takes less than jsbeeb does**: `address`, `type` (execute, read, write) and `bank`
   only. jsbeeb's own `addBreakpoint` also takes `condition`, `end`, `hitCount` and `action`, the kinds `access`,
