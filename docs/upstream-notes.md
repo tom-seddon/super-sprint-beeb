@@ -392,7 +392,9 @@ The ANDY and low-page findings above: the kit's second PR, kieranhj/beeb-port-ki
   Filed as mattgodbolt/jsbeeb#1885, 2026-11-18 (no issue there covered it; `main` at 0506adbe28 has the same table): the
   real Master's map and jsbeeb's from Tom's tester, the code, the manual's F.6-8, and a suggested Master model
   (stretched: below `&FE20`, `&FE28`-`&FE2B`, `&FE40`-`&FE9F`; the TST override kept).
-- ACCCON: no IRQ for IRR, where a real Master raises one (MEASURED, above: a jsbeeb issue to draft); E not applied
+- ACCCON: no IRQ for IRR, where a real Master raises one (MEASURED, above). The issue drafted 2026-11-18 (none on
+  jsbeeb covers it), with IRRTEST inline; whether the IRQ is a level or an edge waits on `tools/hwtests/irrlvl.bas`
+  on Tom's Master; E not applied
   while Y is set, which a real Master agrees with (MEASURED, above). Both from 2.18.0's `6502.js`; 2.23.0's
   `writeAcccon` and `is1MHzAccess` are the same (diffed).
 
