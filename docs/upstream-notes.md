@@ -238,11 +238,14 @@ slower loads showed up there before anyone knew why. Tool gaps only:
     an execute stop it reads the code being run.
 - **Empty sockets and the floating bus**: an empty ROM socket reads 0 in jsbeeb (2.18.0, Master: bank 8 checked),
   where a real Master reads the last byte the video read (Tom, 2026-11-09), so a probe fooled by that (see the
-  kit's "Finding sideways RAM") can't be seen there.
+  kit's "Finding sideways RAM") can't be seen there. `tools/hwtests/float.bas` reads bank 8 with the screen filled, for Tom's Master
+  (jsbeeb 2.18.0: `&00` every time), before a request is drafted.
 - **Every boot keeps the same time**: the disc turns from power-on in step with the fields, near enough, and every
   load waits for it, so a delay before a load is lost: two boots 80,000 cycles apart at `!BOOT`'s start reached
   SPRINT on the same cycle. A real drive's turning has nothing to do with the video. `tools/seed_check.mjs` turns
-  it by hand (`fdc._drives[0].positionFraction`); an option to start the disc at a random place would do.
+  it by hand (`fdc._drives[0].positionFraction`); an option to start the disc at a random place would do. The request drafted
+  2026-11-18 (no jsbeeb issue covers it; `main` unchanged): an option, off by default (jsbeeb's own timing tests want
+  the determinism, #1232), and a public setter.
 - ~~**`MasterADFS` with no disc**~~: `run_basic` failed with "did not hit appropriate breakpoint in time". Closed
   2026-11-17: a `MachineSession("MasterADFS")` with no disc reaches BASIC's prompt (jsbeeb 2.18.0, "Acorn ADFS" shown).
 
