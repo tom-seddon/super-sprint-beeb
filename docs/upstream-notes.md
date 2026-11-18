@@ -256,6 +256,10 @@ slower loads showed up there before anyone knew why. Tool gaps only:
 
 ## Hatari
 
+**Dropped** (Tom, 2026-11-18: "please drop the hatari issues. Hatari issues have to be filed via their mailing list, it
+looks like, which I'm not interested in doing."). Nothing below goes upstream; kept as a record of what the tracers
+work round.
+
 ### The debugger's prompt runs into a quiet breakpoint's first dump
 - **Found** (2026-11-10, Linux Mint 22.3, `docs/brief-ci-hatari-2026-11-10.md`): each breakpoint that isn't a
   trace enters the debugger loop (`DebugUI()`, `src/debug/debugui.c`), which prints the prompt `> ` and reads
