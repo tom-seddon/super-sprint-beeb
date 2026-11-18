@@ -16,8 +16,13 @@ can't settle. Each was run in jsbeeb first, so its output there is in the notes 
 Results (Tom's Master 128, 2026-11-18, photographed): IRRTEST 0 IRQs, then 1 with IRR set (jsbeeb 0); ETEST the same as
 jsbeeb, line for line (E ignored while Y is set). `docs/upstream-notes.md` has them.
 
+- `float.bas` (`FLOAT`): what an empty sideways socket (bank 8 on a stock Master) reads. The screen filled with one
+  byte (`&41`, `&5A`) in MODE 7 and MODE 1; 64 reads of bank 8's `&8008`; the values read, counted. jsbeeb 2.18.0:
+  `&00` every time (an empty socket is a zero-filled bank). If a real Master's bus floats to the video's last byte
+  (Tom's understanding of the design), the counts follow the fill.
+
 The disc: `build/hwtests/acctest.ssd`, made from jsbeeb's own tokenising (each program loaded, PAGE to TOP saved) with
-the kit's `dfs.py`; `CHAIN "IRRTEST"`, `CHAIN "IRRLVL"`, `CHAIN "ETEST"`.
+the kit's `dfs.py`; `CHAIN "IRRTEST"`, `CHAIN "IRRLVL"`, `CHAIN "ETEST"`, `CHAIN "FLOAT"`.
 
 Results, Tom's Master 128, 2026-11-18 (photographed): IRRTEST 0 IRQs with IRR clear and 1 with it set, ACCCON reading
 `&88` (jsbeeb: 0 and 0); IRRLVL 10, so a level held while IRR is set (jsbeeb 0); ETEST the same as jsbeeb line for line, E
