@@ -20,5 +20,6 @@ The disc: `build/hwtests/acctest.ssd`, made from jsbeeb's own tokenising (each p
 the kit's `dfs.py`; `CHAIN "IRRTEST"`, `CHAIN "IRRLVL"`, `CHAIN "ETEST"`.
 
 Results, Tom's Master 128, 2026-11-18 (photographed): IRRTEST 0 IRQs with IRR clear and 1 with it set, ACCCON reading
-`&88` (jsbeeb: 0 and 0); ETEST the same as jsbeeb line for line, E ignored while Y is set. `docs/upstream-notes.md`
+`&88` (jsbeeb: 0 and 0); IRRLVL 10, so a level held while IRR is set (jsbeeb 0); ETEST the same as jsbeeb line for line, E
+ignored while Y is set. `docs/upstream-notes.md`
 has them in full.

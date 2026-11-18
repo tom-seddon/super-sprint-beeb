@@ -347,7 +347,8 @@ The ANDY and low-page findings above: the kit's second PR, kieranhj/beeb-port-ki
   `writeAcccon` raises no IRQ for IRR, so a stray bit 7 shows only on hardware. **MEASURED on Tom's Master 128**
   (2026-11-18, `tools/hwtests/irrtest.bas`: both VIAs' interrupts off, IRR set, a short CLI window, IRQs counted
   through IRQ1V, the handler clearing IRR): IRR clear 0 IRQs, ACCCON read `&08`; IRR set 1 IRQ, ACCCON read `&88`,
-  `&88` in the handler. So IRR raises an IRQ, reads back, and clearing it in the handler ends it. jsbeeb 2.18.0 the
+  `&88` in the handler. So IRR raises an IRQ, reads back, and clearing it in the handler ends it; and it's a level,
+  held while the bit is set (IRRLVL: 10 IRQs with the handler leaving it set to the 10th). jsbeeb 2.18.0 the
   same test: 0 and 0 (it reads back, `&98`). (Tom's ACCCON is `&08` where jsbeeb's is `&18`: ITU, bit 4, his CMOS's
   Tube setting presumably, not chased.)
 - **The E bit** (F.2-3): code fetched from `&C000`-`&DFFF` sees shadow at `&3000`-`&7FFF`, with no exception for Y.
@@ -393,8 +394,8 @@ The ANDY and low-page findings above: the kit's second PR, kieranhj/beeb-port-ki
   real Master's map and jsbeeb's from Tom's tester, the code, the manual's F.6-8, and a suggested Master model
   (stretched: below `&FE20`, `&FE28`-`&FE2B`, `&FE40`-`&FE9F`; the TST override kept).
 - ACCCON: no IRQ for IRR, where a real Master raises one (MEASURED, above). The issue drafted 2026-11-18 (none on
-  jsbeeb covers it), with IRRTEST inline; whether the IRQ is a level or an edge waits on `tools/hwtests/irrlvl.bas`
-  on Tom's Master; E not applied
+  jsbeeb covers it), with IRRTEST inline. **A level** (MEASURED on Tom's Master, 2026-11-18, `tools/hwtests/irrlvl.bas`:
+  a handler leaving IRR set until its 10th IRQ counted 10; jsbeeb 0): the IRQ is held while IRR is set; E not applied
   while Y is set, which a real Master agrees with (MEASURED, above). Both from 2.18.0's `6502.js`; 2.23.0's
   `writeAcccon` and `is1MHzAccess` are the same (diffed).
 
