@@ -242,14 +242,14 @@ slower loads showed up there before anyone knew why. Tool gaps only:
   kit's "Finding sideways RAM") can't be seen there. `tools/hwtests/float.bas` reads bank 8 with the screen filled. **MEASURED on Tom's
   Master 128** (2026-11-18, photographed): bank 8's ROM-table byte `&0`; with the screen all `&41` and then all `&5A`,
   in MODE 7 and in MODE 1, every one of 64 reads of `&8008` gave the screen's byte (`&41`x64, `&5A`x64, both modes).
-  jsbeeb 2.18.0: `&00`x64 every time. So the empty socket reads the video's last byte, as Tom said. The issue drafted
-  2026-11-18, FLOAT inline. Kit #20's gotcha updated to the measurement (294a76f, pushed 2026-11-18); its description is
+  jsbeeb 2.18.0: `&00`x64 every time. So the empty socket reads the video's last byte, as Tom said. Filed as
+  mattgodbolt/jsbeeb#1888, 2026-11-18, FLOAT inline. Kit #20's gotcha updated to the measurement (294a76f, pushed 2026-11-18); its description is
   Tom's to edit (the token can't), and it links `tools/hwtests/float.bas` on `main`.
 - **Every boot keeps the same time**: the disc turns from power-on in step with the fields, near enough, and every
   load waits for it, so a delay before a load is lost: two boots 80,000 cycles apart at `!BOOT`'s start reached
   SPRINT on the same cycle. A real drive's turning has nothing to do with the video. `tools/seed_check.mjs` turns
-  it by hand (`fdc._drives[0].positionFraction`); an option to start the disc at a random place would do. The request drafted
-  2026-11-18 (no jsbeeb issue covers it; `main` unchanged): an option, off by default (jsbeeb's own timing tests want
+  it by hand (`fdc._drives[0].positionFraction`); an option to start the disc at a random place would do. Filed as
+  mattgodbolt/jsbeeb#1887, 2026-11-18 (no jsbeeb issue covered it; `main` unchanged): an option, off by default (jsbeeb's own timing tests want
   the determinism, #1232), and a public setter.
 - ~~**`MasterADFS` with no disc**~~: `run_basic` failed with "did not hit appropriate breakpoint in time". Closed
   2026-11-17: a `MachineSession("MasterADFS")` with no disc reaches BASIC's prompt (jsbeeb 2.18.0, "Acorn ADFS" shown).
