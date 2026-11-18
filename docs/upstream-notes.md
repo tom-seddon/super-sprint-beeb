@@ -293,6 +293,13 @@ and the manual can be wrong, so "to measure" where it matters. The answers to th
   1 MHz. FE2C-FE2F appear to be 2 MHz", so the 1770's four registers alone are stretched. That bears on any
   timing of the 1770's registers, qdisc's 35.4 cycles a byte (1080, measured in jsbeeb) among them. In jsbeeb
   (MEASURED, 2.18.0): `LDA &FE28`, `&FE2B`, `&FE2C`, `&FE24` and `&FE34` 4 cycles each, `LDA &FE4F` and `&FE00` 6.
+  **The whole map** (Tom, 2026-11-18, his tester, gist.github.com/tom-seddon/b6c28d4edce8dd7e4a71dc82c7903179: 100
+  `LDA abs` of each address timed on the User VIA's T1, its own `&FE60`-`&FE7F` skipped): on his Master 128 with
+  ACCCON's TST clear, `&FC00`-`&FE1F`, `&FE28`-`&FE2B` and `&FE40`-`&FE9F` stretched; with TST set, none. The manual's
+  F.6-8 agrees but for VIDPROC. The same tester in jsbeeb 2.18.0 (MEASURED, 2026-11-18): `&FC00`-`&FE1F`,
+  `&FE40`-`&FE7F` and `&FEC0`-`&FEDF` on `Master` as on `B-DFS1.2`, none with TST set; so jsbeeb's Master stretches
+  the Model B's ADC page, which a real one doesn't, and not the 1770 or `&FE80`-`&FE9F`, which a real one does.
+  For the kit's first PR (branch `master-real-hardware`, not opened yet).
 - **OSBYTE `&7A` with no key** (1144: "documented as X = 0 (NAUG)", jsbeeb 255): the manual says 255 (D.2-35/36), as
   jsbeeb does. The NAUG's line not checked.
 - **The BREAK intercept** (1046-1048, `JMP (&FFFC)`): D.2-82 has it entered twice a BREAK, C set then clear, and
