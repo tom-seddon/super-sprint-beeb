@@ -155,10 +155,19 @@ moved (`tools/seed_check.mjs`) all ran. Fixed here: banks 7 to 0 only (8-15 are 
 the shadow screen MODE 129 just cleared on show, and a bank counted only if it reads back the `&FF` EOR written.
 Worth a line in the recipe and in `gotchas.md`.
 The manual: banks 0-3 are the cartridges', 8 the empty socket IC27, 9-15 the built-in ROM, 4-7 the RAM (F.2-1/2),
-LK18 giving banks 4-5 and LK19 6-7 (F.5-5); OSBYTE 68 returns which of 4-7 the links make RAM (`&0F` on a standard
-machine, D.2-28), banks 0-3 not covered. **MEASURED** (jsbeeb 2.18.0, every instruction of the call traced): it's
-offered to the ROMs as an unknown OSBYTE and returns `&0F`, and nothing pages banks 4-7 or writes `&8000`-`&BFFF`
-on the way: not a RAM test, so no help against a bad socket. What a Compact or changed links return, untried.
+LK18 giving banks 4-5 and LK19 6-7 (F.5-5); OSBYTE 68 returns which of 4-7 hold RAM (`&0F` on a standard
+machine, D.2-28), banks 0-3 not covered. **It returns a test made at start-up** (Tom, 2026-11-18: "it tests only on
+startup, and then stores the value off ... at $b294 in the DFS ROM (bank 9)", MOS 3.20; other versions' addresses
+differ, "but the net result is the same I think"). Read in jsbeeb 2.18.0 (MOS 3.20), and seen running: bank 9's
+routine at `&B279`-`&B2CA` takes the banks whose entry in its table at `&B0F7` is non-zero, 4-7 only (`01 02 04 08`);
+for each it reads `&8008` through OSRDSC, writes it EOR `&FF` back (through a stub at `&B116` it copies into its
+workspace and runs), reads it again, and calls the bank RAM if that reading differs from the first, setting the bank's
+bit in `(&B8)+&EE` and writing the byte back; a bank that then holds a ROM image (`&B356`) gets its bit in
+`(&B8)+&FD` too. The read-back ran 4 times at power-on, once a bank. OSBYTE 68 is bank 9's service call 7
+(`&AC32`: `&EF` = `&44`) and returns `(&B8)+&EE` AND `&3F`; OSBYTE 69 the same from `&FD`. (I'd first said, from
+tracing only the call, that it wasn't a RAM test: the test was at start-up.) Note that its test, like the recipe's
+above, compares the second reading with the first, not with the byte written, and covers banks 4-7 alone, the
+on-board RAM's; it reflects the last power-on or hard BREAK. What a Compact or changed links return, untried.
 
 ### ADFS knows a changed floppy by its id alone
 - **Found** (2026-11-17, in jsbeeb's Master 128, ADFS from MOS 3.20; Tom asked how the `.adl` discs' ids are made):
@@ -329,7 +338,7 @@ The ANDY and low-page findings above: the kit's second PR, kieranhj/beeb-port-ki
   address, so with D set a CRTC address below `&3000` shows ANDY or HAZEL (the kit's line 487, explained).
 - **The Master's I/O map** (F.6-8/9): the ADC at `&FE18`-`&FE1A` (a B's `&FEC0`), drive control `&FE24`, the 1770
   `&FE28`, INTOFF/INTON `&FE38`/`&FE3C`; ROMSEL's bits 4-6 zero; banks 0-3 the cartridges', 8 the empty IC27, 9-15
-  the ROM (F.2-1/2). OSBYTE 68 says which of 4-7 the links make RAM (D.2-28).
+  the ROM (F.2-1/2). OSBYTE 68 returns which of 4-7 the DFS ROM found to be RAM at start-up (D.2-28; above).
 - **Filing systems**: OSFILE's save writes back too, the length at XY+10 and the attributes at XY+14 (J.11-9; the kit
   875 has the load's; MEASURED in jsbeeb, a `&100`-byte save: `&100` and 0 on DFS, `&100` and `&33` on ADFS), so a block saved twice needs its addresses again; ADFS keeps its map and directory,
   checksummed, in HAZEL ("Bad sum" 170, "Bad FS map" 169, cleared only by a hard BREAK, J.8-1, J.10-2/3), where the
