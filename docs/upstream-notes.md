@@ -381,6 +381,9 @@ The ANDY and low-page findings above: the kit's second PR, kieranhj/beeb-port-ki
   The manual (F.6-8) and Tom have it at 1 MHz, `&FE28`-`&FE2B` exactly (`&FE2C`-`&FE2F` 2 MHz, Tom): a likely jsbeeb
   bug, each access to the 1770 a cycle or so short.
   VIDPROC at 2 MHz there is right (Tom, on a Master 128).
+  The issue for jsbeeb drafted 2026-11-18 (no issue there covers it; `main` at 0506adbe28 has the same table): the
+  real Master's map and jsbeeb's from Tom's tester, the code, the manual's F.6-8, and a suggested Master model
+  (stretched: below `&FE20`, `&FE28`-`&FE2B`, `&FE40`-`&FE9F`; the TST override kept).
 - ACCCON: no IRQ for IRR; E not applied while Y is set (above). Both from 2.18.0's `6502.js`; 2.23.0's
   `writeAcccon` and `is1MHzAccess` are the same (diffed).
 
