@@ -299,7 +299,7 @@ and the manual can be wrong, so "to measure" where it matters. The answers to th
   F.6-8 agrees but for VIDPROC. The same tester in jsbeeb 2.18.0 (MEASURED, 2026-11-18): `&FC00`-`&FE1F`,
   `&FE40`-`&FE7F` and `&FEC0`-`&FEDF` on `Master` as on `B-DFS1.2`, none with TST set; so jsbeeb's Master stretches
   the Model B's ADC page, which a real one doesn't, and not the 1770 or `&FE80`-`&FE9F`, which a real one does.
-  For the kit's first PR (branch `master-real-hardware`, not opened yet).
+  For the kit's first PR (branch `master-real-hardware` on tom-seddon/beeb-port-kit, 01853fd, 2026-11-18).
 - **OSBYTE `&7A` with no key** (1144: "documented as X = 0 (NAUG)", jsbeeb 255): the manual says 255 (D.2-35/36), as
   jsbeeb does. The NAUG's line not checked.
 - **The BREAK intercept** (1046-1048, `JMP (&FFFC)`): D.2-82 has it entered twice a BREAK, C set then clear, and
