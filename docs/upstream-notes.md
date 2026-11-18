@@ -43,6 +43,18 @@ Reference Manual", at the end, and a line added to several notes below.
   Master: "leave DDRB as the MOS has it" serves both. And CMOS byte 11 holds FDRIVE in bits 0-2 (`&C8` + n here), the
   DFS stepping at the 1770's rate 3 (30 ms) for FDRIVE 2, 3, 6 and 7, so `&FF` is the slow stepping Tom saw.
 
+- **The template's fix**, drafted 2026-11-18 as the kit's fifth PR (branch `master-template-ddrb` on
+  tom-seddon/beeb-port-kit, c94f7ff): the write gone from `template/src/main.6502` and `examples/vscroll`, and
+  `lib/test/ddrb_test.mjs` (each MOS's DDRB; a Master's CMOS byte 11 `&C8`, `&FF` with `&0F`, `&C8` with `&CF` put
+  back; seen failing). MEASURED, jsbeeb 2.18.0, before and after: the kit's `verify_dynamic.mjs` passes on both builds
+  and models, `verify_vscroll.mjs` on both models; the game running, a Master's DDRB `&CF` (was `&0F`).
+
+### The template's `make master` on macOS's make
+- **Found** (2026-11-18, building the template for the DDRB PR): macOS's own `/usr/bin/make` (GNU make 3.81)
+  stops at `make master` with "No rule to make target `build/game-master.ssd`"; GNU make 4.4.1 (MacPorts' `gmake`)
+  builds it. The default `make` works on both. Not chased: the inner `$(MAKE) $(SSD)` in `all`, called from `master`'s
+  own recursive make, is where it stops. Mentioned as an aside in the template PR.
+
 ### Giving the machine back to the OS after a takeover: colour flashing
 - **Found** (`7ef8a09`): the MOS's flash writes its copy of the Video ULA's control (`&248`) to `&FE20`. Run
   during a load after the game has set its own mode, it put the ULA in the MOS's MODE 7 clock, which halved the
