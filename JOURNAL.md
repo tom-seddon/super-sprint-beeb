@@ -1148,3 +1148,17 @@ the DFS using rate 0 or 3 as the manual says; jsbeeb's `&FE28` 4 cycles against 
 his Master, so the manual's wrong there, and `&FE28`-`&FE2B` 1 MHz, `&FE2C`-`&FE2F` 2); `*CONFIGURE TV 255` sets
 interlace on; PAGE `&E00` on all three of jsbeeb's Masters; `*CONFIGURE BOOT` and `FILE 13` with the game's disc.
 Not merged.
+
+## 2026-11-18: the upstream notes measured and filed
+
+On the branch `kit-prs`, merged into `main` as it went (Tom each time: "Yes, merge and push"). jsbeeb probes from
+BASIC, and five small BASIC tests for Tom's Master (`tools/hwtests/`, a disc in `build/hwtests/acctest.ssd`): IRR
+raises an IRQ, held while set (jsbeeb none); with Y set the E bit does nothing (jsbeeb agrees, the manual doesn't say);
+an empty socket reads the video's last byte (jsbeeb `&00`). Tom's tester gave the Master's whole 1 MHz map (the 1770
+and `&FE80` stretched, VIDPROC not; the manual wrong on VIDPROC, jsbeeb wrong on three regions, the beeb-baron skill
+right). OSBYTE 68: my "not a RAM test" was wrong, Tom found the start-up test in bank 9 (`&B294`). SEI'd loads: DFS
+1.2's and ADFS's wait loops open a `PHP:CLI:PLP` window, DFS 1.2's only with the drive cold. Filed, Tom opening each
+from a pre-filled link (his token can't fork or open them): the kit's #17-#22 (the template's DDRB tested with the
+kit's own oracles before and after, and `lib/test/ddrb_test.mjs`, seen failing), jsbeeb #1885-#1888, jsbeeb-mcp
+#68-#69, beeb-baron #1. All six kit branches merge cleanly together. Hatari's dropped (Tom). Found on the way: macOS's
+make 3.81 can't do the kit template's `make master`.
