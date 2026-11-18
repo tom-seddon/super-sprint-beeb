@@ -168,7 +168,7 @@ bit in `(&B8)+&EE` and writing the byte back; a bank that then holds a ROM image
 tracing only the call, that it wasn't a RAM test: the test was at start-up.) Note that its test, like the recipe's
 above, compares the second reading with the first, not with the byte written, and covers banks 4-7 alone, the
 on-board RAM's; it reflects the last power-on or hard BREAK. What a Compact or changed links return, untried.
-The kit's fourth PR, drafted 2026-11-18 (branch `master-swram-probe` on tom-seddon/beeb-port-kit, 74ce2f2): this
+The kit's fourth PR, kieranhj/beeb-port-kit#20, opened 2026-11-18 (branch `master-swram-probe` on tom-seddon/beeb-port-kit, 74ce2f2): this
 and the empty socket, as a gotcha (the kit's own `lib/swram_probe.6502` already compares with the byte written).
 
 ### ADFS knows a changed floppy by its id alone
