@@ -242,7 +242,8 @@ slower loads showed up there before anyone knew why. Tool gaps only:
   kit's "Finding sideways RAM") can't be seen there. `tools/hwtests/float.bas` reads bank 8 with the screen filled. **MEASURED on Tom's
   Master 128** (2026-11-18, photographed): bank 8's ROM-table byte `&0`; with the screen all `&41` and then all `&5A`,
   in MODE 7 and in MODE 1, every one of 64 reads of `&8008` gave the screen's byte (`&41`x64, `&5A`x64, both modes).
-  jsbeeb 2.18.0: `&00`x64 every time. So the empty socket reads the video's last byte, as Tom said.
+  jsbeeb 2.18.0: `&00`x64 every time. So the empty socket reads the video's last byte, as Tom said. The issue drafted
+  2026-11-18, FLOAT inline; kit #20's gotcha still says "not measured" for this.
 - **Every boot keeps the same time**: the disc turns from power-on in step with the fields, near enough, and every
   load waits for it, so a delay before a load is lost: two boots 80,000 cycles apart at `!BOOT`'s start reached
   SPRINT on the same cycle. A real drive's turning has nothing to do with the video. `tools/seed_check.mjs` turns
