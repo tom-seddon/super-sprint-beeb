@@ -276,8 +276,13 @@ and the manual can be wrong, so "to measure" where it matters. The answers to th
   interrupt status but interrupts "may be enabled during the call" (J.11-2 to J.11-11, D.4-1, D.5-1, D.7-1). The I
   flag after a load doesn't show the load ran masked; Acorn's DFS may, as a fact of that DFS. **MEASURED** (jsbeeb
   2.18.0, an IRQ1V counter, SEI, OSFILE loading TRACKC's 13K): the 1770 DFS took no interrupt, on the Model B's 1770
-  model and the Master; ADFS took 3; DFS 1.2 on the 8271 took 137, the whole load unmasked. So "masked" holds for the
-  1770 DFS alone. MMFS not tried (jsbeeb hasn't it).
+  model and the Master; ADFS took 3; DFS 1.2 on the 8271 took 137. So "masked" holds for the 1770 DFS alone. MMFS
+  not tried (jsbeeb hasn't it). Why (MEASURED 2026-11-18, the interrupted address read off the stack): DFS 1.2's wait
+  loop at `&AB6C` and ADFS's at `&832A` are each `PHP : CLI : PLP`, then `BIT` a flag (`&FF`, `&CD`) and back, a
+  one-instruction window a pass; DFS 1.2's runs only while it waits for the drive (136 with the motor stopped, none
+  with it running, which is presumably why the kit's own test saw none); ADFS's 2 either way. The kit's third PR,
+  drafted 2026-11-18 (branch `master-loads` on tom-seddon/beeb-port-kit, fa756ab), with OSFILE's save, ADFS's disc
+  id and the flash.
 - **FDRIVE** (1090-1093: CMOS byte 11 bits 1-0, 6/12/20/30 ms on a 1770, 6/12/2/3 on a 1772): C.5-4 gives values
   0-7, 6 ms on both for 0, 1, 4, 5 and 30 ms (1770) or 3 ms (1772) for 2, 3, 6, 7, the odd ones without ADFS's
   precompensation. The kit's figures are the 177x's own step bits. **MEASURED** (jsbeeb 2.18.0, `*CONFIGURE FDRIVE n`,
