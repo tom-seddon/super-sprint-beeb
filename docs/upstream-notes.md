@@ -160,7 +160,8 @@ The recipe (`beeb-baron`'s `hardware.md` §2 step 2 and §7: for X = 15 down to 
 compare) calls a bank RAM when its second read differs from its first, not when it reads back what was written, and
 runs while MODE 7's boot screen is up. Tom (2026-11-09): the Master's data bus isn't buffered, so an empty socket
 reads the last byte the video read: a space mostly, a letter of the banner now and then, so the two reads can
-differ and an empty socket pass. On a stock Master bank 8 is such a socket, and was probed first here. Tom's one
+differ and an empty socket pass. On a stock Master bank 8 is such a socket, and was probed first here. (MEASURED since,
+2026-11-18: `tools/hwtests/float.bas` on Tom's Master read the screen's byte from bank 8 every time; jsbeeb `&00`.) Tom's one
 boot that printed "Loading" and then characters 128-255 and hung (2026-11-09) fits a bank 8 taken for RAM, but it
 isn't proven: jsbeeb's empty socket reads 0 every time, and 770 jsbeeb boots with junk RAM and the disc's timing
 moved (`tools/seed_check.mjs`) all ran. Fixed here: banks 7 to 0 only (8-15 are the Master's ROMs), probed with
@@ -238,8 +239,10 @@ slower loads showed up there before anyone knew why. Tool gaps only:
     an execute stop it reads the code being run.
 - **Empty sockets and the floating bus**: an empty ROM socket reads 0 in jsbeeb (2.18.0, Master: bank 8 checked),
   where a real Master reads the last byte the video read (Tom, 2026-11-09), so a probe fooled by that (see the
-  kit's "Finding sideways RAM") can't be seen there. `tools/hwtests/float.bas` reads bank 8 with the screen filled, for Tom's Master
-  (jsbeeb 2.18.0: `&00` every time), before a request is drafted.
+  kit's "Finding sideways RAM") can't be seen there. `tools/hwtests/float.bas` reads bank 8 with the screen filled. **MEASURED on Tom's
+  Master 128** (2026-11-18, photographed): bank 8's ROM-table byte `&0`; with the screen all `&41` and then all `&5A`,
+  in MODE 7 and in MODE 1, every one of 64 reads of `&8008` gave the screen's byte (`&41`x64, `&5A`x64, both modes).
+  jsbeeb 2.18.0: `&00`x64 every time. So the empty socket reads the video's last byte, as Tom said.
 - **Every boot keeps the same time**: the disc turns from power-on in step with the fields, near enough, and every
   load waits for it, so a delay before a load is lost: two boots 80,000 cycles apart at `!BOOT`'s start reached
   SPRINT on the same cycle. A real drive's turning has nothing to do with the video. `tools/seed_check.mjs` turns

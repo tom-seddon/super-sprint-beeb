@@ -28,3 +28,4 @@ Results, Tom's Master 128, 2026-11-18 (photographed): IRRTEST 0 IRQs with IRR cl
 `&88` (jsbeeb: 0 and 0); IRRLVL 10, so a level held while IRR is set (jsbeeb 0); ETEST the same as jsbeeb line for line, E
 ignored while Y is set. `docs/upstream-notes.md`
 has them in full.
+FLOAT: bank 8 read the screen's byte 64 times of 64, `&41` and `&5A`, in MODE 7 and MODE 1 (jsbeeb `&00`).
