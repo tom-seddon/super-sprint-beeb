@@ -837,7 +837,7 @@ the game assumes 4 banks free, I think it's OK for the tool to assume 4 banks fr
 So: `MERGE` on time attack's discs, built in the brief's steps.
 
 
-### D58. Fire in the demo starts that car's game at once: Proposed (2026-11-20)
+### D58. Fire in the demo starts that car's game at once: Decided (2026-11-20)
 Tom, 2026-11-20, on release 3f0d853 on his Master: a tap of accelerate during the demo race gave the bare track for a
 while, then "Loading" and the credits: "What I'd expect to happen is for things to load, then the start game flow to
 commence", and "It should really go immediately to the Loading screen." On the ST fire ends the demo (`F_00D1FA`) and
@@ -848,3 +848,5 @@ kept (`GmDemoFire`, the first of 0-2 with fire, as the wait's order), and its ga
 wait (`game_resume.attract`). A demo that ends on its own still has the wait, and the credits after it. Not the ST to
 the letter: there a press let go before the wait's first read (how soon that comes isn't measured on the ST) still
 gives the wait and the credits.
+Tom, 2026-11-20, having seen it: "Looks good"; and on the release at 8abc1ca, tried on his Master: "I've tested
+build 8abc1 and it looks good".
