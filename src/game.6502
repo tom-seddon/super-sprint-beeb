@@ -213,6 +213,10 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
 
     JSR save_game                       ; (the generator, the phase, the sparks and what the demo did to the cars)
     LDX GmDemoTrack:LDA NextTrack,X:STA GmDemoTrack
+    LDX GmDemoFire:BEQ @+               ; fire ended the demo: that car's game, at once (logic_frame.demo_fire)
+    DEX
+    JMP game
+.@
     LDA #150:JSR wait                   ; (the race's last frame stays up, as on the ST)
     LDA #'F' - '0':STA LoadWant
     JMP load_go                         ; (back here through game_go)
@@ -262,6 +266,7 @@ ASSERT LO(HudAddr) == 0, "the screen's clearing: whole pages"
         STZ GmScore + c * 6 + 5
     NEXT
     LDA #1:STA GmDemo
+    STZ GmDemoFire
     LDA GmDemoTrack:STA GmTrack
     INC A:STA LoadWant
     JMP load_go

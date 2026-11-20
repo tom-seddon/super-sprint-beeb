@@ -836,3 +836,15 @@ scrolling transcript, the OS's text, `*` commands and errors. Tom: "Yes, sounds 
 the game assumes 4 banks free, I think it's OK for the tool to assume 4 banks free too".
 So: `MERGE` on time attack's discs, built in the brief's steps.
 
+
+### D58. Fire in the demo starts that car's game at once: Proposed (2026-11-20)
+Tom, 2026-11-20, on release 3f0d853 on his Master: a tap of accelerate during the demo race gave the bare track for a
+while, then "Loading" and the credits: "What I'd expect to happen is for things to load, then the start game flow to
+commence", and "It should really go immediately to the Loading screen." On the ST fire ends the demo (`F_00D1FA`) and
+the 150 VBLs' wait after it (`F_0140F0`) starts a game on fire held: read straight after, so a tap is still held and
+its game starts. Here that read is 4.7 fields after the one that ended the demo (MEASURED, jsbeeb: `game_go`'s copies
+and the save between), so a tap missed it, and the wait ran its 3 s. Proposed: the car whose fire ended the demo
+kept (`GmDemoFire`, the first of 0-2 with fire, as the wait's order), and its game started as the wait would, with no
+wait (`game_resume.attract`). A demo that ends on its own still has the wait, and the credits after it. Not the ST to
+the letter: there a press let go before the wait's first read (how soon that comes isn't measured on the ST) still
+gives the wait and the credits.

@@ -103,6 +103,8 @@ IF GenTimeAttack
 .TgOn                                   ; and 1: the track's screen up, or to come back to after the race (D50,
                                         ; tagame.6502); 0 the menu
 ELSE
+.GmDemoFire                             ; the car whose fire ended the demo, + 1 (0 none): its game starts at once
+    SKIP 1
 .GmDemoTrack                            ; its next track
 ENDIF
     SKIP 1

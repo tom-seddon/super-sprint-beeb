@@ -12,7 +12,7 @@
 // Usage (from the repo root, after make game): node tools/attract_check.mjs [DEMOS]   (default 3)
 
 import { readFileSync } from "node:fs";
-import { bootDisc, cycles, ram, runToAny, symbols } from "./jsbeeb.mjs";
+import { andy, bootDisc, cycles, ram, runToAny, symbols } from "./jsbeeb.mjs";
 
 const Demos = Number(process.argv[2] ?? 3), Slack = 8, Field = 39936;
 const Tracks = [0, 2, 6, 5, 1, 4, 7, 3];   // G_01D148, from track 1
@@ -94,15 +94,30 @@ while (demo < Demos) {
     before = now;
 }
 
-// fire ends a demo at once (F_00D1FA, at each frame's end), and the attract mode goes on from there
+// fire ends a demo at once (F_00D1FA, at each frame's end), and that car's game starts: the ST's wait after the demo
+// reads fire straight after, a tap still held, where this one's read comes too late for it (logic_frame.demo_fire).
+// Car 1's fire, a field long: at once, no wait and no credits, then the select with car 1 the human
 const banktrace = ram(s, 2, 1)[0];
 await runToAny(s, [[G("records"), bankbg]], 400000000);
 await runToAny(s, [[G("demo"), bankbg]], 400000000);
 for (let f = 0; f < 200; f++) await runToAny(s, [[syms["logic_frame.demo_fire"], banktrace]], 8000000);
 const at = s.readMemory(syms.LfFrame, 2), frame = at[0] | (at[1] << 8);
+s.writeMemory(syms.RcInput + 1, [0x80]);    // (ANDY's paged in, the logic's)
 s._machine.processor.a = 0x80;
-await runToAny(s, [[G("credits_shown"), bankbg]], 400000000);
-if (frame > 210) say(`fire at frame ${frame}`); else console.log(`fire ended the demo at frame ${frame}`);
+const fired = cycles(s);
+const next = await runToAny(s, [[G("game"), bankbg], [G("credits_shown"), bankbg]], 400000000);
+const after = (cycles(s) - fired) / Field;
+if (frame > 210) say(`fire at frame ${frame}`);
+if (next !== G("game")) say("fire in the demo: the credits, not a game");
+else {
+    const car = s._machine.processor.x;
+    if (car !== 1) say(`fire in the demo: car ${car}'s game, not car 1's`);
+    if (after > 10) say(`fire in the demo: the game ${after.toFixed(1)} fields on`);
+    await runToAny(s, [[G("selected"), bankbg]], 1600000000);
+    const drones = [...andy(s, syms.RcDrone, 3)];
+    if (drones[1] !== 0 || drones[0] === 0 || drones[2] === 0) say(`after the select, the drones ${drones}, not car 1 the human`);
+    else console.log(`fire ended the demo at frame ${frame}, car 1's game ${after.toFixed(1)} fields on, car 1 the human after the select`);
+}
 
 // a demo's end, each screen's parity (logic frames 200 and 201, poked): the wait after it shows the race's last frame
 // or the one before, cars and all, never the bare track (the cars erased from the screen not shown, then the main one

@@ -1162,3 +1162,17 @@ from a pre-filled link (his token can't fork or open them): the kit's #17-#22 (t
 kit's own oracles before and after, and `lib/test/ddrb_test.mjs`, seen failing), jsbeeb #1885-#1888, jsbeeb-mcp
 #68-#69, beeb-baron #1. All six kit branches merge cleanly together. Hatari's dropped (Tom). Found on the way: macOS's
 make 3.81 can't do the kit template's `make master`.
+
+## 2026-11-20: a tap in the demo, and the bare track after a race
+
+On the branch `demo-fire`. Tom, on release 3f0d853 on his Master: accelerate tapped in the demo race gave the track
+without its cars for a while, then "Loading" and the credits, not a game. Two faults, both seen in jsbeeb. **The bare
+track**: at a frame's top the loop erased the cars from the screen not shown, then saw `LoadWant` and went to `game_go`,
+which shows the main screen: when the last frame was on shadow, main was the one just erased. Half of all race ends,
+by parity; in a demo the wait after it shows that for 3 s. The check of `LoadWant` now comes before the erase, so
+either screen holds the last frame or the one before, cars and all. **The tap**: fire ends the demo, as on the ST, but
+the wait that starts a game on fire read it 4.7 fields later (MEASURED: `game_go`'s copies, the save), a tap long gone,
+so the wait ran its 3 s and the credits came. Now the car whose fire ended the demo is kept and its game starts at once
+(D58, Proposed). `tools/attract_check.mjs` checks both (a demo's end poked at logic frames 200 and 201, the wait's
+screen against the clean background; car 1's fire, its game and the select), and failed on both before the fix
+(the credits, not a game; 0 bytes drawn on one parity).

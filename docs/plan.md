@@ -783,6 +783,7 @@ Worth noting, not needed for a first release (Tom, 2026-11-16).
 | D55 | Time attack's tunes and SCORES | Decided (Tom, 2026-11-12): no tunes, room kept for front-end sound effects; SCORES the keys and sound alone |
 | D56 | Time attack's menu's key hint | Decided (Tom, 2026-11-14): `F1 OPTIONS` in white at the screen's very corner, on the menu alone |
 | D57 | Time attack's scores and ghosts merger | Decided (Tom, 2026-11-15): `MERGE` on time attack's discs, a `*` prompt before the read and the write, the best 10 of both, the faster ghost |
+| D58 | Fire in the demo | Proposed (2026-11-20): the car whose fire ended the demo kept, its game started at once, no wait |
 
 ## Risks
 

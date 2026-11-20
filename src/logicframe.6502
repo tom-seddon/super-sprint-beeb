@@ -217,6 +217,13 @@ ENDIF
         LDA RcInput:ORA RcInput+1:ORA RcInput+2
     .demo_fire                          ; (tools/attract_check.mjs)
         TAY:BPL count
+        LDX #0                          ; the first car with fire held, as the wait's (game_resume.fire): on the ST
+    .who                                ; the wait after the demo reads it straight after, a tap still held, and
+        LDA RcInput,X:BMI @+            ; its game starts; here that read is 4.7 fields on, after game_go: too late
+        INX
+        CPX #2:BNE who                  ; (car 2 if neither 0 nor 1)
+    .@
+        INX:STX GmDemoFire
     .ended
         LDA #&FF:STA LoadWant
     ENDIF
