@@ -597,7 +597,10 @@ adds the logic.
   SHA-256s the same as `make discs` and `make release` here; Tom tried it. Then, with MERGE's `*MOUNT` reminder
   (below), `main` and `ci-build` pushed at 3f0d853: release `super-sprint-20261117-1106-3f0d8` (run 44070992130,
   Hatari from the cache), its six SHA-256s again the same as here; Tom to test it (he'd tried 3499f3f's). Any faults
-  fixed and released again; a good one is the first release. Meanwhile the post-release items (`At the end of the
+  fixed and released again; a good one is the first release. Tom found two in the demo on his Master, fixed (D58,
+  `JOURNAL.md` 2026-11-20): `main` and `ci-build` pushed at 8abc1ca, release `super-sprint-20261120-2241-8abc1` (run
+  44833192405). **The first release is 8abc1** (Tom, 2026-11-20: "I've tested build 8abc1 and it looks good. This is
+  going to be the official first release."). Meanwhile the post-release items (`At the end of the
   project`, below), started 2026-11-17 on the branch `upstream-review` (Tom: "I don't think there'll be enough to go
   wrong to interfere with doing this post-build stuff").
   - MERGE's prompts, `*MOUNT` on ADFS: on the branch `merge-mount` (tried on Tom's Master, floppies, 2026-11-17: "Looks
