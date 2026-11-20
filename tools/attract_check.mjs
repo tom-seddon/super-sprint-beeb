@@ -104,5 +104,25 @@ s._machine.processor.a = 0x80;
 await runToAny(s, [[G("credits_shown"), bankbg]], 400000000);
 if (frame > 210) say(`fire at frame ${frame}`); else console.log(`fire ended the demo at frame ${frame}`);
 
+// a demo's end, each screen's parity (logic frames 200 and 201, poked): the wait after it shows the race's last frame
+// or the one before, cars and all, never the bare track (the cars erased from the screen not shown, then the main one
+// shown: Tom's Master, 2026-11-20). Against the clean background, read from the bank as the race ends
+for (const k of [200, 201]) {
+    const t = await bootDisc("build/game.ssd");
+    await runToAny(t, [[syms["game_resume.idle"]]], 80000000);
+    await runToAny(t, [[G("demo"), bankbg]], 1600000000);
+    for (let f = 0; f < k; f++) await runToAny(t, [[syms["logic_frame.demo_fire"], banktrace]], 8000000);
+    const last = ram(t, syms.acccon, 1)[0] & 1 ? "main" : "shadow";   // (not drawn yet: it goes to the screen not shown)
+    const clean = t.readMemory(syms.PlayAddr + 0x4000, syms.PlayBytes, { bank: bankbg });
+    t.writeMemory(syms.LoadWant, [0xff]);
+    t._machine.processor.a = 0;
+    for (let i = 0; i < 51; i++) await runToAny(t, [[G("idle"), bankbg]], 400000000);
+    const shown = ram(t, syms.PlayAddr, syms.PlayBytes, (ram(t, syms.acccon, 1)[0] & 1) === 1);
+    let drawn = 0;
+    for (let i = 0; i < syms.PlayBytes; i++) if (shown[i] !== clean[i]) drawn++;
+    if (drawn < 32) say(`a demo's end with its last frame on ${last}: the bare track in the wait (${drawn} bytes drawn)`);
+    else console.log(`a demo's end with its last frame on ${last}: the wait shows the cars (${drawn} bytes drawn)`);
+}
+
 console.log(bad ? `${bad} wrong` : `the attract mode's order and times right, ${Demos} demos' generator exact`);
 process.exit(bad ? 1 : 0);
